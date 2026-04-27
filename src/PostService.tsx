@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { MapPin, ChevronDown, Image as ImageIcon, Search, X, Plus } from 'lucide-react';
+import { ChevronDown, Image as ImageIcon, Search, X, Plus } from 'lucide-react';
+import LocationIcon from './LocationIcon';
 import { Link, useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, push, set } from 'firebase/database';
@@ -532,7 +533,7 @@ const PostService = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col items-center">
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center mb-8">
         <Link to="/" className="flex items-center">
-          <MapPin className="text-primary w-6 h-6 mr-1" />
+          <LocationIcon className="w-6 h-6 mr-1" />
           <span className="text-xl font-bold tracking-tight text-white">igspace</span>
         </Link>
         <CurrentUserAvatar size="sm" />

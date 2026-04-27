@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import {
-  MapPin,
   Search,
   MessageCircle,
   Bell,
@@ -8,6 +7,7 @@ import {
   Star,
   X
 } from 'lucide-react';
+import LocationIcon from './LocationIcon';
 import { CurrentUserAvatar } from './UserAvatar';
 
 const categories = [
@@ -127,7 +127,7 @@ const BuyerSearchFiltered = () => {
         <div className="flex items-center flex-1">
           {/* Logo */}
           <Link to="/" className="flex items-center mr-10 shrink-0">
-            <MapPin className="text-primary w-6 h-6 mr-1" />
+            <LocationIcon className="w-6 h-6 mr-1" />
             <span className="text-2xl font-bold tracking-tight text-white">igspace</span>
           </Link>
           
@@ -267,7 +267,7 @@ const BuyerSearchFiltered = () => {
               
               {/* Location */}
               <div className="flex items-center text-slate-400 text-xs mb-3">
-                <MapPin className="w-3 h-3 mr-1.5 shrink-0" />
+                <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
                 {listing.location}
               </div>
               

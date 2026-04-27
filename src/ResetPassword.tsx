@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin } from 'lucide-react';
+import LocationIcon from './LocationIcon';
 import { Link } from 'react-router-dom';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from './firebase';
@@ -31,7 +31,7 @@ const ResetPassword = () => {
   return (
     <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">
       <div className="w-full max-w-7xl flex items-center mb-16 lg:mb-32">
-        <MapPin className="text-primary w-6 h-6 mr-1" />
+        <LocationIcon className="w-6 h-6 mr-1" />
         <span className="text-xl font-bold tracking-tight text-white">igspace</span>
       </div>
 

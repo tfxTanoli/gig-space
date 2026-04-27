@@ -1,5 +1,6 @@
-import { MapPin, ArrowRight, ShieldCheck, Zap, Globe, Scale, Heart, Users } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Zap, Globe, Scale, Heart, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import LocationIcon from './LocationIcon';
 
 const values = [
   {
@@ -40,7 +41,7 @@ const AboutUs = () => {
       {/* Header */}
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
         <div className="flex items-center">
-          <MapPin className="text-primary w-6 h-6 mr-1" />
+          <LocationIcon className="w-6 h-6 mr-1" />
           <span className="text-xl font-bold tracking-tight text-white">igspace</span>
         </div>
         <nav className="flex items-center space-x-6 text-sm font-medium">

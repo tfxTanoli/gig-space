@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { MapPin, ArrowRight, UserPlus, Share2, DollarSign, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, UserPlus, Share2, DollarSign, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import LocationIcon from './LocationIcon';
 
 const faqs = [
   {
@@ -58,7 +59,7 @@ const AffiliateLanding = () => {
       {/* Header */}
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
         <Link to="/" className="flex items-center">
-          <MapPin className="text-primary w-6 h-6 mr-1" />
+          <LocationIcon className="w-6 h-6 mr-1" />
           <span className="text-xl font-bold tracking-tight text-white">igspace</span>
         </Link>
         <nav className="flex items-center space-x-6 text-sm font-medium">

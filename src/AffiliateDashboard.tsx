@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  MapPin,
   Home,
   DollarSign,
   Settings,
@@ -9,6 +8,7 @@ import {
   Search,
   Bell,
 } from 'lucide-react';
+import LocationIcon from './LocationIcon';
 import { CurrentUserAvatar } from './UserAvatar';
 import { useAuth } from './AuthContext';
 
@@ -30,7 +30,7 @@ const AffiliateDashboard = () => {
         {/* Logo */}
         <div className="h-16 flex items-center px-6">
           <Link to="/" className="flex items-center">
-            <MapPin className="text-primary w-6 h-6 mr-1" fill="currentColor" />
+            <LocationIcon className="w-6 h-6 mr-1" />
             <span className="text-xl font-bold tracking-tight text-white">igspace</span>
           </Link>
         </div>

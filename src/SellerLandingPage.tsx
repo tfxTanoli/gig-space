@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { MapPin, ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircle2 } from 'lucide-react';
+import LocationIcon from './LocationIcon';
 import { Link } from 'react-router-dom';
 
 const features = [
@@ -50,7 +51,7 @@ const SellerLandingPage = () => {
       {/* Header */}
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
         <div className="flex items-center">
-          <MapPin className="text-primary w-6 h-6 mr-1" />
+          <LocationIcon className="w-6 h-6 mr-1" />
           <span className="text-xl font-bold tracking-tight text-white">igspace</span>
         </div>
         <nav className="flex items-center space-x-6 text-sm font-medium">

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  MapPin, MessageCircle, Bell, ChevronLeft, ChevronRight,
+  MessageCircle, Bell, ChevronLeft, ChevronRight,
   Bookmark, Star, ArrowLeft, ArrowRight,
 } from 'lucide-react';
+import LocationIcon from './LocationIcon';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 
 /* ─── Static data ─── */
@@ -98,7 +99,7 @@ const ServiceDetail = () => {
       {/* ── Header ── */}
       <header className="bg-[#0E1422] border-b border-slate-800/70 px-6 py-3.5 flex items-center justify-between">
         <Link to="/" className="flex items-center">
-          <MapPin className="text-primary w-5 h-5 mr-0.5" />
+          <LocationIcon className="w-5 h-5 mr-0.5" />
           <span className="text-xl font-bold tracking-tight text-white">igspace</span>
         </Link>
         <div className="flex items-center gap-5">
@@ -319,7 +320,7 @@ const ServiceDetail = () => {
               {/* Location marker */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-14 h-14 rounded-full border-4 border-blue-500 bg-blue-300/25 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-blue-700" />
+                  <LocationIcon className="w-5 h-5" />
                 </div>
               </div>
               {/* Google label */}

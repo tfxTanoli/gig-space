@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  MapPin,
   Home,
   Edit3,
   Tag,
@@ -13,6 +12,7 @@ import {
   Search,
   Bell,
 } from 'lucide-react';
+import LocationIcon from './LocationIcon';
 import { CurrentUserAvatar } from './UserAvatar';
 
 const navItems = [
@@ -37,7 +37,7 @@ const AdminDashboard = () => {
         {/* Logo */}
         <div className="h-16 flex items-center px-6">
           <Link to="/" className="flex items-center gap-0.5">
-            <MapPin className="text-primary w-6 h-6" fill="currentColor" />
+            <LocationIcon className="w-6 h-6" />
             <span className="text-xl font-bold tracking-tight text-white">igspace</span>
           </Link>
         </div>
