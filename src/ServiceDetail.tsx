@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, Bell, ChevronLeft, ChevronRight,
   Bookmark, Star,
@@ -8,6 +8,7 @@ import LocationIcon from './LocationIcon';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, get } from 'firebase/database';
 import { database } from './firebase';
+import { useAuth } from './AuthContext';
 
 /* ─── Types ─── */
 
@@ -92,11 +93,26 @@ const SocialBtn = ({ color, children }: { color: string; children: ReactNode }) 
 const ServiceDetail = () => {
   const [searchParams] = useSearchParams();
   const postId = searchParams.get('id');
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [post, setPost] = useState<ServicePost | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+
+  const handleContactSeller = () => {
+    if (!post) return;
+    if (!user) { navigate('/signin'); return; }
+    if (user.uid === post.sellerId) return;
+    const params = new URLSearchParams({
+      tab: 'Messages',
+      with: post.sellerId,
+      sellerName: post.sellerName || '',
+      sellerPhoto: post.sellerPhotoURL || '',
+    });
+    navigate(`/buyer-dashboard?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (!postId) { setNotFound(true); setLoading(false); return; }
@@ -267,8 +283,12 @@ const ServiceDetail = () => {
 
           {/* CTA + Bookmark */}
           <div className="flex items-center gap-3 mb-6">
-            <button className="flex-1 bg-primary hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
-              Contact seller
+            <button
+              onClick={handleContactSeller}
+              disabled={!!(user && post && user.uid === post.sellerId)}
+              className="flex-1 bg-primary hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+            >
+              {user && post && user.uid === post.sellerId ? 'Your service' : 'Contact seller'}
             </button>
             <button className="w-10 h-10 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0">
               <Bookmark className="w-4 h-4 text-slate-400" />

@@ -12,12 +12,17 @@ import {
   Search,
   Bell,
   Plus,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { database } from './firebase';
+import ChatMessages from './ChatMessages';
+import { useUnreadMessages } from './useUnreadMessages';
 
 interface ServicePost {
   id: string;
@@ -40,11 +45,204 @@ const categoryLabels: Record<string, string> = {
   home: 'Home Services',
 };
 
+const subcategoryLabels: Record<string, string> = {
+  web_dev: 'Web Development',
+  mobile_dev: 'Mobile App Development',
+  graphic_design: 'Graphic Design',
+  video: 'Video & Animation',
+  writing: 'Content Writing',
+  seo: 'SEO & Marketing',
+  data: 'Data & Analytics',
+  cleaning: 'Cleaning',
+  plumbing: 'Plumbing',
+  electrical: 'Electrical',
+  painting: 'Painting',
+  moving: 'Moving & Delivery',
+  landscaping: 'Landscaping',
+  handyman: 'Handyman',
+};
+
+/* ── Post detail modal ── */
+interface PostModalProps {
+  post: ServicePost;
+  onClose: () => void;
+}
+
+const PostModal = ({ post, onClose }: PostModalProps) => {
+  const [imgIdx, setImgIdx] = useState(0);
+  const images = post.images?.length ? post.images : [];
+
+  const formatPrice = () => {
+    const suffix = post.priceType === 'per_hour' ? '/hr' : '/project';
+    if (post.priceMax) return `$${post.priceMin} – $${post.priceMax}${suffix}`;
+    return `$${post.priceMin}${suffix}`;
+  };
+
+  // Close on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+      {/* Card */}
+      <div
+        className="relative z-10 bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center transition-colors"
+        >
+          <X className="w-4 h-4 text-slate-300" />
+        </button>
+
+        {/* Image carousel */}
+        <div className="relative w-full bg-[#0E1422] rounded-t-2xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+          {images.length > 0 ? (
+            <>
+              <img
+                src={images[imgIdx]}
+                alt={post.title}
+                className="w-full h-full object-contain"
+              />
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setImgIdx(i => (i === 0 ? images.length - 1 : i - 1))}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-white" />
+                  </button>
+                  <button
+                    onClick={() => setImgIdx(i => (i === images.length - 1 ? 0 : i + 1))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5 text-white" />
+                  </button>
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {images.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setImgIdx(i)}
+                        className={`w-1.5 h-1.5 rounded-full transition-colors ${i === imgIdx ? 'bg-white' : 'bg-white/40'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+              <Edit3 className="w-10 h-10 text-slate-600" />
+              <span className="text-slate-600 text-sm">No images</span>
+            </div>
+          )}
+          {/* Status badge */}
+          <span className={`absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full font-medium ${
+            post.status === 'active'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              : 'bg-slate-800/80 text-slate-400 border border-slate-700'
+          }`}>
+            {post.status === 'active' ? 'Active' : 'Paused'}
+          </span>
+        </div>
+
+        {/* Thumbnail strip */}
+        {images.length > 1 && (
+          <div className="flex gap-2 px-5 pt-3 overflow-x-auto">
+            {images.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => setImgIdx(i)}
+                className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${i === imgIdx ? 'border-blue-500' : 'border-transparent opacity-50 hover:opacity-80'}`}
+              >
+                <img src={img} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Details */}
+        <div className="p-5 space-y-4">
+          {/* Category breadcrumb */}
+          <p className="text-slate-500 text-xs">
+            {categoryLabels[post.category] ?? post.category}
+            {post.subcategory && (
+              <span> / {subcategoryLabels[post.subcategory] ?? post.subcategory}</span>
+            )}
+          </p>
+
+          {/* Title */}
+          <h2 className="text-lg font-bold text-white leading-snug">{post.title}</h2>
+
+          {/* Price + location row */}
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-xl font-bold text-white">{formatPrice()}</span>
+            {(post.primaryLocation || post.offeredRemotely) && (
+              <span className="flex items-center gap-1 text-slate-400 text-sm">
+                <LocationIcon className="w-3.5 h-3.5" />
+                {post.offeredRemotely ? 'Remote / Online' : post.primaryLocation}
+              </span>
+            )}
+          </div>
+
+          {/* Description */}
+          {post.description && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Description</p>
+              <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{post.description}</p>
+            </div>
+          )}
+
+          {/* Meta row */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs text-slate-500">
+            <span>Created {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-1">
+            <Link
+              to="/post-service"
+              className="flex-1 text-center bg-primary hover:bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+            >
+              Edit post
+            </Link>
+            <button
+              onClick={onClose}
+              className="flex-1 text-center bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SellerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('Home');
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<ServicePost | null>(null);
+  const unreadMessages = useUnreadMessages('seller');
 
   const navItems = [
     { name: 'Home', icon: Home },
@@ -84,8 +282,11 @@ const SellerDashboard = () => {
 
   const PostCard = ({ post }: { post: ServicePost }) => (
     <div className="bg-[#111827] border border-slate-800 rounded-xl overflow-hidden flex flex-col hover:border-slate-600 transition-colors">
-      {/* Thumbnail — clickable, opens post detail */}
-      <Link to={`/service-detail?id=${post.id}`} className="block relative w-full aspect-[4/3] bg-[#1A2035] shrink-0 overflow-hidden group">
+      {/* Thumbnail — opens modal */}
+      <button
+        onClick={() => setSelectedPost(post)}
+        className="block relative w-full aspect-[4/3] bg-[#1A2035] shrink-0 overflow-hidden group text-left"
+      >
         {post.images?.[0] ? (
           <img
             src={post.images[0]}
@@ -106,7 +307,7 @@ const SellerDashboard = () => {
         }`}>
           {post.status === 'active' ? 'Active' : 'Paused'}
         </span>
-      </Link>
+      </button>
 
       {/* Card body */}
       <div className="p-4 flex flex-col flex-1">
@@ -145,12 +346,12 @@ const SellerDashboard = () => {
             Edit
           </Link>
           <span className="text-slate-700">·</span>
-          <Link
-            to={`/service-detail?id=${post.id}`}
+          <button
+            onClick={() => setSelectedPost(post)}
             className="text-slate-400 hover:text-white font-medium transition-colors"
           >
             View
-          </Link>
+          </button>
           <span className="text-slate-700 ml-auto">
             {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
@@ -161,6 +362,11 @@ const SellerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
+
+      {/* Post detail modal */}
+      {selectedPost && (
+        <PostModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
 
       {/* Sidebar */}
       <aside className="w-64 bg-[#111827] flex flex-col shrink-0 border-r border-slate-800 hidden md:flex">
@@ -200,6 +406,11 @@ const SellerDashboard = () => {
                 {item.name === 'Posts' && posts.length > 0 && (
                   <span className="ml-auto text-xs bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded-full">
                     {posts.length}
+                  </span>
+                )}
+                {item.name === 'Messages' && unreadMessages > 0 && (
+                  <span className="ml-auto text-[10px] font-bold bg-blue-600 text-white min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
                   </span>
                 )}
               </button>
@@ -338,8 +549,13 @@ const SellerDashboard = () => {
             </div>
           )}
 
+          {/* MESSAGES TAB */}
+          {activeTab === 'Messages' && (
+            <ChatMessages mode="seller" />
+          )}
+
           {/* OTHER TABS */}
-          {activeTab !== 'Home' && activeTab !== 'Posts' && (
+          {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
               <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
             </div>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Home,
   Package,
@@ -14,10 +14,33 @@ import {
 import LocationIcon from './LocationIcon';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
+import ChatMessages from './ChatMessages';
+import { useUnreadMessages } from './useUnreadMessages';
 
 const BuyerDashboard = () => {
   const { userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('Home');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const unreadMessages = useUnreadMessages('buyer');
+
+  // Auto-open Messages tab + target conversation from URL params (?tab=Messages&with=userId)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
+
+  const startChatWith = searchParams.get('with');
+  const startChatWithName = searchParams.get('sellerName') || undefined;
+  const startChatWithPhoto = searchParams.get('sellerPhoto') || undefined;
+
+  const handleStartChatHandled = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('with');
+    next.delete('tab');
+    next.delete('sellerName');
+    next.delete('sellerPhoto');
+    setSearchParams(next, { replace: true });
+  };
 
   const navItems = [
     { name: 'Home', icon: Home },
@@ -66,6 +89,11 @@ const BuyerDashboard = () => {
               >
                 <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-primary' : 'text-slate-400'}`} />
                 {item.name}
+                {item.name === 'Messages' && unreadMessages > 0 && (
+                  <span className="ml-auto text-[10px] font-bold bg-blue-600 text-white min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -125,7 +153,17 @@ const BuyerDashboard = () => {
               </div>
             </div>
           )}
-          {activeTab !== 'Home' && (
+          {activeTab === 'Messages' && (
+            <ChatMessages
+              mode="buyer"
+              startChatWithUserId={startChatWith}
+              startChatWithName={startChatWithName}
+              startChatWithPhoto={startChatWithPhoto}
+              onStartChatHandled={handleStartChatHandled}
+            />
+          )}
+
+          {activeTab !== 'Home' && activeTab !== 'Messages' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
               <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
             </div>

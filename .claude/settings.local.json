@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -v '^$')"
+      "Bash(grep -v '^$')",
+      "Bash(grep -E \"\\\\.tsx$|\\\\.ts$\")"
     ]
   }
 }
