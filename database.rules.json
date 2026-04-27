@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": "auth !== null && auth.uid === $uid"
+      }
+    },
+    "services": {
+      ".read": true,
+      "$postId": {
+        ".write": "auth !== null && (newData.exists() ? newData.child('sellerId').val() === auth.uid : data.child('sellerId').val() === auth.uid)"
+      }
+    }
+  }
+}

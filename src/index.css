@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0E1422;
+  --color-card: #1e293b;
+  --color-primary: #3B82F6;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-white min-h-screen font-sans;
+  }
+}
