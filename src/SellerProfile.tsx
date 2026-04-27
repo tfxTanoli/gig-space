@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -8,16 +8,16 @@ import { useAuth } from './AuthContext';
 
 const SellerProfile = () => {
   const { user } = useAuth();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(user?.displayName ?? '');
   const [username, setUsername] = useState('');
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(user?.photoURL ?? null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 1024 * 1024) {
@@ -40,11 +40,15 @@ const SellerProfile = () => {
     setError('');
 
     try {
-      let photoURL = '';
+      let photoURL = user.photoURL ?? '';
       if (logoFile) {
-        const imgRef = storageRef(storage, `profilePhotos/${user.uid}`);
-        await uploadBytes(imgRef, logoFile);
-        photoURL = await getDownloadURL(imgRef);
+        try {
+          const imgRef = storageRef(storage, `profilePhotos/${user.uid}`);
+          await uploadBytes(imgRef, logoFile);
+          photoURL = await getDownloadURL(imgRef);
+        } catch {
+          // Storage upload failed; fall back to Google photo or empty
+        }
       }
 
       await set(dbRef(database, `users/${user.uid}`), {

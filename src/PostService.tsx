@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ChangeEvent, type KeyboardEvent } from 'react';
 import { ChevronDown, Image as ImageIcon, Search, X, Plus } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import { Link, useNavigate } from 'react-router-dom';
@@ -74,7 +74,7 @@ const PostService = () => {
   const [primaryLocation, setPrimaryLocation] = useState('');
   const [offeredRemotely, setOfferedRemotely] = useState(false);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const remaining = 10 - images.length;
     const toAdd = files.slice(0, remaining);
@@ -91,7 +91,7 @@ const PostService = () => {
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddLanguage = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleAddLanguage = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && languageInput.trim()) {
       e.preventDefault();
       const lang = languageInput.trim();
@@ -100,7 +100,7 @@ const PostService = () => {
     }
   };
 
-  const handleAddExtraLocation = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleAddExtraLocation = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && extraLocationInput.trim()) {
       e.preventDefault();
       const loc = extraLocationInput.trim();

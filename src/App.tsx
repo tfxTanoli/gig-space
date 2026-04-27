@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import Signup from './Signup';
@@ -23,7 +24,7 @@ import WelcomeEmail from './WelcomeEmail';
 import ResetPasswordEmail from './ResetPasswordEmail';
 import PasswordUpdatedEmail from './PasswordUpdatedEmail';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   return user ? <>{children}</> : <Navigate to="/signin" replace />;
 };

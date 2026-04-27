@@ -8,6 +8,7 @@
     },
     "services": {
       ".read": true,
+      ".indexOn": ["sellerId", "createdAt"],
       "$postId": {
         ".write": "auth !== null && (newData.exists() ? newData.child('sellerId').val() === auth.uid : data.child('sellerId').val() === auth.uid)"
       }
