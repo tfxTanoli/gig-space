@@ -30,6 +30,26 @@
         ".read": "auth !== null && auth.uid === $uid",
         ".write": "auth !== null"
       }
+    },
+    "orders": {
+      ".indexOn": ["buyerId", "sellerId"],
+      ".read": "auth !== null && ((query.orderByChild === 'buyerId' && query.equalTo === auth.uid) || (query.orderByChild === 'sellerId' && query.equalTo === auth.uid))",
+      "$orderId": {
+        ".read": "auth !== null && (data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
+        ".write": "auth !== null && (!data.exists() ? newData.child('buyerId').val() === auth.uid : data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)"
+      }
+    },
+    "savedServices": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": "auth !== null && auth.uid === $uid"
+      }
+    },
+    "orderMessages": {
+      "$orderId": {
+        ".read": "auth !== null && (root.child('orders').child($orderId).child('buyerId').val() === auth.uid || root.child('orders').child($orderId).child('sellerId').val() === auth.uid)",
+        ".write": "auth !== null && (root.child('orders').child($orderId).child('buyerId').val() === auth.uid || root.child('orders').child($orderId).child('sellerId').val() === auth.uid)"
+      }
     }
   }
 }

@@ -23,6 +23,8 @@ import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { database } from './firebase';
 import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
+import OrdersTab from './OrdersTab';
+import SettingsTab from './SettingsTab';
 
 interface ServicePost {
   id: string;
@@ -368,8 +370,8 @@ const SellerDashboard = () => {
         <PostModal post={selectedPost} onClose={() => setSelectedPost(null)} />
       )}
 
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#111827] flex flex-col shrink-0 border-r border-slate-800 hidden md:flex">
+      {/* Sidebar — desktop only */}
+      <aside className="w-64 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
           <Link to="/" className="flex items-center">
             <LocationIcon className="w-6 h-6 mr-1" />
@@ -437,28 +439,33 @@ const SellerDashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 flex items-center justify-between px-6 bg-[#0E1422] border-b border-slate-800">
+        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800">
+          {/* Mobile: logo */}
+          <Link to="/" className="flex items-center md:hidden mr-3">
+            <LocationIcon className="w-5 h-5 mr-1" />
+            <span className="text-base font-bold text-white">igspace</span>
+          </Link>
           <div className="flex items-center flex-1">
-            <Search className="w-5 h-5 text-slate-500 mr-3" />
+            <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-500 mr-2 md:mr-3 shrink-0" />
             <input
               type="text"
               placeholder="Search..."
               className="bg-transparent border-none text-sm text-white focus:outline-none w-full max-w-sm placeholder-slate-500"
             />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <button className="text-slate-400 hover:text-white transition-colors">
               <Bell className="w-5 h-5" />
             </button>
-            <div className="w-px h-6 bg-slate-700" />
-            <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-              <Plus className="w-4 h-4" /> New Post
+            <div className="w-px h-6 bg-slate-700 hidden md:block" />
+            <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">
+              <Plus className="w-4 h-4" /> <span className="hidden md:inline">New Post</span>
             </Link>
             <CurrentUserAvatar size="sm" />
           </div>
         </header>
 
-        <main className="flex-1 p-6 flex flex-col">
+        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 flex flex-col">
 
           {/* HOME TAB */}
           {activeTab === 'Home' && (
@@ -554,14 +561,45 @@ const SellerDashboard = () => {
             <ChatMessages mode="seller" />
           )}
 
-          {/* OTHER TABS */}
-          {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && (
+          {/* ORDERS TAB */}
+          {activeTab === 'Orders' && <OrdersTab mode="seller" />}
+
+          {/* SETTINGS TAB */}
+          {activeTab === 'Settings' && <SettingsTab mode="seller" />}
+
+          {/* OTHER TABS (Statements, Payouts) */}
+          {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
               <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
             </div>
           )}
         </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-[#111827] border-t border-slate-800 flex items-center z-40">
+        {navItems.map((item) => {
+          const isActive = activeTab === item.name;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.name}
+              onClick={() => setActiveTab(item.name)}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 relative transition-colors ${
+                isActive ? 'text-primary' : 'text-slate-500'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{item.name}</span>
+              {item.name === 'Messages' && unreadMessages > 0 && (
+                <span className="absolute top-1.5 right-1/4 translate-x-1/2 text-[9px] font-bold bg-blue-600 text-white min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 };

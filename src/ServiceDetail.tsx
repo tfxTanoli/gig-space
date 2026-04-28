@@ -9,6 +9,7 @@ import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, get } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
+import { useSavedServices } from './useSavedServices';
 
 /* ─── Types ─── */
 
@@ -93,23 +94,29 @@ const SocialBtn = ({ color, children }: { color: string; children: ReactNode }) 
 const ServiceDetail = () => {
   const [searchParams] = useSearchParams();
   const postId = searchParams.get('id');
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigate = useNavigate();
 
+  const { isSaved, toggleSave } = useSavedServices();
   const [post, setPost] = useState<ServicePost | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
 
+  const isOwnService = !!(user && post && user.uid === post.sellerId);
+
   const handleContactSeller = () => {
     if (!post) return;
     if (!user) { navigate('/signin'); return; }
-    if (user.uid === post.sellerId) return;
+    if (isOwnService) return;
     const params = new URLSearchParams({
       tab: 'Messages',
       with: post.sellerId,
       sellerName: post.sellerName || '',
       sellerPhoto: post.sellerPhotoURL || '',
+      serviceId: post.id,
+      serviceTitle: post.title,
+      serviceImage: post.images?.[0] || '',
     });
     navigate(`/buyer-dashboard?${params.toString()}`);
   };
@@ -281,19 +288,28 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          {/* CTA + Bookmark */}
-          <div className="flex items-center gap-3 mb-6">
-            <button
-              onClick={handleContactSeller}
-              disabled={!!(user && post && user.uid === post.sellerId)}
-              className="flex-1 bg-primary hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors text-sm"
-            >
-              {user && post && user.uid === post.sellerId ? 'Your service' : 'Contact seller'}
-            </button>
-            <button className="w-10 h-10 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0">
-              <Bookmark className="w-4 h-4 text-slate-400" />
-            </button>
-          </div>
+          {/* CTAs */}
+          {isOwnService ? (
+            <div className="mb-6 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-center">
+              <p className="text-slate-400 text-sm">This is your service</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={handleContactSeller}
+                className="flex-1 bg-primary hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+              >
+                Message seller
+              </button>
+              <button
+                onClick={() => post && toggleSave(post.id)}
+                className="w-10 h-10 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
+                title={post && isSaved(post.id) ? 'Remove from saved' : 'Save service'}
+              >
+                <Bookmark className={`w-4 h-4 transition-colors ${post && isSaved(post.id) ? 'fill-primary text-primary' : 'text-slate-400'}`} />
+              </button>
+            </div>
+          )}
 
           <hr className="border-slate-800 mb-5" />
 
@@ -385,7 +401,7 @@ const ServiceDetail = () => {
         </div>
       </main>
 
-      {/* ── Customer Reviews (placeholder until reviews are implemented) ── */}
+      {/* ── Customer Reviews ── */}
       <section className="border-t border-slate-800/60 px-6 lg:px-10 py-10 max-w-6xl mx-auto w-full">
         <h2 className="text-xl font-bold text-white mb-4">Customer Reviews</h2>
         <div className="flex items-center gap-2 mb-2">

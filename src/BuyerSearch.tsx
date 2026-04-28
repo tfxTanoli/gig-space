@@ -5,11 +5,13 @@ import {
   MessageCircle,
   Bell,
   ChevronDown,
+  Bookmark,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, onValue } from 'firebase/database';
 import { database } from './firebase';
+import { useSavedServices } from './useSavedServices';
 
 const categories = [
   "Automotive", "Business", "Graphics & Design", "Home & Garden",
@@ -45,6 +47,7 @@ function formatPrice(post: ServicePost) {
 }
 
 const BuyerSearch = () => {
+  const { isSaved, toggleSave } = useSavedServices();
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -154,52 +157,60 @@ const BuyerSearch = () => {
                 const { prefix, price, suffix } = formatPrice(post);
                 const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
                 return (
-                  <Link
-                    key={post.id}
-                    to={`/service-detail?id=${post.id}`}
-                    className="group block"
-                  >
+                  <div key={post.id} className="group block">
                     {/* Image */}
-                    <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035]">
-                      {post.images?.[0] ? (
-                        <img
-                          src={post.images[0]}
-                          alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-slate-600 text-xs">No image</span>
-                        </div>
-                      )}
+                    <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+                      <Link to={`/service-detail?id=${post.id}`} className="block w-full h-full">
+                        {post.images?.[0] ? (
+                          <img
+                            src={post.images[0]}
+                            alt={post.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-slate-600 text-xs">No image</span>
+                          </div>
+                        )}
+                      </Link>
+                      {/* Save button */}
+                      <button
+                        onClick={() => toggleSave(post.id)}
+                        className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+                        title={isSaved(post.id) ? 'Remove from saved' : 'Save service'}
+                      >
+                        <Bookmark className={`w-4 h-4 ${isSaved(post.id) ? 'fill-primary text-primary' : 'text-white'}`} />
+                      </button>
                     </div>
 
                     {/* Seller */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
-                      <span className="text-sm font-medium truncate">{post.sellerName}</span>
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
-                      {post.title}
-                    </h3>
-
-                    {/* Location */}
-                    {location && (
-                      <div className="flex items-center text-slate-400 text-xs mb-3">
-                        <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
-                        {location}
+                    <Link to={`/service-detail?id=${post.id}`} className="block">
+                      <div className="flex items-center gap-2 mb-2">
+                        <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
+                        <span className="text-sm font-medium truncate">{post.sellerName}</span>
                       </div>
-                    )}
 
-                    {/* Price */}
-                    <div className="text-sm">
-                      {prefix && <span className="text-slate-400">{prefix} </span>}
-                      <span className="font-bold text-lg">{price}</span>
-                      <span className="text-slate-400 text-xs ml-1">{suffix}</span>
-                    </div>
-                  </Link>
+                      {/* Title */}
+                      <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
+                        {post.title}
+                      </h3>
+
+                      {/* Location */}
+                      {location && (
+                        <div className="flex items-center text-slate-400 text-xs mb-3">
+                          <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
+                          {location}
+                        </div>
+                      )}
+
+                      {/* Price */}
+                      <div className="text-sm">
+                        {prefix && <span className="text-slate-400">{prefix} </span>}
+                        <span className="font-bold text-lg">{price}</span>
+                        <span className="text-slate-400 text-xs ml-1">{suffix}</span>
+                      </div>
+                    </Link>
+                  </div>
                 );
               })}
             </div>
