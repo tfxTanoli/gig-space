@@ -32,8 +32,8 @@
       }
     },
     "orders": {
-      ".indexOn": ["buyerId", "sellerId"],
-      ".read": "auth !== null && ((query.orderByChild === 'buyerId' && query.equalTo === auth.uid) || (query.orderByChild === 'sellerId' && query.equalTo === auth.uid))",
+      ".indexOn": ["buyerId", "sellerId", "serviceId"],
+      ".read": "auth !== null && ((query.orderByChild === 'buyerId' && query.equalTo === auth.uid) || (query.orderByChild === 'sellerId' && query.equalTo === auth.uid) || (query.orderByChild === 'serviceId'))",
       "$orderId": {
         ".read": "auth !== null && (data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
         ".write": "auth !== null && (!data.exists() ? newData.child('buyerId').val() === auth.uid : data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)"
@@ -49,6 +49,29 @@
       "$orderId": {
         ".read": "auth !== null && (root.child('orders').child($orderId).child('buyerId').val() === auth.uid || root.child('orders').child($orderId).child('sellerId').val() === auth.uid)",
         ".write": "auth !== null && (root.child('orders').child($orderId).child('buyerId').val() === auth.uid || root.child('orders').child($orderId).child('sellerId').val() === auth.uid)"
+      }
+    },
+    "reviews": {
+      "$orderId": {
+        ".read": true,
+        "buyerReview": {
+          ".write": "auth !== null && root.child('orders').child($orderId).child('buyerId').val() === auth.uid && !data.exists()"
+        },
+        "sellerReview": {
+          ".write": "auth !== null && root.child('orders').child($orderId).child('sellerId').val() === auth.uid && !data.exists() && root.child('reviews').child($orderId).child('buyerReview').exists()"
+        }
+      }
+    },
+    "userRatings": {
+      "$uid": {
+        ".read": true,
+        ".write": "auth !== null"
+      }
+    },
+    "serviceReviews": {
+      "$serviceId": {
+        ".read": true,
+        ".write": "auth !== null"
       }
     }
   }

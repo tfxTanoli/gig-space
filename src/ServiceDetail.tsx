@@ -6,12 +6,22 @@ import {
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
-import { ref, get } from 'firebase/database';
+import { ref, get, onValue, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
 
 /* ─── Types ─── */
+
+interface ReviewItem {
+  orderId: string;
+  rating: number;
+  text: string;
+  reviewerName: string;
+  reviewerPhoto: string;
+  serviceTitle: string;
+  timestamp: number;
+}
 
 interface ServicePost {
   id: string;
@@ -102,6 +112,8 @@ const ServiceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const isOwnService = !!(user && post && user.uid === post.sellerId);
 
@@ -131,6 +143,60 @@ const ServiceDetail = () => {
   }, [postId]);
 
   useEffect(() => { setActiveImg(0); }, [post?.id]);
+
+  // Real-time reviews listener — primary path: serviceReviews/{serviceId}
+  // Fallback: scan completed orders for this service and read buyerReview entries
+  useEffect(() => {
+    if (!post?.id) return;
+    setReviewsLoading(true);
+
+    // Primary: listen to the denormalized serviceReviews collection
+    const unsub = onValue(
+      ref(database, `serviceReviews/${post.id}`),
+      (snap) => {
+        if (snap.exists()) {
+          const list: ReviewItem[] = Object.entries(
+            snap.val() as Record<string, Omit<ReviewItem, 'orderId'>>
+          ).map(([orderId, r]) => ({ orderId, ...r }));
+          setReviews(list.sort((a, b) => b.timestamp - a.timestamp));
+          setReviewsLoading(false);
+        } else {
+          // Fallback: query completed orders for this service and load their reviews
+          const ordersQ = query(
+            ref(database, 'orders'),
+            orderByChild('serviceId'),
+            equalTo(post.id)
+          );
+          get(ordersQ)
+            .then((ordersSnap) => {
+              if (!ordersSnap.exists()) { setReviews([]); setReviewsLoading(false); return; }
+              const completedIds: string[] = [];
+              ordersSnap.forEach((c) => {
+                if (c.val().status === 'completed') completedIds.push(c.key!);
+              });
+              if (completedIds.length === 0) { setReviews([]); setReviewsLoading(false); return; }
+              Promise.all(
+                completedIds.map((id) => get(ref(database, `reviews/${id}/buyerReview`)))
+              ).then((snaps) => {
+                const list: ReviewItem[] = snaps
+                  .filter((s) => s.exists())
+                  .map((s) => ({
+                    orderId: s.ref.parent!.key!,
+                    ...s.val(),
+                    serviceTitle: post.title,
+                  }));
+                setReviews(list.sort((a, b) => b.timestamp - a.timestamp));
+                setReviewsLoading(false);
+              });
+            })
+            .catch(() => { setReviews([]); setReviewsLoading(false); });
+        }
+      },
+      () => { setReviews([]); setReviewsLoading(false); }
+    );
+
+    return () => unsub();
+  }, [post?.id, post?.title]);
 
   const images = post?.images?.length ? post.images : [];
   const prev = () => setActiveImg((p) => (p === 0 ? images.length - 1 : p - 1));
@@ -403,11 +469,60 @@ const ServiceDetail = () => {
 
       {/* ── Customer Reviews ── */}
       <section className="border-t border-slate-800/60 px-6 lg:px-10 py-10 max-w-6xl mx-auto w-full">
-        <h2 className="text-xl font-bold text-white mb-4">Customer Reviews</h2>
-        <div className="flex items-center gap-2 mb-2">
-          <FilledStars count={0} size={16} />
-          <span className="text-slate-500 text-sm">No reviews yet</span>
-        </div>
+        <h2 className="text-xl font-bold text-white mb-6">Customer Reviews</h2>
+
+        {reviewsLoading ? (
+          <p className="text-slate-500 text-sm">Loading reviews…</p>
+        ) : reviews.length === 0 ? (
+          <div className="flex items-center gap-2">
+            <FilledStars count={0} size={16} />
+            <span className="text-slate-500 text-sm">No reviews yet</span>
+          </div>
+        ) : (
+          <>
+            {/* Summary row */}
+            {(() => {
+              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+              return (
+                <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800/60">
+                  <span className="text-5xl font-bold text-white leading-none">{avg.toFixed(1)}</span>
+                  <div>
+                    <FilledStars count={avg} size={20} />
+                    <p className="text-slate-400 text-sm mt-1">
+                      {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Individual reviews */}
+            <div className="space-y-6">
+              {reviews.map((review) => (
+                <div
+                  key={review.orderId}
+                  className="flex gap-4 pb-6 border-b border-slate-800/50 last:border-0 last:pb-0"
+                >
+                  <UserAvatar photoURL={review.reviewerPhoto} name={review.reviewerName} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-start justify-between gap-2 mb-1.5">
+                      <p className="text-white text-sm font-semibold">{review.reviewerName}</p>
+                      <span className="text-slate-600 text-xs shrink-0">
+                        {new Date(review.timestamp).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                    <FilledStars count={review.rating} size={13} />
+                    {review.text && (
+                      <p className="text-slate-300 text-sm leading-relaxed mt-2">{review.text}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* ── Footer ── */}

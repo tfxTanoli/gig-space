@@ -34,7 +34,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let profileUnsub: (() => void) | null = null;
 
+    // Fallback: if Firebase Auth doesn't resolve within 6s (e.g. blocked by
+    // browser tracking prevention), treat session as unauthenticated so the
+    // app doesn't stay blank forever.
+    const fallback = setTimeout(() => setLoading(false), 6000);
+
     const authUnsub = onAuthStateChanged(auth, (firebaseUser) => {
+      clearTimeout(fallback);
       profileUnsub?.();
       profileUnsub = null;
       setUser(firebaseUser);
@@ -53,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => {
+      clearTimeout(fallback);
       authUnsub();
       profileUnsub?.();
     };
@@ -62,7 +69,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, userProfile, loading, logout }}>
-      {!loading && children}
+      {loading ? (
+        <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-500 text-sm">Loading…</p>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

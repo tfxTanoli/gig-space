@@ -112,6 +112,7 @@ export default function ChatMessages({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const isFirstMsgLoad = useRef(true);
 
   // ── Real-time conversation list ──
@@ -251,6 +252,11 @@ export default function ChatMessages({
     isFirstMsgLoad.current = false;
   }, [messages]);
 
+  const autoResizeInput = (el: HTMLTextAreaElement) => {
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
   /* ── Image helpers ── */
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -314,6 +320,7 @@ export default function ChatMessages({
       });
 
       setInputText('');
+      if (chatInputRef.current) chatInputRef.current.style.height = 'auto';
       clearImage();
       // Clear service context after it's been sent once
       if (serviceContext?.serviceId) {
@@ -1032,13 +1039,14 @@ export default function ChatMessages({
                 )}
 
                 <textarea
+                  ref={chatInputRef}
                   value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
+                  onChange={(e) => { setInputText(e.target.value); autoResizeInput(e.target); }}
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message… (Enter to send)"
-                  className="flex-1 bg-[#0E1422] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5"
+                  className="flex-1 bg-[#0E1422] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   rows={1}
-                  style={{ minHeight: '40px', maxHeight: '120px' }}
+                  style={{ minHeight: '40px' }}
                 />
                 <button
                   onClick={sendMessage}
