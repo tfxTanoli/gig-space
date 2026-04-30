@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Home,
@@ -84,9 +84,6 @@ const BuyerDashboard = () => {
     { name: 'Billing', icon: CreditCard },
     { name: 'Settings', icon: Settings },
   ];
-
-  // useCallback avoids recreating this on every render
-  const handleTabChange = useCallback((tab: string) => setActiveTab(tab), []);
 
   return (
     <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">

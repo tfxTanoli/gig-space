@@ -12,7 +12,7 @@ export function useSavedServices() {
     if (!user) { setSavedIds(new Set()); setLoading(false); return; }
     const unsub = onValue(ref(database, `savedServices/${user.uid}`), (snap) => {
       const ids = new Set<string>();
-      snap.forEach((child) => ids.add(child.key!));
+      snap.forEach((child) => { ids.add(child.key!); });
       setSavedIds(ids);
       setLoading(false);
     });

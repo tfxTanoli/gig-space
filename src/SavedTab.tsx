@@ -36,7 +36,7 @@ const SavedTab = () => {
     if (!user) return;
     const unsub = onValue(ref(database, `savedServices/${user.uid}`), async (snap) => {
       const ids: string[] = [];
-      snap.forEach((child) => ids.push(child.key!));
+      snap.forEach((child) => { ids.push(child.key!); });
 
       if (ids.length === 0) {
         setServices([]);

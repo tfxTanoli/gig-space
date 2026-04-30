@@ -104,7 +104,7 @@ const SocialBtn = ({ color, children }: { color: string; children: ReactNode }) 
 const ServiceDetail = () => {
   const [searchParams] = useSearchParams();
   const postId = searchParams.get('id');
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const { isSaved, toggleSave } = useSavedServices();

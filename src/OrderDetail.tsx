@@ -157,7 +157,7 @@ export default function OrderDetail({
     isFirstLoad.current = true;
     const unsub = onValue(ref(database, `orderMessages/${order.id}`), (snap) => {
       const msgs: OrderMessage[] = [];
-      snap.forEach((child) => msgs.push({ id: child.key!, ...child.val() }));
+      snap.forEach((child) => { msgs.push({ id: child.key!, ...child.val() }); });
       setMessages(msgs.sort((a, b) => a.timestamp - b.timestamp));
     });
     return () => unsub();
