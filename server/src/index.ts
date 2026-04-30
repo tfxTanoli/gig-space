@@ -5,10 +5,21 @@ import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
-admin.initializeApp({
-  databaseURL: process.env.FIREBASE_DATABASE_URL,
-  // Reads GOOGLE_APPLICATION_CREDENTIALS env var automatically
-});
+// In production pass FIREBASE_SERVICE_ACCOUNT_BASE64 (base64-encoded JSON).
+// Locally, GOOGLE_APPLICATION_CREDENTIALS file path is used as fallback.
+if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+  const serviceAccount = JSON.parse(
+    Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8')
+  );
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+  });
+} else {
+  admin.initializeApp({
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+  });
+}
 const db = admin.database();
 
 // ─── Stripe ───────────────────────────────────────────────────────────────────
