@@ -99,54 +99,60 @@ async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) 
 // POST /api/checkout/create-session
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, res: Response) => {
-  const {
-    conversationId, messageId, serviceTitle, serviceId,
-    sellerName, sellerId, offerAmount, priceUnit,
-  } = req.body as {
-    conversationId: string; messageId: string; serviceTitle: string;
-    serviceId: string; sellerName: string; sellerId: string;
-    offerAmount: number; priceUnit: 'per_project' | 'per_hour';
-  };
+  try {
+    const {
+      conversationId, messageId, serviceTitle, serviceId,
+      sellerName, sellerId, offerAmount, priceUnit,
+    } = req.body as {
+      conversationId: string; messageId: string; serviceTitle: string;
+      serviceId: string; sellerName: string; sellerId: string;
+      offerAmount: number; priceUnit: 'per_project' | 'per_hour';
+    };
 
-  if (!conversationId || !messageId || !serviceId || !sellerId || !offerAmount) {
-    res.status(400).json({ error: 'Missing required fields' }); return;
-  }
-  if (offerAmount <= 0) {
-    res.status(400).json({ error: 'Amount must be greater than 0' }); return;
-  }
+    if (!conversationId || !messageId || !serviceId || !sellerId || !offerAmount) {
+      res.status(400).json({ error: 'Missing required fields' }); return;
+    }
+    if (offerAmount <= 0) {
+      res.status(400).json({ error: 'Amount must be greater than 0' }); return;
+    }
 
-  const buyerId = req.uid!;
-  const amountInCents = Math.round(offerAmount * 100);
-  const platformFeeCents = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
-  const sellerAmountCents = amountInCents - platformFeeCents;
+    const buyerId = req.uid!;
+    const amountInCents = Math.round(offerAmount * 100);
+    const platformFeeCents = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
+    const sellerAmountCents = amountInCents - platformFeeCents;
 
-  const description = priceUnit === 'per_hour'
-    ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
-    : `${serviceTitle} — Fixed price (via ${sellerName})`;
+    const description = priceUnit === 'per_hour'
+      ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
+      : `${serviceTitle} — Fixed price (via ${sellerName})`;
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [{
-      price_data: {
-        currency: 'usd',
-        product_data: { name: serviceTitle, description },
-        unit_amount: amountInCents,
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: { name: serviceTitle, description },
+          unit_amount: amountInCents,
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      ui_mode: 'embedded',
+      return_url: `${FRONTEND_URL}/buyer-dashboard?tab=Orders&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      metadata: {
+        buyerId, sellerId, serviceId, conversationId, messageId,
+        offerAmount: String(offerAmount),
+        platformFeePercent: String(PLATFORM_FEE_PERCENT),
+        platformFeeCents: String(platformFeeCents),
+        sellerAmountCents: String(sellerAmountCents),
       },
-      quantity: 1,
-    }],
-    mode: 'payment',
-    ui_mode: 'embedded',
-    return_url: `${FRONTEND_URL}/buyer-dashboard?tab=Orders&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-    metadata: {
-      buyerId, sellerId, serviceId, conversationId, messageId,
-      offerAmount: String(offerAmount),
-      platformFeePercent: String(PLATFORM_FEE_PERCENT),
-      platformFeeCents: String(platformFeeCents),
-      sellerAmountCents: String(sellerAmountCents),
-    },
-  });
+    });
 
-  res.json({ sessionId: session.id, clientSecret: session.client_secret });
+    res.json({ sessionId: session.id, clientSecret: session.client_secret });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/checkout/create-session error:', msg);
+    res.status(500).json({ error: msg });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,138 +161,160 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
 // Creates the order if the webhook hasn't already done so (idempotent).
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/checkout/verify-session', requireAuth, async (req: AuthRequest, res: Response) => {
-  const { sessionId } = req.body as { sessionId: string };
-  if (!sessionId) { res.status(400).json({ error: 'sessionId is required' }); return; }
+  try {
+    const { sessionId } = req.body as { sessionId: string };
+    if (!sessionId) { res.status(400).json({ error: 'sessionId is required' }); return; }
 
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-  // Ensure the authenticated user is the buyer for this session
-  if (session.metadata?.buyerId !== req.uid) {
-    res.status(403).json({ error: 'Forbidden' }); return;
+    if (session.metadata?.buyerId !== req.uid) {
+      res.status(403).json({ error: 'Forbidden' }); return;
+    }
+
+    if (session.payment_status !== 'paid') {
+      res.json({ status: session.payment_status, fulfilled: false }); return;
+    }
+
+    const existing = await db.ref('payments')
+      .orderByChild('stripeSessionId').equalTo(session.id).limitToFirst(1).get();
+    if (existing.exists()) {
+      res.json({ status: 'paid', fulfilled: true, alreadyProcessed: true }); return;
+    }
+
+    await handleCheckoutCompleted(session);
+    res.json({ status: 'paid', fulfilled: true, alreadyProcessed: false });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/checkout/verify-session error:', msg);
+    res.status(500).json({ error: msg });
   }
-
-  if (session.payment_status !== 'paid') {
-    res.json({ status: session.payment_status, fulfilled: false }); return;
-  }
-
-  // Check if already processed by webhook (idempotent guard)
-  const existing = await db.ref('payments')
-    .orderByChild('stripeSessionId').equalTo(session.id).limitToFirst(1).get();
-  if (existing.exists()) {
-    res.json({ status: 'paid', fulfilled: true, alreadyProcessed: true }); return;
-  }
-
-  await handleCheckoutCompleted(session);
-  res.json({ status: 'paid', fulfilled: true, alreadyProcessed: false });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/orders/approve-delivery
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, res: Response) => {
-  const { orderId } = req.body as { orderId: string };
-  if (!orderId) { res.status(400).json({ error: 'orderId is required' }); return; }
+  try {
+    const { orderId } = req.body as { orderId: string };
+    if (!orderId) { res.status(400).json({ error: 'orderId is required' }); return; }
 
-  const orderSnap = await db.ref(`orders/${orderId}`).get();
-  if (!orderSnap.exists()) { res.status(404).json({ error: 'Order not found' }); return; }
+    const orderSnap = await db.ref(`orders/${orderId}`).get();
+    if (!orderSnap.exists()) { res.status(404).json({ error: 'Order not found' }); return; }
 
-  const order = orderSnap.val() as {
-    buyerId?: string; sellerId?: string; status?: string;
-    paymentId?: string; serviceTitle?: string;
-  };
+    const order = orderSnap.val() as {
+      buyerId?: string; sellerId?: string; status?: string;
+      paymentId?: string; serviceTitle?: string;
+    };
 
-  if (order.buyerId !== req.uid) {
-    res.status(403).json({ error: 'Only the buyer can approve delivery' }); return;
-  }
-  if (order.status !== 'delivered') {
-    res.status(400).json({ error: `Order must be 'delivered' (currently '${order.status}')` }); return;
-  }
+    if (order.buyerId !== req.uid) {
+      res.status(403).json({ error: 'Only the buyer can approve delivery' }); return;
+    }
+    if (order.status !== 'delivered') {
+      res.status(400).json({ error: `Order must be 'delivered' (currently '${order.status}')` }); return;
+    }
 
-  const now = Date.now();
-  const updates: Record<string, unknown> = {
-    [`orders/${orderId}/status`]: 'completed',
-    [`orders/${orderId}/completedAt`]: now,
-    [`orders/${orderId}/paymentStatus`]: 'released',
-  };
+    const now = Date.now();
+    const updates: Record<string, unknown> = {
+      [`orders/${orderId}/status`]: 'completed',
+      [`orders/${orderId}/completedAt`]: now,
+      [`orders/${orderId}/paymentStatus`]: 'released',
+    };
 
-  if (order.paymentId) {
-    const paymentSnap = await db.ref(`payments/${order.paymentId}`).get();
-    if (paymentSnap.exists()) {
-      const payment = paymentSnap.val() as {
-        sellerId?: string; sellerAmount?: number; status?: string;
-      };
-      if (payment.status === 'paid' && payment.sellerId && payment.sellerAmount) {
-        const { sellerId, sellerAmount } = payment;
-        updates[`payments/${order.paymentId}/status`] = 'released';
-        updates[`payments/${order.paymentId}/releasedAt`] = now;
-        updates[`wallets/${sellerId}/pendingBalance`]   = admin.database.ServerValue.increment(-sellerAmount);
-        updates[`wallets/${sellerId}/availableBalance`] = admin.database.ServerValue.increment(sellerAmount);
-        updates[`wallets/${sellerId}/lifetimeEarnings`] = admin.database.ServerValue.increment(sellerAmount);
-        updates[`wallets/${sellerId}/updatedAt`] = now;
-        const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
-        updates[`walletTransactions/${sellerId}/${txId}`] = {
-          type: 'payment_received', orderId, paymentId: order.paymentId,
-          amount: sellerAmount,
-          description: `Funds released for "${order.serviceTitle || 'order'}"`,
-          createdAt: now,
+    if (order.paymentId) {
+      const paymentSnap = await db.ref(`payments/${order.paymentId}`).get();
+      if (paymentSnap.exists()) {
+        const payment = paymentSnap.val() as {
+          sellerId?: string; sellerAmount?: number; status?: string;
         };
+        if (payment.status === 'paid' && payment.sellerId && payment.sellerAmount) {
+          const { sellerId, sellerAmount } = payment;
+          updates[`payments/${order.paymentId}/status`] = 'released';
+          updates[`payments/${order.paymentId}/releasedAt`] = now;
+          updates[`wallets/${sellerId}/pendingBalance`]   = admin.database.ServerValue.increment(-sellerAmount);
+          updates[`wallets/${sellerId}/availableBalance`] = admin.database.ServerValue.increment(sellerAmount);
+          updates[`wallets/${sellerId}/lifetimeEarnings`] = admin.database.ServerValue.increment(sellerAmount);
+          updates[`wallets/${sellerId}/updatedAt`] = now;
+          const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
+          updates[`walletTransactions/${sellerId}/${txId}`] = {
+            type: 'payment_received', orderId, paymentId: order.paymentId,
+            amount: sellerAmount,
+            description: `Funds released for "${order.serviceTitle || 'order'}"`,
+            createdAt: now,
+          };
+        }
       }
     }
-  }
 
-  await db.ref().update(updates);
-  res.json({ success: true });
+    await db.ref().update(updates);
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/orders/approve-delivery error:', msg);
+    res.status(500).json({ error: msg });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/connect/link
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Response) => {
-  const sellerId = req.uid!;
-  const returnUrl = `${FRONTEND_URL}/seller-dashboard?tab=Payouts`;
-  const refreshUrl = `${FRONTEND_URL}/seller-dashboard?tab=Payouts&connect_refresh=true`;
+  try {
+    const sellerId = req.uid!;
+    const returnUrl = `${FRONTEND_URL}/seller-dashboard?tab=Payouts`;
+    const refreshUrl = `${FRONTEND_URL}/seller-dashboard?tab=Payouts&connect_refresh=true`;
 
-  const walletSnap = await db.ref(`wallets/${sellerId}/stripeConnectedAccountId`).get();
-  let stripeAccountId: string = walletSnap.val() as string;
+    const walletSnap = await db.ref(`wallets/${sellerId}/stripeConnectedAccountId`).get();
+    let stripeAccountId: string = walletSnap.val() as string;
 
-  if (!stripeAccountId) {
-    const userSnap = await db.ref(`users/${sellerId}`).get();
-    const user = userSnap.val() as { email?: string } | null;
-    const account = await stripe.accounts.create({
-      type: 'express',
-      email: user?.email,
-      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+    if (!stripeAccountId) {
+      const userSnap = await db.ref(`users/${sellerId}`).get();
+      const user = userSnap.val() as { email?: string } | null;
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: user?.email,
+        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+      });
+      stripeAccountId = account.id;
+      await db.ref(`wallets/${sellerId}`).update({
+        stripeConnectedAccountId: stripeAccountId, updatedAt: Date.now(),
+      });
+    }
+
+    const link = await stripe.accountLinks.create({
+      account: stripeAccountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
     });
-    stripeAccountId = account.id;
-    await db.ref(`wallets/${sellerId}`).update({
-      stripeConnectedAccountId: stripeAccountId, updatedAt: Date.now(),
-    });
+
+    res.json({ url: link.url });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/connect/link error:', msg);
+    res.status(500).json({ error: msg });
   }
-
-  const link = await stripe.accountLinks.create({
-    account: stripeAccountId,
-    refresh_url: refreshUrl,
-    return_url: returnUrl,
-    type: 'account_onboarding',
-  });
-
-  res.json({ url: link.url });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/connect/status
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/connect/status', requireAuth, async (req: AuthRequest, res: Response) => {
-  const { stripeAccountId } = req.body as { stripeAccountId: string };
-  if (!stripeAccountId) {
-    res.json({ payoutsEnabled: false, chargesEnabled: false, detailsSubmitted: false }); return;
+  try {
+    const { stripeAccountId } = req.body as { stripeAccountId: string };
+    if (!stripeAccountId) {
+      res.json({ payoutsEnabled: false, chargesEnabled: false, detailsSubmitted: false }); return;
+    }
+    const account = await stripe.accounts.retrieve(stripeAccountId);
+    res.json({
+      payoutsEnabled: account.payouts_enabled,
+      chargesEnabled: account.charges_enabled,
+      detailsSubmitted: account.details_submitted,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/connect/status error:', msg);
+    res.status(500).json({ error: msg });
   }
-  const account = await stripe.accounts.retrieve(stripeAccountId);
-  res.json({
-    payoutsEnabled: account.payouts_enabled,
-    chargesEnabled: account.charges_enabled,
-    detailsSubmitted: account.details_submitted,
-  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -295,61 +323,67 @@ app.post('/api/connect/status', requireAuth, async (req: AuthRequest, res: Respo
 const MINIMUM_WITHDRAWAL = 10;
 
 app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) => {
-  const sellerId = req.uid!;
-  const { amount } = req.body as { amount: number };
+  try {
+    const sellerId = req.uid!;
+    const { amount } = req.body as { amount: number };
 
-  if (!amount || amount < MINIMUM_WITHDRAWAL) {
-    res.status(400).json({ error: `Minimum withdrawal is $${MINIMUM_WITHDRAWAL}` }); return;
+    if (!amount || amount < MINIMUM_WITHDRAWAL) {
+      res.status(400).json({ error: `Minimum withdrawal is $${MINIMUM_WITHDRAWAL}` }); return;
+    }
+
+    const walletSnap = await db.ref(`wallets/${sellerId}`).get();
+    if (!walletSnap.exists()) { res.status(404).json({ error: 'Wallet not found' }); return; }
+
+    const wallet = walletSnap.val() as {
+      availableBalance?: number; stripeConnectedAccountId?: string;
+    };
+    const available = wallet.availableBalance ?? 0;
+
+    if (amount > available) {
+      res.status(400).json({ error: `Insufficient balance. Available: $${available.toFixed(2)}` }); return;
+    }
+
+    const stripeAccountId = wallet.stripeConnectedAccountId;
+    if (!stripeAccountId) {
+      res.status(400).json({ error: 'Connect a Stripe account first' }); return;
+    }
+
+    const account = await stripe.accounts.retrieve(stripeAccountId);
+    if (!account.payouts_enabled) {
+      res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
+    }
+
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      destination: stripeAccountId,
+    });
+
+    const now = Date.now();
+    const withdrawalId = db.ref('withdrawals').push().key!;
+    const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
+
+    await db.ref().update({
+      [`withdrawals/${withdrawalId}`]: {
+        sellerId, amount, stripeTransferId: transfer.id, status: 'paid', createdAt: now,
+      },
+      [`wallets/${sellerId}/availableBalance`]: admin.database.ServerValue.increment(-amount),
+      [`wallets/${sellerId}/totalWithdrawn`]:   admin.database.ServerValue.increment(amount),
+      [`wallets/${sellerId}/updatedAt`]:        now,
+      [`walletTransactions/${sellerId}/${txId}`]: {
+        type: 'withdrawal', orderId: '', paymentId: '',
+        amount: -amount,
+        description: `Withdrawal — $${amount.toFixed(2)}`,
+        createdAt: now,
+      },
+    });
+
+    res.json({ success: true, transferId: transfer.id, withdrawalId });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/withdraw error:', msg);
+    res.status(500).json({ error: msg });
   }
-
-  const walletSnap = await db.ref(`wallets/${sellerId}`).get();
-  if (!walletSnap.exists()) { res.status(404).json({ error: 'Wallet not found' }); return; }
-
-  const wallet = walletSnap.val() as {
-    availableBalance?: number; stripeConnectedAccountId?: string;
-  };
-  const available = wallet.availableBalance ?? 0;
-
-  if (amount > available) {
-    res.status(400).json({ error: `Insufficient balance. Available: $${available.toFixed(2)}` }); return;
-  }
-
-  const stripeAccountId = wallet.stripeConnectedAccountId;
-  if (!stripeAccountId) {
-    res.status(400).json({ error: 'Connect a Stripe account first' }); return;
-  }
-
-  const account = await stripe.accounts.retrieve(stripeAccountId);
-  if (!account.payouts_enabled) {
-    res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
-  }
-
-  const transfer = await stripe.transfers.create({
-    amount: Math.round(amount * 100),
-    currency: 'usd',
-    destination: stripeAccountId,
-  });
-
-  const now = Date.now();
-  const withdrawalId = db.ref('withdrawals').push().key!;
-  const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
-
-  await db.ref().update({
-    [`withdrawals/${withdrawalId}`]: {
-      sellerId, amount, stripeTransferId: transfer.id, status: 'paid', createdAt: now,
-    },
-    [`wallets/${sellerId}/availableBalance`]: admin.database.ServerValue.increment(-amount),
-    [`wallets/${sellerId}/totalWithdrawn`]:   admin.database.ServerValue.increment(amount),
-    [`wallets/${sellerId}/updatedAt`]:        now,
-    [`walletTransactions/${sellerId}/${txId}`]: {
-      type: 'withdrawal', orderId: '', paymentId: '',
-      amount: -amount,
-      description: `Withdrawal — $${amount.toFixed(2)}`,
-      createdAt: now,
-    },
-  });
-
-  res.json({ success: true, transferId: transfer.id, withdrawalId });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
