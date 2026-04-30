@@ -4,7 +4,8 @@
       "Bash(grep -v '^$')",
       "Bash(grep -E \"\\\\.tsx$|\\\\.ts$\")",
       "Bash(find d:\\\\\\\\Fiverr\\\\\\\\gig-space/src -type f -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.jsx\" -o -name \"*.js\")",
-      "Bash(ls -la \"d:\\\\\\\\Fiverr\\\\\\\\gig-space\\\\\\\\src\")"
+      "Bash(ls -la \"d:\\\\\\\\Fiverr\\\\\\\\gig-space\\\\\\\\src\")",
+      "Bash(git rm *)"
     ]
   }
 }
