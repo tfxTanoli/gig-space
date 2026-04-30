@@ -31,6 +31,11 @@ const PLATFORM_FEE_PERCENT = 5;
 
 app.use(cors({ origin: FRONTEND_URL }));
 
+// ─── Health check ────────────────────────────────────────────────────────────
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', message: 'Gigspace backend is running' });
+});
+
 // ── Stripe webhook MUST come before express.json() ───────────────────────────
 app.post(
   '/api/webhook',
