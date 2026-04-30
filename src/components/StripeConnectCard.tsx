@@ -75,9 +75,12 @@ export default function StripeConnectCard() {
             Connect a Stripe account to withdraw your available balance directly to your bank.
           </p>
           {error && (
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-              <p className="text-red-400 text-xs">{error}</p>
+            <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-400 text-xs font-semibold mb-0.5">Connection failed</p>
+                <p className="text-red-300 text-xs leading-relaxed">{error}</p>
+              </div>
             </div>
           )}
           <button

@@ -257,6 +257,34 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/connect/link
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/connect/debug  — returns the raw Stripe error for diagnosis
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/connect/debug', requireAuth, async (_req: AuthRequest, res: Response) => {
+  try {
+    const account = await stripe.accounts.create({
+      controller: {
+        stripe_dashboard: { type: 'express' },
+        fees: { payer: 'application' },
+        losses: { payments: 'application' },
+        requirement_collection: 'stripe',
+      },
+    });
+    // If we get here, immediately delete the test account
+    await stripe.accounts.del(account.id);
+    res.json({ ok: true, message: 'Account creation works correctly' });
+  } catch (err) {
+    const se = err as { type?: string; code?: string; message?: string; statusCode?: number };
+    res.status(200).json({
+      ok: false,
+      type: se.type,
+      code: se.code,
+      message: se.message,
+      statusCode: se.statusCode,
+    });
+  }
+});
+
 app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const sellerId = req.uid!;
@@ -269,18 +297,33 @@ app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Respons
     if (!stripeAccountId) {
       const userSnap = await db.ref(`users/${sellerId}`).get();
       const user = userSnap.val() as { email?: string } | null;
-      // `type` was removed in Stripe API 2024-09-30 (SDK v17 default).
-      // Use `controller` to create an Express-equivalent account.
-      const account = await stripe.accounts.create({
-        controller: {
-          fees: { payer: 'application' },
-          losses: { payments: 'application' },
-          stripe_dashboard: { type: 'express' },
-          requirement_collection: 'stripe',
-        },
-        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-        ...(user?.email ? { email: user.email } : {}),
-      });
+      const email = user?.email;
+
+      let account: Stripe.Account;
+      try {
+        // Stripe API ≥2024-09-30: `type` removed, use `controller` instead
+        account = await stripe.accounts.create({
+          controller: {
+            stripe_dashboard: { type: 'express' },
+            fees: { payer: 'application' },
+            losses: { payments: 'application' },
+            requirement_collection: 'stripe',
+          },
+          ...(email ? { email } : {}),
+        });
+      } catch (primaryErr) {
+        // Log the exact Stripe error for Vercel function logs
+        const se = primaryErr as { type?: string; code?: string; message?: string };
+        console.error('stripe.accounts.create failed:', JSON.stringify({ type: se.type, code: se.code, message: se.message }));
+
+        // Propagate with full details so the frontend can display it
+        const detail = se.message || 'Failed to create Stripe account';
+        const hint = se.type === 'StripeInvalidRequestError'
+          ? ' — Go to Stripe Dashboard → Connect and complete your platform profile.'
+          : '';
+        throw new Error(detail + hint);
+      }
+
       stripeAccountId = account.id;
       await db.ref(`wallets/${sellerId}`).update({
         stripeConnectedAccountId: stripeAccountId, updatedAt: Date.now(),
