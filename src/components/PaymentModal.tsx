@@ -10,7 +10,7 @@ interface EmbeddedCheckout {
 }
 
 interface StripeWithEmbedded {
-  initEmbeddedCheckout: (opts: { clientSecret: string }) => Promise<EmbeddedCheckout>;
+  createEmbeddedCheckoutPage: (opts: { clientSecret: string }) => Promise<EmbeddedCheckout>;
 }
 
 interface PaymentModalProps {
@@ -31,7 +31,7 @@ export default function PaymentModal({ clientSecret, offerAmount, serviceTitle, 
       const stripe = await stripePromise;
       if (!stripe || !active) return;
 
-      const checkout = await (stripe as unknown as StripeWithEmbedded).initEmbeddedCheckout({ clientSecret });
+      const checkout = await (stripe as unknown as StripeWithEmbedded).createEmbeddedCheckoutPage({ clientSecret });
       if (!active) {
         checkout.destroy();
         return;
