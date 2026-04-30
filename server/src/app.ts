@@ -135,8 +135,8 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${FRONTEND_URL}/buyer-dashboard?tab=Orders&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${FRONTEND_URL}/buyer-dashboard?tab=Messages`,
+    ui_mode: 'embedded',
+    return_url: `${FRONTEND_URL}/buyer-dashboard?tab=Orders&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
     metadata: {
       buyerId, sellerId, serviceId, conversationId, messageId,
       offerAmount: String(offerAmount),
@@ -146,7 +146,7 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
     },
   });
 
-  res.json({ sessionId: session.id, url: session.url });
+  res.json({ sessionId: session.id, clientSecret: session.client_secret });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import {
   Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2,
 } from 'lucide-react';
 import { startCheckout } from './stripe/paymentHelpers';
+import PaymentModal from './components/PaymentModal';
 
 /* ── Types ── */
 
@@ -112,6 +113,8 @@ export default function ChatMessages({
   const [sendingOffer, setSendingOffer] = useState(false);
 
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [paymentOffer, setPaymentOffer] = useState<{ amount: number; title: string } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -425,7 +428,7 @@ export default function ChatMessages({
     }
   };
 
-  /* ── Accept offer (buyer) — redirects to Stripe Checkout ── */
+  /* ── Accept offer (buyer) — opens embedded Stripe checkout modal ── */
   const acceptOffer = async (msg: Message) => {
     if (!user || !userProfile || !selectedConvId || !msg.offer) return;
     const conv = conversations.find((c) => c.id === selectedConvId);
@@ -434,7 +437,7 @@ export default function ChatMessages({
 
     setAcceptingOfferId(msg.id);
     try {
-      await startCheckout({
+      const clientSecret = await startCheckout({
         conversationId: selectedConvId,
         messageId: msg.id,
         serviceTitle: msg.offer.serviceTitle,
@@ -445,9 +448,11 @@ export default function ChatMessages({
         priceUnit: msg.offer.priceUnit,
         serviceImage: msg.offer.serviceImage ?? null,
       });
-      // Browser navigates away to Stripe — code below won't run
+      setPaymentClientSecret(clientSecret);
+      setPaymentOffer({ amount: msg.offer.price, title: msg.offer.serviceTitle });
     } catch (err) {
       console.error('Checkout error:', err);
+    } finally {
       setAcceptingOfferId(null);
     }
   };
@@ -464,6 +469,16 @@ export default function ChatMessages({
 
   return (
     <>
+      {/* ── Payment modal (buyer) ── */}
+      {paymentClientSecret && paymentOffer && (
+        <PaymentModal
+          clientSecret={paymentClientSecret}
+          offerAmount={paymentOffer.amount}
+          serviceTitle={paymentOffer.title}
+          onClose={() => { setPaymentClientSecret(null); setPaymentOffer(null); }}
+        />
+      )}
+
       {/* ── Offer modal (seller only) ── */}
       {showOfferModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

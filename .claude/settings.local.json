@@ -5,7 +5,8 @@
       "Bash(grep -E \"\\\\.tsx$|\\\\.ts$\")",
       "Bash(find d:\\\\\\\\Fiverr\\\\\\\\gig-space/src -type f -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.jsx\" -o -name \"*.js\")",
       "Bash(ls -la \"d:\\\\\\\\Fiverr\\\\\\\\gig-space\\\\\\\\src\")",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "PowerShell([Convert]::ToBase64String\\([IO.File]::ReadAllBytes\\(\"d:\\\\Fiverr\\\\gig-space\\\\gigspace-208b4-firebase-adminsdk-fbsvc-c74a5646a8.json\"\\)\\))"
     ]
   }
 }

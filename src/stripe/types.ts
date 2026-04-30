@@ -81,7 +81,7 @@ export interface CreateCheckoutRequest {
 
 export interface CreateCheckoutResponse {
   sessionId: string;
-  url: string;
+  clientSecret: string;
 }
 
 export interface WithdrawRequest {

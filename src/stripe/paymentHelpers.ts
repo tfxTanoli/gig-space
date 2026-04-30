@@ -34,16 +34,16 @@ async function apiFetch<T>(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Creates a Stripe Checkout session and redirects the buyer.
- * Browser navigates away — this function never resolves on success.
+ * Creates a Stripe embedded checkout session and returns the client secret.
+ * The caller mounts the embedded checkout form using this secret.
  */
-export async function startCheckout(payload: CreateCheckoutRequest): Promise<void> {
+export async function startCheckout(payload: CreateCheckoutRequest): Promise<string> {
   const data = await apiFetch<CreateCheckoutResponse>(
     '/api/checkout/create-session',
     payload as unknown as Record<string, unknown>
   );
-  if (!data.url) throw new Error('No checkout URL returned from server.');
-  window.location.href = data.url;
+  if (!data.clientSecret) throw new Error('No client secret returned from server.');
+  return data.clientSecret;
 }
 
 /**
