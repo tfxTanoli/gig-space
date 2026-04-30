@@ -318,8 +318,11 @@ app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Respons
 
         // Propagate with full details so the frontend can display it
         const detail = se.message || 'Failed to create Stripe account';
-        const hint = se.type === 'StripeInvalidRequestError'
-          ? ' — Go to Stripe Dashboard → Connect and complete your platform profile.'
+        // Detect "not signed up for Connect" error specifically
+        const isConnectNotEnabled =
+          typeof detail === 'string' && detail.toLowerCase().includes('signed up for connect');
+        const hint = isConnectNotEnabled
+          ? ' Please visit https://dashboard.stripe.com/connect to enable Connect on your Stripe account.'
           : '';
         throw new Error(detail + hint);
       }

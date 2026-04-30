@@ -79,7 +79,22 @@ export default function StripeConnectCard() {
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-red-400 text-xs font-semibold mb-0.5">Connection failed</p>
-                <p className="text-red-300 text-xs leading-relaxed">{error}</p>
+                <p className="text-red-300 text-xs leading-relaxed">
+                  {error.includes('dashboard.stripe.com/connect') ? (
+                    <>
+                      Your Stripe account is not signed up for Connect.{' '}
+                      <a
+                        href="https://dashboard.stripe.com/connect"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline text-red-200 hover:text-white"
+                      >
+                        Click here to enable it
+                      </a>
+                      , then try again.
+                    </>
+                  ) : error}
+                </p>
               </div>
             </div>
           )}
