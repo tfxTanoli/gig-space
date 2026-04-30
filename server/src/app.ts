@@ -269,10 +269,17 @@ app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Respons
     if (!stripeAccountId) {
       const userSnap = await db.ref(`users/${sellerId}`).get();
       const user = userSnap.val() as { email?: string } | null;
+      // `type` was removed in Stripe API 2024-09-30 (SDK v17 default).
+      // Use `controller` to create an Express-equivalent account.
       const account = await stripe.accounts.create({
-        type: 'express',
-        email: user?.email,
+        controller: {
+          fees: { payer: 'application' },
+          losses: { payments: 'application' },
+          stripe_dashboard: { type: 'express' },
+          requirement_collection: 'stripe',
+        },
         capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+        ...(user?.email ? { email: user.email } : {}),
       });
       stripeAccountId = account.id;
       await db.ref(`wallets/${sellerId}`).update({
