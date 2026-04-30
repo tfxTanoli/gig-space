@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Home,
@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Search,
   Bell,
+  CheckCircle,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import { useAuth } from './AuthContext';
@@ -19,18 +20,32 @@ import { useUnreadMessages } from './useUnreadMessages';
 import OrdersTab from './OrdersTab';
 import SettingsTab from './SettingsTab';
 import SavedTab from './SavedTab';
+import BillingTab from './components/BillingTab';
 
 const BuyerDashboard = () => {
   const { userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('Home');
   const [searchParams, setSearchParams] = useSearchParams();
+  const [paymentSuccessToast, setPaymentSuccessToast] = useState(false);
   const unreadMessages = useUnreadMessages('buyer');
 
-  // Auto-open Messages tab + target conversation from URL params (?tab=Messages&with=userId)
+  // Auto-open the correct tab from URL params
+  // Also detect ?payment_success=true and show a toast
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
-  }, [searchParams]);
+
+    if (searchParams.get('payment_success') === 'true') {
+      setPaymentSuccessToast(true);
+      setTimeout(() => setPaymentSuccessToast(false), 5000);
+      // Clean the URL so a refresh doesn't re-show the toast
+      const next = new URLSearchParams(searchParams);
+      next.delete('payment_success');
+      next.delete('session_id');
+      setSearchParams(next, { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startChatWith = searchParams.get('with');
   const startChatWithName = searchParams.get('sellerName') || undefined;
@@ -70,8 +85,19 @@ const BuyerDashboard = () => {
     { name: 'Settings', icon: Settings },
   ];
 
+  // useCallback avoids recreating this on every render
+  const handleTabChange = useCallback((tab: string) => setActiveTab(tab), []);
+
   return (
     <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
+
+      {/* Payment success toast */}
+      {paymentSuccessToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl flex items-center gap-2 pointer-events-none whitespace-nowrap">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          Payment successful! Your order is now in progress.
+        </div>
+      )}
 
       {/* Sidebar — desktop only */}
       <aside className="w-64 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
@@ -192,8 +218,9 @@ const BuyerDashboard = () => {
           {activeTab === 'Orders' && <OrdersTab mode="buyer" />}
           {activeTab === 'Saved' && <SavedTab />}
           {activeTab === 'Settings' && <SettingsTab mode="buyer" />}
+          {activeTab === 'Billing' && <BillingTab />}
 
-          {activeTab !== 'Home' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && (
+          {activeTab !== 'Home' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Saved' && activeTab !== 'Billing' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
               <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
             </div>

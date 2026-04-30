@@ -3,7 +3,7 @@ import {
   ArrowLeft, Send, CheckCircle, Package,
   Clock, Truck, RotateCcw, X, Upload,
   FileText, FileArchive, Film, ImageIcon, Download,
-  Star, Loader2,
+  Star, Loader2, ShieldCheck,
 } from 'lucide-react';
 import { ref, onValue, push, update, increment } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -11,6 +11,7 @@ import { database, storage } from './firebase';
 import { useAuth } from './AuthContext';
 import { UserAvatar } from './UserAvatar';
 import ReviewModal from './ReviewModal';
+import { approveDelivery as approveDeliveryFn } from './stripe/paymentHelpers';
 
 export interface DeliveryFile {
   name: string;
@@ -37,6 +38,10 @@ export interface Order {
   createdAt: number;
   deliveryMessage?: string;
   deliveryFiles?: DeliveryFile[];
+  // Stripe escrow fields (optional — absent on legacy orders)
+  paymentId?: string;
+  paymentStatus?: 'pending' | 'paid' | 'released' | 'refunded' | 'failed';
+  conversationId?: string;
 }
 
 interface OrderMessage {
@@ -124,6 +129,7 @@ export default function OrderDetail({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [approvingDelivery, setApprovingDelivery] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const isFirstLoad = useRef(true);
@@ -237,6 +243,32 @@ export default function OrderDetail({
       await update(ref(database, `orders/${order.id}`), { status: newStatus });
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  // Calls the Cloud Function which atomically marks the order complete
+  // and releases escrow funds from pendingBalance → availableBalance.
+  // Falls back gracefully for legacy orders without a paymentId.
+  const handleApproveDelivery = async () => {
+    if (approvingDelivery) return;
+    setApprovingDelivery(true);
+    try {
+      if (order.paymentId) {
+        // New orders — use the Cloud Function for atomic escrow release
+        await approveDeliveryFn(order.id);
+      } else {
+        // Legacy orders — no escrow, just update status directly
+        await update(ref(database, `orders/${order.id}`), {
+          status: 'completed',
+          completedAt: Date.now(),
+        });
+      }
+      showToastMsg('Delivery accepted! Payment released to seller.');
+    } catch (err) {
+      console.error('Approve delivery error:', err);
+      showToastMsg('Something went wrong. Please try again.');
+    } finally {
+      setApprovingDelivery(false);
     }
   };
 
@@ -656,16 +688,25 @@ export default function OrderDetail({
             {mode === 'buyer' && order.status === 'delivered' && (
               <>
                 <button
-                  onClick={() => updateOrderStatus('completed')}
-                  disabled={updatingStatus}
+                  onClick={handleApproveDelivery}
+                  disabled={approvingDelivery}
                   className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
                 >
-                  <CheckCircle className="w-4 h-4" />
-                  Accept delivery
+                  {approvingDelivery ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Releasing funds…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Accept delivery
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => updateOrderStatus('in_progress')}
-                  disabled={updatingStatus}
+                  disabled={updatingStatus || approvingDelivery}
                   className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -811,6 +852,14 @@ export default function OrderDetail({
           )}
         </div>
 
+        {/* ── Payment info (only for orders with Stripe payment) ── */}
+        {order.paymentId && (
+          <PaymentInfoCard
+            price={order.price}
+            paymentStatus={order.paymentStatus}
+          />
+        )}
+
         {/* ── Order chat ── */}
         <div className="bg-[#111827] border border-slate-800 rounded-xl flex flex-col overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-800 shrink-0">
@@ -901,5 +950,75 @@ export default function OrderDetail({
         </div>
       </div>
     </>
+  );
+}
+
+// ── Payment info card ────────────────────────────────────────────────────────
+const PLATFORM_FEE_PERCENT = 5;
+
+function PaymentInfoCard({
+  price,
+  paymentStatus,
+}: {
+  price: number;
+  paymentStatus?: string;
+}) {
+  const platformFee = +(price * (PLATFORM_FEE_PERCENT / 100)).toFixed(2);
+  const sellerEarnings = +(price - platformFee).toFixed(2);
+
+  const statusStyles: Record<string, string> = {
+    paid:     'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    released: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    refunded: 'bg-red-500/10 text-red-400 border-red-500/20',
+    failed:   'bg-slate-700/40 text-slate-400 border-slate-600',
+    pending:  'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+  };
+  const statusLabel: Record<string, string> = {
+    paid:     'Held in escrow',
+    released: 'Released to seller',
+    refunded: 'Refunded',
+    failed:   'Payment failed',
+    pending:  'Pending payment',
+  };
+
+  const st = paymentStatus ?? 'paid';
+
+  return (
+    <div className="bg-[#111827] border border-slate-800 rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <ShieldCheck className="w-4 h-4 text-blue-400" />
+        <h4 className="text-white text-sm font-semibold">Payment (Escrow)</h4>
+        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wide ${statusStyles[st] ?? statusStyles.pending}`}>
+          {statusLabel[st] ?? st}
+        </span>
+      </div>
+      <div className="space-y-2.5">
+        <Row label="Order amount" value={`$${price.toFixed(2)}`} />
+        <Row label={`Platform fee (${PLATFORM_FEE_PERCENT}%)`} value={`-$${platformFee.toFixed(2)}`} muted />
+        <div className="h-px bg-slate-800" />
+        <Row label="Seller earnings" value={`$${sellerEarnings.toFixed(2)}`} bold />
+      </div>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  value,
+  muted,
+  bold,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+  bold?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className={muted ? 'text-slate-500' : 'text-slate-400'}>{label}</span>
+      <span className={bold ? 'text-white font-semibold' : muted ? 'text-slate-500' : 'text-white'}>
+        {value}
+      </span>
+    </div>
   );
 }

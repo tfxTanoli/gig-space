@@ -25,6 +25,7 @@ import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
 import OrdersTab from './OrdersTab';
 import SettingsTab from './SettingsTab';
+import WalletTab from './components/WalletTab';
 
 interface ServicePost {
   id: string;
@@ -567,8 +568,11 @@ const SellerDashboard = () => {
           {/* SETTINGS TAB */}
           {activeTab === 'Settings' && <SettingsTab mode="seller" />}
 
-          {/* OTHER TABS (Statements, Payouts) */}
-          {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && (
+          {/* PAYOUTS TAB */}
+          {activeTab === 'Payouts' && <WalletTab />}
+
+          {/* OTHER TABS (Statements) */}
+          {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Payouts' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
               <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
             </div>

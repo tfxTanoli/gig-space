@@ -73,6 +73,36 @@
         ".read": true,
         ".write": "auth !== null"
       }
+    },
+
+    "payments": {
+      ".indexOn": ["buyerId", "sellerId", "orderId", "stripeSessionId", "stripePaymentIntentId"],
+      "$paymentId": {
+        ".read": "auth !== null && (data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
+        ".write": false
+      }
+    },
+
+    "wallets": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+
+    "walletTransactions": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+
+    "withdrawals": {
+      ".indexOn": ["sellerId"],
+      "$withdrawalId": {
+        ".read": "auth !== null && data.child('sellerId').val() === auth.uid",
+        ".write": false
+      }
     }
   }
 }

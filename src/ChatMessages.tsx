@@ -6,8 +6,9 @@ import { useAuth } from './AuthContext';
 import { UserAvatar } from './UserAvatar';
 import {
   Send, ImagePlus, ArrowLeft, MessageSquare, X,
-  Tag, CheckCircle, ChevronLeft, ChevronRight,
+  Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2,
 } from 'lucide-react';
+import { startCheckout } from './stripe/paymentHelpers';
 
 /* ── Types ── */
 
@@ -109,6 +110,8 @@ export default function ChatMessages({
   const [offerPrice, setOfferPrice] = useState('');
   const [offerPriceUnit, setOfferPriceUnit] = useState<'per_project' | 'per_hour'>('per_project');
   const [sendingOffer, setSendingOffer] = useState(false);
+
+  const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -422,35 +425,30 @@ export default function ChatMessages({
     }
   };
 
-  /* ── Accept offer (buyer) ── */
+  /* ── Accept offer (buyer) — redirects to Stripe Checkout ── */
   const acceptOffer = async (msg: Message) => {
     if (!user || !userProfile || !selectedConvId || !msg.offer) return;
     const conv = conversations.find((c) => c.id === selectedConvId);
     if (!conv) return;
+    if (acceptingOfferId) return; // prevent double-click
+
+    setAcceptingOfferId(msg.id);
     try {
-      const orderId = push(ref(database, 'orders')).key!;
-      const orderData = {
-        buyerId: user.uid,
-        buyerName: userProfile.name,
-        buyerPhoto: userProfile.photoURL || '',
-        sellerId: conv.sellerId,
-        sellerName: conv.sellerName,
-        sellerPhoto: conv.sellerPhotoURL,
-        serviceId: msg.offer.serviceId,
+      await startCheckout({
+        conversationId: selectedConvId,
+        messageId: msg.id,
         serviceTitle: msg.offer.serviceTitle,
+        serviceId: msg.offer.serviceId,
+        sellerName: conv.sellerName,
+        sellerId: conv.sellerId,
+        offerAmount: msg.offer.price,
+        priceUnit: msg.offer.priceUnit,
         serviceImage: msg.offer.serviceImage ?? null,
-        price: msg.offer.price,
-        priceType: msg.offer.priceUnit,
-        message: msg.offer.description,
-        status: 'in_progress',
-        createdAt: Date.now(),
-      };
-      await update(ref(database), {
-        [`orders/${orderId}`]: orderData,
-        [`messages/${selectedConvId}/${msg.id}/offerStatus`]: 'accepted',
       });
+      // Browser navigates away to Stripe — code below won't run
     } catch (err) {
-      console.error('Accept offer error:', err);
+      console.error('Checkout error:', err);
+      setAcceptingOfferId(null);
     }
   };
 
@@ -813,9 +811,17 @@ export default function ChatMessages({
                                 ) : mode === 'buyer' && !isMe ? (
                                   <button
                                     onClick={() => acceptOffer(msg)}
-                                    className="mt-3 w-full bg-primary hover:bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+                                    disabled={acceptingOfferId === msg.id}
+                                    className="mt-3 w-full bg-primary hover:bg-blue-600 disabled:opacity-60 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
                                   >
-                                    Accept offer
+                                    {acceptingOfferId === msg.id ? (
+                                      <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Redirecting to payment…
+                                      </>
+                                    ) : (
+                                      `Accept & Pay $${msg.offer.price}`
+                                    )}
                                   </button>
                                 ) : (
                                   <p className="text-slate-500 text-xs mt-3 italic">
