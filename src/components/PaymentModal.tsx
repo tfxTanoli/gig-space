@@ -4,6 +4,15 @@ import { loadStripe } from '@stripe/stripe-js';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
+interface EmbeddedCheckout {
+  mount: (selector: string) => void;
+  destroy: () => void;
+}
+
+interface StripeWithEmbedded {
+  initEmbeddedCheckout: (opts: { clientSecret: string }) => Promise<EmbeddedCheckout>;
+}
+
 interface PaymentModalProps {
   clientSecret: string;
   offerAmount: number;
@@ -13,7 +22,7 @@ interface PaymentModalProps {
 
 export default function PaymentModal({ clientSecret, offerAmount, serviceTitle, onClose }: PaymentModalProps) {
   const [loading, setLoading] = useState(true);
-  const checkoutRef = useRef<{ destroy: () => void } | null>(null);
+  const checkoutRef = useRef<EmbeddedCheckout | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -22,7 +31,7 @@ export default function PaymentModal({ clientSecret, offerAmount, serviceTitle, 
       const stripe = await stripePromise;
       if (!stripe || !active) return;
 
-      const checkout = await stripe.initEmbeddedCheckout({ clientSecret });
+      const checkout = await (stripe as unknown as StripeWithEmbedded).initEmbeddedCheckout({ clientSecret });
       if (!active) {
         checkout.destroy();
         return;
