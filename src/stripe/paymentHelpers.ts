@@ -47,6 +47,17 @@ export async function startCheckout(payload: CreateCheckoutRequest): Promise<str
 }
 
 /**
+ * Verifies a completed checkout session and creates the order if the webhook
+ * hadn't already done so. Call this from the frontend after payment_success.
+ */
+export async function verifyCheckoutSession(sessionId: string): Promise<void> {
+  await apiFetch<{ status: string; fulfilled: boolean; alreadyProcessed?: boolean }>(
+    '/api/checkout/verify-session',
+    { sessionId }
+  );
+}
+
+/**
  * Buyer approves delivery — atomically releases escrow to seller wallet.
  */
 export async function approveDelivery(orderId: string): Promise<void> {

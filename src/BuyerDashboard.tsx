@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import { useAuth } from './AuthContext';
+import { verifyCheckoutSession } from './stripe/paymentHelpers';
 import { CurrentUserAvatar } from './UserAvatar';
 import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
@@ -36,6 +37,11 @@ const BuyerDashboard = () => {
     if (tab) setActiveTab(tab);
 
     if (searchParams.get('payment_success') === 'true') {
+      const sessionId = searchParams.get('session_id');
+      if (sessionId) {
+        // Ensure order exists — creates it if the webhook hasn't fired yet
+        verifyCheckoutSession(sessionId).catch(console.error);
+      }
       setPaymentSuccessToast(true);
       setTimeout(() => setPaymentSuccessToast(false), 5000);
       // Clean the URL so a refresh doesn't re-show the toast

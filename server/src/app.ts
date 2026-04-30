@@ -150,6 +150,37 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/checkout/verify-session
+// Called by the frontend after embedded checkout completes.
+// Creates the order if the webhook hasn't already done so (idempotent).
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/checkout/verify-session', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { sessionId } = req.body as { sessionId: string };
+  if (!sessionId) { res.status(400).json({ error: 'sessionId is required' }); return; }
+
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  // Ensure the authenticated user is the buyer for this session
+  if (session.metadata?.buyerId !== req.uid) {
+    res.status(403).json({ error: 'Forbidden' }); return;
+  }
+
+  if (session.payment_status !== 'paid') {
+    res.json({ status: session.payment_status, fulfilled: false }); return;
+  }
+
+  // Check if already processed by webhook (idempotent guard)
+  const existing = await db.ref('payments')
+    .orderByChild('stripeSessionId').equalTo(session.id).limitToFirst(1).get();
+  if (existing.exists()) {
+    res.json({ status: 'paid', fulfilled: true, alreadyProcessed: true }); return;
+  }
+
+  await handleCheckoutCompleted(session);
+  res.json({ status: 'paid', fulfilled: true, alreadyProcessed: false });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/orders/approve-delivery
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, res: Response) => {
