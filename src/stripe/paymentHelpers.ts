@@ -7,7 +7,7 @@ import type {
   StripeConnectStatus,
 } from './types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 // ── Helper: get Firebase ID token and call the Express API ───────────────────
 async function apiFetch<T>(

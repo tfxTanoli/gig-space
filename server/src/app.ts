@@ -5,19 +5,36 @@ import * as admin from 'firebase-admin';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
+  const databaseURL = process.env.FIREBASE_DATABASE_URL;
+
+  let credential: admin.credential.Credential | undefined;
+
   if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
-    const serviceAccount = JSON.parse(
+    const parsed = JSON.parse(
       Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8')
     );
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DATABASE_URL,
-    });
-  } else {
-    admin.initializeApp({
-      databaseURL: process.env.FIREBASE_DATABASE_URL,
-    });
+    credential = admin.credential.cert(parsed);
+  } else if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    const parsed = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    credential = admin.credential.cert(parsed);
+  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const fs = require('fs');
+    if (fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+      const parsed = JSON.parse(
+        fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf-8')
+      );
+      credential = admin.credential.cert(parsed);
+    } else {
+      console.error(
+        `[Firebase] serviceAccountKey.json not found at: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}\n` +
+        `  → Download it from Firebase Console → Project Settings → Service Accounts → Generate new private key\n` +
+        `  → Save it as server/serviceAccountKey.json  OR  paste its contents into FIREBASE_SERVICE_ACCOUNT_JSON in server/.env`
+      );
+      process.exit(1);
+    }
   }
+
+  admin.initializeApp({ ...(credential ? { credential } : {}), databaseURL });
 }
 const db = admin.database();
 
