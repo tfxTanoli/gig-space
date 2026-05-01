@@ -103,6 +103,11 @@
         ".read": "auth !== null && data.child('sellerId').val() === auth.uid",
         ".write": false
       }
+    },
+
+    "settings": {
+      ".read": false,
+      ".write": false
     }
   }
 }

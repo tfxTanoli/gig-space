@@ -2,6 +2,98 @@ import * as admin from 'firebase-admin';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export interface PlatformSettings {
+  general: {
+    platformName: string;
+    tagline: string;
+    supportEmail: string;
+    maintenanceMode: boolean;
+  };
+  fees: {
+    platformFeePercent: number;
+    minimumWithdrawal: number;
+  };
+  registration: {
+    allowNewSignups: boolean;
+    allowSellerRegistrations: boolean;
+    requireEmailVerification: boolean;
+  };
+}
+
+const DEFAULTS: PlatformSettings = {
+  general: {
+    platformName: 'Gigspace',
+    tagline: 'Find the perfect freelance service',
+    supportEmail: '',
+    maintenanceMode: false,
+  },
+  fees: {
+    platformFeePercent: 5,
+    minimumWithdrawal: 10,
+  },
+  registration: {
+    allowNewSignups: true,
+    allowSellerRegistrations: true,
+    requireEmailVerification: false,
+  },
+};
+
+function mergeSettings(stored: Partial<PlatformSettings> | null): PlatformSettings {
+  return {
+    general:      { ...DEFAULTS.general,      ...(stored?.general      ?? {}) },
+    fees:         { ...DEFAULTS.fees,         ...(stored?.fees         ?? {}) },
+    registration: { ...DEFAULTS.registration, ...(stored?.registration ?? {}) },
+  };
+}
+
+export async function getSettings(_req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const snap = await admin.database().ref('settings').get();
+    res.json(mergeSettings(snap.val() as Partial<PlatformSettings> | null));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/settings GET error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+export async function updateSettings(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { section, data } = req.body as { section: keyof PlatformSettings; data: Record<string, unknown> };
+
+    if (!section || !data || typeof data !== 'object') {
+      res.status(400).json({ error: 'section and data are required' }); return;
+    }
+    if (!(['general', 'fees', 'registration'] as const).includes(section)) {
+      res.status(400).json({ error: 'Invalid section' }); return;
+    }
+
+    // Validate fees range
+    if (section === 'fees') {
+      const fee = Number(data.platformFeePercent);
+      const min = Number(data.minimumWithdrawal);
+      if (isNaN(fee) || fee < 0 || fee > 50) {
+        res.status(400).json({ error: 'platformFeePercent must be 0–50' }); return;
+      }
+      if (isNaN(min) || min < 1) {
+        res.status(400).json({ error: 'minimumWithdrawal must be at least $1' }); return;
+      }
+    }
+
+    const db = admin.database();
+    await db.ref(`settings/${section}`).update(data);
+
+    const snap = await db.ref('settings').get();
+    res.json(mergeSettings(snap.val() as Partial<PlatformSettings> | null));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/settings PATCH error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
 export async function getStats(_req: AdminRequest, res: Response): Promise<void> {
   try {
     const db = admin.database();

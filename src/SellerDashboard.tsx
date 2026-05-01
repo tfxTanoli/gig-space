@@ -26,6 +26,7 @@ import { useUnreadMessages } from './useUnreadMessages';
 import OrdersTab from './OrdersTab';
 import SettingsTab from './SettingsTab';
 import WalletTab from './components/WalletTab';
+import StatementsTab from './components/StatementsTab';
 
 interface ServicePost {
   id: string;
@@ -245,6 +246,7 @@ const SellerDashboard = () => {
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<ServicePost | null>(null);
+  const [orderCount, setOrderCount] = useState<number | null>(null);
   const unreadMessages = useUnreadMessages('seller');
 
   const navItems = [
@@ -271,6 +273,21 @@ const SellerDashboard = () => {
       });
       setPosts(result.sort((a, b) => b.createdAt - a.createdAt));
       setPostsLoading(false);
+    });
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      ref(database, 'orders'),
+      orderByChild('sellerId'),
+      equalTo(user.uid)
+    );
+    const unsub = onValue(q, (snap) => {
+      let count = 0;
+      snap.forEach(() => { count++; });
+      setOrderCount(count);
     });
     return () => unsub();
   }, [user]);
@@ -490,7 +507,7 @@ const SellerDashboard = () => {
                 </div>
                 <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
                   <p className="text-slate-400 text-xs mb-1">Orders</p>
-                  <p className="text-2xl font-bold text-white">0</p>
+                  <p className="text-2xl font-bold text-white">{orderCount === null ? '—' : orderCount}</p>
                 </div>
               </div>
 
@@ -571,8 +588,11 @@ const SellerDashboard = () => {
           {/* PAYOUTS TAB */}
           {activeTab === 'Payouts' && <WalletTab />}
 
-          {/* OTHER TABS (Statements) */}
-          {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Payouts' && (
+          {/* STATEMENTS TAB */}
+          {activeTab === 'Statements' && <StatementsTab />}
+
+          {/* OTHER TABS (coming soon) */}
+          {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Payouts' && activeTab !== 'Statements' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
               <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
             </div>

@@ -45,7 +45,26 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 // ─── Express ──────────────────────────────────────────────────────────────────
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const PLATFORM_FEE_PERCENT = 5;
+
+// Hardcoded fallbacks — overridden at runtime by settings/fees in Firebase
+const PLATFORM_FEE_PERCENT_DEFAULT = 5;
+const MINIMUM_WITHDRAWAL_DEFAULT   = 10;
+
+async function readFeePct(): Promise<number> {
+  try {
+    const snap = await db.ref('settings/fees/platformFeePercent').get();
+    if (snap.exists()) return Number(snap.val());
+  } catch { /* use fallback */ }
+  return PLATFORM_FEE_PERCENT_DEFAULT;
+}
+
+async function readMinWithdrawal(): Promise<number> {
+  try {
+    const snap = await db.ref('settings/fees/minimumWithdrawal').get();
+    if (snap.exists()) return Number(snap.val());
+  } catch { /* use fallback */ }
+  return MINIMUM_WITHDRAWAL_DEFAULT;
+}
 
 app.use(cors({ origin: FRONTEND_URL }));
 
@@ -136,6 +155,7 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
 
     const buyerId = req.uid!;
     const amountInCents = Math.round(offerAmount * 100);
+    const PLATFORM_FEE_PERCENT = await readFeePct();
     const platformFeeCents = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
     const sellerAmountCents = amountInCents - platformFeeCents;
 
@@ -391,12 +411,11 @@ app.post('/api/connect/status', requireAuth, async (req: AuthRequest, res: Respo
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/withdraw
 // ─────────────────────────────────────────────────────────────────────────────
-const MINIMUM_WITHDRAWAL = 10;
-
 app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const sellerId = req.uid!;
     const { amount } = req.body as { amount: number };
+    const MINIMUM_WITHDRAWAL = await readMinWithdrawal();
 
     if (!amount || amount < MINIMUM_WITHDRAWAL) {
       res.status(400).json({ error: `Minimum withdrawal is $${MINIMUM_WITHDRAWAL}` }); return;

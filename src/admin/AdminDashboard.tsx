@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Home, Edit3, Tag, Users, Package,
-  CreditCard, Link2, Settings, Construction,
+  CreditCard, Link2, Settings, Construction, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import LocationIcon from '../LocationIcon';
@@ -14,6 +14,7 @@ import AdminOrdersTable, { type AdminOrder } from './components/AdminOrdersTable
 import AdminUserViewModal from './components/AdminUserViewModal';
 import AdminUserEditModal from './components/AdminUserEditModal';
 import AdminUserDeleteModal from './components/AdminUserDeleteModal';
+import AdminSettingsPage from './components/AdminSettingsPage';
 
 const NAV_ITEMS = [
   { name: 'Home',          Icon: Home,       subtitle: 'Overview & metrics' },
@@ -44,7 +45,13 @@ const PageHeader = ({ title, subtitle }: { title: string; subtitle: string }) =>
 );
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/signin');
+  };
   const [activeTab, setActiveTab] = useState('Home');
 
   const [stats,    setStats]    = useState<AdminStats | null>(null);
@@ -205,6 +212,9 @@ const AdminDashboard = () => {
           </>
         );
 
+      case 'Settings':
+        return <AdminSettingsPage />;
+
       default:
         return <ComingSoon tab={activeItem.name} subtitle={activeItem.subtitle} />;
     }
@@ -243,11 +253,18 @@ const AdminDashboard = () => {
           })}
         </nav>
 
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-2">
           <div className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3">
             <p className="text-xs text-slate-500 font-medium">Admin Panel</p>
             <p className="text-xs text-slate-600 mt-0.5">Gigspace v1.0</p>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            Sign Out
+          </button>
         </div>
       </aside>
 
