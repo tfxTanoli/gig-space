@@ -2,6 +2,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import cors from 'cors';
 import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
+import adminRouter from './routes/admin.routes';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -566,5 +567,8 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   }
   await db.ref().update(updates);
 }
+
+// ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
+app.use('/api/admin', adminRouter);
 
 export default app;

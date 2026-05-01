@@ -3,7 +3,7 @@
     "users": {
       "$uid": {
         ".read": "auth !== null",
-        ".write": "auth !== null && auth.uid === $uid"
+        ".write": "auth !== null && auth.uid === $uid && (!newData.hasChild('role') || newData.child('role').val() !== 'admin')"
       }
     },
     "services": {

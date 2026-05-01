@@ -10,6 +10,7 @@ export interface UserProfile {
   accountType: 'buyer' | 'seller';
   email: string;
   createdAt: number;
+  role?: string;
 }
 
 interface AuthContextType {

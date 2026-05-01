@@ -10,7 +10,7 @@ import SellerProfile from './SellerProfile';
 import BuyerProfile from './BuyerProfile';
 import AffiliateLanding from './AffiliateLanding';
 import ServiceDetail from './ServiceDetail';
-import AdminDashboard from './AdminDashboard';
+import AdminDashboard from './admin/AdminDashboard';
 import LandingPage from './LandingPage';
 import SellerLandingPage from './SellerLandingPage';
 import AboutUs from './AboutUs';

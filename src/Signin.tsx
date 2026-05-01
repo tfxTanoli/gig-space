@@ -22,7 +22,11 @@ const redirectByProfile = async (uid: string, navigate: (path: string) => void) 
   const snap = await get(ref(database, `users/${uid}`));
   if (snap.exists()) {
     const profile = snap.val();
-    navigate(profile.accountType === 'seller' ? '/seller-dashboard' : '/buyer-dashboard');
+    if (profile.role === 'admin') {
+      navigate('/admin-dashboard');
+    } else {
+      navigate(profile.accountType === 'seller' ? '/seller-dashboard' : '/buyer-dashboard');
+    }
   } else {
     navigate('/account-type');
   }

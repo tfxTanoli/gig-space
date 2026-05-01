@@ -2,7 +2,7 @@ import { useState, useRef, type ChangeEvent } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { ref as dbRef, set } from 'firebase/database';
+import { ref as dbRef, set, get } from 'firebase/database';
 import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
 
@@ -51,6 +51,9 @@ const BuyerProfile = () => {
         }
       }
 
+      const existingRoleSnap = await get(dbRef(database, `users/${user.uid}/role`));
+      const existingRole = (existingRoleSnap.val() as string | null) ?? 'user';
+
       await set(dbRef(database, `users/${user.uid}`), {
         name: name.trim(),
         username: username.trim(),
@@ -58,6 +61,7 @@ const BuyerProfile = () => {
         accountType: 'buyer',
         email: user.email ?? '',
         createdAt: Date.now(),
+        role: existingRole,
       });
 
       navigate('/buyer-dashboard');

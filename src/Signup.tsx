@@ -46,7 +46,11 @@ const Signup = () => {
       const snap = await get(ref(database, `users/${cred.user.uid}`));
       if (snap.exists()) {
         const profile = snap.val();
-        navigate(profile.accountType === 'seller' ? '/seller-dashboard' : '/buyer-dashboard');
+        if (profile.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate(profile.accountType === 'seller' ? '/seller-dashboard' : '/buyer-dashboard');
+        }
       } else {
         navigate('/account-type');
       }
