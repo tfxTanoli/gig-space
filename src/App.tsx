@@ -9,6 +9,9 @@ import AccountType from './AccountType';
 import SellerProfile from './SellerProfile';
 import BuyerProfile from './BuyerProfile';
 import AffiliateLanding from './AffiliateLanding';
+import AffiliateSignup from './AffiliateSignup';
+import AffiliateSignin from './AffiliateSignin';
+import AffiliateProfile from './AffiliateProfile';
 import ServiceDetail from './ServiceDetail';
 import AdminDashboard from './admin/AdminDashboard';
 import LandingPage from './LandingPage';
@@ -40,6 +43,9 @@ function AppRoutes() {
       <Route path="/buyer-dashboard" element={<ProtectedRoute><BuyerDashboard /></ProtectedRoute>} />
       <Route path="/affiliate-dashboard" element={<ProtectedRoute><AffiliateDashboard /></ProtectedRoute>} />
       <Route path="/affiliate" element={<AffiliateLanding />} />
+      <Route path="/affiliate-signup" element={<AffiliateSignup />} />
+      <Route path="/affiliate-signin" element={<AffiliateSignin />} />
+      <Route path="/affiliate-profile" element={<ProtectedRoute><AffiliateProfile /></ProtectedRoute>} />
       <Route path="/service-detail" element={<ServiceDetail />} />
       <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
       <Route path="/about" element={<AboutUs />} />

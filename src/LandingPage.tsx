@@ -56,6 +56,7 @@ const LandingPage = () => {
         </div>
         <nav className="flex items-center space-x-6 text-sm font-medium">
           <Link to="/account-type" className="text-white hover:text-slate-300 transition-colors">For Sellers</Link>
+          <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
           <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
           <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
             Sign up <ArrowRight className="ml-2 w-4 h-4" />
@@ -180,7 +181,7 @@ const LandingPage = () => {
           <Link to="#" className="hover:text-slate-300 transition-colors">About Us</Link>
           <Link to="/account-type" className="hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="#" className="hover:text-slate-300 transition-colors">For Buyers</Link>
-          <Link to="#" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
+          <Link to="/affiliate-signup" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
           <Link to="#" className="hover:text-slate-300 transition-colors">Terms & Conditions</Link>
           <Link to="#" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
         </div>

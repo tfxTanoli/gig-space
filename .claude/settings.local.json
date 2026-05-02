@@ -9,7 +9,8 @@
       "PowerShell([Convert]::ToBase64String\\([IO.File]::ReadAllBytes\\(\"d:\\\\Fiverr\\\\gig-space\\\\gigspace-208b4-firebase-adminsdk-fbsvc-c74a5646a8.json\"\\)\\))",
       "PowerShell(Get-ChildItem -Path \"d:\\\\Fiverr\\\\gig-space\" -Force | Format-Table Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} -AutoSize)",
       "PowerShell(Get-ChildItem -Path \"d:\\\\Fiverr\\\\gig-space\\\\src\" -Force -Recurse -Depth 2 | Where-Object { !$_.PSIsContainer } | Select-Object Name, Directory | Sort-Object Directory)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Fiverr\\\\gig-space\" -Force | Select-Object Name, @{Name='Type'; Expression={if \\($_.PSIsContainer\\) {'Directory'} else {'File'}}} | Format-Table -AutoSize)"
     ]
   }
 }
