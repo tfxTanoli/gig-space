@@ -5,6 +5,7 @@ import {
   getUsers, updateUser, deleteUser,
   getServices, updateService, deleteService,
   getOrders,
+  getAffiliates,
   getSettings, updateSettings,
 } from '../controllers/admin.controller';
 
@@ -18,6 +19,7 @@ router.get('/services',          verifyAdmin, getServices);
 router.patch('/services/:id',    verifyAdmin, updateService);
 router.delete('/services/:id',   verifyAdmin, deleteService);
 router.get('/orders',         verifyAdmin, getOrders);
+router.get('/affiliates',     verifyAdmin, getAffiliates);
 router.get('/settings',       verifyAdmin, getSettings);
 router.patch('/settings',     verifyAdmin, updateSettings);
 

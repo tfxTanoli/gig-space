@@ -3,6 +3,7 @@ import cors from 'cors';
 import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
 import adminRouter from './routes/admin.routes';
+import affiliateRouter from './routes/affiliate.routes';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -283,6 +284,29 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
       }
     }
 
+    // ── Release affiliate commission if this order has one ─────────────────────
+    const commSnap = await db.ref('affiliateCommissions')
+      .orderByChild('orderId')
+      .equalTo(orderId)
+      .limitToFirst(1)
+      .get();
+
+    if (commSnap.exists()) {
+      const commissionId = Object.keys(commSnap.val())[0];
+      const commission = (commSnap.val() as Record<string, unknown>)[commissionId] as {
+        affiliateId?: string; commissionAmount?: number; status?: string;
+      };
+      if (commission.status === 'pending' && commission.affiliateId && commission.commissionAmount) {
+        const { affiliateId: affId, commissionAmount } = commission;
+        updates[`affiliateCommissions/${commissionId}/status`]      = 'available';
+        updates[`affiliateCommissions/${commissionId}/releasedAt`]  = now;
+        updates[`affiliates/${affId}/pendingBalance`]   = admin.database.ServerValue.increment(-commissionAmount);
+        updates[`affiliates/${affId}/availableBalance`] = admin.database.ServerValue.increment(commissionAmount);
+        updates[`affiliates/${affId}/lifetimeEarnings`] = admin.database.ServerValue.increment(commissionAmount);
+        updates[`affiliates/${affId}/updatedAt`]        = now;
+      }
+    }
+
     await db.ref().update(updates);
     res.json({ success: true });
   } catch (err) {
@@ -514,7 +538,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const paymentId = db.ref('payments').push().key!;
   const txId      = db.ref(`walletTransactions/${sellerId}`).push().key!;
 
-  await db.ref().update({
+  const mainUpdates: Record<string, unknown> = {
     [`orders/${orderId}`]: {
       buyerId, buyerName: buyer?.name || 'Buyer', buyerPhoto: buyer?.photoURL || '',
       sellerId, sellerName: seller?.name || 'Seller', sellerPhoto: seller?.photoURL || '',
@@ -540,7 +564,32 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       type: 'payment_received', orderId, paymentId, amount: sellerAmt,
       description: `Payment received for "${serviceTitle}"`, createdAt: now,
     },
-  });
+  };
+
+  // ── Affiliate commission (50% of platform fee) ───────────────────────────────
+  const buyerReferralSnap = await db.ref(`users/${buyerId}/referredBy`).get();
+  const affiliateId = buyerReferralSnap.val() as string | null;
+
+  if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
+    const commissionAmount = parseFloat((platformFeeAmt * 0.5).toFixed(2));
+    if (commissionAmount > 0) {
+      const commissionId = db.ref('affiliateCommissions').push().key!;
+      mainUpdates[`affiliateCommissions/${commissionId}`] = {
+        affiliateId, orderId, paymentId,
+        buyerId, buyerName: buyer?.name || 'Buyer',
+        sellerId, orderAmount: offerAmountNum,
+        platformFeeAmount: platformFeeAmt,
+        commissionAmount,
+        status: 'pending',
+        createdAt: now,
+      };
+      mainUpdates[`affiliates/${affiliateId}/pendingBalance`] =
+        admin.database.ServerValue.increment(commissionAmount);
+      mainUpdates[`affiliates/${affiliateId}/updatedAt`] = now;
+    }
+  }
+
+  await db.ref().update(mainUpdates);
   console.log(`Order ${orderId} created for session ${session.id}`);
 }
 
@@ -589,5 +638,8 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);
+
+// ─── Affiliate routes ─────────────────────────────────────────────────────────
+app.use('/api/affiliate', affiliateRouter);
 
 export default app;

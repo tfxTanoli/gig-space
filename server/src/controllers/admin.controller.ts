@@ -316,6 +316,46 @@ export async function deleteService(req: AdminRequest, res: Response): Promise<v
   }
 }
 
+export async function getAffiliates(_req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const db = admin.database();
+    const [usersSnap, affiliatesSnap] = await Promise.all([
+      db.ref('users').get(),
+      db.ref('affiliates').get(),
+    ]);
+
+    const users: Record<string, unknown>     = usersSnap.val()     ?? {};
+    const affiliateData: Record<string, unknown> = affiliatesSnap.val() ?? {};
+
+    const affiliates = Object.entries(users)
+      .filter(([, u]) => (u as { accountType?: string })?.accountType === 'affiliate')
+      .map(([uid, u]) => {
+        const user = u as Record<string, unknown>;
+        const aff  = (affiliateData[uid] ?? {}) as Record<string, unknown>;
+        return {
+          uid,
+          name:             String(user?.name             ?? ''),
+          email:            String(user?.email            ?? ''),
+          username:         String(user?.username         ?? ''),
+          photoURL:         String(user?.photoURL         ?? ''),
+          referralCode:     String(aff?.referralCode      ?? ''),
+          totalReferrals:   Number(aff?.totalReferrals    ?? 0),
+          lifetimeEarnings: Number(aff?.lifetimeEarnings  ?? 0),
+          availableBalance: Number(aff?.availableBalance  ?? 0),
+          pendingBalance:   Number(aff?.pendingBalance    ?? 0),
+          createdAt:        Number(user?.createdAt        ?? 0),
+        };
+      })
+      .sort((a, b) => b.createdAt - a.createdAt);
+
+    res.json({ affiliates });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/affiliates error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
 export async function getOrders(req: AdminRequest, res: Response): Promise<void> {
   try {
     const limit = Math.min(parseInt(String(req.query.limit)) || 20, 100);

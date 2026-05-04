@@ -108,6 +108,44 @@
     "settings": {
       ".read": false,
       ".write": false
+    },
+
+    "affiliates": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": "auth !== null && auth.uid === $uid"
+      }
+    },
+
+    "affiliateCodes": {
+      "$code": {
+        ".read": true,
+        ".write": "auth !== null && newData.val() === auth.uid"
+      }
+    },
+
+    "affiliateCommissions": {
+      ".indexOn": ["affiliateId", "orderId"],
+      "$commissionId": {
+        ".read": "auth !== null && data.child('affiliateId').val() === auth.uid",
+        ".write": false
+      }
+    },
+
+    "affiliateReferrals": {
+      ".indexOn": ["affiliateId"],
+      "$referralId": {
+        ".read": "auth !== null && data.child('affiliateId').val() === auth.uid",
+        ".write": "auth !== null && newData.child('referredUserId').val() === auth.uid"
+      }
+    },
+
+    "affiliatePayouts": {
+      ".indexOn": ["affiliateId"],
+      "$payoutId": {
+        ".read": "auth !== null && data.child('affiliateId').val() === auth.uid",
+        ".write": false
+      }
     }
   }
 }

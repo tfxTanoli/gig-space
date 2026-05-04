@@ -1,5 +1,5 @@
-import { type ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { type ReactNode, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import Signup from './Signup';
 import Signin from './Signin';
@@ -32,8 +32,21 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   return user ? <>{children}</> : <Navigate to="/signin" replace />;
 };
 
+function ReferralCapture() {
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref && ref.trim()) {
+      localStorage.setItem('pendingReferral', ref.trim().toLowerCase());
+    }
+  }, [searchParams]);
+  return null;
+}
+
 function AppRoutes() {
   return (
+    <>
+    <ReferralCapture />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/search" element={<BuyerSearch />} />
@@ -62,6 +75,7 @@ function AppRoutes() {
       <Route path="/email-password-updated" element={<PasswordUpdatedEmail />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
 

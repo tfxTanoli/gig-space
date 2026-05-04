@@ -2,7 +2,7 @@ import { useState, useRef, type ChangeEvent } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { ref as dbRef, set, get } from 'firebase/database';
+import { ref as dbRef, set, get, push, update, increment } from 'firebase/database';
 import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
 
@@ -54,15 +54,48 @@ const BuyerProfile = () => {
       const existingRoleSnap = await get(dbRef(database, `users/${user.uid}/role`));
       const existingRole = (existingRoleSnap.val() as string | null) ?? 'user';
 
+      // Check for affiliate referral before saving the user record
+      const referralCode = localStorage.getItem('pendingReferral');
+      let referredByAffiliate: string | undefined;
+      if (referralCode) {
+        try {
+          const codeSnap = await get(dbRef(database, `affiliateCodes/${referralCode}`));
+          if (codeSnap.exists()) {
+            referredByAffiliate = codeSnap.val() as string;
+          }
+        } catch { /* ignore lookup errors */ }
+      }
+
+      const now = Date.now();
       await set(dbRef(database, `users/${user.uid}`), {
         name: name.trim(),
         username: username.trim(),
         photoURL,
         accountType: 'buyer',
         email: user.email ?? '',
-        createdAt: Date.now(),
+        createdAt: now,
         role: existingRole,
+        ...(referredByAffiliate ? { referredBy: referredByAffiliate } : {}),
       });
+
+      // Record referral in Firebase and increment affiliate counter
+      if (referredByAffiliate) {
+        try {
+          const referralRef = push(dbRef(database, 'affiliateReferrals'));
+          await set(referralRef, {
+            affiliateId: referredByAffiliate,
+            referredUserId: user.uid,
+            referredUserName: name.trim(),
+            referredUserEmail: user.email ?? '',
+            status: 'signed_up',
+            createdAt: now,
+          });
+          await update(dbRef(database, `affiliates/${referredByAffiliate}`), {
+            totalReferrals: increment(1),
+          });
+          localStorage.removeItem('pendingReferral');
+        } catch { /* don't fail profile creation if referral tracking fails */ }
+      }
 
       navigate('/buyer-dashboard');
     } catch {

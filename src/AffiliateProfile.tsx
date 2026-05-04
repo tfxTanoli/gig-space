@@ -54,15 +54,32 @@ const AffiliateProfile = () => {
       const existingRoleSnap = await get(dbRef(database, `users/${user.uid}/role`));
       const existingRole = (existingRoleSnap.val() as string | null) ?? 'user';
 
+      const now = Date.now();
       await set(dbRef(database, `users/${user.uid}`), {
         name: name.trim(),
         username: username.trim(),
         photoURL,
         accountType: 'affiliate',
         email: user.email ?? '',
-        createdAt: Date.now(),
+        createdAt: now,
         role: existingRole,
       });
+
+      // Generate unique referral code and initialise affiliate record
+      const referralCode = user.uid.substring(0, 8).toLowerCase();
+      await Promise.all([
+        set(dbRef(database, `affiliates/${user.uid}`), {
+          referralCode,
+          totalClicks: 0,
+          totalReferrals: 0,
+          pendingBalance: 0,
+          availableBalance: 0,
+          lifetimeEarnings: 0,
+          totalWithdrawn: 0,
+          createdAt: now,
+        }),
+        set(dbRef(database, `affiliateCodes/${referralCode}`), user.uid),
+      ]);
 
       navigate('/affiliate-dashboard');
     } catch {

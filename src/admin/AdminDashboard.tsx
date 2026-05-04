@@ -18,6 +18,7 @@ import AdminSettingsPage from './components/AdminSettingsPage';
 import AdminServiceViewModal from './components/AdminServiceViewModal';
 import AdminServiceEditModal from './components/AdminServiceEditModal';
 import AdminServiceDeleteModal from './components/AdminServiceDeleteModal';
+import AdminAffiliatesTable, { type AdminAffiliate } from './components/AdminAffiliatesTable';
 
 const NAV_ITEMS = [
   { name: 'Home',          Icon: Home,       subtitle: 'Overview & metrics' },
@@ -57,15 +58,17 @@ const AdminDashboard = () => {
   };
   const [activeTab, setActiveTab] = useState('Home');
 
-  const [stats,    setStats]    = useState<AdminStats | null>(null);
-  const [users,    setUsers]    = useState<AdminUser[]>([]);
-  const [services, setServices] = useState<AdminService[]>([]);
-  const [orders,   setOrders]   = useState<AdminOrder[]>([]);
+  const [stats,      setStats]      = useState<AdminStats | null>(null);
+  const [users,      setUsers]      = useState<AdminUser[]>([]);
+  const [services,   setServices]   = useState<AdminService[]>([]);
+  const [orders,     setOrders]     = useState<AdminOrder[]>([]);
+  const [affiliates, setAffiliates] = useState<AdminAffiliate[]>([]);
 
-  const [statsLoading,    setStatsLoading]    = useState(true);
-  const [usersLoading,    setUsersLoading]    = useState(true);
-  const [servicesLoading, setServicesLoading] = useState(true);
-  const [ordersLoading,   setOrdersLoading]   = useState(true);
+  const [statsLoading,      setStatsLoading]      = useState(true);
+  const [usersLoading,      setUsersLoading]      = useState(true);
+  const [servicesLoading,   setServicesLoading]   = useState(true);
+  const [ordersLoading,     setOrdersLoading]     = useState(true);
+  const [affiliatesLoading, setAffiliatesLoading] = useState(true);
 
   const [accessDenied, setAccessDenied] = useState(false);
   const [fetchError,   setFetchError]   = useState<string | null>(null);
@@ -114,21 +117,22 @@ const AdminDashboard = () => {
         return res.json();
       };
 
-      const [s, u, sv, o] = await Promise.allSettled([
+      const [s, u, sv, o, af] = await Promise.allSettled([
         fetchJson('/api/admin/stats'),
         fetchJson('/api/admin/users?limit=20'),
         fetchJson('/api/admin/services?limit=20'),
         fetchJson('/api/admin/orders?limit=20'),
+        fetchJson('/api/admin/affiliates'),
       ]);
 
       if (cancelled) return;
 
-      const denied = [s, u, sv, o].some(
+      const denied = [s, u, sv, o, af].some(
         (r) => r.status === 'rejected' && (r.reason as { status?: number })?.status === 403,
       );
       if (denied) { setAccessDenied(true); return; }
 
-      const unauthorized = [s, u, sv, o].some(
+      const unauthorized = [s, u, sv, o, af].some(
         (r) => r.status === 'rejected' && (r.reason as { status?: number })?.status === 401,
       );
       if (unauthorized) setFetchError('Authentication failed. Please sign in again.');
@@ -137,8 +141,9 @@ const AdminDashboard = () => {
       if (u.status  === 'fulfilled') setUsers(u.value.users ?? []);
       if (sv.status === 'fulfilled') setServices(sv.value.services ?? []);
       if (o.status  === 'fulfilled') setOrders(o.value.orders ?? []);
+      if (af.status === 'fulfilled') setAffiliates(af.value.affiliates ?? []);
 
-      if ([s, u, sv, o].some((r) => r.status === 'rejected' && !denied && !unauthorized)) {
+      if ([s, u, sv, o, af].some((r) => r.status === 'rejected' && !denied && !unauthorized)) {
         setFetchError('Some data failed to load.');
       }
 
@@ -146,6 +151,7 @@ const AdminDashboard = () => {
       setUsersLoading(false);
       setServicesLoading(false);
       setOrdersLoading(false);
+      setAffiliatesLoading(false);
     };
 
     load().catch((err) => {
@@ -155,6 +161,7 @@ const AdminDashboard = () => {
         setUsersLoading(false);
         setServicesLoading(false);
         setOrdersLoading(false);
+        setAffiliatesLoading(false);
       }
     });
 
@@ -231,6 +238,14 @@ const AdminDashboard = () => {
           <>
             <PageHeader title="Orders" subtitle="All orders and transactions" />
             <AdminOrdersTable orders={orders} loading={ordersLoading} />
+          </>
+        );
+
+      case 'Affiliates':
+        return (
+          <>
+            <PageHeader title="Affiliates" subtitle="Referral program participants and their earnings" />
+            <AdminAffiliatesTable affiliates={affiliates} loading={affiliatesLoading} />
           </>
         );
 
