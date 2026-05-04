@@ -15,6 +15,9 @@ import AdminUserViewModal from './components/AdminUserViewModal';
 import AdminUserEditModal from './components/AdminUserEditModal';
 import AdminUserDeleteModal from './components/AdminUserDeleteModal';
 import AdminSettingsPage from './components/AdminSettingsPage';
+import AdminServiceViewModal from './components/AdminServiceViewModal';
+import AdminServiceEditModal from './components/AdminServiceEditModal';
+import AdminServiceDeleteModal from './components/AdminServiceDeleteModal';
 
 const NAV_ITEMS = [
   { name: 'Home',          Icon: Home,       subtitle: 'Overview & metrics' },
@@ -72,12 +75,23 @@ const AdminDashboard = () => {
   const [editUser,   setEditUser]   = useState<AdminUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
 
+  const [viewService,   setViewService]   = useState<AdminService | null>(null);
+  const [editService,   setEditService]   = useState<AdminService | null>(null);
+  const [deleteService, setDeleteService] = useState<AdminService | null>(null);
+
   // ── Local state updaters (avoid full re-fetch) ───────────────────────────────
   const handleEditSuccess = (updated: AdminUser) => {
     setUsers((prev) => prev.map((u) => (u.uid === updated.uid ? updated : u)));
   };
   const handleDeleteSuccess = (uid: string) => {
     setUsers((prev) => prev.filter((u) => u.uid !== uid));
+  };
+
+  const handleServiceEditSuccess = (updated: AdminService) => {
+    setServices((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  };
+  const handleServiceDeleteSuccess = (id: string) => {
+    setServices((prev) => prev.filter((s) => s.id !== id));
   };
 
   // ── Data fetch ──────────────────────────────────────────────────────────────
@@ -173,6 +187,14 @@ const AdminDashboard = () => {
     onDelete: (u: AdminUser) => setDeleteUser(u),
   };
 
+  const servicesTableProps = {
+    services,
+    loading: servicesLoading,
+    onView:   (s: AdminService) => setViewService(s),
+    onEdit:   (s: AdminService) => setEditService(s),
+    onDelete: (s: AdminService) => setDeleteService(s),
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'Home':
@@ -182,7 +204,7 @@ const AdminDashboard = () => {
             <AdminStatsCards stats={stats} loading={statsLoading} />
             <div className="mt-6 space-y-5">
               <AdminUsersTable    {...usersTableProps} />
-              <AdminServicesTable services={services} loading={servicesLoading} />
+              <AdminServicesTable {...servicesTableProps} />
               <AdminOrdersTable   orders={orders}     loading={ordersLoading} />
             </div>
           </>
@@ -192,7 +214,7 @@ const AdminDashboard = () => {
         return (
           <>
             <PageHeader title="Service Listings" subtitle="All services posted on the platform" />
-            <AdminServicesTable services={services} loading={servicesLoading} />
+            <AdminServicesTable {...servicesTableProps} />
           </>
         );
 
@@ -306,6 +328,27 @@ const AdminDashboard = () => {
           user={deleteUser}
           onClose={() => setDeleteUser(null)}
           onSuccess={handleDeleteSuccess}
+        />
+      )}
+
+      {viewService && (
+        <AdminServiceViewModal
+          service={viewService}
+          onClose={() => setViewService(null)}
+        />
+      )}
+      {editService && (
+        <AdminServiceEditModal
+          service={editService}
+          onClose={() => setEditService(null)}
+          onSuccess={handleServiceEditSuccess}
+        />
+      )}
+      {deleteService && (
+        <AdminServiceDeleteModal
+          service={deleteService}
+          onClose={() => setDeleteService(null)}
+          onSuccess={handleServiceDeleteSuccess}
         />
       )}
     </div>

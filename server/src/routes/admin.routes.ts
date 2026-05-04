@@ -3,7 +3,7 @@ import { verifyAdmin } from '../middleware/verifyAdmin';
 import {
   getStats,
   getUsers, updateUser, deleteUser,
-  getServices,
+  getServices, updateService, deleteService,
   getOrders,
   getSettings, updateSettings,
 } from '../controllers/admin.controller';
@@ -14,7 +14,9 @@ router.get('/stats',          verifyAdmin, getStats);
 router.get('/users',          verifyAdmin, getUsers);
 router.patch('/users/:uid',   verifyAdmin, updateUser);
 router.delete('/users/:uid',  verifyAdmin, deleteUser);
-router.get('/services',       verifyAdmin, getServices);
+router.get('/services',          verifyAdmin, getServices);
+router.patch('/services/:id',    verifyAdmin, updateService);
+router.delete('/services/:id',   verifyAdmin, deleteService);
 router.get('/orders',         verifyAdmin, getOrders);
 router.get('/settings',       verifyAdmin, getSettings);
 router.patch('/settings',     verifyAdmin, updateSettings);

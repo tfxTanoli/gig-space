@@ -243,12 +243,17 @@ export async function getServices(req: AdminRequest, res: Response): Promise<voi
     const services = Object.entries(data)
       .map(([id, s]) => {
         const svc = s as Record<string, unknown>;
+        const images = Array.isArray(svc?.images) ? (svc.images as string[]) : [];
         return {
           id,
-          title:      String(svc?.title      ?? ''),
-          sellerName: String(svc?.sellerName ?? ''),
-          price:      Number(svc?.price      ?? 0),
-          status:     String(svc?.status     ?? 'active'),
+          title:       String(svc?.title      ?? ''),
+          sellerName:  String(svc?.sellerName ?? ''),
+          price:       Number(svc?.priceMin   ?? svc?.price ?? 0),
+          status:      String(svc?.status     ?? 'active'),
+          imageUrl:    images[0] ?? null,
+          category:    String(svc?.category   ?? ''),
+          description: String(svc?.description ?? ''),
+          createdAt:   Number(svc?.createdAt  ?? 0),
         };
       })
       .sort((a, b) => b.price - a.price);
@@ -257,6 +262,56 @@ export async function getServices(req: AdminRequest, res: Response): Promise<voi
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/services error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+export async function updateService(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { title, status, price } = req.body as { title?: string; status?: string; price?: number };
+    const db = admin.database();
+    const snap = await db.ref(`services/${id}`).get();
+    if (!snap.exists()) { res.status(404).json({ error: 'Service not found' }); return; }
+
+    const updates: Record<string, unknown> = {};
+    if (title  !== undefined) updates.title  = String(title).trim();
+    if (status !== undefined) updates.status = String(status);
+    if (price  !== undefined) updates.priceMin = Number(price);
+
+    await db.ref(`services/${id}`).update(updates);
+
+    const updated = (await db.ref(`services/${id}`).get()).val() as Record<string, unknown>;
+    const images = Array.isArray(updated?.images) ? (updated.images as string[]) : [];
+    res.json({
+      id,
+      title:       String(updated?.title      ?? ''),
+      sellerName:  String(updated?.sellerName ?? ''),
+      price:       Number(updated?.priceMin   ?? updated?.price ?? 0),
+      status:      String(updated?.status     ?? 'active'),
+      imageUrl:    images[0] ?? null,
+      category:    String(updated?.category   ?? ''),
+      description: String(updated?.description ?? ''),
+      createdAt:   Number(updated?.createdAt  ?? 0),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/services/:id PATCH error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+export async function deleteService(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const db = admin.database();
+    const snap = await db.ref(`services/${id}`).get();
+    if (!snap.exists()) { res.status(404).json({ error: 'Service not found' }); return; }
+    await db.ref(`services/${id}`).remove();
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/services/:id DELETE error:', msg);
     res.status(500).json({ error: msg });
   }
 }
