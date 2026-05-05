@@ -7,6 +7,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, onValue } from 'firebase/database';
 import { database } from './firebase';
@@ -77,8 +78,7 @@ const BuyerSearchFiltered = () => {
       <header className="w-full px-6 py-4 lg:px-12 flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center flex-1">
           <Link to="/" className="flex items-center mr-10 shrink-0">
-            <LocationIcon className="w-6 h-6 mr-1" />
-            <span className="text-2xl font-bold tracking-tight text-white">igspace</span>
+            <Logo className="h-6" />
           </Link>
 
           <div className="hidden md:flex items-center bg-[#0E1422] border border-slate-700 rounded-lg overflow-hidden h-10 w-full max-w-xl">

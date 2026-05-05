@@ -1041,6 +1041,7 @@ export default function ChatMessages({
                   onChange={handleImageSelect}
                 />
                 <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0"
                   title="Attach image"
@@ -1051,6 +1052,7 @@ export default function ChatMessages({
                 {/* Create Offer button — seller only, when a conversation is open */}
                 {mode === 'seller' && (
                   <button
+                    type="button"
                     onClick={openOfferModal}
                     className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0"
                     title="Create offer"
@@ -1064,18 +1066,19 @@ export default function ChatMessages({
                   value={inputText}
                   onChange={(e) => { setInputText(e.target.value); autoResizeInput(e.target); }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type a message… (Enter to send)"
+                  placeholder={imageFile ? 'Add a caption… (Enter to send)' : 'Type a message… (Enter to send)'}
                   className="flex-1 bg-[#0E1422] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   rows={1}
                   style={{ minHeight: '40px' }}
                 />
                 <button
+                  type="button"
                   onClick={sendMessage}
                   disabled={sending || (!inputText.trim() && !imageFile)}
                   className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0"
                   title="Send"
                 >
-                  <Send className="w-4 h-4" />
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
             </>

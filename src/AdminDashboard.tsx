@@ -12,7 +12,7 @@ import {
   Search,
   Bell,
 } from 'lucide-react';
-import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 import { CurrentUserAvatar } from './UserAvatar';
 
 const navItems = [
@@ -36,9 +36,8 @@ const AdminDashboard = () => {
       <aside className="w-72 bg-[#111827] flex flex-col shrink-0 border-r border-slate-800 min-h-screen">
         {/* Logo */}
         <div className="h-16 flex items-center px-6">
-          <Link to="/" className="flex items-center gap-0.5">
-            <LocationIcon className="w-6 h-6" />
-            <span className="text-xl font-bold tracking-tight text-white">igspace</span>
+          <Link to="/">
+            <Logo className="h-6" />
           </Link>
         </div>
 

@@ -2,11 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Home,
-  Edit3,
   Package,
-  MessageSquare,
   FileText,
-  DollarSign,
   Settings,
   RefreshCw,
   Search,
@@ -16,7 +13,32 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+
+const PostsIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 2.5H4.16667C3.72464 2.5 3.30072 2.67559 2.98816 2.98816C2.67559 3.30072 2.5 3.72464 2.5 4.16667V15.8333C2.5 16.2754 2.67559 16.6993 2.98816 17.0118C3.30072 17.3244 3.72464 17.5 4.16667 17.5H15.8333C16.2754 17.5 16.6993 17.3244 17.0118 17.0118C17.3244 16.6993 17.5 16.2754 17.5 15.8333V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15.3125 2.18769C15.644 1.85617 16.0937 1.66992 16.5625 1.66992C17.0313 1.66992 17.481 1.85617 17.8125 2.18769C18.144 2.51921 18.3303 2.96885 18.3303 3.43769C18.3303 3.90653 18.144 4.35617 17.8125 4.68769L10.3017 12.1994C10.1038 12.3971 9.85934 12.5418 9.59083 12.6202L7.19667 13.3202C7.12496 13.3411 7.04895 13.3424 6.97659 13.3238C6.90423 13.3053 6.83819 13.2676 6.78537 13.2148C6.73256 13.162 6.69491 13.096 6.67637 13.0236C6.65783 12.9512 6.65909 12.8752 6.68 12.8035L7.38 10.4094C7.45877 10.1411 7.60378 9.8969 7.80167 9.69936L15.3125 2.18769Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const MessagesIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1.57641 12.7014C1.69894 13.0105 1.72622 13.3492 1.65474 13.6739L0.767243 16.4156C0.738646 16.5546 0.74604 16.6987 0.788722 16.834C0.831405 16.9694 0.907961 17.0916 1.01113 17.1891C1.1143 17.2866 1.24067 17.3562 1.37824 17.3911C1.51582 17.4261 1.66004 17.4253 1.79724 17.3889L4.64141 16.5572C4.94784 16.4965 5.26518 16.523 5.55724 16.6339C7.33673 17.4649 9.35255 17.6407 11.249 17.1303C13.1455 16.6199 14.8008 15.4561 15.9228 13.8442C17.0448 12.2323 17.5615 10.2759 17.3817 8.3202C17.2018 6.36449 16.337 4.53514 14.9398 3.15491C13.5426 1.77468 11.7028 0.932277 9.74506 0.776325C7.78729 0.620374 5.83735 1.1609 4.23928 2.30253C2.6412 3.44416 1.49769 5.11353 1.01049 7.01611C0.523289 8.91869 0.723717 10.9322 1.57641 12.7014Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const PayoutsIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 15H3.33333C2.89131 15 2.46738 14.8244 2.15482 14.5118C1.84226 14.1993 1.66667 13.7754 1.66667 13.3333V6.66667C1.66667 6.22464 1.84226 5.80072 2.15482 5.48816C2.46738 5.17559 2.89131 5 3.33333 5H16.6667C17.1087 5 17.5326 5.17559 17.8452 5.48816C18.1577 5.80072 18.3333 6.22464 18.3333 6.66667V10.8333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13.3333 15.8335L15.8333 18.3335L18.3333 15.8335" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15 10H15.0083" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15.8333 13.3335V18.3335" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 10H5.00833" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10 11.6668C10.9205 11.6668 11.6667 10.9206 11.6667 10.0002C11.6667 9.07969 10.9205 8.3335 10 8.3335C9.07952 8.3335 8.33333 9.07969 8.33333 10.0002C8.33333 10.9206 9.07952 11.6668 10 11.6668Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
@@ -153,7 +175,7 @@ const PostModal = ({ post, onClose }: PostModalProps) => {
             </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-              <Edit3 className="w-10 h-10 text-slate-600" />
+              <PostsIcon className="w-10 h-10 text-slate-600" />
               <span className="text-slate-600 text-sm">No images</span>
             </div>
           )}
@@ -222,7 +244,7 @@ const PostModal = ({ post, onClose }: PostModalProps) => {
           {/* Actions */}
           <div className="flex gap-3 pt-1">
             <Link
-              to="/post-service"
+              to={`/post-service?id=${post.id}`}
               className="flex-1 text-center bg-primary hover:bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
             >
               Edit post
@@ -251,11 +273,11 @@ const SellerDashboard = () => {
 
   const navItems = [
     { name: 'Home', icon: Home },
-    { name: 'Posts', icon: Edit3 },
+    { name: 'Posts', icon: PostsIcon },
     { name: 'Orders', icon: Package },
-    { name: 'Messages', icon: MessageSquare },
+    { name: 'Messages', icon: MessagesIcon },
     { name: 'Statements', icon: FileText },
-    { name: 'Payouts', icon: DollarSign },
+    { name: 'Payouts', icon: PayoutsIcon },
     { name: 'Settings', icon: Settings },
   ];
 
@@ -295,90 +317,73 @@ const SellerDashboard = () => {
   const activePosts = posts.filter(p => p.status === 'active');
 
   const formatPrice = (post: ServicePost) => {
-    const suffix = post.priceType === 'per_hour' ? '/hr' : '/project';
-    if (post.priceMax) return `$${post.priceMin} – $${post.priceMax}${suffix}`;
-    return `$${post.priceMin}${suffix}`;
+    const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
+    if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
+    return { prefix: 'From', price: `$${post.priceMin}`, suffix };
   };
 
-  const PostCard = ({ post }: { post: ServicePost }) => (
-    <div className="bg-[#111827] border border-slate-800 rounded-xl overflow-hidden flex flex-col hover:border-slate-600 transition-colors">
-      {/* Thumbnail — opens modal */}
-      <button
-        onClick={() => setSelectedPost(post)}
-        className="block relative w-full aspect-[4/3] bg-[#1A2035] shrink-0 overflow-hidden group text-left"
-      >
-        {post.images?.[0] ? (
-          <img
-            src={post.images[0]}
-            alt={post.title}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-            <Edit3 className="w-8 h-8 text-slate-600" />
-            <span className="text-slate-600 text-xs">No image</span>
-          </div>
-        )}
-        {/* Status badge over image */}
-        <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-medium backdrop-blur-sm ${
-          post.status === 'active'
-            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-            : 'bg-slate-800/80 text-slate-400 border border-slate-700'
-        }`}>
-          {post.status === 'active' ? 'Active' : 'Paused'}
-        </span>
-      </button>
-
-      {/* Card body */}
-      <div className="p-4 flex flex-col flex-1">
-        {/* Category */}
-        <p className="text-slate-500 text-xs mb-1.5">{categoryLabels[post.category] ?? post.category}</p>
-
-        {/* Title */}
-        <h3 className="text-white font-semibold text-sm leading-snug line-clamp-2 mb-2">
-          {post.title}
-        </h3>
-
-        {/* Description */}
-        {post.description && (
-          <p className="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-3">
-            {post.description}
-          </p>
-        )}
-
-        {/* Price + Location */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-auto mb-3">
-          <span className="font-semibold text-white text-sm">{formatPrice(post)}</span>
-          {(post.primaryLocation || post.offeredRemotely) && (
-            <span className="flex items-center gap-1 text-slate-400">
-              <LocationIcon className="w-3 h-3" />
-              {post.offeredRemotely ? 'Remote' : post.primaryLocation}
-            </span>
-          )}
-        </div>
-
-        {/* Footer: Edit · View · Date */}
-        <div className="flex items-center gap-2 pt-3 border-t border-slate-800 text-xs">
-          <Link
-            to="/post-service"
-            className="text-primary hover:text-blue-400 font-medium transition-colors"
-          >
-            Edit
-          </Link>
-          <span className="text-slate-700">·</span>
+  const PostCard = ({ post }: { post: ServicePost }) => {
+    const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
+    const { prefix, price, suffix } = formatPrice(post);
+    return (
+      <div className="group">
+        {/* Image */}
+        <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
           <button
             onClick={() => setSelectedPost(post)}
-            className="text-slate-400 hover:text-white font-medium transition-colors"
+            className="block w-full h-full text-left"
           >
-            View
+            {post.images?.[0] ? (
+              <img
+                src={post.images[0]}
+                alt={post.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-slate-600 text-xs">No image</span>
+              </div>
+            )}
           </button>
-          <span className="text-slate-700 ml-auto">
-            {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {/* Status badge */}
+          <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium backdrop-blur-sm ${
+            post.status === 'active'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              : 'bg-slate-800/80 text-slate-400 border border-slate-700'
+          }`}>
+            {post.status === 'active' ? 'Active' : 'Paused'}
           </span>
+          {/* Edit shortcut */}
+          <Link
+            to={`/post-service?id=${post.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+            title="Edit post"
+          >
+            <PostsIcon className="w-3.5 h-3.5 text-white" />
+          </Link>
         </div>
+
+        {/* Info */}
+        <button onClick={() => setSelectedPost(post)} className="w-full text-left">
+          <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline text-sm">
+            {post.title}
+          </h3>
+          {location && (
+            <div className="flex items-center text-slate-400 text-xs mb-3">
+              <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
+              {location}
+            </div>
+          )}
+          <div className="text-sm">
+            {prefix && <span className="text-slate-400">{prefix} </span>}
+            <span className="font-bold text-lg">{price}</span>
+            <span className="text-slate-400 text-xs ml-1">{suffix}</span>
+          </div>
+        </button>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
@@ -389,11 +394,10 @@ const SellerDashboard = () => {
       )}
 
       {/* Sidebar — desktop only */}
-      <aside className="w-64 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
+      <aside className="w-72 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
-          <Link to="/" className="flex items-center">
-            <LocationIcon className="w-6 h-6 mr-1" />
-            <span className="text-xl font-bold tracking-tight text-white">igspace</span>
+          <Link to="/">
+            <Logo className="h-6" />
           </Link>
         </div>
 
@@ -459,9 +463,8 @@ const SellerDashboard = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800">
           {/* Mobile: logo */}
-          <Link to="/" className="flex items-center md:hidden mr-3">
-            <LocationIcon className="w-5 h-5 mr-1" />
-            <span className="text-base font-bold text-white">igspace</span>
+          <Link to="/" className="md:hidden mr-3">
+            <Logo className="h-5" />
           </Link>
           <div className="flex items-center flex-1">
             <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-500 mr-2 md:mr-3 shrink-0" />
@@ -472,9 +475,9 @@ const SellerDashboard = () => {
             />
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <button className="text-slate-400 hover:text-white transition-colors">
+            <span className="text-slate-600" aria-hidden="true" title="Notifications coming soon">
               <Bell className="w-5 h-5" />
-            </button>
+            </span>
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
             <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">
               <Plus className="w-4 h-4" /> <span className="hidden md:inline">New Post</span>

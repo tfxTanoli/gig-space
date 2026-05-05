@@ -10,13 +10,17 @@ import {
   MessageSquare,
   Settings,
   LogOut,
+  Loader2,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
-import { ref, onValue } from 'firebase/database';
+import { ref, get, query, orderByChild, limitToLast, endBefore } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
+
+const PAGE_SIZE = 50;
 
 const categories = [
   "Automotive", "Business", "Graphics & Design", "Home & Garden",
@@ -57,6 +61,8 @@ const BuyerSearch = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -78,22 +84,48 @@ const BuyerSearch = () => {
     navigate('/signin');
   };
 
-  useEffect(() => {
-    const servicesRef = ref(database, 'services');
-    const unsub = onValue(servicesRef, (snap) => {
-      const result: ServicePost[] = [];
-      snap.forEach((child) => {
-        const val = child.val();
-        if (val.status === 'active') {
-          result.push({ id: child.key!, ...val });
-        }
-      });
-      result.sort((a, b) => b.createdAt - a.createdAt);
-      setPosts(result);
-      setLoading(false);
+  const fetchPage = async (beforeTimestamp?: number) => {
+    const q = beforeTimestamp
+      ? query(ref(database, 'services'), orderByChild('createdAt'), endBefore(beforeTimestamp), limitToLast(PAGE_SIZE))
+      : query(ref(database, 'services'), orderByChild('createdAt'), limitToLast(PAGE_SIZE));
+
+    const snap = await get(q);
+    const result: ServicePost[] = [];
+    snap.forEach((child) => {
+      const val = child.val();
+      if (val.status === 'active') result.push({ id: child.key!, ...val });
     });
-    return () => unsub();
+    result.sort((a, b) => b.createdAt - a.createdAt);
+    return result;
+  };
+
+  useEffect(() => {
+    fetchPage()
+      .then((result) => {
+        setPosts(result);
+        setHasMore(result.length === PAGE_SIZE);
+      })
+      .catch(() => setPosts([]))
+      .finally(() => setLoading(false));
   }, []);
+
+  const loadMore = async () => {
+    if (loadingMore || posts.length === 0) return;
+    setLoadingMore(true);
+    const oldest = posts[posts.length - 1].createdAt;
+    try {
+      const more = await fetchPage(oldest);
+      setPosts((prev) => {
+        const ids = new Set(prev.map((p) => p.id));
+        return [...prev, ...more.filter((p) => !ids.has(p.id))];
+      });
+      setHasMore(more.length === PAGE_SIZE);
+    } catch {
+      // silently ignore load-more failures
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
@@ -101,8 +133,7 @@ const BuyerSearch = () => {
       <header className="w-full px-6 py-4 lg:px-12 flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center flex-1">
           <Link to="/" className="flex items-center mr-10 shrink-0">
-            <LocationIcon className="w-6 h-6 mr-1" />
-            <span className="text-2xl font-bold tracking-tight text-white">igspace</span>
+            <Logo className="h-6" />
           </Link>
 
           <div className="hidden md:flex items-center bg-[#0E1422] border border-slate-700 rounded-lg overflow-hidden h-10 w-full max-w-xl">
@@ -122,12 +153,12 @@ const BuyerSearch = () => {
         </div>
 
         <div className="flex items-center space-x-6 shrink-0">
-          <button className="text-slate-400 hover:text-white transition-colors">
+          <span className="text-slate-600" aria-hidden="true">
             <MessageCircle className="w-5 h-5" />
-          </button>
-          <button className="text-slate-400 hover:text-white transition-colors relative">
+          </span>
+          <span className="text-slate-600" aria-hidden="true" title="Notifications coming soon">
             <Bell className="w-5 h-5" />
-          </button>
+          </span>
           <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
             Create New Post
           </Link>
@@ -313,8 +344,17 @@ const BuyerSearch = () => {
               })}
             </div>
 
-            <div className="flex justify-between items-center py-6 border-t border-slate-800 mb-16">
-              <p className="text-slate-400 text-sm">{posts.length} service{posts.length !== 1 ? 's' : ''} found</p>
+            <div className="flex flex-col items-center gap-4 py-6 border-t border-slate-800 mb-16">
+              <p className="text-slate-400 text-sm">{posts.length} service{posts.length !== 1 ? 's' : ''} shown</p>
+              {hasMore && (
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="flex items-center gap-2 bg-[#111827] hover:bg-slate-800 disabled:opacity-50 border border-slate-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+                >
+                  {loadingMore ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading…</> : 'Load more'}
+                </button>
+              )}
             </div>
           </>
         )}

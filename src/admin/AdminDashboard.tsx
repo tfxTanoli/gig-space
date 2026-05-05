@@ -5,7 +5,7 @@ import {
   CreditCard, Link2, Settings, Construction, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
-import LocationIcon from '../LocationIcon';
+import Logo from '../Logo';
 import AdminTopbar from './components/AdminTopbar';
 import AdminStatsCards, { type AdminStats } from './components/AdminStatsCards';
 import AdminUsersTable, { type AdminUser } from './components/AdminUsersTable';
@@ -264,9 +264,8 @@ const AdminDashboard = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-[#111827] flex flex-col shrink-0 border-r border-slate-800 min-h-screen">
         <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <Link to="/" className="flex items-center gap-0.5">
-            <LocationIcon className="w-6 h-6" />
-            <span className="text-xl font-bold tracking-tight text-white">igspace</span>
+          <Link to="/">
+            <Logo className="h-6" />
           </Link>
         </div>
 

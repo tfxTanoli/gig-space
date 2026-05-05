@@ -5,6 +5,7 @@ import {
   Bookmark, Star,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, get, onValue, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from './firebase';
@@ -235,8 +236,7 @@ const ServiceDetail = () => {
       {/* ── Header ── */}
       <header className="bg-[#0E1422] border-b border-slate-800/70 px-6 py-3.5 flex items-center justify-between">
         <Link to="/" className="flex items-center">
-          <LocationIcon className="w-5 h-5 mr-0.5" />
-          <span className="text-xl font-bold tracking-tight text-white">igspace</span>
+          <Logo className="h-5" />
         </Link>
         <div className="flex items-center gap-5">
           <button className="text-slate-400 hover:text-white transition-colors">

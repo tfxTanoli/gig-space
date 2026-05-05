@@ -1,6 +1,6 @@
 import { ArrowRight, ShieldCheck, Zap, Globe, Scale, Heart, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 
 const values = [
   {
@@ -41,8 +41,7 @@ const AboutUs = () => {
       {/* Header */}
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
         <div className="flex items-center">
-          <LocationIcon className="w-6 h-6 mr-1" />
-          <span className="text-xl font-bold tracking-tight text-white">igspace</span>
+          <Logo className="h-6" />
         </div>
         <nav className="flex items-center space-x-6 text-sm font-medium">
           <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>

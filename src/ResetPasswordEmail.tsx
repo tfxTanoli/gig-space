@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, KeyRound } from 'lucide-react';
-import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 
 const ResetPasswordEmail = () => {
   const navigate = useNavigate();
@@ -10,8 +10,7 @@ const ResetPasswordEmail = () => {
       {/* Logo Header */}
       <div className="mb-12">
         <Link to="/" className="flex items-center">
-          <LocationIcon className="w-8 h-8 mr-1.5" />
-          <span className="text-3xl font-bold tracking-tight text-white">igspace</span>
+          <Logo className="h-8" />
         </Link>
       </div>
 

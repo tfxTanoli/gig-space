@@ -1,6 +1,6 @@
 import { Search, ChevronDown, ArrowRight, ChevronLeft, ChevronRight, Car, PenTool, Home, Package, Code, Hammer, MessageSquare, UserCheck, ShieldCheck, Image, Percent } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import LocationIcon from './LocationIcon';
+import Logo from './Logo';
 
 const categories = [
   { name: 'Automotive', icon: Car },
@@ -51,8 +51,7 @@ const LandingPage = () => {
       {/* Header */}
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
         <div className="flex items-center">
-          <LocationIcon className="w-6 h-6 mr-1" />
-          <span className="text-xl font-bold tracking-tight text-white">igspace</span>
+          <Logo className="h-6" />
         </div>
         <nav className="flex items-center space-x-6 text-sm font-medium">
           <Link to="/account-type" className="text-white hover:text-slate-300 transition-colors">For Sellers</Link>

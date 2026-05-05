@@ -32,6 +32,13 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   return user ? <>{children}</> : <Navigate to="/signin" replace />;
 };
 
+const AdminRoute = ({ children }: { children: ReactNode }) => {
+  const { user, userProfile } = useAuth();
+  if (!user) return <Navigate to="/signin" replace />;
+  if (userProfile?.role !== 'admin') return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 function ReferralCapture() {
   const [searchParams] = useSearchParams();
   useEffect(() => {
@@ -60,7 +67,7 @@ function AppRoutes() {
       <Route path="/affiliate-signin" element={<AffiliateSignin />} />
       <Route path="/affiliate-profile" element={<ProtectedRoute><AffiliateProfile /></ProtectedRoute>} />
       <Route path="/service-detail" element={<ServiceDetail />} />
-      <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/about" element={<AboutUs />} />
       <Route path="/post-service" element={<ProtectedRoute><PostService /></ProtectedRoute>} />
       <Route path="/signup" element={<Signup />} />
