@@ -4,6 +4,8 @@ import {
   CheckCircle2, AlertTriangle, Loader2,
   Info, ShieldCheck,
 } from 'lucide-react';
+import { ref as dbRef, get, update } from 'firebase/database';
+import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -221,23 +223,23 @@ const AdminSettingsPage = () => {
     registration: { ...BLANK_STATUS },
   });
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  // ── Fetch (Firebase-direct) ────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     (async () => {
       try {
-        const token = await user.getIdToken();
-        const res = await fetch('/api/admin/settings', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const snap = await get(dbRef(database, 'settings'));
         if (cancelled) return;
-        if (data.general)      setGeneral(data.general);
-        if (data.fees)         setFees(data.fees);
-        if (data.registration) setRegistration(data.registration);
-      } catch (err) {
+        const data = (snap.val() ?? {}) as Partial<{
+          general: GeneralSettings;
+          fees: FeeSettings;
+          registration: RegistrationSettings;
+        }>;
+        if (data.general)      setGeneral((g) => ({ ...g, ...data.general }));
+        if (data.fees)         setFees((f) => ({ ...f, ...data.fees }));
+        if (data.registration) setRegistration((r) => ({ ...r, ...data.registration }));
+      } catch {
         if (!cancelled) setFetchError('Failed to load settings. Showing defaults.');
       } finally {
         if (!cancelled) setLoading(false);
@@ -246,32 +248,32 @@ const AdminSettingsPage = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // ── Save section ───────────────────────────────────────────────────────────
+  // ── Save section (Firebase-direct, with client-side validation) ─────────────
   const saveSection = useCallback(async (section: SectionKey, data: object) => {
     if (!user) return;
-    setStatus((s) => ({ ...s, [section]: { saving: true, saved: false, error: '' } }));
-    try {
-      const token = await user.getIdToken();
-      const res = await fetch('/api/admin/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ section, data }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setStatus((s) => ({ ...s, [section]: { saving: false, saved: false, error: json.error ?? 'Save failed' } }));
+
+    // Validate fees range (mirrors prior server-side validation)
+    if (section === 'fees') {
+      const f = data as FeeSettings;
+      if (isNaN(f.platformFeePercent) || f.platformFeePercent < 0 || f.platformFeePercent > 50) {
+        setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Platform fee must be 0–50%' } }));
         return;
       }
-      // Update state from server response
-      if (json.general)      setGeneral(json.general);
-      if (json.fees)         setFees(json.fees);
-      if (json.registration) setRegistration(json.registration);
+      if (isNaN(f.minimumWithdrawal) || f.minimumWithdrawal < 1) {
+        setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Minimum withdrawal must be at least $1' } }));
+        return;
+      }
+    }
+
+    setStatus((s) => ({ ...s, [section]: { saving: true, saved: false, error: '' } }));
+    try {
+      await update(dbRef(database, `settings/${section}`), data as Record<string, unknown>);
 
       setStatus((s) => ({ ...s, [section]: { saving: false, saved: true, error: '' } }));
-      // Clear "saved" badge after 4 s
       setTimeout(() => setStatus((s) => ({ ...s, [section]: { ...s[section], saved: false } })), 4000);
-    } catch {
-      setStatus((s) => ({ ...s, [section]: { saving: false, saved: false, error: 'Network error. Try again.' } }));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      setStatus((s) => ({ ...s, [section]: { saving: false, saved: false, error: msg } }));
     }
   }, [user]);
 

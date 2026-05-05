@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, AlertTriangle, Trash2, Tag } from 'lucide-react';
+import { ref as dbRef, get, remove } from 'firebase/database';
+import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 import { type AdminService } from './AdminServicesTable';
 
@@ -25,17 +27,14 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
     setError(null);
     setDeleting(true);
     try {
-      const token = await authUser.getIdToken();
-      const res = await fetch(`/api/admin/services/${service.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Failed to delete service'); return; }
+      const svcRef = dbRef(database, `services/${service.id}`);
+      const snap = await get(svcRef);
+      if (!snap.exists()) { setError('Service not found'); return; }
+      await remove(svcRef);
       onSuccess(service.id);
       onClose();
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete service');
     } finally {
       setDeleting(false);
     }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { ref as dbRef, get, update } from 'firebase/database';
+import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 import { type AdminService } from './AdminServicesTable';
 
@@ -35,21 +37,32 @@ const AdminServiceEditModal = ({ service, onClose, onSuccess }: Props) => {
     setError(null);
     setSaving(true);
     try {
-      const token = await authUser.getIdToken();
-      const res = await fetch(`/api/admin/services/${service.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title: title.trim(), status, price: parsedPrice }),
+      const svcRef = dbRef(database, `services/${service.id}`);
+      const snap = await get(svcRef);
+      if (!snap.exists()) { setError('Service not found'); return; }
+
+      await update(svcRef, {
+        title: title.trim(),
+        status,
+        priceMin: parsedPrice,
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Failed to update service'); return; }
-      onSuccess(data as AdminService);
+
+      const fresh = (await get(svcRef)).val() as Record<string, unknown>;
+      const images = Array.isArray(fresh?.images) ? (fresh.images as string[]) : [];
+      onSuccess({
+        id:          service.id,
+        title:       String(fresh?.title       ?? ''),
+        sellerName:  String(fresh?.sellerName  ?? ''),
+        price:       Number(fresh?.priceMin    ?? fresh?.price ?? 0),
+        status:      String(fresh?.status      ?? 'active'),
+        imageUrl:    images[0] ?? null,
+        category:    String(fresh?.category    ?? ''),
+        description: String(fresh?.description ?? ''),
+        createdAt:   Number(fresh?.createdAt   ?? 0),
+      });
       onClose();
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update service');
     } finally {
       setSaving(false);
     }

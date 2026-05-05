@@ -4,6 +4,8 @@ import {
   Home, Edit3, Tag, Users, Package,
   CreditCard, Link2, Settings, Construction, LogOut,
 } from 'lucide-react';
+import { ref as dbRef, get } from 'firebase/database';
+import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
 import Logo from '../Logo';
 import AdminTopbar from './components/AdminTopbar';
@@ -97,54 +99,133 @@ const AdminDashboard = () => {
     setServices((prev) => prev.filter((s) => s.id !== id));
   };
 
-  // ── Data fetch ──────────────────────────────────────────────────────────────
+  // ── Data fetch (Firebase-direct, no backend required) ───────────────────────
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
 
     const load = async () => {
-      const token = await user.getIdToken();
-      const headers: HeadersInit = { Authorization: `Bearer ${token}` };
+      // Verify admin role first — gates access to all aggregated reads
+      const roleSnap = await get(dbRef(database, `users/${user.uid}/role`));
+      if (cancelled) return;
+      if (roleSnap.val() !== 'admin') { setAccessDenied(true); return; }
 
-      const fetchJson = async (url: string) => {
-        const res = await fetch(url, { headers });
-        if (res.status === 401 || res.status === 403) {
-          const err = new Error('forbidden') as Error & { status: number };
-          err.status = res.status;
-          throw err;
-        }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      };
-
-      const [s, u, sv, o, af] = await Promise.allSettled([
-        fetchJson('/api/admin/stats'),
-        fetchJson('/api/admin/users?limit=20'),
-        fetchJson('/api/admin/services?limit=20'),
-        fetchJson('/api/admin/orders?limit=20'),
-        fetchJson('/api/admin/affiliates'),
+      const [usersRes, servicesRes, ordersRes, affiliatesRes] = await Promise.allSettled([
+        get(dbRef(database, 'users')),
+        get(dbRef(database, 'services')),
+        get(dbRef(database, 'orders')),
+        get(dbRef(database, 'affiliates')),
       ]);
 
       if (cancelled) return;
 
-      const denied = [s, u, sv, o, af].some(
-        (r) => r.status === 'rejected' && (r.reason as { status?: number })?.status === 403,
-      );
-      if (denied) { setAccessDenied(true); return; }
+      // Users
+      let userList: AdminUser[] = [];
+      let totalUsers = 0;
+      let totalSellers = 0;
+      if (usersRes.status === 'fulfilled') {
+        const data = (usersRes.value.val() ?? {}) as Record<string, Record<string, unknown>>;
+        const entries = Object.entries(data);
+        totalUsers = entries.length;
+        totalSellers = entries.filter(([, u]) => (u as { accountType?: string })?.accountType === 'seller').length;
+        userList = entries
+          .map(([uid, u]) => ({
+            uid,
+            name: String(u?.name ?? ''),
+            email: String(u?.email ?? ''),
+            username: String(u?.username ?? ''),
+            photoURL: String(u?.photoURL ?? ''),
+            accountType: String(u?.accountType ?? 'buyer'),
+            role: String(u?.role ?? 'user'),
+            createdAt: Number(u?.createdAt ?? 0),
+          }))
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 20);
+        setUsers(userList);
+      }
 
-      const unauthorized = [s, u, sv, o, af].some(
-        (r) => r.status === 'rejected' && (r.reason as { status?: number })?.status === 401,
-      );
-      if (unauthorized) setFetchError('Authentication failed. Please sign in again.');
+      // Services
+      let totalServices = 0;
+      if (servicesRes.status === 'fulfilled') {
+        const data = (servicesRes.value.val() ?? {}) as Record<string, Record<string, unknown>>;
+        const entries = Object.entries(data);
+        totalServices = entries.length;
+        const serviceList: AdminService[] = entries
+          .map(([id, s]) => {
+            const images = Array.isArray(s?.images) ? (s.images as string[]) : [];
+            return {
+              id,
+              title: String(s?.title ?? ''),
+              sellerName: String(s?.sellerName ?? ''),
+              price: Number(s?.priceMin ?? s?.price ?? 0),
+              status: String(s?.status ?? 'active'),
+              imageUrl: images[0] ?? null,
+              category: String(s?.category ?? ''),
+              description: String(s?.description ?? ''),
+              createdAt: Number(s?.createdAt ?? 0),
+            };
+          })
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 20);
+        setServices(serviceList);
+      }
 
-      if (s.status  === 'fulfilled') setStats(s.value);
-      if (u.status  === 'fulfilled') setUsers(u.value.users ?? []);
-      if (sv.status === 'fulfilled') setServices(sv.value.services ?? []);
-      if (o.status  === 'fulfilled') setOrders(o.value.orders ?? []);
-      if (af.status === 'fulfilled') setAffiliates(af.value.affiliates ?? []);
+      // Orders
+      let totalOrders = 0;
+      let totalRevenue = 0;
+      if (ordersRes.status === 'fulfilled') {
+        const data = (ordersRes.value.val() ?? {}) as Record<string, Record<string, unknown>>;
+        const entries = Object.entries(data);
+        totalOrders = entries.length;
+        totalRevenue = entries
+          .filter(([, o]) => (o as { status?: string })?.status === 'completed')
+          .reduce((sum, [, o]) => sum + (Number((o as { price?: number })?.price) || 0), 0);
+        const orderList: AdminOrder[] = entries
+          .map(([id, o]) => ({
+            orderId: id,
+            buyerName: String(o?.buyerName ?? ''),
+            sellerName: String(o?.sellerName ?? ''),
+            status: String(o?.status ?? ''),
+            amount: Number(o?.price ?? 0),
+            createdAt: Number(o?.createdAt ?? 0),
+          }))
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 20);
+        setOrders(orderList);
+      }
 
-      if ([s, u, sv, o, af].some((r) => r.status === 'rejected' && !denied && !unauthorized)) {
+      // Affiliates — join users (accountType='affiliate') with affiliates record
+      if (affiliatesRes.status === 'fulfilled' && usersRes.status === 'fulfilled') {
+        const usersData = (usersRes.value.val() ?? {}) as Record<string, Record<string, unknown>>;
+        const affData = (affiliatesRes.value.val() ?? {}) as Record<string, Record<string, unknown>>;
+        const affList: AdminAffiliate[] = Object.entries(usersData)
+          .filter(([, u]) => (u as { accountType?: string })?.accountType === 'affiliate')
+          .map(([uid, u]) => {
+            const aff = (affData[uid] ?? {}) as Record<string, unknown>;
+            return {
+              uid,
+              name: String(u?.name ?? ''),
+              email: String(u?.email ?? ''),
+              username: String(u?.username ?? ''),
+              photoURL: String(u?.photoURL ?? ''),
+              referralCode: String(aff?.referralCode ?? ''),
+              totalReferrals: Number(aff?.totalReferrals ?? 0),
+              lifetimeEarnings: Number(aff?.lifetimeEarnings ?? 0),
+              availableBalance: Number(aff?.availableBalance ?? 0),
+              pendingBalance: Number(aff?.pendingBalance ?? 0),
+              createdAt: Number(u?.createdAt ?? 0),
+            };
+          })
+          .sort((a, b) => b.createdAt - a.createdAt);
+        setAffiliates(affList);
+      }
+
+      setStats({ totalUsers, totalSellers, totalServices, totalOrders, totalRevenue });
+
+      const failures = [usersRes, servicesRes, ordersRes, affiliatesRes].filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
         setFetchError('Some data failed to load.');
+        console.error('Admin dashboard partial load failures:', failures);
       }
 
       setStatsLoading(false);
@@ -157,6 +238,7 @@ const AdminDashboard = () => {
     load().catch((err) => {
       if (!cancelled) {
         console.error('Admin dashboard load error:', err);
+        setFetchError('Failed to load data. Check your connection.');
         setStatsLoading(false);
         setUsersLoading(false);
         setServicesLoading(false);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { ref as dbRef, get, update } from 'firebase/database';
+import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 import { type AdminUser } from './AdminUsersTable';
 
@@ -30,24 +32,45 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
 
   const handleSave = async () => {
     if (!authUser) return;
+
+    if (!['user', 'admin'].includes(role)) {
+      setError('Role must be "user" or "admin"'); return;
+    }
+    if (!['buyer', 'seller'].includes(accountType)) {
+      setError('Account type must be "buyer" or "seller"'); return;
+    }
+    if (isSelf && role !== 'admin') {
+      setError('You cannot remove your own admin role'); return;
+    }
+
     setError(null);
     setSaving(true);
     try {
-      const token = await authUser.getIdToken();
-      const res = await fetch(`/api/admin/users/${user.uid}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, username, accountType, role }),
+      const userRef = dbRef(database, `users/${user.uid}`);
+      const snap = await get(userRef);
+      if (!snap.exists()) { setError('User not found'); return; }
+
+      await update(userRef, {
+        name: name.trim(),
+        username: username.trim(),
+        accountType,
+        role,
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Failed to update user'); return; }
-      onSuccess(data as AdminUser);
+
+      const fresh = (await get(userRef)).val() as Record<string, unknown>;
+      onSuccess({
+        uid: user.uid,
+        name:        String(fresh?.name        ?? ''),
+        email:       String(fresh?.email       ?? ''),
+        username:    String(fresh?.username    ?? ''),
+        photoURL:    String(fresh?.photoURL    ?? ''),
+        accountType: String(fresh?.accountType ?? 'buyer'),
+        role:        String(fresh?.role        ?? 'user'),
+        createdAt:   Number(fresh?.createdAt   ?? 0),
+      });
       onClose();
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user');
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
+import { ref as dbRef, remove } from 'firebase/database';
+import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 import { type AdminUser } from './AdminUsersTable';
 
@@ -22,20 +24,17 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
 
   const handleDelete = async () => {
     if (!authUser) return;
+    if (authUser.uid === user.uid) {
+      setError('You cannot delete your own account'); return;
+    }
     setError(null);
     setDeleting(true);
     try {
-      const token = await authUser.getIdToken();
-      const res = await fetch(`/api/admin/users/${user.uid}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Failed to delete user'); return; }
+      await remove(dbRef(database, `users/${user.uid}`));
       onSuccess(user.uid);
       onClose();
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
     } finally {
       setDeleting(false);
     }
@@ -64,7 +63,7 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
             Delete "{user.name || 'this user'}"?
           </p>
           <p className="text-center text-slate-500 text-sm mb-5">
-            This will permanently remove the account from Firebase Auth and the database. This action cannot be undone.
+            This will permanently remove the user record from the database. This action cannot be undone.
           </p>
 
           {/* User preview */}
