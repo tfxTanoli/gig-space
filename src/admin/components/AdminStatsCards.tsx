@@ -1,3 +1,4 @@
+import React from 'react';
 import { Users, Store, Package, ShoppingCart, DollarSign } from 'lucide-react';
 
 export interface AdminStats {
@@ -13,13 +14,22 @@ interface Props {
   loading: boolean;
 }
 
-const CARDS = [
-  { key: 'totalUsers',    label: 'Total Users',    Icon: Users,         color: 'text-blue-400',   bg: 'bg-blue-500/10' },
+interface CardDef {
+  key: keyof AdminStats;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  bg: string;
+  isCurrency?: boolean;
+}
+
+const CARDS: CardDef[] = [
+  { key: 'totalUsers',    label: 'Total Users',    Icon: Users,         color: 'text-blue-400',    bg: 'bg-blue-500/10' },
   { key: 'totalSellers',  label: 'Total Sellers',  Icon: Store,         color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  { key: 'totalServices', label: 'Total Services', Icon: Package,       color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  { key: 'totalOrders',   label: 'Total Orders',   Icon: ShoppingCart,  color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-  { key: 'totalRevenue',  label: 'Total Revenue',  Icon: DollarSign,    color: 'text-green-400',  bg: 'bg-green-500/10',  isCurrency: true },
-] as const;
+  { key: 'totalServices', label: 'Total Services', Icon: Package,       color: 'text-purple-400',  bg: 'bg-purple-500/10' },
+  { key: 'totalOrders',   label: 'Total Orders',   Icon: ShoppingCart,  color: 'text-yellow-400',  bg: 'bg-yellow-500/10' },
+  { key: 'totalRevenue',  label: 'Total Revenue',  Icon: DollarSign,    color: 'text-green-400',   bg: 'bg-green-500/10',  isCurrency: true },
+];
 
 const AdminStatsCards = ({ stats, loading }: Props) => (
   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">

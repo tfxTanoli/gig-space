@@ -83,7 +83,7 @@ export default function StatementsTab() {
     const unsub = onValue(txRef, (snap) => {
       if (!snap.exists()) { setTransactions([]); setLoading(false); return; }
       const result: WalletTransaction[] = [];
-      snap.forEach((child) => result.push({ id: child.key!, ...child.val() }));
+      snap.forEach((child) => { result.push({ id: child.key!, ...child.val() }); });
       result.sort((a, b) => b.createdAt - a.createdAt);
       setTransactions(result);
       setLoading(false);
@@ -92,12 +92,6 @@ export default function StatementsTab() {
   }, [user]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
-
-  const years = useMemo(() => {
-    if (transactions.length === 0) return [new Date().getFullYear()];
-    const set = new Set(transactions.map((tx) => new Date(tx.createdAt).getFullYear()));
-    return Array.from(set).sort((a, b) => b - a);
-  }, [transactions]);
 
   // Monthly totals for the selected year (earnings only for the bar chart)
   const monthlyEarnings = useMemo(() => {
