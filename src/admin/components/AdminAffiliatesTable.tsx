@@ -1,3 +1,7 @@
+import { useEffect, useState } from 'react';
+import { Eye } from 'lucide-react';
+import AdminPagination from './AdminPagination';
+
 export interface AdminAffiliate {
   uid: string;
   name: string;
@@ -15,9 +19,14 @@ export interface AdminAffiliate {
 interface Props {
   affiliates: AdminAffiliate[];
   loading: boolean;
+  pageSize?: number;
+  onView?: (a: AdminAffiliate) => void;
 }
 
-export default function AdminAffiliatesTable({ affiliates, loading }: Props) {
+export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 20, onView }: Props) {
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [affiliates.length]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -35,8 +44,15 @@ export default function AdminAffiliatesTable({ affiliates, loading }: Props) {
     );
   }
 
+  const visible = affiliates.slice(page * pageSize, (page + 1) * pageSize);
+
   return (
     <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">Affiliates</h3>
+        <span className="text-xs text-slate-500">{affiliates.length.toLocaleString()} total</span>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[780px]">
           <thead>
@@ -48,15 +64,15 @@ export default function AdminAffiliatesTable({ affiliates, loading }: Props) {
               <th className="text-left px-5 py-3.5 font-medium">Available</th>
               <th className="text-left px-5 py-3.5 font-medium">Pending</th>
               <th className="text-left px-5 py-3.5 font-medium">Joined</th>
+              {onView && <th className="text-right px-5 py-3.5 font-medium">Actions</th>}
             </tr>
           </thead>
           <tbody>
-            {affiliates.map((a) => (
+            {visible.map((a) => (
               <tr
                 key={a.uid}
                 className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/20 transition-colors"
               >
-                {/* Name + email */}
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     {a.photoURL ? (
@@ -67,17 +83,16 @@ export default function AdminAffiliatesTable({ affiliates, loading }: Props) {
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
-                        {a.name.charAt(0).toUpperCase()}
+                        {(a.name || '?').charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-white font-medium text-sm truncate">{a.name}</p>
+                      <p className="text-white font-medium text-sm truncate">{a.name || '—'}</p>
                       <p className="text-slate-500 text-xs truncate">{a.email}</p>
                     </div>
                   </div>
                 </td>
 
-                {/* Referral code */}
                 <td className="px-5 py-4">
                   {a.referralCode ? (
                     <span className="text-slate-300 font-mono text-xs bg-slate-800 px-2 py-1 rounded">
@@ -107,15 +122,31 @@ export default function AdminAffiliatesTable({ affiliates, loading }: Props) {
                 </td>
 
                 <td className="px-5 py-4 text-slate-500 text-xs">
-                  {new Date(a.createdAt).toLocaleDateString('en-US', {
+                  {a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', {
                     month: 'short', day: 'numeric', year: 'numeric',
-                  })}
+                  }) : '—'}
                 </td>
+
+                {onView && (
+                  <td className="px-5 py-4">
+                    <div className="flex items-center justify-end">
+                      <button
+                        onClick={() => onView(a)}
+                        title="View"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <AdminPagination page={page} pageSize={pageSize} total={affiliates.length} onPageChange={setPage} />
     </div>
   );
 }

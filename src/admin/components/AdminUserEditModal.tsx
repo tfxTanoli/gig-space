@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
-import { ref as dbRef, get, update } from 'firebase/database';
+import { ref as dbRef, get, update, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 import { type AdminUser } from './AdminUsersTable';
@@ -9,6 +9,78 @@ interface Props {
   user: AdminUser;
   onClose: () => void;
   onSuccess: (updated: AdminUser) => void;
+}
+
+// Propagate user profile changes to all denormalized copies across the DB.
+// Called only when name / username / photoURL actually changed.
+async function fanOutUserProfile(
+  uid: string,
+  changed: { name?: string; username?: string; photoURL?: string },
+) {
+  const patches: Promise<void>[] = [];
+
+  // ── Services (sellerId index exists) ─────────────────────────────────────
+  const svcQ = query(dbRef(database, 'services'), orderByChild('sellerId'), equalTo(uid));
+  const svcSnap = await get(svcQ);
+  svcSnap.forEach((child) => {
+    const svcPatch: Record<string, string> = {};
+    if (changed.name     !== undefined) svcPatch.sellerName     = changed.name;
+    if (changed.username !== undefined) svcPatch.sellerUsername = changed.username;
+    if (changed.photoURL !== undefined) svcPatch.sellerPhotoURL = changed.photoURL;
+    if (Object.keys(svcPatch).length > 0) {
+      patches.push(update(dbRef(database, `services/${child.key}`), svcPatch));
+    }
+  });
+
+  // ── Orders as buyer (buyerId index exists) ────────────────────────────────
+  const buyerOrdersQ = query(dbRef(database, 'orders'), orderByChild('buyerId'), equalTo(uid));
+  const buyerSnap = await get(buyerOrdersQ);
+  buyerSnap.forEach((child) => {
+    const patch: Record<string, string> = {};
+    if (changed.name     !== undefined) patch.buyerName  = changed.name;
+    if (changed.photoURL !== undefined) patch.buyerPhoto = changed.photoURL;
+    if (Object.keys(patch).length > 0) {
+      patches.push(update(dbRef(database, `orders/${child.key}`), patch));
+    }
+  });
+
+  // ── Orders as seller (sellerId index exists) ──────────────────────────────
+  const sellerOrdersQ = query(dbRef(database, 'orders'), orderByChild('sellerId'), equalTo(uid));
+  const sellerOrdersSnap = await get(sellerOrdersQ);
+  sellerOrdersSnap.forEach((child) => {
+    const patch: Record<string, string> = {};
+    if (changed.name     !== undefined) patch.sellerName  = changed.name;
+    if (changed.photoURL !== undefined) patch.sellerPhoto = changed.photoURL;
+    if (Object.keys(patch).length > 0) {
+      patches.push(update(dbRef(database, `orders/${child.key}`), patch));
+    }
+  });
+
+  // ── Conversations as buyer ────────────────────────────────────────────────
+  const buyerConvsQ = query(dbRef(database, 'conversations'), orderByChild('buyerId'), equalTo(uid));
+  const buyerConvsSnap = await get(buyerConvsQ);
+  buyerConvsSnap.forEach((child) => {
+    const patch: Record<string, string> = {};
+    if (changed.name     !== undefined) patch.buyerName     = changed.name;
+    if (changed.photoURL !== undefined) patch.buyerPhotoURL = changed.photoURL;
+    if (Object.keys(patch).length > 0) {
+      patches.push(update(dbRef(database, `conversations/${child.key}`), patch));
+    }
+  });
+
+  // ── Conversations as seller ───────────────────────────────────────────────
+  const sellerConvsQ = query(dbRef(database, 'conversations'), orderByChild('sellerId'), equalTo(uid));
+  const sellerConvsSnap = await get(sellerConvsQ);
+  sellerConvsSnap.forEach((child) => {
+    const patch: Record<string, string> = {};
+    if (changed.name     !== undefined) patch.sellerName     = changed.name;
+    if (changed.photoURL !== undefined) patch.sellerPhotoURL = changed.photoURL;
+    if (Object.keys(patch).length > 0) {
+      patches.push(update(dbRef(database, `conversations/${child.key}`), patch));
+    }
+  });
+
+  await Promise.all(patches);
 }
 
 const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
@@ -36,8 +108,8 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
     if (!['user', 'admin'].includes(role)) {
       setError('Role must be "user" or "admin"'); return;
     }
-    if (!['buyer', 'seller'].includes(accountType)) {
-      setError('Account type must be "buyer" or "seller"'); return;
+    if (!['buyer', 'seller', 'affiliate'].includes(accountType)) {
+      setError('Account type must be "buyer", "seller", or "affiliate"'); return;
     }
     if (isSelf && role !== 'admin') {
       setError('You cannot remove your own admin role'); return;
@@ -50,12 +122,27 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
       const snap = await get(userRef);
       if (!snap.exists()) { setError('User not found'); return; }
 
+      const trimmedName     = name.trim();
+      const trimmedUsername = username.trim();
+
       await update(userRef, {
-        name: name.trim(),
-        username: username.trim(),
+        name:        trimmedName,
+        username:    trimmedUsername,
         accountType,
         role,
       });
+
+      // Fan out profile changes to all denormalized copies so buyer/seller
+      // dashboards, service listings, orders, and conversations reflect the
+      // new values immediately without a page reload.
+      const changed: { name?: string; username?: string; photoURL?: string } = {};
+      if (trimmedName     !== user.name)     changed.name     = trimmedName;
+      if (trimmedUsername !== user.username) changed.username = trimmedUsername;
+      // photoURL is not editable here, but if it ever is, add it to changed.
+
+      if (Object.keys(changed).length > 0) {
+        await fanOutUserProfile(user.uid, changed);
+      }
 
       const fresh = (await get(userRef)).val() as Record<string, unknown>;
       onSuccess({
@@ -130,6 +217,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
             >
               <option value="buyer">Buyer</option>
               <option value="seller">Seller</option>
+              <option value="affiliate">Affiliate</option>
             </select>
           </div>
 

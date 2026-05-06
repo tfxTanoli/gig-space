@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { X, AlertTriangle, Trash2, Tag } from 'lucide-react';
 import { ref as dbRef, get, remove } from 'firebase/database';
 import { database } from '../../firebase';
-import { useAuth } from '../../AuthContext';
 import { type AdminService } from './AdminServicesTable';
 
 interface Props {
@@ -12,7 +11,6 @@ interface Props {
 }
 
 const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
-  const { user: authUser } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [error,    setError]    = useState<string | null>(null);
 
@@ -23,7 +21,6 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
   }, [onClose]);
 
   const handleDelete = async () => {
-    if (!authUser) return;
     setError(null);
     setDeleting(true);
     try {

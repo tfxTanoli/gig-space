@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
+import AdminPagination from './AdminPagination';
 
 export interface AdminUser {
   uid: string;
@@ -9,11 +11,13 @@ export interface AdminUser {
   accountType: string;
   role: string;
   createdAt: number;
+  disabled?: boolean;
 }
 
 interface Props {
   users: AdminUser[];
   loading: boolean;
+  pageSize?: number;
   onView:   (user: AdminUser) => void;
   onEdit:   (user: AdminUser) => void;
   onDelete: (user: AdminUser) => void;
@@ -29,11 +33,16 @@ const SkeletonRow = () => (
   </tr>
 );
 
-const AdminUsersTable = ({ users, loading, onView, onEdit, onDelete }: Props) => (
+const AdminUsersTable = ({ users, loading, pageSize = 20, onView, onEdit, onDelete }: Props) => {
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [users.length]);
+  const visible = users.slice(page * pageSize, (page + 1) * pageSize);
+
+  return (
   <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden">
     <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
       <h3 className="text-sm font-semibold text-white">Users</h3>
-      {!loading && <span className="text-xs text-slate-500">{users.length} shown</span>}
+      {!loading && <span className="text-xs text-slate-500">{users.length.toLocaleString()} total</span>}
     </div>
 
     <div className="overflow-x-auto">
@@ -56,10 +65,10 @@ const AdminUsersTable = ({ users, loading, onView, onEdit, onDelete }: Props) =>
         <tbody>
           {loading
             ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-            : users.map((u) => (
+            : visible.map((u) => (
                 <tr
                   key={u.uid}
-                  className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors"
+                  className={`border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors ${u.disabled ? 'opacity-60' : ''}`}
                 >
                   {/* Name + avatar */}
                   <td className="px-5 py-3">
@@ -142,7 +151,12 @@ const AdminUsersTable = ({ users, loading, onView, onEdit, onDelete }: Props) =>
         <p className="text-center text-slate-500 text-sm py-10">No users found</p>
       )}
     </div>
+
+    {!loading && (
+      <AdminPagination page={page} pageSize={pageSize} total={users.length} onPageChange={setPage} />
+    )}
   </div>
-);
+  );
+};
 
 export default AdminUsersTable;

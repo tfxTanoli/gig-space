@@ -136,11 +136,12 @@ const ServiceDetail = () => {
 
   useEffect(() => {
     if (!postId) { setNotFound(true); setLoading(false); return; }
-    get(ref(database, `services/${postId}`)).then((snap) => {
+    const unsub = onValue(ref(database, `services/${postId}`), (snap) => {
       if (!snap.exists()) { setNotFound(true); }
       else { setPost({ id: postId, ...snap.val() }); }
       setLoading(false);
     });
+    return () => unsub();
   }, [postId]);
 
   useEffect(() => { setActiveImg(0); }, [post?.id]);

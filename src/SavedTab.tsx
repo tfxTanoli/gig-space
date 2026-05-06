@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, Package } from 'lucide-react';
-import { ref, onValue, get } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
@@ -32,11 +32,26 @@ const SavedTab = () => {
   const [services, setServices] = useState<SavedService[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Track per-service onValue unsubscribers so we can tear down when a service
+  // is removed from the saved list without remounting the whole component.
+  const serviceUnsubs = useRef<Record<string, () => void>>({});
+
   useEffect(() => {
     if (!user) return;
-    const unsub = onValue(ref(database, `savedServices/${user.uid}`), async (snap) => {
+
+    // Listen to the saved-IDs list first
+    const savedUnsub = onValue(ref(database, `savedServices/${user.uid}`), (snap) => {
       const ids: string[] = [];
       snap.forEach((child) => { ids.push(child.key!); });
+
+      // Tear down listeners for IDs no longer saved
+      Object.keys(serviceUnsubs.current).forEach((id) => {
+        if (!ids.includes(id)) {
+          serviceUnsubs.current[id]();
+          delete serviceUnsubs.current[id];
+          setServices((prev) => prev.filter((s) => s.id !== id));
+        }
+      });
 
       if (ids.length === 0) {
         setServices([]);
@@ -44,17 +59,38 @@ const SavedTab = () => {
         return;
       }
 
-      const results: SavedService[] = [];
-      await Promise.all(
-        ids.map(async (id) => {
-          const svc = await get(ref(database, `services/${id}`));
-          if (svc.exists()) results.push({ id, ...svc.val() });
-        })
-      );
-      setServices(results);
+      // Subscribe to each service node that isn't already subscribed
+      ids.forEach((id) => {
+        if (serviceUnsubs.current[id]) return; // already listening
+
+        serviceUnsubs.current[id] = onValue(ref(database, `services/${id}`), (svcSnap) => {
+          if (!svcSnap.exists()) {
+            // Service deleted — remove from list and clean up listener
+            setServices((prev) => prev.filter((s) => s.id !== id));
+            serviceUnsubs.current[id]?.();
+            delete serviceUnsubs.current[id];
+            return;
+          }
+          const data: SavedService = { id, ...svcSnap.val() };
+          setServices((prev) => {
+            const idx = prev.findIndex((s) => s.id === id);
+            if (idx === -1) return [...prev, data];
+            const next = [...prev];
+            next[idx] = data;
+            return next;
+          });
+          setLoading(false);
+        });
+      });
+
       setLoading(false);
     });
-    return () => unsub();
+
+    return () => {
+      savedUnsub();
+      Object.values(serviceUnsubs.current).forEach((fn) => fn());
+      serviceUnsubs.current = {};
+    };
   }, [user]);
 
   return (

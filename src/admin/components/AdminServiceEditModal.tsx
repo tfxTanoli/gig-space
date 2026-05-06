@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { ref as dbRef, get, update } from 'firebase/database';
 import { database } from '../../firebase';
-import { useAuth } from '../../AuthContext';
 import { type AdminService } from './AdminServicesTable';
 
 interface Props {
@@ -12,8 +11,6 @@ interface Props {
 }
 
 const AdminServiceEditModal = ({ service, onClose, onSuccess }: Props) => {
-  const { user: authUser } = useAuth();
-
   const [title,  setTitle]  = useState(service.title);
   const [status, setStatus] = useState(service.status || 'active');
   const [price,  setPrice]  = useState(String(service.price));
@@ -28,7 +25,6 @@ const AdminServiceEditModal = ({ service, onClose, onSuccess }: Props) => {
   }, [onClose]);
 
   const handleSave = async () => {
-    if (!authUser) return;
     const parsedPrice = parseFloat(price);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
       setError('Price must be a valid non-negative number.');

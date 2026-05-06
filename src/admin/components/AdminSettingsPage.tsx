@@ -267,7 +267,14 @@ const AdminSettingsPage = () => {
 
     setStatus((s) => ({ ...s, [section]: { saving: true, saved: false, error: '' } }));
     try {
-      await update(dbRef(database, `settings/${section}`), data as Record<string, unknown>);
+      const sectionRef = dbRef(database, `settings/${section}`);
+      await update(sectionRef, data as Record<string, unknown>);
+
+      // Re-fetch to confirm DB state and reconcile any partial write.
+      const fresh = (await get(sectionRef)).val() ?? {};
+      if (section === 'general')      setGeneral((g) => ({ ...g, ...(fresh as Partial<GeneralSettings>) }));
+      if (section === 'fees')         setFees((f) => ({ ...f, ...(fresh as Partial<FeeSettings>) }));
+      if (section === 'registration') setRegistration((r) => ({ ...r, ...(fresh as Partial<RegistrationSettings>) }));
 
       setStatus((s) => ({ ...s, [section]: { saving: false, saved: true, error: '' } }));
       setTimeout(() => setStatus((s) => ({ ...s, [section]: { ...s[section], saved: false } })), 4000);

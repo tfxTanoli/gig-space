@@ -16,6 +16,7 @@
     },
     "conversations": {
       ".read": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".indexOn": ["buyerId", "sellerId"],
       "$conversationId": {
         ".read": "auth !== null && (!data.exists() || data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
         ".write": "auth !== null && (!data.exists() || data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)"

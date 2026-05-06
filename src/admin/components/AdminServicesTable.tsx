@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
+import AdminPagination from './AdminPagination';
 
 export interface AdminService {
   id: string;
@@ -15,6 +17,7 @@ export interface AdminService {
 interface Props {
   services: AdminService[];
   loading: boolean;
+  pageSize?: number;
   onView?:   (s: AdminService) => void;
   onEdit?:   (s: AdminService) => void;
   onDelete?: (s: AdminService) => void;
@@ -30,12 +33,17 @@ const SkeletonRow = ({ cols }: { cols: number }) => (
   </tr>
 );
 
-const AdminServicesTable = ({ services, loading, onView, onEdit, onDelete }: Props) => (
+const AdminServicesTable = ({ services, loading, pageSize = 20, onView, onEdit, onDelete }: Props) => {
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [services.length]);
+  const visible = services.slice(page * pageSize, (page + 1) * pageSize);
+
+  return (
   <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden">
     <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-      <h3 className="text-sm font-semibold text-white">Recent Services</h3>
+      <h3 className="text-sm font-semibold text-white">Services</h3>
       {!loading && (
-        <span className="text-xs text-slate-500">{services.length} shown</span>
+        <span className="text-xs text-slate-500">{services.length.toLocaleString()} total</span>
       )}
     </div>
 
@@ -56,7 +64,7 @@ const AdminServicesTable = ({ services, loading, onView, onEdit, onDelete }: Pro
         <tbody>
           {loading
             ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={6} />)
-            : services.map((s) => (
+            : visible.map((s) => (
                 <tr
                   key={s.id}
                   className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors"
@@ -143,7 +151,12 @@ const AdminServicesTable = ({ services, loading, onView, onEdit, onDelete }: Pro
         <p className="text-center text-slate-500 text-sm py-8">No services found</p>
       )}
     </div>
+
+    {!loading && (
+      <AdminPagination page={page} pageSize={pageSize} total={services.length} onPageChange={setPage} />
+    )}
   </div>
-);
+  );
+};
 
 export default AdminServicesTable;

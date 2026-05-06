@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, AlertTriangle, Trash2 } from 'lucide-react';
-import { ref as dbRef, remove } from 'firebase/database';
+import { X, AlertTriangle, Trash2, ShieldAlert } from 'lucide-react';
+import { ref as dbRef, update } from 'firebase/database';
 import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 import { type AdminUser } from './AdminUsersTable';
@@ -25,16 +25,23 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
   const handleDelete = async () => {
     if (!authUser) return;
     if (authUser.uid === user.uid) {
-      setError('You cannot delete your own account'); return;
+      setError('You cannot disable your own account'); return;
     }
     setError(null);
     setDeleting(true);
     try {
-      await remove(dbRef(database, `users/${user.uid}`));
+      // Soft delete: keep record for audit, mark disabled. Removing the auth
+      // account requires the Admin SDK on a backend / Cloud Function.
+      await update(dbRef(database, `users/${user.uid}`), {
+        disabled: true,
+        disabledAt: Date.now(),
+        disabledBy: authUser.uid,
+        role: 'user',
+      });
       onSuccess(user.uid);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setError(err instanceof Error ? err.message : 'Failed to disable user');
     } finally {
       setDeleting(false);
     }
@@ -47,7 +54,7 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
       <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-white">Delete User</h2>
+          <h2 className="text-sm font-semibold text-white">Disable User</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -60,10 +67,10 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
           </div>
 
           <p className="text-center text-white font-semibold mb-1">
-            Delete "{user.name || 'this user'}"?
+            Disable "{user.name || 'this user'}"?
           </p>
           <p className="text-center text-slate-500 text-sm mb-5">
-            This will permanently remove the user record from the database. This action cannot be undone.
+            This marks the user record as disabled and revokes admin role. The record stays for audit history.
           </p>
 
           {/* User preview */}
@@ -85,9 +92,16 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
             </div>
           </div>
 
-          <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2.5 border border-amber-500/20">
+          <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2.5 border border-amber-500/20 mb-2">
+            <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            <span>
+              The user's Firebase Auth account is <strong>not</strong> removed by this action — they may still be able to sign in until the auth account is revoked from the Firebase console or a backend script using the Admin SDK.
+            </span>
+          </div>
+
+          <div className="flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2.5 border border-slate-700/50">
             <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-            <span>The user's services, orders, and wallet data will remain in the database but will be unlinked.</span>
+            <span>Their services, orders, and wallet data remain in the database for audit and stay linked to the disabled record.</span>
           </div>
 
           {error && (
@@ -111,7 +125,7 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deleting…' : 'Delete User'}
+            {deleting ? 'Disabling…' : 'Disable User'}
           </button>
         </div>
       </div>
