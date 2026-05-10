@@ -694,10 +694,7 @@ export default function ChatMessages({
       )}
 
       {/* ── Main chat layout ── */}
-      <div
-        className="flex rounded-xl border border-slate-800 overflow-hidden flex-1"
-        style={{ height: 'calc(100vh - 112px)', minHeight: '480px' }}
-      >
+      <div className="flex rounded-xl border border-slate-800 overflow-hidden flex-1 min-h-0">
         {/* Left: Conversation list */}
         <div
           className={`w-72 shrink-0 border-r border-slate-800 bg-[#111827] flex flex-col ${
@@ -723,7 +720,7 @@ export default function ChatMessages({
               )}
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden">
               {conversations.map((conv) => {
                 const other  = getOtherPerson(conv);
                 const unread = unreadCount(conv);
@@ -800,7 +797,7 @@ export default function ChatMessages({
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-3">
                 {messages.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center">
                     <p className="text-slate-600 text-sm">No messages yet — say hello!</p>

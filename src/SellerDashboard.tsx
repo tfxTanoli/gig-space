@@ -397,7 +397,7 @@ const SellerDashboard = () => {
   const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post), []);
 
   return (
-    <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
+    <div className="h-screen overflow-hidden bg-[#0E1422] flex text-white font-sans">
 
       {/* Post detail modal */}
       {selectedPost && (
@@ -422,7 +422,7 @@ const SellerDashboard = () => {
           </div>
         )}
 
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-hidden">
           {navItems.map((item) => {
             const isActive = activeTab === item.name;
             const Icon = item.icon;
@@ -495,7 +495,7 @@ const SellerDashboard = () => {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 flex flex-col">
+        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 flex flex-col overflow-y-auto overflow-x-hidden">
 
           {/* HOME TAB */}
           {activeTab === 'Home' && (

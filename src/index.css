@@ -7,12 +7,15 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-white min-h-screen font-sans;
-    /* Smooth scrolling throughout */
     scroll-behavior: smooth;
-    /* Prevent layout shifts from scrollbar appearing */
-    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
   }
 
   /* Consistent focus ring */
