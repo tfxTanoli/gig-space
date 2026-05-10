@@ -37,8 +37,19 @@ const PageLoader = () => (
 );
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
-  return user ? <>{children}</> : <Navigate to="/signin" replace />;
+  const { user, userProfile } = useAuth();
+
+  if (user) {
+    // Persist account type so we know where to redirect after logout
+    if (userProfile?.accountType) {
+      localStorage.setItem('lastAccountType', userProfile.accountType);
+    }
+    return <>{children}</>;
+  }
+
+  const lastType = localStorage.getItem('lastAccountType');
+  const to = lastType === 'seller' ? '/for-sellers' : lastType === 'buyer' ? '/' : '/signin';
+  return <Navigate to={to} replace />;
 };
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {

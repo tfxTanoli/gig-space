@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Home,
   Package,
@@ -345,7 +345,6 @@ const PostModal = ({ post, onClose }: PostModalProps) => {
 
 const SellerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Home');
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -355,10 +354,7 @@ const SellerDashboard = () => {
 
   const navItems = sellerNavItems;
 
-  const handleLogout = useCallback(async () => {
-    navigate('/for-sellers', { replace: true });
-    await logout();
-  }, [navigate, logout]);
+  const handleLogout = useCallback(() => logout(), [logout]);
 
   useEffect(() => {
     if (!user) return;

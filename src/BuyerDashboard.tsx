@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Home,
   Package,
@@ -40,16 +40,12 @@ const buyerNavItems = [
 
 const BuyerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Home');
   const [searchParams, setSearchParams] = useSearchParams();
   const [paymentSuccessToast, setPaymentSuccessToast] = useState(false);
   const unreadMessages = useUnreadMessages('buyer');
 
-  const handleLogout = useCallback(async () => {
-    navigate('/', { replace: true });
-    await logout();
-  }, [navigate, logout]);
+  const handleLogout = useCallback(() => logout(), [logout]);
 
   // Auto-open the correct tab from URL params
   // Also detect ?payment_success=true and show a toast

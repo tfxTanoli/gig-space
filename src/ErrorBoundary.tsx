@@ -1,5 +1,4 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
-import { Link } from 'react-router-dom';
 
 interface Props {
   children: ReactNode;
@@ -27,13 +26,12 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen bg-[#0E1422] flex flex-col items-center justify-center gap-4 px-6 text-center">
           <p className="text-white font-semibold text-lg">Something went wrong</p>
           <p className="text-slate-400 text-sm">An unexpected error occurred. Please try refreshing the page.</p>
-          <Link
-            to="/"
-            onClick={() => this.setState({ hasError: false })}
+          <a
+            href="/"
             className="mt-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
           >
             Go home
-          </Link>
+          </a>
         </div>
       );
     }
