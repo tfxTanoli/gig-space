@@ -139,8 +139,8 @@ const BuyerSearch = () => {
 
   const handleLogout = useCallback(async () => {
     setShowMenu(false);
+    navigate('/', { replace: true });
     await logout();
-    navigate('/signin');
   }, [logout, navigate]);
 
   const fetchPage = useCallback(async (beforeTimestamp?: number) => {

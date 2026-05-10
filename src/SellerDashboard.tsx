@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Home,
   Package,
@@ -345,6 +345,7 @@ const PostModal = ({ post, onClose }: PostModalProps) => {
 
 const SellerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Home');
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -353,6 +354,11 @@ const SellerDashboard = () => {
   const unreadMessages = useUnreadMessages('seller');
 
   const navItems = sellerNavItems;
+
+  const handleLogout = useCallback(async () => {
+    navigate('/for-sellers', { replace: true });
+    await logout();
+  }, [navigate, logout]);
 
   useEffect(() => {
     if (!user) return;
@@ -453,7 +459,7 @@ const SellerDashboard = () => {
             Switch to buyer dashboard
           </Link>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-red-400 transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

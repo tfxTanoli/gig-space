@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Home,
   Package,
@@ -40,10 +40,16 @@ const buyerNavItems = [
 
 const BuyerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Home');
   const [searchParams, setSearchParams] = useSearchParams();
   const [paymentSuccessToast, setPaymentSuccessToast] = useState(false);
   const unreadMessages = useUnreadMessages('buyer');
+
+  const handleLogout = useCallback(async () => {
+    navigate('/', { replace: true });
+    await logout();
+  }, [navigate, logout]);
 
   // Auto-open the correct tab from URL params
   // Also detect ?payment_success=true and show a toast
@@ -202,7 +208,7 @@ const BuyerDashboard = () => {
             Switch to seller dashboard
           </Link>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-red-400 transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
