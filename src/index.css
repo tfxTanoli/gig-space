@@ -9,5 +9,27 @@
 @layer base {
   body {
     @apply bg-background text-white min-h-screen font-sans;
+    /* Smooth scrolling throughout */
+    scroll-behavior: smooth;
+    /* Prevent layout shifts from scrollbar appearing */
+    overflow-y: scroll;
+  }
+
+  /* Consistent focus ring */
+  :focus-visible {
+    outline: 2px solid #3B82F6;
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* GPU-composited transforms — apply to elements with group-hover:scale or transitions */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  /* Smooth tap highlight removal on mobile */
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
   }
 }

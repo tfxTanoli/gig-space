@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Home,
@@ -8,7 +8,6 @@ import {
   Settings,
   RefreshCw,
   Search,
-  Bell,
   CheckCircle,
 } from 'lucide-react';
 
@@ -21,6 +20,8 @@ import Logo from './Logo';
 import { useAuth } from './AuthContext';
 import { verifyCheckoutSession } from './stripe/paymentHelpers';
 import { CurrentUserAvatar } from './UserAvatar';
+import NotificationBell from './notifications/NotificationBell';
+import { sendNotification } from './notifications/notificationHelpers';
 import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
 import OrdersTab from './OrdersTab';
@@ -28,8 +29,17 @@ import SettingsTab from './SettingsTab';
 import SavedTab from './SavedTab';
 import BillingTab from './components/BillingTab';
 
+const buyerNavItems = [
+  { name: 'Home', icon: Home },
+  { name: 'Orders', icon: Package },
+  { name: 'Messages', icon: MessagesIcon },
+  { name: 'Saved', icon: Bookmark },
+  { name: 'Billing', icon: CreditCard },
+  { name: 'Settings', icon: Settings },
+];
+
 const BuyerDashboard = () => {
-  const { userProfile, logout } = useAuth();
+  const { user, userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('Home');
   const [searchParams, setSearchParams] = useSearchParams();
   const [paymentSuccessToast, setPaymentSuccessToast] = useState(false);
@@ -49,6 +59,48 @@ const BuyerDashboard = () => {
       }
       setPaymentSuccessToast(true);
       setTimeout(() => setPaymentSuccessToast(false), 5000);
+
+      // Send offer_accepted notifications (buyer + seller) using data
+      // stored in sessionStorage by ChatMessages before the Stripe redirect.
+      if (user) {
+        // Notify buyer: payment successful
+        sendNotification(user.uid, {
+          type: 'offer_accepted',
+          title: 'Payment successful',
+          body: 'Your payment was processed. Your order is now in progress.',
+          senderId: user.uid,
+          senderName: userProfile?.name || '',
+          senderPhotoURL: userProfile?.photoURL || '',
+        }).catch(console.error);
+
+        // Notify seller: offer was accepted
+        try {
+          const raw = sessionStorage.getItem('pendingOfferNotif');
+          if (raw) {
+            const pending = JSON.parse(raw) as {
+              sellerId: string;
+              sellerName: string;
+              sellerPhotoURL: string;
+              conversationId: string;
+              price: number;
+              serviceTitle: string;
+            };
+            sendNotification(pending.sellerId, {
+              type: 'offer_accepted',
+              title: 'Your offer was accepted',
+              body: `${userProfile?.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
+              senderId: user.uid,
+              senderName: userProfile?.name || '',
+              senderPhotoURL: userProfile?.photoURL || '',
+              conversationId: pending.conversationId,
+            }).catch(console.error);
+            sessionStorage.removeItem('pendingOfferNotif');
+          }
+        } catch {
+          sessionStorage.removeItem('pendingOfferNotif');
+        }
+      }
+
       // Clean the URL so a refresh doesn't re-show the toast
       const next = new URLSearchParams(searchParams);
       next.delete('payment_success');
@@ -70,31 +122,24 @@ const BuyerDashboard = () => {
       ? { serviceId: rawServiceId, serviceTitle: rawServiceTitle, serviceImage: rawServiceImage }
       : undefined;
 
-  const handleStartChatHandled = () => {
+  const handleStartChatHandled = useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.delete('with');
     next.delete('tab');
     next.delete('sellerName');
     next.delete('sellerPhoto');
     setSearchParams(next, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
 
-  const handleServiceContextHandled = () => {
+  const handleServiceContextHandled = useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.delete('serviceId');
     next.delete('serviceTitle');
     next.delete('serviceImage');
     setSearchParams(next, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
 
-  const navItems = [
-    { name: 'Home', icon: Home },
-    { name: 'Orders', icon: Package },
-    { name: 'Messages', icon: MessagesIcon },
-    { name: 'Saved', icon: Bookmark },
-    { name: 'Billing', icon: CreditCard },
-    { name: 'Settings', icon: Settings },
-  ];
+  const navItems = buyerNavItems;
 
   return (
     <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
@@ -184,9 +229,7 @@ const BuyerDashboard = () => {
             />
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <span className="text-slate-600" aria-hidden="true" title="Notifications coming soon">
-              <Bell className="w-5 h-5" />
-            </span>
+            <NotificationBell onNavigate={setActiveTab} />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
             <CurrentUserAvatar size="sm" />
           </div>

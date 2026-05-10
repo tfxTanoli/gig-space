@@ -74,7 +74,7 @@ const AdminUsersTable = ({ users, loading, pageSize = 20, onView, onEdit, onDele
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5">
                       {u.photoURL ? (
-                        <img src={u.photoURL} alt={u.name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                        <img src={u.photoURL} alt={u.name} loading="lazy" decoding="async" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-bold text-blue-400">

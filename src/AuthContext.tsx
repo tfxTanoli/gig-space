@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue } from 'firebase/database';
 import { auth, database } from './firebase';
@@ -66,10 +66,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const logout = () => signOut(auth);
+  const logout = useCallback(() => signOut(auth), []);
+
+  const value = useMemo(
+    () => ({ user, userProfile, loading, logout }),
+    [user, userProfile, loading, logout]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, logout }}>
+    <AuthContext.Provider value={value}>
       {loading ? (
         <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">

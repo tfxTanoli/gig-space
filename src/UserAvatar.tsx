@@ -7,7 +7,6 @@ const sizes = {
 };
 
 // Displays the currently logged-in user's real avatar (photo or initial).
-// Use this everywhere you need to show the signed-in user.
 export const CurrentUserAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' | 'lg' }) => {
   const { userProfile } = useAuth();
   const cls = sizes[size];
@@ -17,6 +16,7 @@ export const CurrentUserAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' | 'lg' }
       <img
         src={userProfile.photoURL}
         alt={userProfile.name}
+        decoding="async"
         className={`${cls} rounded-full object-cover cursor-pointer flex-shrink-0`}
       />
     );
@@ -30,7 +30,6 @@ export const CurrentUserAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' | 'lg' }
 };
 
 // Displays any user's avatar given explicit photoURL + name props.
-// Use this for seller/buyer cards in listings.
 export const UserAvatar = ({
   photoURL,
   name,
@@ -47,6 +46,8 @@ export const UserAvatar = ({
       <img
         src={photoURL}
         alt={name ?? 'avatar'}
+        loading="lazy"
+        decoding="async"
         className={`${cls} rounded-full object-cover flex-shrink-0`}
       />
     );

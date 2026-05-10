@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -55,6 +55,66 @@ function formatPrice(post: ServicePost) {
   return { prefix: 'From', price: `$${post.priceMin}`, suffix };
 }
 
+interface ServiceCardProps {
+  post: ServicePost;
+  isSaved: boolean;
+  onToggleSave: (id: string) => void;
+}
+
+const ServiceCard = memo(({ post, isSaved, onToggleSave }: ServiceCardProps) => {
+  const { prefix, price, suffix } = formatPrice(post);
+  const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
+  return (
+    <div className="group block">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+        <Link to={`/service-detail?id=${post.id}`} className="block w-full h-full">
+          {post.images?.[0] ? (
+            <img
+              src={post.images[0]}
+              alt={post.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out will-change-transform"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-slate-600 text-xs">No image</span>
+            </div>
+          )}
+        </Link>
+        <button
+          onClick={() => onToggleSave(post.id)}
+          className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+          title={isSaved ? 'Remove from saved' : 'Save service'}
+        >
+          <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-primary text-primary' : 'text-white'}`} />
+        </button>
+      </div>
+
+      <Link to={`/service-detail?id=${post.id}`} className="block">
+        <div className="flex items-center gap-2 mb-2">
+          <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
+          <span className="text-sm font-medium truncate">{post.sellerName}</span>
+        </div>
+        <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
+          {post.title}
+        </h3>
+        {location && (
+          <div className="flex items-center text-slate-400 text-xs mb-3">
+            <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
+            {location}
+          </div>
+        )}
+        <div className="text-sm">
+          {prefix && <span className="text-slate-400">{prefix} </span>}
+          <span className="font-bold text-lg">{price}</span>
+          <span className="text-slate-400 text-xs ml-1">{suffix}</span>
+        </div>
+      </Link>
+    </div>
+  );
+});
+
 const BuyerSearch = () => {
   const { user, userProfile, logout } = useAuth();
   const { isSaved, toggleSave } = useSavedServices();
@@ -66,7 +126,6 @@ const BuyerSearch = () => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     if (!showMenu) return;
     const handler = (e: MouseEvent) => {
@@ -78,13 +137,13 @@ const BuyerSearch = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     setShowMenu(false);
     await logout();
     navigate('/signin');
-  };
+  }, [logout, navigate]);
 
-  const fetchPage = async (beforeTimestamp?: number) => {
+  const fetchPage = useCallback(async (beforeTimestamp?: number) => {
     const q = beforeTimestamp
       ? query(ref(database, 'services'), orderByChild('createdAt'), endBefore(beforeTimestamp), limitToLast(PAGE_SIZE))
       : query(ref(database, 'services'), orderByChild('createdAt'), limitToLast(PAGE_SIZE));
@@ -97,7 +156,7 @@ const BuyerSearch = () => {
     });
     result.sort((a, b) => b.createdAt - a.createdAt);
     return result;
-  };
+  }, []);
 
   useEffect(() => {
     fetchPage()
@@ -107,9 +166,9 @@ const BuyerSearch = () => {
       })
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [fetchPage]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (loadingMore || posts.length === 0) return;
     setLoadingMore(true);
     const oldest = posts[posts.length - 1].createdAt;
@@ -125,7 +184,9 @@ const BuyerSearch = () => {
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [loadingMore, posts, fetchPage]);
+
+  const handleToggleSave = useCallback((id: string) => toggleSave(id), [toggleSave]);
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
@@ -162,7 +223,6 @@ const BuyerSearch = () => {
           <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
             Create New Post
           </Link>
-          {/* Avatar with dropdown */}
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setShowMenu((v) => !v)}
@@ -175,7 +235,6 @@ const BuyerSearch = () => {
 
             {showMenu && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                {/* User info */}
                 <div className="px-4 py-3 border-b border-slate-800">
                   <p className="text-white text-sm font-semibold truncate">
                     {userProfile?.name ?? 'User'}
@@ -185,7 +244,6 @@ const BuyerSearch = () => {
                   </p>
                 </div>
 
-                {/* Nav links */}
                 <div className="py-1">
                   <Link
                     to="/buyer-dashboard"
@@ -221,7 +279,6 @@ const BuyerSearch = () => {
                   </Link>
                 </div>
 
-                {/* Sign out */}
                 <div className="border-t border-slate-800 py-1">
                   <button
                     onClick={handleLogout}
@@ -282,66 +339,14 @@ const BuyerSearch = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {posts.map((post) => {
-                const { prefix, price, suffix } = formatPrice(post);
-                const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
-                return (
-                  <div key={post.id} className="group block">
-                    {/* Image */}
-                    <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
-                      <Link to={`/service-detail?id=${post.id}`} className="block w-full h-full">
-                        {post.images?.[0] ? (
-                          <img
-                            src={post.images[0]}
-                            alt={post.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-slate-600 text-xs">No image</span>
-                          </div>
-                        )}
-                      </Link>
-                      {/* Save button */}
-                      <button
-                        onClick={() => toggleSave(post.id)}
-                        className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
-                        title={isSaved(post.id) ? 'Remove from saved' : 'Save service'}
-                      >
-                        <Bookmark className={`w-4 h-4 ${isSaved(post.id) ? 'fill-primary text-primary' : 'text-white'}`} />
-                      </button>
-                    </div>
-
-                    {/* Seller */}
-                    <Link to={`/service-detail?id=${post.id}`} className="block">
-                      <div className="flex items-center gap-2 mb-2">
-                        <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
-                        <span className="text-sm font-medium truncate">{post.sellerName}</span>
-                      </div>
-
-                      {/* Title */}
-                      <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
-                        {post.title}
-                      </h3>
-
-                      {/* Location */}
-                      {location && (
-                        <div className="flex items-center text-slate-400 text-xs mb-3">
-                          <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
-                          {location}
-                        </div>
-                      )}
-
-                      {/* Price */}
-                      <div className="text-sm">
-                        {prefix && <span className="text-slate-400">{prefix} </span>}
-                        <span className="font-bold text-lg">{price}</span>
-                        <span className="text-slate-400 text-xs ml-1">{suffix}</span>
-                      </div>
-                    </Link>
-                  </div>
-                );
-              })}
+              {posts.map((post) => (
+                <ServiceCard
+                  key={post.id}
+                  post={post}
+                  isSaved={isSaved(post.id)}
+                  onToggleSave={handleToggleSave}
+                />
+              ))}
             </div>
 
             <div className="flex flex-col items-center gap-4 py-6 border-t border-slate-800 mb-16">

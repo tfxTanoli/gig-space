@@ -110,7 +110,7 @@ const AffiliateProfile = () => {
         <div className="w-full flex items-center gap-5 mb-7">
           <div className="w-20 h-20 rounded-full bg-[#4B5563] flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
-              <img src={photoPreview} alt="Profile photo preview" className="w-full h-full object-cover" />
+              <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
               <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="28" cy="21" r="10" fill="#6B7280" />

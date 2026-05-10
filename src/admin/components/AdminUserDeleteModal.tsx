@@ -77,7 +77,7 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
           <div className="bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-700/50 mb-4">
             <div className="flex items-center gap-3">
               {user.photoURL ? (
-                <img src={user.photoURL} alt={user.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                <img src={user.photoURL} alt={user.name} loading="lazy" decoding="async" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-bold text-blue-400">

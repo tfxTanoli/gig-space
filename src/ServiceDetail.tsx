@@ -262,7 +262,7 @@ const ServiceDetail = () => {
           {images.length > 0 ? (
             <>
               <div className="relative rounded-xl overflow-hidden bg-slate-800 mb-2" style={{ aspectRatio: '4/3' }}>
-                <img src={images[activeImg]} alt={post.title} className="w-full h-full object-contain" />
+                <img src={images[activeImg]} alt={post.title} decoding="async" className="w-full h-full object-contain" />
                 {images.length > 1 && (
                   <>
                     <button
@@ -291,7 +291,7 @@ const ServiceDetail = () => {
                       }`}
                       style={{ aspectRatio: '4/3' }}
                     >
-                      <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-contain" />
+                      <img src={img} alt={`Thumbnail ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-contain" />
                     </button>
                   ))}
                 </div>

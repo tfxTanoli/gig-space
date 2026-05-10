@@ -102,9 +102,11 @@ const AboutUs = () => {
       {/* Full Width Image Banner */}
       <section className="px-6 lg:px-12 py-16 w-full max-w-7xl mx-auto">
         <div className="w-full h-auto md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
-          <img 
-            src="/about-hero.png" 
-            alt="Team collaborating at Gigspace" 
+          <img
+            src="/about-hero.png"
+            alt="Team collaborating at Gigspace"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover object-center"
           />
         </div>

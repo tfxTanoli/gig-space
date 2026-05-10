@@ -40,7 +40,7 @@ const AdminAffiliateViewModal = ({ affiliate, onClose }: Props) => {
         <div className="px-6 py-5">
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-800/60">
             {affiliate.photoURL ? (
-              <img src={affiliate.photoURL} alt={affiliate.name} className="w-10 h-10 rounded-full object-cover" />
+              <img src={affiliate.photoURL} alt={affiliate.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
             ) : (
               <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold text-slate-300">
                 {(affiliate.name || '?').charAt(0).toUpperCase()}

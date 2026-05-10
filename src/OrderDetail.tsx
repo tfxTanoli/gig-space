@@ -12,6 +12,7 @@ import { useAuth } from './AuthContext';
 import { UserAvatar } from './UserAvatar';
 import ReviewModal from './ReviewModal';
 import { approveDelivery as approveDeliveryFn } from './stripe/paymentHelpers';
+import { sendNotification } from './notifications/notificationHelpers';
 
 export interface DeliveryFile {
   name: string;
@@ -264,6 +265,16 @@ export default function OrderDetail({
         });
       }
       showToastMsg('Delivery accepted! Payment released to seller.');
+      // Notify the seller that the buyer accepted their delivery
+      sendNotification(order.sellerId, {
+        type: 'offer_accepted',
+        title: `${userProfile?.name ?? 'Buyer'} accepted your delivery`,
+        body: order.serviceTitle,
+        senderId: user!.uid,
+        senderName: userProfile?.name ?? '',
+        senderPhotoURL: userProfile?.photoURL ?? '',
+        orderId: order.id,
+      }).catch(console.error);
     } catch (err) {
       console.error('Approve delivery error:', err);
       showToastMsg('Something went wrong. Please try again.');
@@ -309,6 +320,19 @@ export default function OrderDetail({
         deliveryMessage: deliveryNote.trim() || null,
         deliveryFiles: uploadedFiles.length ? uploadedFiles : null,
       });
+
+      // Notify the buyer their order was delivered (fire-and-forget)
+      sendNotification(order.buyerId, {
+        type: 'delivery',
+        title: 'Your order has been delivered',
+        body: `${order.sellerName} delivered "${order.serviceTitle}"`,
+        senderId: order.sellerId,
+        senderName: order.sellerName,
+        senderPhotoURL: order.sellerPhoto || '',
+        orderId: order.id,
+        serviceId: order.serviceId,
+      }).catch(console.error);
+
       setShowDeliveryModal(false);
       setDeliveryNote('');
       setSelectedFiles([]);
@@ -347,6 +371,18 @@ export default function OrderDetail({
     }
 
     await update(ref(database), updates);
+
+    // Notify the reviewed user (fire-and-forget)
+    sendNotification(reviewedUserId, {
+      type: 'review',
+      title: 'You received a new review',
+      body: `${userProfile!.name} left you a ${rating}-star review`,
+      senderId: user!.uid,
+      senderName: userProfile!.name,
+      senderPhotoURL: userProfile!.photoURL || '',
+      orderId: order.id,
+      serviceId: order.serviceId,
+    }).catch(console.error);
   };
 
   /* ── Derived values ── */
@@ -586,7 +622,7 @@ export default function OrderDetail({
           <div className="flex flex-col sm:flex-row gap-4 p-5">
             <div className="w-full sm:w-28 h-24 shrink-0 rounded-lg bg-[#0E1422] overflow-hidden">
               {order.serviceImage ? (
-                <img src={order.serviceImage} alt={order.serviceTitle} className="w-full h-full object-cover" />
+                <img src={order.serviceImage} alt={order.serviceTitle} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Package className="w-8 h-8 text-slate-600" />
@@ -705,7 +741,19 @@ export default function OrderDetail({
                   )}
                 </button>
                 <button
-                  onClick={() => updateOrderStatus('in_progress')}
+                  onClick={async () => {
+                    await updateOrderStatus('in_progress');
+                    sendNotification(order.sellerId, {
+                      type: 'revision',
+                      title: 'Revision requested',
+                      body: `${order.buyerName} requested a revision for "${order.serviceTitle}"`,
+                      senderId: order.buyerId,
+                      senderName: order.buyerName,
+                      senderPhotoURL: order.buyerPhoto || '',
+                      orderId: order.id,
+                      serviceId: order.serviceId,
+                    }).catch(console.error);
+                  }}
                   disabled={updatingStatus || approvingDelivery}
                   className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
                 >

@@ -156,6 +156,20 @@
         ".read": "auth !== null && data.child('affiliateId').val() === auth.uid",
         ".write": false
       }
+    },
+
+    "notifications": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": "auth !== null"
+      }
+    },
+
+    "notificationCounts": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": "auth !== null"
+      }
     }
   }
 }

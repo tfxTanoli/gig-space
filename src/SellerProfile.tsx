@@ -93,7 +93,7 @@ const SellerProfile = () => {
         <div className="w-full flex items-center gap-5 mb-7">
           <div className="w-20 h-20 rounded-full bg-[#1A2035] flex items-center justify-center flex-shrink-0 overflow-hidden">
             {logoPreview ? (
-              <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+              <img src={logoPreview} alt="Logo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
               <svg width="44" height="50" viewBox="0 0 44 50" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22 0C10.4 0 1 9.4 1 21C1 32.5 22 50 22 50C22 50 43 32.5 43 21C43 9.4 33.6 0 22 0Z" fill="#2D3748" />

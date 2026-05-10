@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { startCheckout } from './stripe/paymentHelpers';
 import PaymentModal from './components/PaymentModal';
+import { sendNotification } from './notifications/notificationHelpers';
 
 /* ── Types ── */
 
@@ -285,6 +286,11 @@ export default function ChatMessages({
     if (sending) return;
     setSending(true);
 
+    // Capture everything that might be affected by stale closures BEFORE any await
+    const messageText = inputText.trim();
+    const conv = conversations.find((c) => c.id === selectedConvId);
+    const recipientId = conv ? (mode === 'buyer' ? conv.sellerId : conv.buyerId) : null;
+
     try {
       const msgId = push(ref(database, `messages/${selectedConvId}`)).key!;
 
@@ -301,7 +307,7 @@ export default function ChatMessages({
         senderPhotoURL: userProfile.photoURL || '',
         timestamp: Date.now(),
       };
-      if (inputText.trim()) msgData.text = inputText.trim();
+      if (messageText) msgData.text = messageText;
       if (imageURL) msgData.imageURL = imageURL;
 
       // Attach service context (buyer messaging from a service page)
@@ -315,7 +321,7 @@ export default function ChatMessages({
       }
 
       const otherUnreadField = mode === 'buyer' ? 'unreadSeller' : 'unreadBuyer';
-      const lastMsg = imageURL && !inputText.trim() ? '📷 Image' : inputText.trim();
+      const lastMsg = imageURL && !messageText ? '📷 Image' : messageText;
 
       await update(ref(database), {
         [`messages/${selectedConvId}/${msgId}`]: msgData,
@@ -324,6 +330,19 @@ export default function ChatMessages({
         [`conversations/${selectedConvId}/lastMessageBy`]: user.uid,
         [`conversations/${selectedConvId}/${otherUnreadField}`]: increment(1),
       });
+
+      // Notify the other participant (fire-and-forget — non-critical)
+      if (recipientId) {
+        sendNotification(recipientId, {
+          type: 'message',
+          title: `New message from ${userProfile.name}`,
+          body: '',
+          senderId: user.uid,
+          senderName: userProfile.name,
+          senderPhotoURL: userProfile.photoURL || '',
+          conversationId: selectedConvId,
+        }).catch(console.error);
+      }
 
       setInputText('');
       if (chatInputRef.current) chatInputRef.current.style.height = 'auto';
@@ -420,6 +439,21 @@ export default function ChatMessages({
         [`conversations/${selectedConvId}/unreadBuyer`]: increment(1),
       });
 
+      // Notify the buyer about the new offer (fire-and-forget)
+      const offerConv = conversations.find((c) => c.id === selectedConvId);
+      if (offerConv) {
+        sendNotification(offerConv.buyerId, {
+          type: 'offer',
+          title: `${userProfile.name} sent you an offer`,
+          body: `$${price} offer for "${selectedService.title}"`,
+          senderId: user.uid,
+          senderName: userProfile.name,
+          senderPhotoURL: userProfile.photoURL || '',
+          conversationId: selectedConvId,
+          serviceId: selectedService.id,
+        }).catch(console.error);
+      }
+
       closeOfferModal();
     } catch (err) {
       console.error('Send offer error:', err);
@@ -434,6 +468,24 @@ export default function ChatMessages({
     const conv = conversations.find((c) => c.id === selectedConvId);
     if (!conv) return;
     if (acceptingOfferId) return; // prevent double-click
+
+    // Persist seller info so BuyerDashboard can send the seller notification
+    // after Stripe redirects back with ?payment_success=true
+    try {
+      sessionStorage.setItem(
+        'pendingOfferNotif',
+        JSON.stringify({
+          sellerId: conv.sellerId,
+          sellerName: conv.sellerName,
+          sellerPhotoURL: conv.sellerPhotoURL || '',
+          conversationId: selectedConvId,
+          price: msg.offer.price,
+          serviceTitle: msg.offer.serviceTitle,
+        })
+      );
+    } catch {
+      // sessionStorage unavailable — skip seller notification
+    }
 
     setAcceptingOfferId(msg.id);
     try {

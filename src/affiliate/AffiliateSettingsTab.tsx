@@ -209,7 +209,7 @@ export default function AffiliateSettingsTab() {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-[#4B5563] flex items-center justify-center shrink-0 overflow-hidden">
             {photoPreview ? (
-              <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
+              <img src={photoPreview} alt="Profile" decoding="async" className="w-full h-full object-cover" />
             ) : (
               <svg width="40" height="40" viewBox="0 0 56 56" fill="none">
                 <circle cx="28" cy="21" r="10" fill="#6B7280" />

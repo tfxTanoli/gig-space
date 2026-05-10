@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Home,
@@ -7,7 +7,6 @@ import {
   Settings,
   RefreshCw,
   Search,
-  Bell,
   Plus,
   X,
   ChevronLeft,
@@ -41,6 +40,7 @@ import LocationIcon from './LocationIcon';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
+import NotificationBell from './notifications/NotificationBell';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { database } from './firebase';
 import ChatMessages from './ChatMessages';
@@ -87,6 +87,87 @@ const subcategoryLabels: Record<string, string> = {
   landscaping: 'Landscaping',
   handyman: 'Handyman',
 };
+
+const sellerNavItems = [
+  { name: 'Home', icon: Home },
+  { name: 'Posts', icon: PostsIcon },
+  { name: 'Orders', icon: Package },
+  { name: 'Messages', icon: MessagesIcon },
+  { name: 'Statements', icon: FileText },
+  { name: 'Payouts', icon: PayoutsIcon },
+  { name: 'Settings', icon: Settings },
+];
+
+function formatPostPrice(post: ServicePost) {
+  const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
+  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
+  return { prefix: 'From', price: `$${post.priceMin}`, suffix };
+}
+
+interface PostCardProps {
+  post: ServicePost;
+  onSelect: (post: ServicePost) => void;
+}
+
+const PostCard = memo(({ post, onSelect }: PostCardProps) => {
+  const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
+  const { prefix, price, suffix } = formatPostPrice(post);
+  return (
+    <div className="group">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+        <button
+          onClick={() => onSelect(post)}
+          className="block w-full h-full text-left"
+        >
+          {post.images?.[0] ? (
+            <img
+              src={post.images[0]}
+              alt={post.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out will-change-transform"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-slate-600 text-xs">No image</span>
+            </div>
+          )}
+        </button>
+        <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium backdrop-blur-sm ${
+          post.status === 'active'
+            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+            : 'bg-slate-800/80 text-slate-400 border border-slate-700'
+        }`}>
+          {post.status === 'active' ? 'Active' : 'Paused'}
+        </span>
+        <Link
+          to={`/post-service?id=${post.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+          title="Edit post"
+        >
+          <PostsIcon className="w-3.5 h-3.5 text-white" />
+        </Link>
+      </div>
+      <button onClick={() => onSelect(post)} className="w-full text-left">
+        <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline text-sm">
+          {post.title}
+        </h3>
+        {location && (
+          <div className="flex items-center text-slate-400 text-xs mb-3">
+            <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
+            {location}
+          </div>
+        )}
+        <div className="text-sm">
+          {prefix && <span className="text-slate-400">{prefix} </span>}
+          <span className="font-bold text-lg">{price}</span>
+          <span className="text-slate-400 text-xs ml-1">{suffix}</span>
+        </div>
+      </button>
+    </div>
+  );
+});
 
 /* ── Post detail modal ── */
 interface PostModalProps {
@@ -198,7 +279,7 @@ const PostModal = ({ post, onClose }: PostModalProps) => {
                 onClick={() => setImgIdx(i)}
                 className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${i === imgIdx ? 'border-blue-500' : 'border-transparent opacity-50 hover:opacity-80'}`}
               >
-                <img src={img} alt="" className="w-full h-full object-cover" />
+                <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
@@ -271,15 +352,7 @@ const SellerDashboard = () => {
   const [orderCount, setOrderCount] = useState<number | null>(null);
   const unreadMessages = useUnreadMessages('seller');
 
-  const navItems = [
-    { name: 'Home', icon: Home },
-    { name: 'Posts', icon: PostsIcon },
-    { name: 'Orders', icon: Package },
-    { name: 'Messages', icon: MessagesIcon },
-    { name: 'Statements', icon: FileText },
-    { name: 'Payouts', icon: PayoutsIcon },
-    { name: 'Settings', icon: Settings },
-  ];
+  const navItems = sellerNavItems;
 
   useEffect(() => {
     if (!user) return;
@@ -314,76 +387,8 @@ const SellerDashboard = () => {
     return () => unsub();
   }, [user]);
 
-  const activePosts = posts.filter(p => p.status === 'active');
-
-  const formatPrice = (post: ServicePost) => {
-    const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-    if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
-    return { prefix: 'From', price: `$${post.priceMin}`, suffix };
-  };
-
-  const PostCard = ({ post }: { post: ServicePost }) => {
-    const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
-    const { prefix, price, suffix } = formatPrice(post);
-    return (
-      <div className="group">
-        {/* Image */}
-        <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
-          <button
-            onClick={() => setSelectedPost(post)}
-            className="block w-full h-full text-left"
-          >
-            {post.images?.[0] ? (
-              <img
-                src={post.images[0]}
-                alt={post.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-slate-600 text-xs">No image</span>
-              </div>
-            )}
-          </button>
-          {/* Status badge */}
-          <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium backdrop-blur-sm ${
-            post.status === 'active'
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : 'bg-slate-800/80 text-slate-400 border border-slate-700'
-          }`}>
-            {post.status === 'active' ? 'Active' : 'Paused'}
-          </span>
-          {/* Edit shortcut */}
-          <Link
-            to={`/post-service?id=${post.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
-            title="Edit post"
-          >
-            <PostsIcon className="w-3.5 h-3.5 text-white" />
-          </Link>
-        </div>
-
-        {/* Info */}
-        <button onClick={() => setSelectedPost(post)} className="w-full text-left">
-          <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline text-sm">
-            {post.title}
-          </h3>
-          {location && (
-            <div className="flex items-center text-slate-400 text-xs mb-3">
-              <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
-              {location}
-            </div>
-          )}
-          <div className="text-sm">
-            {prefix && <span className="text-slate-400">{prefix} </span>}
-            <span className="font-bold text-lg">{price}</span>
-            <span className="text-slate-400 text-xs ml-1">{suffix}</span>
-          </div>
-        </button>
-      </div>
-    );
-  };
+  const activePosts = useMemo(() => posts.filter(p => p.status === 'active'), [posts]);
+  const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post), []);
 
   return (
     <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
@@ -475,9 +480,7 @@ const SellerDashboard = () => {
             />
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <span className="text-slate-600" aria-hidden="true" title="Notifications coming soon">
-              <Bell className="w-5 h-5" />
-            </span>
+            <NotificationBell onNavigate={setActiveTab} />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
             <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">
               <Plus className="w-4 h-4" /> <span className="hidden md:inline">New Post</span>
@@ -535,7 +538,7 @@ const SellerDashboard = () => {
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} />)}
+                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} onSelect={handleSelectPost} />)}
                   </div>
                 </div>
               )}
@@ -571,7 +574,7 @@ const SellerDashboard = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {posts.map(post => <PostCard key={post.id} post={post} />)}
+                  {posts.map(post => <PostCard key={post.id} post={post} onSelect={handleSelectPost} />)}
                 </div>
               )}
             </div>
