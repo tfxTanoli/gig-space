@@ -22,6 +22,8 @@ import AdminServiceEditModal from './components/AdminServiceEditModal';
 import AdminServiceDeleteModal from './components/AdminServiceDeleteModal';
 import AdminAffiliatesTable, { type AdminAffiliate } from './components/AdminAffiliatesTable';
 import AdminOrderViewModal from './components/AdminOrderViewModal';
+import AdminOrderEditModal from './components/AdminOrderEditModal';
+import AdminOrderDeleteModal from './components/AdminOrderDeleteModal';
 import AdminAffiliateViewModal from './components/AdminAffiliateViewModal';
 
 type TabName = 'Home' | 'Posts' | 'Listings' | 'Users' | 'Orders' | 'Subscriptions' | 'Affiliates' | 'Settings';
@@ -106,12 +108,17 @@ const parseServices = (raw: Record<string, Record<string, unknown>>): AdminServi
 const parseOrders = (raw: Record<string, Record<string, unknown>>): AdminOrder[] =>
   Object.entries(raw)
     .map(([id, o]) => ({
-      orderId: id,
-      buyerName: String(o?.buyerName ?? ''),
-      sellerName: String(o?.sellerName ?? ''),
-      status: String(o?.status ?? ''),
-      amount: Number(o?.price ?? 0),
-      createdAt: Number(o?.createdAt ?? 0),
+      orderId:       id,
+      buyerName:     String(o?.buyerName     ?? ''),
+      buyerId:       String(o?.buyerId       ?? ''),
+      sellerName:    String(o?.sellerName    ?? ''),
+      sellerId:      String(o?.sellerId      ?? ''),
+      serviceTitle:  String(o?.serviceTitle  ?? ''),
+      status:        String(o?.status        ?? ''),
+      paymentStatus: String(o?.paymentStatus ?? ''),
+      paymentId:     String(o?.paymentId     ?? ''),
+      amount:        Number(o?.price         ?? 0),
+      createdAt:     Number(o?.createdAt     ?? 0),
     }))
     .sort((a, b) => b.createdAt - a.createdAt);
 
@@ -152,7 +159,9 @@ const AdminDashboard = () => {
   const [editService,   setEditService]   = useState<AdminService | null>(null);
   const [deleteService, setDeleteService] = useState<AdminService | null>(null);
 
-  const [viewOrder,     setViewOrder]     = useState<AdminOrder | null>(null);
+  const [viewOrder,   setViewOrder]   = useState<AdminOrder | null>(null);
+  const [editOrder,   setEditOrder]   = useState<AdminOrder | null>(null);
+  const [deleteOrder, setDeleteOrder] = useState<AdminOrder | null>(null);
   const [viewAffiliate, setViewAffiliate] = useState<AdminAffiliate | null>(null);
 
   // ── Local-state updaters (avoid full re-fetch on edit/delete) ──────────────
@@ -161,6 +170,9 @@ const AdminDashboard = () => {
 
   const handleServiceEditSuccess   = (updated: AdminService) => setServices((prev) => prev?.map((s) => s.id === updated.id ? updated : s) ?? null);
   const handleServiceDeleteSuccess = (id: string) => setServices((prev) => prev?.filter((s) => s.id !== id) ?? null);
+
+  const handleOrderEditSuccess   = (updated: AdminOrder) => setOrders((prev) => prev?.map((o) => o.orderId === updated.orderId ? updated : o) ?? null);
+  const handleOrderDeleteSuccess = (orderId: string) => setOrders((prev) => prev?.filter((o) => o.orderId !== orderId) ?? null);
 
   // ── Verify admin role on user change ───────────────────────────────────────
   useEffect(() => {
@@ -409,6 +421,8 @@ const AdminDashboard = () => {
                 loading={ordersLoading && orders === null}
                 pageSize={5}
                 onView={setViewOrder}
+                onEdit={setEditOrder}
+                onDelete={setDeleteOrder}
               />
             </div>
           </>
@@ -438,6 +452,8 @@ const AdminDashboard = () => {
               orders={filteredOrders}
               loading={ordersLoading && orders === null}
               onView={setViewOrder}
+              onEdit={setEditOrder}
+              onDelete={setDeleteOrder}
             />
           </>
         );
@@ -581,6 +597,20 @@ const AdminDashboard = () => {
 
       {viewOrder && (
         <AdminOrderViewModal order={viewOrder} onClose={() => setViewOrder(null)} />
+      )}
+      {editOrder && (
+        <AdminOrderEditModal
+          order={editOrder}
+          onClose={() => setEditOrder(null)}
+          onSuccess={handleOrderEditSuccess}
+        />
+      )}
+      {deleteOrder && (
+        <AdminOrderDeleteModal
+          order={deleteOrder}
+          onClose={() => setDeleteOrder(null)}
+          onSuccess={handleOrderDeleteSuccess}
+        />
       )}
       {viewAffiliate && (
         <AdminAffiliateViewModal affiliate={viewAffiliate} onClose={() => setViewAffiliate(null)} />

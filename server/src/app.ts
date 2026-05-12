@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
 import adminRouter from './routes/admin.routes';
 import affiliateRouter from './routes/affiliate.routes';
+import { sendEmailNotification } from './email';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -510,9 +511,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const { buyerId, sellerId, serviceId, conversationId, messageId,
     offerAmount, platformFeePercent, platformFeeCents, sellerAmountCents } = meta;
 
-  const existing = await db.ref('payments')
-    .orderByChild('stripeSessionId').equalTo(session.id).limitToFirst(1).get();
-  if (existing.exists()) { console.log(`Session ${session.id} already processed`); return; }
+  // Atomic lock — only one concurrent caller (webhook vs verify-session) can proceed.
+  // Firebase transactions guarantee exactly-once commit: the second caller gets
+  // committed=false and exits before any order/payment nodes are written.
+  const lockRef = db.ref(`checkoutLocks/${session.id}`);
+  const { committed } = await lockRef.transaction((current) => {
+    if (current !== null) return; // already locked — abort (return undefined)
+    return Date.now();            // claim the lock
+  });
+  if (!committed) {
+    console.log(`Session ${session.id} already processed/processing — skipping duplicate`);
+    return;
+  }
 
   const [buyerSnap, sellerSnap, msgSnap, serviceSnap] = await Promise.all([
     db.ref(`users/${buyerId}`).get(),
@@ -635,6 +645,51 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   }
   await db.ref().update(updates);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/notifications/email
+// Looks up the recipient's email via Firebase Auth and sends via Resend.
+// Called fire-and-forget from the frontend's sendNotification helper.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { recipientUid, payload } = req.body as {
+      recipientUid: string;
+      payload: {
+        type: string;
+        title: string;
+        body: string;
+        senderName: string;
+        orderId?: string;
+        conversationId?: string;
+        serviceId?: string;
+      };
+    };
+
+    if (!recipientUid || !payload?.type || !payload?.title) {
+      res.status(400).json({ error: 'recipientUid and payload (type, title) are required' });
+      return;
+    }
+
+    // Fetch recipient's email + displayName from Firebase Auth
+    const userRecord = await admin.auth().getUser(recipientUid);
+    const recipientEmail = userRecord.email;
+    const recipientName = userRecord.displayName || 'there';
+
+    if (!recipientEmail) {
+      // User has no email (e.g. anonymous) — silently skip
+      res.json({ sent: false, reason: 'no_email' });
+      return;
+    }
+
+    await sendEmailNotification(recipientEmail, recipientName, payload as Parameters<typeof sendEmailNotification>[2]);
+    res.json({ sent: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/notifications/email error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
 
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);

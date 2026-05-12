@@ -1,5 +1,7 @@
 import { ref, push, update, increment } from 'firebase/database';
-import { database } from '../firebase';
+import { database, auth } from '../firebase';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export type NotificationType =
   | 'message'
@@ -23,13 +25,14 @@ export interface NotificationPayload {
 }
 
 /**
- * Writes a notification for `recipientUid` and atomically increments
- * their unread count. Safe to call from any authenticated client.
+ * Writes an in-app notification for `recipientUid` and atomically increments
+ * their unread count, then fires an email notification in the background.
  */
 export async function sendNotification(
   recipientUid: string,
   payload: NotificationPayload
 ): Promise<void> {
+  // ── In-app notification (Firebase Realtime Database) ─────────────────────
   const notifId = push(ref(database, `notifications/${recipientUid}`)).key!;
   await update(ref(database), {
     [`notifications/${recipientUid}/${notifId}`]: {
@@ -39,4 +42,16 @@ export async function sendNotification(
     },
     [`notificationCounts/${recipientUid}/unread`]: increment(1),
   });
+
+  // ── Email notification (fire-and-forget — never blocks the caller) ────────
+  auth.currentUser?.getIdToken().then((token) => {
+    fetch(`${API_URL}/api/notifications/email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ recipientUid, payload }),
+    }).catch(() => { /* silently ignore email failures */ });
+  }).catch(() => { /* no token — skip email */ });
 }

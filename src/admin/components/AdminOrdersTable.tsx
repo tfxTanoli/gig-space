@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
 export interface AdminOrder {
   orderId: string;
   buyerName: string;
+  buyerId: string;
   sellerName: string;
+  sellerId: string;
+  serviceTitle: string;
   status: string;
+  paymentStatus: string;
+  paymentId: string;
   amount: number;
   createdAt: number;
 }
@@ -15,7 +20,9 @@ interface Props {
   orders: AdminOrder[];
   loading: boolean;
   pageSize?: number;
-  onView?: (o: AdminOrder) => void;
+  onView?:   (o: AdminOrder) => void;
+  onEdit?:   (o: AdminOrder) => void;
+  onDelete?: (o: AdminOrder) => void;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -35,11 +42,12 @@ const SkeletonRow = ({ cols }: { cols: number }) => (
   </tr>
 );
 
-const AdminOrdersTable = ({ orders, loading, pageSize = 20, onView }: Props) => {
+const AdminOrdersTable = ({ orders, loading, pageSize = 20, onView, onEdit, onDelete }: Props) => {
   const [page, setPage] = useState(0);
   useEffect(() => { setPage(0); }, [orders.length]);
   const visible = orders.slice(page * pageSize, (page + 1) * pageSize);
-  const headers = onView
+  const hasActions = onView || onEdit || onDelete;
+  const headers = hasActions
     ? ['Order ID', 'Buyer', 'Seller', 'Status', 'Amount', 'Actions']
     : ['Order ID', 'Buyer', 'Seller', 'Status', 'Amount'];
 
@@ -91,16 +99,36 @@ const AdminOrdersTable = ({ orders, loading, pageSize = 20, onView }: Props) => 
                       </span>
                     </td>
                     <td className="px-5 py-3 text-slate-300">${o.amount.toFixed(2)}</td>
-                    {onView && (
+                    {hasActions && (
                       <td className="px-5 py-3">
-                        <div className="flex items-center justify-end">
-                          <button
-                            onClick={() => onView(o)}
-                            title="View"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
+                        <div className="flex items-center justify-end gap-1">
+                          {onView && (
+                            <button
+                              onClick={() => onView(o)}
+                              title="View"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onEdit && (
+                            <button
+                              onClick={() => onEdit(o)}
+                              title="Edit"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button
+                              onClick={() => onDelete(o)}
+                              title="Delete"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}

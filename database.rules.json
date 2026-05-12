@@ -38,8 +38,8 @@
       ".indexOn": ["buyerId", "sellerId", "serviceId"],
       ".read": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'buyerId' && query.equalTo === auth.uid) || (query.orderByChild === 'sellerId' && query.equalTo === auth.uid) || (query.orderByChild === 'serviceId'))",
       "$orderId": {
-        ".read": "auth !== null && (data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
-        ".write": "auth !== null && (!data.exists() ? newData.child('buyerId').val() === auth.uid : data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)"
+        ".read": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
+        ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() ? newData.child('buyerId').val() === auth.uid : data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid))"
       }
     },
     "savedServices": {
@@ -82,8 +82,8 @@
       ".indexOn": ["buyerId", "sellerId", "orderId", "stripeSessionId", "stripePaymentIntentId"],
       ".read": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
       "$paymentId": {
-        ".read": "auth !== null && (data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
-        ".write": false
+        ".read": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
+        ".write": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
       }
     },
 
