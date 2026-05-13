@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, browserLocalStoragePersistence } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import { getStorage } from 'firebase/storage';
 
@@ -16,7 +16,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: browserLocalStoragePersistence,
+});
 export const database = getDatabase(app);
 export const storage = getStorage(app);
 export default app;
