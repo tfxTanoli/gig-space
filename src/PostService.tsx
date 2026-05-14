@@ -41,6 +41,7 @@ const PostService = () => {
   const { user, userProfile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isNewUser = searchParams.get('new') === 'true';
 
   // Edit mode: populated when ?id= param is present
   const [editId, setEditId] = useState<string | null>(null);
@@ -745,23 +746,25 @@ const PostService = () => {
             )}
 
             <div className="flex items-center gap-3">
-              {step === 6 && (
-                <button
-                  onClick={() => { setStepError(''); setStep(s => s + 1); }}
-                  disabled={saving}
-                  className="text-slate-400 font-medium hover:text-white transition-colors text-sm disabled:opacity-50"
-                >
-                  Skip
-                </button>
-              )}
+
               {step < 8 && (
-                <button
-                  onClick={() => saveStep(true)}
-                  disabled={saving || publishing}
-                  className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                >
-                  Save &amp; exit
-                </button>
+                isNewUser ? (
+                  <button
+                    onClick={() => navigate('/seller-dashboard')}
+                    disabled={saving || publishing}
+                    className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    Skip
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => saveStep(true)}
+                    disabled={saving || publishing}
+                    className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    Save &amp; exit
+                  </button>
+                )
               )}
               <button
                 onClick={step === 8 ? handlePublish : () => saveStep(false)}

@@ -11,6 +11,17 @@
     overflow-x: hidden;
   }
 
+  /* Prevent browser autofill from overriding dark input backgrounds */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #1A2035 inset !important;
+    box-shadow: 0 0 0 1000px #1A2035 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff;
+  }
+
   body {
     @apply bg-background text-white min-h-screen font-sans;
     scroll-behavior: smooth;

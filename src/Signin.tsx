@@ -70,12 +70,12 @@ const Signin = () => {
 
   return (
     <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">
-      <div className="w-full max-w-7xl flex items-center mb-16 lg:mb-32">
+      <div className="w-full max-w-7xl flex items-center mb-10 lg:mb-16">
         <Logo className="h-6" />
       </div>
 
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center text-white mb-8">
+        <h1 className="text-3xl font-bold text-center text-white mb-6">
           Sign in to your account
         </h1>
 
@@ -85,7 +85,7 @@ const Signin = () => {
           </div>
         )}
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-6" autoComplete="off" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300" htmlFor="email">
               Email address

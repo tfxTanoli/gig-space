@@ -64,7 +64,7 @@ const SellerProfile = () => {
         role: existingRole,
       });
 
-      navigate('/post-service');
+      navigate('/post-service?new=true');
     } catch {
       setError('Failed to save profile. Please try again.');
     } finally {
