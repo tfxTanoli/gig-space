@@ -146,6 +146,55 @@ const ServiceDetail = () => {
 
   useEffect(() => { setActiveImg(0); }, [post?.id]);
 
+  useEffect(() => {
+    if (!post) return;
+
+    const setMeta = (property: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('property', property);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    const setNameMeta = (name: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('name', name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    const pageUrl = window.location.href;
+    const image = post.images?.[0] ?? '';
+    const description = post.description
+      ? post.description.slice(0, 160).replace(/\s+/g, ' ').trim()
+      : `${post.sellerName} offers this service on GigSpace.`;
+    const priceLabel = `$${post.priceMin}${post.priceMax ? `–$${post.priceMax}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
+
+    document.title = `${post.title} | GigSpace`;
+
+    setMeta('og:type', 'website');
+    setMeta('og:site_name', 'GigSpace');
+    setMeta('og:url', pageUrl);
+    setMeta('og:title', post.title);
+    setMeta('og:description', `${priceLabel} · ${description}`);
+    if (image) setMeta('og:image', image);
+
+    setNameMeta('twitter:card', 'summary_large_image');
+    setNameMeta('twitter:title', post.title);
+    setNameMeta('twitter:description', `${priceLabel} · ${description}`);
+    if (image) setNameMeta('twitter:image', image);
+
+    return () => {
+      document.title = 'GigSpace';
+    };
+  }, [post]);
+
   // Real-time reviews listener — primary path: serviceReviews/{serviceId}
   // Fallback: scan completed orders for this service and read buyerReview entries
   useEffect(() => {
