@@ -41,6 +41,7 @@ const buyerNavItems = [
 const BuyerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('Home');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const [paymentSuccessToast, setPaymentSuccessToast] = useState(false);
   const unreadMessages = useUnreadMessages('buyer');
@@ -157,7 +158,7 @@ const BuyerDashboard = () => {
       {/* Sidebar — desktop only */}
       <aside className="w-72 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
-          <Link to="/">
+          <Link to="/buyer-dashboard">
             <Logo className="h-6" />
           </Link>
         </div>
@@ -219,7 +220,7 @@ const BuyerDashboard = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800">
           {/* Mobile: logo */}
-          <Link to="/" className="md:hidden mr-3">
+          <Link to="/buyer-dashboard" className="md:hidden mr-3">
             <Logo className="h-5" />
           </Link>
           <div className="flex items-center flex-1">
@@ -227,6 +228,9 @@ const BuyerDashboard = () => {
             <input
               type="text"
               placeholder="Search..."
+              autoComplete="one-time-code"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="bg-transparent border-none text-sm text-white focus:outline-none w-full max-w-sm placeholder-slate-500"
             />
           </div>

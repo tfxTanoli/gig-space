@@ -306,6 +306,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
                     type={showCurrent ? 'text' : 'password'}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
                     className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                     placeholder="Enter current password"
                   />
@@ -329,6 +330,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
                     type={showNew ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
                     className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                     placeholder="Enter new password"
                   />
@@ -352,6 +354,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
                     type={showConfirm ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
                     className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                     placeholder="Confirm new password"
                   />

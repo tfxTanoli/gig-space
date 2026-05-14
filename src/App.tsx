@@ -28,7 +28,8 @@ const SellerDashboard     = lazy(() => import('./SellerDashboard'));
 const BuyerDashboard      = lazy(() => import('./BuyerDashboard'));
 const WelcomeEmail        = lazy(() => import('./WelcomeEmail'));
 const ResetPasswordEmail  = lazy(() => import('./ResetPasswordEmail'));
-const PasswordUpdatedEmail = lazy(() => import('./PasswordUpdatedEmail'));
+const PasswordUpdatedEmail  = lazy(() => import('./PasswordUpdatedEmail'));
+const ConfirmPasswordReset  = lazy(() => import('./ConfirmPasswordReset'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
@@ -94,6 +95,7 @@ function AppRoutes() {
           <Route path="/signup"             element={<Signup />} />
           <Route path="/signin"             element={<Signin />} />
           <Route path="/reset-password"     element={<ResetPassword />} />
+          <Route path="/auth/action"        element={<ConfirmPasswordReset />} />
           <Route path="/verify-email"       element={<VerifyEmail />} />
           <Route path="/account-type"       element={<ProtectedRoute><AccountType /></ProtectedRoute>} />
           <Route path="/seller-profile"     element={<ProtectedRoute><SellerProfile /></ProtectedRoute>} />
