@@ -643,7 +643,7 @@ const PostService = () => {
       case 9: {
         const serviceId = editId ?? draftId;
         const shareUrl = serviceId
-          ? `${window.location.origin}/service-detail?id=${serviceId}`
+          ? `${window.location.origin}/share?id=${serviceId}`
           : window.location.origin;
         const shareText = encodeURIComponent(`Check out my service: ${title}`);
         const encodedUrl = encodeURIComponent(shareUrl);
