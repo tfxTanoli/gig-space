@@ -44,13 +44,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearTimeout(fallback);
       profileUnsub?.();
       profileUnsub = null;
-      setUser(firebaseUser);
 
       if (!firebaseUser) {
+        setUser(null);
         setUserProfile(null);
         setLoading(false);
         return;
       }
+
+      // Hold the spinner while we load the profile so components never see
+      // an intermediate state where user is set but userProfile is still null.
+      setLoading(true);
+      setUser(firebaseUser);
 
       const userRef = ref(database, `users/${firebaseUser.uid}`);
       profileUnsub = onValue(userRef, (snapshot) => {

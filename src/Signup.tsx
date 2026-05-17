@@ -1,9 +1,14 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { ref, get } from 'firebase/database';
-import { auth, database } from './firebase';
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+} from 'firebase/auth';
+import { auth } from './firebase';
+import { useAuth } from './AuthContext';
 
 const errorMessages: Record<string, string> = {
   'auth/email-already-in-use': 'An account with this email already exists.',
@@ -11,6 +16,10 @@ const errorMessages: Record<string, string> = {
   'auth/invalid-email': 'Please enter a valid email address.',
   'auth/popup-closed-by-user': '',
   'auth/cancelled-popup-request': '',
+  'auth/popup-blocked': '',
+  'auth/network-request-failed': 'Network error. Please check your connection.',
+  'auth/unauthorized-domain': 'This domain is not authorised for Google sign-in.',
+  'auth/operation-not-allowed': 'Google sign-in is not enabled. Please contact support.',
 };
 
 const getErrorMessage = (code: string) =>
@@ -18,10 +27,28 @@ const getErrorMessage = (code: string) =>
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // As soon as auth resolves with a signed-in user, navigate away.
+  // This fires for popup sign-in, email sign-up, and redirect returns.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    if (!userProfile) {
+      navigate('/account-type');
+    } else {
+      navigate(
+        userProfile.role === 'admin'
+          ? '/admin-dashboard'
+          : userProfile.accountType === 'seller'
+          ? '/seller-dashboard'
+          : '/buyer-dashboard'
+      );
+    }
+  }, [user, userProfile, authLoading, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -29,10 +56,9 @@ const Signup = () => {
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      navigate('/account-type');
+      // useEffect above handles navigation once onAuthStateChanged fires
     } catch (err: any) {
       setError(getErrorMessage(err.code));
-    } finally {
       setLoading(false);
     }
   };
@@ -40,24 +66,23 @@ const Signup = () => {
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
+    const provider = new GoogleAuthProvider();
     try {
-      const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
-      const snap = await get(ref(database, `users/${cred.user.uid}`));
-      if (snap.exists()) {
-        const profile = snap.val();
-        if (profile.role === 'admin') {
-          navigate('/admin-dashboard');
-        } else {
-          navigate(profile.accountType === 'seller' ? '/seller-dashboard' : '/buyer-dashboard');
-        }
-      } else {
-        navigate('/account-type');
-      }
+      await signInWithPopup(auth, provider);
+      // useEffect above handles navigation
     } catch (err: any) {
+      if (err.code === 'auth/popup-blocked') {
+        // Popup blocked — fall back to redirect
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectErr: any) {
+          setError(getErrorMessage(redirectErr.code));
+          setLoading(false);
+        }
+        return;
+      }
       const msg = getErrorMessage(err.code);
       if (msg) setError(msg);
-    } finally {
       setLoading(false);
     }
   };
@@ -110,7 +135,7 @@ const Signup = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || authLoading}
             className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-md transition-colors"
           >
             {loading ? 'Creating account...' : 'Create account'}
@@ -125,7 +150,7 @@ const Signup = () => {
 
         <button
           onClick={handleGoogleSignIn}
-          disabled={loading}
+          disabled={loading || authLoading}
           className="mt-8 w-full flex items-center justify-center bg-[#1A2035] hover:bg-[#202740] disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700/50 text-white font-medium py-3 px-4 rounded-md transition-colors"
         >
           <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
