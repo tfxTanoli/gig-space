@@ -26,7 +26,7 @@ function formatPrice(svc: SavedService) {
   return `$${svc.priceMin}${suffix}`;
 }
 
-const SavedTab = () => {
+const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
   const { user } = useAuth();
   const { toggleSave, isSaved } = useSavedServices();
   const [services, setServices] = useState<SavedService[]>([]);
@@ -93,6 +93,11 @@ const SavedTab = () => {
     };
   }, [user]);
 
+  const q = searchQuery.toLowerCase().trim();
+  const displayed = q
+    ? services.filter((s) => s.title?.toLowerCase().includes(q) || s.sellerName?.toLowerCase().includes(q))
+    : services;
+
   return (
     <div className="space-y-5">
       <div>
@@ -104,23 +109,31 @@ const SavedTab = () => {
         <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
           <p className="text-slate-500 text-sm">Loading saved services…</p>
         </div>
-      ) : services.length === 0 ? (
+      ) : displayed.length === 0 ? (
         <div className="border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex flex-col items-center justify-center min-h-[300px] gap-4">
           <Bookmark className="w-10 h-10 text-slate-600" />
           <div className="text-center">
-            <p className="text-slate-300 font-medium text-sm">No saved services yet</p>
-            <p className="text-slate-500 text-xs mt-1">Tap the bookmark icon on any service to save it here.</p>
+            <p className="text-slate-300 font-medium text-sm">
+              {services.length === 0 ? 'No saved services yet' : 'No saved services match'}
+            </p>
+            <p className="text-slate-500 text-xs mt-1">
+              {services.length === 0
+                ? 'Tap the bookmark icon on any service to save it here.'
+                : 'Try a different search term.'}
+            </p>
           </div>
-          <Link
-            to="/search"
-            className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
-          >
-            Browse services
-          </Link>
+          {services.length === 0 && (
+            <Link
+              to="/search"
+              className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            >
+              Browse services
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {services.map((svc) => (
+          {displayed.map((svc) => (
             <div key={svc.id} className="bg-[#111827] border border-slate-800 hover:border-slate-600 rounded-xl overflow-hidden transition-colors group flex flex-col">
               {/* Image */}
               <Link to={`/service-detail?id=${svc.id}`} className="block relative aspect-[4/3] bg-[#1A2035] overflow-hidden">

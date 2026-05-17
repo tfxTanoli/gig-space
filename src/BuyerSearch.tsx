@@ -5,6 +5,8 @@ import {
   MessageCircle,
   Bell,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Bookmark,
   LayoutDashboard,
   MessageSquare,
@@ -22,15 +24,55 @@ import { useSavedServices } from './useSavedServices';
 
 const PAGE_SIZE = 50;
 
-const categories = [
-  "Automotive", "Business", "Graphics & Design", "Home & Garden",
-  "Labor & Moving", "Lessons", "Legal", "Marketing",
-  "Programming & Tech", "Real Estate", "Skilled Trade"
+const categories: { value: string; label: string }[] = [
+  { value: 'digital',            label: 'Digital Work' },
+  { value: 'home',               label: 'Home Services' },
+  { value: 'Automotive',         label: 'Automotive' },
+  { value: 'Business',           label: 'Business' },
+  { value: 'Graphics & Design',  label: 'Graphics & Design' },
+  { value: 'Home & Garden',      label: 'Home & Garden' },
+  { value: 'Labor & Moving',     label: 'Labor & Moving' },
+  { value: 'Lessons',            label: 'Lessons' },
+  { value: 'Legal',              label: 'Legal' },
+  { value: 'Marketing',          label: 'Marketing' },
+  { value: 'Programming & Tech', label: 'Programming & Tech' },
+  { value: 'Real Estate',        label: 'Real Estate' },
+  { value: 'Skilled Trade',      label: 'Skilled Trade' },
 ];
 
-const filters = [
-  "Budget", "Rating", "Verified", "Remote", "Language", "Online Now"
-];
+type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
+type BudgetOption = '' | 'under_25' | '25_100' | '100_250' | '250_plus';
+type RemoteOption = '' | 'remote' | 'in_person';
+
+const FilterDropdown = ({
+  label, isOpen, active, onToggle, children, align = 'right',
+}: {
+  label: string; isOpen: boolean; active: boolean; onToggle: () => void; children: React.ReactNode; align?: 'left' | 'right';
+}) => (
+  <div className="relative">
+    <button
+      onClick={onToggle}
+      className={`flex items-center text-sm transition-colors gap-1 ${active ? 'text-white font-semibold' : 'text-slate-300 hover:text-white'}`}
+    >
+      {label}
+      <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+    </button>
+    {isOpen && (
+      <div className={`absolute top-full ${align === 'left' ? 'left-0' : 'right-0'} mt-2 min-w-[170px] bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50`}>
+        {children}
+      </div>
+    )}
+  </div>
+);
+
+const Opt = ({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${selected ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+  >
+    {label}
+  </button>
+);
 
 interface ServicePost {
   id: string;
@@ -124,7 +166,60 @@ const BuyerSearch = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showLocationMenu, setShowLocationMenu] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('');
+  const [activeLocation, setActiveLocation] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [budgetFilter, setBudgetFilter] = useState<BudgetOption>('');
+  const [remoteFilter, setRemoteFilter] = useState<RemoteOption>('');
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const locationRef = useRef<HTMLDivElement>(null);
+  const filterBarRef = useRef<HTMLDivElement>(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollArrows = useCallback(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  const scrollCategories = useCallback((dir: 'left' | 'right') => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'left' ? -240 : 240, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    updateScrollArrows();
+    window.addEventListener('resize', updateScrollArrows);
+    return () => window.removeEventListener('resize', updateScrollArrows);
+  }, [updateScrollArrows]);
+
+  const toggleDropdown = useCallback((name: string) => {
+    setOpenDropdown((prev) => (prev === name ? null : name));
+  }, []);
+
+  const clearAllFilters = useCallback(() => {
+    setActiveSearch('');
+    setInputValue('');
+    setActiveLocation('');
+    setSortBy('newest');
+    setBudgetFilter('');
+    setRemoteFilter('');
+    setOpenDropdown(null);
+  }, []);
+
+  const hasActiveFilters = activeSearch !== '' || activeLocation !== '' || sortBy !== 'newest' || budgetFilter !== '' || remoteFilter !== '';
+
+  const commitSearch = useCallback(() => {
+    setActiveSearch(inputValue.trim());
+  }, [inputValue]);
 
   useEffect(() => {
     if (!showMenu) return;
@@ -136,6 +231,28 @@ const BuyerSearch = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
+
+  useEffect(() => {
+    if (!showLocationMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setShowLocationMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showLocationMenu]);
+
+  useEffect(() => {
+    if (!openDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openDropdown]);
 
   const handleLogout = useCallback(async () => {
     setShowMenu(false);
@@ -188,6 +305,42 @@ const BuyerSearch = () => {
 
   const handleToggleSave = useCallback((id: string) => toggleSave(id), [toggleSave]);
 
+  const locationOptions: string[] = ['Remote / Online', ...Array.from(
+    new Set(posts.filter((p) => !p.offeredRemotely && p.primaryLocation).map((p) => p.primaryLocation))
+  ).sort()];
+
+  const q = activeSearch.toLowerCase();
+  const displayedPosts = posts
+    .filter((p) => {
+      const matchesSearch = !q ||
+        p.title?.toLowerCase().includes(q) ||
+        p.sellerName?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q);
+      const matchesCategory = !activeCategory || p.category === activeCategory;
+      const matchesLocation =
+        !activeLocation ||
+        (activeLocation === 'Remote / Online' ? p.offeredRemotely : p.primaryLocation === activeLocation);
+      const matchesBudget = (() => {
+        const lo = p.priceMin;
+        const hi = p.priceMax ?? p.priceMin;
+        if (budgetFilter === 'under_25')  return lo < 25;
+        if (budgetFilter === '25_100')    return lo <= 100 && hi >= 25;
+        if (budgetFilter === '100_250')   return lo <= 250 && hi >= 100;
+        if (budgetFilter === '250_plus')  return hi > 250;
+        return true;
+      })();
+      const matchesRemote =
+        !remoteFilter ||
+        (remoteFilter === 'remote' ? p.offeredRemotely : !p.offeredRemotely);
+      return matchesSearch && matchesCategory && matchesLocation && matchesBudget && matchesRemote;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'oldest') return a.createdAt - b.createdAt;
+      if (sortBy === 'price_asc') return a.priceMin - b.priceMin;
+      if (sortBy === 'price_desc') return b.priceMin - a.priceMin;
+      return b.createdAt - a.createdAt;
+    });
+
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Top Main Navigation */}
@@ -197,17 +350,47 @@ const BuyerSearch = () => {
             <Logo className="h-6" />
           </Link>
 
-          <div className="hidden md:flex items-center bg-[#0E1422] border border-slate-700 rounded-lg overflow-hidden h-10 w-full max-w-xl">
-            <div className="px-4 border-r border-slate-700 flex items-center shrink-0 cursor-pointer text-slate-300 text-sm h-full bg-[#1A2035]">
-              All locations
-              <ChevronDown className="w-4 h-4 ml-2 text-slate-500" />
+          <div className="hidden md:flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl relative">
+            <div ref={locationRef} className="relative shrink-0 h-full">
+              <button
+                onClick={() => setShowLocationMenu((v) => !v)}
+                className="px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-sm h-full bg-[#1A2035] hover:text-white transition-colors whitespace-nowrap rounded-l-lg"
+              >
+                {activeLocation || 'All locations'}
+                <ChevronDown className="w-4 h-4 ml-2 text-slate-500" />
+              </button>
+              {showLocationMenu && (
+                <div className="absolute left-0 top-full mt-1 w-52 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <button
+                    onClick={() => { setActiveLocation(''); setShowLocationMenu(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${!activeLocation ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                  >
+                    All locations
+                  </button>
+                  {locationOptions.map((loc) => (
+                    <button
+                      key={loc}
+                      onClick={() => { setActiveLocation(loc); setShowLocationMenu(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${activeLocation === loc ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                    >
+                      {loc}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <input
               type="text"
               placeholder="Search for a service"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
               className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-500"
             />
-            <button className="bg-primary h-full px-4 flex items-center justify-center hover:bg-blue-600 transition-colors">
+            <button
+              onClick={commitSearch}
+              className="bg-primary h-full px-4 flex items-center justify-center hover:bg-blue-600 transition-colors rounded-r-lg"
+            >
               <Search className="w-4 h-4 text-white" />
             </button>
           </div>
@@ -295,31 +478,142 @@ const BuyerSearch = () => {
       </header>
 
       {/* Category Nav */}
-      <nav className="w-full px-6 lg:px-12 py-3 border-b border-slate-800 overflow-x-auto">
-        <ul className="flex items-center space-x-8 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max">
-          {categories.map((category, idx) => (
-            <li key={idx}>
-              <button className="hover:text-white transition-colors">{category}</button>
+      <nav className="w-full border-b border-slate-800 relative flex items-center">
+        {/* Left arrow */}
+        {canScrollLeft && (
+          <button
+            onClick={() => scrollCategories('left')}
+            className="absolute left-0 z-10 h-full px-2 bg-gradient-to-r from-[#0E1422] via-[#0E1422]/90 to-transparent flex items-center text-slate-400 hover:text-white transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Scrollable list */}
+        <div
+          ref={categoryScrollRef}
+          onScroll={updateScrollArrows}
+          className="overflow-x-auto px-6 lg:px-12 py-3 flex-1"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <ul className="flex items-center space-x-8 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max">
+            <li>
+              <button
+                onClick={() => setActiveCategory('')}
+                className={`transition-colors ${activeCategory === '' ? 'text-white underline underline-offset-4' : 'hover:text-white'}`}
+              >
+                All
+              </button>
             </li>
-          ))}
-        </ul>
+            {categories.map((cat) => (
+              <li key={cat.value}>
+                <button
+                  onClick={() => setActiveCategory(cat.value)}
+                  className={`transition-colors ${activeCategory === cat.value ? 'text-white underline underline-offset-4' : 'hover:text-white'}`}
+                >
+                  {cat.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Right arrow */}
+        {canScrollRight && (
+          <button
+            onClick={() => scrollCategories('right')}
+            className="absolute right-0 z-10 h-full px-2 bg-gradient-to-l from-[#0E1422] via-[#0E1422]/90 to-transparent flex items-center text-slate-400 hover:text-white transition-colors"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
       </nav>
 
       {/* Main Content */}
       <main className="flex-1 px-6 lg:px-12 py-10">
-        <h1 className="text-3xl font-bold mb-8">All Services</h1>
+        <h1 className="text-3xl font-bold mb-8">
+          {(() => {
+            const catLabel = categories.find(c => c.value === activeCategory)?.label ?? '';
+            if (activeSearch)
+              return `Results for "${activeSearch}"${catLabel ? ` in ${catLabel}` : ''}${activeLocation ? ` · ${activeLocation}` : ''}`;
+            if (catLabel)
+              return `${catLabel}${activeLocation ? ` · ${activeLocation}` : ''}`;
+            if (activeLocation) return activeLocation;
+            return 'All Services';
+          })()}
+        </h1>
 
         {/* Filter bar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-6">
-          <div className="flex items-center text-sm text-slate-300 cursor-pointer hover:text-white transition-colors">
-            Sort <ChevronDown className="w-4 h-4 ml-1" />
-          </div>
+        <div ref={filterBarRef} className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-6">
+          {/* Sort */}
+          <FilterDropdown
+            label={sortBy === 'newest' ? 'Sort' : sortBy === 'oldest' ? 'Oldest first' : sortBy === 'price_asc' ? 'Price: Low → High' : 'Price: High → Low'}
+            isOpen={openDropdown === 'sort'}
+            active={sortBy !== 'newest'}
+            onToggle={() => toggleDropdown('sort')}
+            align="left"
+          >
+            <Opt label="Newest first"        selected={sortBy === 'newest'}    onClick={() => { setSortBy('newest');    setOpenDropdown(null); }} />
+            <Opt label="Oldest first"        selected={sortBy === 'oldest'}    onClick={() => { setSortBy('oldest');    setOpenDropdown(null); }} />
+            <Opt label="Price: Low → High"   selected={sortBy === 'price_asc'} onClick={() => { setSortBy('price_asc'); setOpenDropdown(null); }} />
+            <Opt label="Price: High → Low"   selected={sortBy === 'price_desc'} onClick={() => { setSortBy('price_desc'); setOpenDropdown(null); }} />
+          </FilterDropdown>
+
           <div className="flex flex-wrap items-center gap-6">
-            {filters.map((filter, idx) => (
-              <div key={idx} className="flex items-center text-sm text-slate-300 cursor-pointer hover:text-white transition-colors">
-                {filter} <ChevronDown className="w-4 h-4 ml-1" />
-              </div>
-            ))}
+            {/* Budget */}
+            <FilterDropdown
+              label={budgetFilter === '' ? 'Budget' : budgetFilter === 'under_25' ? 'Under $25' : budgetFilter === '25_100' ? '$25 – $100' : budgetFilter === '100_250' ? '$100 – $250' : '$250+'}
+              isOpen={openDropdown === 'budget'}
+              active={budgetFilter !== ''}
+              onToggle={() => toggleDropdown('budget')}
+            >
+              <Opt label="Any budget"    selected={budgetFilter === ''}          onClick={() => { setBudgetFilter('');          setOpenDropdown(null); }} />
+              <Opt label="Under $25"     selected={budgetFilter === 'under_25'}  onClick={() => { setBudgetFilter('under_25');  setOpenDropdown(null); }} />
+              <Opt label="$25 – $100"    selected={budgetFilter === '25_100'}    onClick={() => { setBudgetFilter('25_100');    setOpenDropdown(null); }} />
+              <Opt label="$100 – $250"   selected={budgetFilter === '100_250'}   onClick={() => { setBudgetFilter('100_250');   setOpenDropdown(null); }} />
+              <Opt label="$250+"         selected={budgetFilter === '250_plus'}  onClick={() => { setBudgetFilter('250_plus');  setOpenDropdown(null); }} />
+            </FilterDropdown>
+
+            {/* Rating - coming soon */}
+            <FilterDropdown label="Rating" isOpen={openDropdown === 'rating'} active={false} onToggle={() => toggleDropdown('rating')}>
+              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            </FilterDropdown>
+
+            {/* Verified - coming soon */}
+            <FilterDropdown label="Verified" isOpen={openDropdown === 'verified'} active={false} onToggle={() => toggleDropdown('verified')}>
+              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            </FilterDropdown>
+
+            {/* Remote */}
+            <FilterDropdown
+              label={remoteFilter === 'remote' ? 'Remote only' : remoteFilter === 'in_person' ? 'In-person only' : 'Remote'}
+              isOpen={openDropdown === 'remote'}
+              active={remoteFilter !== ''}
+              onToggle={() => toggleDropdown('remote')}
+            >
+              <Opt label="All"             selected={remoteFilter === ''}          onClick={() => { setRemoteFilter('');          setOpenDropdown(null); }} />
+              <Opt label="Remote only"     selected={remoteFilter === 'remote'}    onClick={() => { setRemoteFilter('remote');    setOpenDropdown(null); }} />
+              <Opt label="In-person only"  selected={remoteFilter === 'in_person'} onClick={() => { setRemoteFilter('in_person'); setOpenDropdown(null); }} />
+            </FilterDropdown>
+
+            {/* Language - coming soon */}
+            <FilterDropdown label="Language" isOpen={openDropdown === 'language'} active={false} onToggle={() => toggleDropdown('language')}>
+              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            </FilterDropdown>
+
+            {/* Online Now - coming soon */}
+            <FilterDropdown label="Online Now" isOpen={openDropdown === 'online'} active={false} onToggle={() => toggleDropdown('online')}>
+              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            </FilterDropdown>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-full transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         </div>
 
@@ -328,18 +622,34 @@ const BuyerSearch = () => {
           <div className="flex items-center justify-center py-24">
             <p className="text-slate-500 text-sm">Loading services…</p>
           </div>
-        ) : posts.length === 0 ? (
+        ) : displayedPosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <p className="text-slate-400 text-lg font-medium">No services listed yet.</p>
-            <p className="text-slate-600 text-sm">Be the first to post a service!</p>
-            <Link to="/post-service" className="mt-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
-              Post a Service
-            </Link>
+            <p className="text-slate-400 text-lg font-medium">
+              {posts.length === 0 ? 'No services listed yet.' : 'No services match your filters.'}
+            </p>
+            <p className="text-slate-500 text-sm text-center max-w-xs">
+              {posts.length === 0
+                ? 'Be the first to post a service!'
+                : 'Try removing a filter or selecting a different category.'}
+            </p>
+            {posts.length > 0 && hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="mt-1 text-sm text-primary hover:text-blue-400 underline underline-offset-4 transition-colors"
+              >
+                Clear all filters
+              </button>
+            )}
+            {posts.length === 0 && (
+              <Link to="/post-service" className="mt-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Post a Service
+              </Link>
+            )}
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {posts.map((post) => (
+              {displayedPosts.map((post) => (
                 <ServiceCard
                   key={post.id}
                   post={post}
@@ -350,7 +660,7 @@ const BuyerSearch = () => {
             </div>
 
             <div className="flex flex-col items-center gap-4 py-6 border-t border-slate-800 mb-16">
-              <p className="text-slate-400 text-sm">{posts.length} service{posts.length !== 1 ? 's' : ''} shown</p>
+              <p className="text-slate-400 text-sm">{displayedPosts.length} service{displayedPosts.length !== 1 ? 's' : ''} shown</p>
               {hasMore && (
                 <button
                   onClick={loadMore}

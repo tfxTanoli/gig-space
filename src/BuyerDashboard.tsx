@@ -270,8 +270,8 @@ const BuyerDashboard = () => {
             />
           )}
 
-          {activeTab === 'Orders' && <OrdersTab mode="buyer" />}
-          {activeTab === 'Saved' && <SavedTab />}
+          {activeTab === 'Orders' && <OrdersTab mode="buyer" searchQuery={searchQuery} />}
+          {activeTab === 'Saved' && <SavedTab searchQuery={searchQuery} />}
           {activeTab === 'Settings' && <SettingsTab mode="buyer" />}
           {activeTab === 'Billing' && <BillingTab />}
 

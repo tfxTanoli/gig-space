@@ -25,7 +25,7 @@ const filterOptions: Array<{ value: OrderFilter; label: string }> = [
   { value: 'cancelled',   label: 'Cancelled'   },
 ];
 
-const OrdersTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
+const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searchQuery?: string }) => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +65,10 @@ const OrdersTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
     );
   }
 
-  const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
+  const q = searchQuery.toLowerCase().trim();
+  const filtered = orders
+    .filter((o) => filter === 'all' || o.status === filter)
+    .filter((o) => !q || o.serviceTitle?.toLowerCase().includes(q) || o.sellerName?.toLowerCase().includes(q) || o.buyerName?.toLowerCase().includes(q));
   const countByFilter = (f: OrderFilter) =>
     f === 'all' ? orders.length : orders.filter((o) => o.status === f).length;
 
@@ -112,13 +115,15 @@ const OrdersTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
           <Package className="w-10 h-10 text-slate-600" />
           <div className="text-center">
             <p className="text-slate-300 font-medium text-sm">
-              {orders.length === 0 ? 'No orders yet' : 'No orders match this filter'}
+              {orders.length === 0 ? 'No orders yet' : 'No orders match'}
             </p>
             <p className="text-slate-500 text-xs mt-1">
               {orders.length === 0 && mode === 'buyer'
                 ? 'Your orders will appear here once you book a service.'
                 : orders.length === 0 && mode === 'seller'
                 ? 'Incoming orders from buyers will appear here.'
+                : q
+                ? 'Try a different search term or filter.'
                 : 'Try selecting a different filter.'}
             </p>
           </div>
