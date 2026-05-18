@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, set } from 'firebase/database';
 import { auth, database } from './firebase';
 
 export interface UserProfile {
@@ -11,6 +11,8 @@ export interface UserProfile {
   email: string;
   createdAt: number;
   role?: string;
+  /** Mirrors Firebase Auth's emailVerified — kept in sync on every load. */
+  emailVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -59,8 +61,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const userRef = ref(database, `users/${firebaseUser.uid}`);
       profileUnsub = onValue(userRef, (snapshot) => {
-        setUserProfile(snapshot.val() ?? null);
+        const profile: UserProfile | null = snapshot.val() ?? null;
+        setUserProfile(profile);
         setLoading(false);
+
+        // Keep the stored emailVerified flag in sync with Firebase Auth, so
+        // the "Verified" search filter reflects reality (e.g. after the user
+        // clicks the verification link). Only writes when it actually drifts.
+        if (profile && profile.emailVerified !== firebaseUser.emailVerified) {
+          set(
+            ref(database, `users/${firebaseUser.uid}/emailVerified`),
+            firebaseUser.emailVerified,
+          ).catch(() => {
+            // non-fatal — will retry on the next load
+          });
+        }
       });
     });
 

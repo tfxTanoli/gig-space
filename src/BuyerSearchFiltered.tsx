@@ -11,12 +11,7 @@ import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, onValue } from 'firebase/database';
 import { database } from './firebase';
-
-const categories = [
-  "Automotive", "Business", "Graphics & Design", "Home & Garden",
-  "Labor & Moving", "Lessons", "Legal", "Marketing",
-  "Programming & Tech", "Real Estate", "Skilled Trade"
-];
+import { categoryOptions } from './categories';
 
 const filters = [
   "Budget", "Rating", "Verified", "Remote", "Language", "Online Now"
@@ -114,9 +109,9 @@ const BuyerSearchFiltered = () => {
       {/* Category Nav */}
       <nav className="w-full px-6 lg:px-12 py-3 border-b border-slate-800 overflow-x-auto">
         <ul className="flex items-center space-x-8 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max">
-          {categories.map((category, idx) => (
-            <li key={idx}>
-              <button className="hover:text-white transition-colors">{category}</button>
+          {categoryOptions.map((category) => (
+            <li key={category.value}>
+              <button className="hover:text-white transition-colors">{category.label}</button>
             </li>
           ))}
         </ul>

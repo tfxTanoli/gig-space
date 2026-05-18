@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Search, ChevronDown, ArrowRight, ChevronLeft, ChevronRight, Car, PenTool, Home, Package, Code, Hammer, MessageSquare, UserCheck, ShieldCheck, Image, Percent, Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, ArrowRight, ChevronLeft, ChevronRight, Car, PenTool, Home, Package, Code, Hammer, MessageSquare, UserCheck, ShieldCheck, Image, Percent, Menu, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
+import LocationSearch from './LocationSearch';
 
 const categories = [
   { name: 'Automotive', icon: Car },
@@ -47,6 +48,17 @@ const features = [
 
 const LandingPage = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [heroQuery, setHeroQuery] = useState('');
+  const [heroLocation, setHeroLocation] = useState('');
+  const navigate = useNavigate();
+
+  const goToSearch = () => {
+    const params = new URLSearchParams();
+    if (heroQuery.trim()) params.set('q', heroQuery.trim());
+    if (heroLocation) params.set('location', heroLocation);
+    const qs = params.toString();
+    navigate(`/search${qs ? `?${qs}` : ''}`);
+  };
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
@@ -102,22 +114,24 @@ const LandingPage = () => {
 
         {/* Search Bar */}
         <div className="w-full max-w-3xl flex flex-col md:flex-row items-center bg-[#1A2035] p-2 rounded-xl border border-slate-700/50 shadow-xl">
-          <div className="flex items-center w-full md:w-auto px-4 py-2 text-slate-300 mb-2 md:mb-0 cursor-pointer">
-            <span className="text-sm mr-2 whitespace-nowrap">All locations</span>
-            <ChevronDown className="w-4 h-4 text-slate-500" />
-          </div>
-          
+          <LocationSearch value={heroLocation} onChange={setHeroLocation} variant="hero" />
+
           <div className="hidden md:block w-[1px] h-8 bg-slate-700 mx-2"></div>
-          
+
           <div className="flex-1 w-full flex items-center pr-2">
-            <input 
-              type="text" 
-              placeholder="Search for a service" 
+            <input
+              type="text"
+              placeholder="Search for a service"
+              value={heroQuery}
+              onChange={(e) => setHeroQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && goToSearch()}
               className="w-full bg-transparent border-none text-white px-4 py-2 focus:outline-none focus:ring-0 text-sm"
             />
-            <button className="bg-primary hover:bg-blue-600 text-white p-2 md:px-6 md:py-3 rounded-lg transition-colors flex items-center justify-center ml-2">
-              <Search className="w-5 h-5 text-white md:hidden" />
-              <Search className="w-5 h-5 text-white hidden md:block" />
+            <button
+              onClick={goToSearch}
+              className="bg-primary hover:bg-blue-600 text-white p-2 md:px-6 md:py-3 rounded-lg transition-colors flex items-center justify-center ml-2"
+            >
+              <Search className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
@@ -141,14 +155,18 @@ const LandingPage = () => {
           {categories.map((cat, index) => {
             const Icon = cat.icon;
             return (
-              <div key={index} className="flex flex-col items-center group cursor-pointer">
+              <Link
+                key={index}
+                to={`/search?category=${encodeURIComponent(cat.name)}`}
+                className="flex flex-col items-center group cursor-pointer"
+              >
                 <div className="w-20 h-20 rounded-full bg-[#1A2035] flex items-center justify-center mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-[#212942]">
                   <Icon className="w-8 h-8 text-primary" strokeWidth={1.5} />
                 </div>
                 <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
                   {cat.name}
                 </span>
-              </div>
+              </Link>
             );
           })}
         </div>

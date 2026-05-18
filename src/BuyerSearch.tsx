@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
   MessageCircle,
@@ -13,36 +13,36 @@ import {
   Settings,
   LogOut,
   Loader2,
+  Star,
+  Check,
+  X,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import Logo from './Logo';
+import LocationSearch from './LocationSearch';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, get, query, orderByChild, limitToLast, endBefore } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
+import {
+  categoryOptions,
+  subcategoryMap,
+  getCategoryLabel,
+  getSubcategoryLabel,
+} from './categories';
 
 const PAGE_SIZE = 50;
 
-const categories: { value: string; label: string }[] = [
-  { value: 'digital',            label: 'Digital Work' },
-  { value: 'home',               label: 'Home Services' },
-  { value: 'Automotive',         label: 'Automotive' },
-  { value: 'Business',           label: 'Business' },
-  { value: 'Graphics & Design',  label: 'Graphics & Design' },
-  { value: 'Home & Garden',      label: 'Home & Garden' },
-  { value: 'Labor & Moving',     label: 'Labor & Moving' },
-  { value: 'Lessons',            label: 'Lessons' },
-  { value: 'Legal',              label: 'Legal' },
-  { value: 'Marketing',          label: 'Marketing' },
-  { value: 'Programming & Tech', label: 'Programming & Tech' },
-  { value: 'Real Estate',        label: 'Real Estate' },
-  { value: 'Skilled Trade',      label: 'Skilled Trade' },
-];
-
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
-type BudgetOption = '' | 'under_25' | '25_100' | '100_250' | '250_plus';
 type RemoteOption = '' | 'remote' | 'in_person';
+type VerifiedOption = '' | 'yes' | 'no';
+
+/** Per-seller data needed by the Rating and Verified filters. */
+interface SellerMeta {
+  verified: boolean;
+  rating: number;
+}
 
 const FilterDropdown = ({
   label, isOpen, active, onToggle, children, align = 'right',
@@ -81,6 +81,8 @@ interface ServicePost {
   sellerPhotoURL: string;
   title: string;
   category: string;
+  subcategory?: string;
+  languages?: string[];
   priceMin: number;
   priceMax: number | null;
   priceType: 'per_project' | 'per_hour';
@@ -161,22 +163,31 @@ const BuyerSearch = () => {
   const { user, userProfile, logout } = useAuth();
   const { isSaved, toggleSave } = useSavedServices();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [posts, setPosts] = useState<ServicePost[]>([]);
+  const [sellerMeta, setSellerMeta] = useState<Record<string, SellerMeta>>({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showLocationMenu, setShowLocationMenu] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const [activeSearch, setActiveSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('');
-  const [activeLocation, setActiveLocation] = useState('');
+
+  // Search + filters (seeded from URL params so the landing-page hero can hand off).
+  const [inputValue, setInputValue] = useState(() => searchParams.get('q') ?? '');
+  const [activeSearch, setActiveSearch] = useState(() => searchParams.get('q') ?? '');
+  const [activeCategory, setActiveCategory] = useState(() => searchParams.get('category') ?? '');
+  const [activeSubcategory, setActiveSubcategory] = useState('');
+  const [activeLocation, setActiveLocation] = useState(() => searchParams.get('location') ?? '');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [budgetFilter, setBudgetFilter] = useState<BudgetOption>('');
+  const [budgetMax, setBudgetMax] = useState<number | null>(null);
+  const [budgetInput, setBudgetInput] = useState('');
+  const [minRating, setMinRating] = useState(0);
+  const [verifiedFilter, setVerifiedFilter] = useState<VerifiedOption>('');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [remoteFilter, setRemoteFilter] = useState<RemoteOption>('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
   const menuRef = useRef<HTMLDivElement>(null);
-  const locationRef = useRef<HTMLDivElement>(null);
   const filterBarRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -205,17 +216,53 @@ const BuyerSearch = () => {
     setOpenDropdown((prev) => (prev === name ? null : name));
   }, []);
 
+  const selectCategory = useCallback((value: string) => {
+    setActiveCategory((prev) => (prev === value ? '' : value));
+    setActiveSubcategory('');
+  }, []);
+
+  const clearCategory = useCallback(() => {
+    setActiveCategory('');
+    setActiveSubcategory('');
+  }, []);
+
+  const applyBudget = useCallback(() => {
+    const v = parseInt(budgetInput, 10);
+    setBudgetMax(Number.isFinite(v) && v > 0 ? v : null);
+    setOpenDropdown(null);
+  }, [budgetInput]);
+
+  const clearBudget = useCallback(() => {
+    setBudgetInput('');
+    setBudgetMax(null);
+    setOpenDropdown(null);
+  }, []);
+
+  const toggleLanguage = useCallback((lang: string) => {
+    setSelectedLanguages((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang],
+    );
+  }, []);
+
   const clearAllFilters = useCallback(() => {
     setActiveSearch('');
     setInputValue('');
     setActiveLocation('');
+    setActiveSubcategory('');
     setSortBy('newest');
-    setBudgetFilter('');
+    setBudgetMax(null);
+    setBudgetInput('');
+    setMinRating(0);
+    setVerifiedFilter('');
+    setSelectedLanguages([]);
     setRemoteFilter('');
     setOpenDropdown(null);
   }, []);
 
-  const hasActiveFilters = activeSearch !== '' || activeLocation !== '' || sortBy !== 'newest' || budgetFilter !== '' || remoteFilter !== '';
+  const hasActiveFilters =
+    activeSearch !== '' || activeLocation !== '' || activeSubcategory !== '' ||
+    sortBy !== 'newest' || budgetMax !== null || minRating > 0 ||
+    verifiedFilter !== '' || selectedLanguages.length > 0 || remoteFilter !== '';
 
   const commitSearch = useCallback(() => {
     setActiveSearch(inputValue.trim());
@@ -231,17 +278,6 @@ const BuyerSearch = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
-
-  useEffect(() => {
-    if (!showLocationMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
-        setShowLocationMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showLocationMenu]);
 
   useEffect(() => {
     if (!openDropdown) return;
@@ -285,6 +321,37 @@ const BuyerSearch = () => {
       .finally(() => setLoading(false));
   }, [fetchPage]);
 
+  // Load verification + rating data for any seller we haven't seen yet.
+  // users/$uid is readable to any signed-in user; userRatings/$uid is public.
+  useEffect(() => {
+    const missing = Array.from(new Set(posts.map((p) => p.sellerId))).filter(
+      (id) => id && !(id in sellerMeta),
+    );
+    if (missing.length === 0) return;
+    let cancelled = false;
+
+    Promise.all(
+      missing.map(async (id) => {
+        const [verifiedSnap, ratingSnap] = await Promise.all([
+          get(ref(database, `users/${id}/emailVerified`)).catch(() => null),
+          get(ref(database, `userRatings/${id}`)).catch(() => null),
+        ]);
+        const r = ratingSnap?.val();
+        const rating = r && r.reviewCount > 0 ? r.totalStars / r.reviewCount : 0;
+        return [id, { verified: verifiedSnap?.val() === true, rating }] as const;
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      setSellerMeta((prev) => {
+        const next = { ...prev };
+        for (const [id, meta] of entries) next[id] = meta;
+        return next;
+      });
+    });
+
+    return () => { cancelled = true; };
+  }, [posts, sellerMeta]);
+
   const loadMore = useCallback(async () => {
     if (loadingMore || posts.length === 0) return;
     setLoadingMore(true);
@@ -305,9 +372,10 @@ const BuyerSearch = () => {
 
   const handleToggleSave = useCallback((id: string) => toggleSave(id), [toggleSave]);
 
-  const locationOptions: string[] = ['Remote / Online', ...Array.from(
-    new Set(posts.filter((p) => !p.offeredRemotely && p.primaryLocation).map((p) => p.primaryLocation))
-  ).sort()];
+  // Languages offered across the loaded posts — drives the Language checkboxes.
+  const languageOptions: string[] = Array.from(
+    new Set(posts.flatMap((p) => p.languages ?? []).filter(Boolean)),
+  ).sort();
 
   const q = activeSearch.toLowerCase();
   const displayedPosts = posts
@@ -316,23 +384,41 @@ const BuyerSearch = () => {
         p.title?.toLowerCase().includes(q) ||
         p.sellerName?.toLowerCase().includes(q) ||
         p.category?.toLowerCase().includes(q);
+
       const matchesCategory = !activeCategory || p.category === activeCategory;
-      const matchesLocation =
-        !activeLocation ||
-        (activeLocation === 'Remote / Online' ? p.offeredRemotely : p.primaryLocation === activeLocation);
-      const matchesBudget = (() => {
-        const lo = p.priceMin;
-        const hi = p.priceMax ?? p.priceMin;
-        if (budgetFilter === 'under_25')  return lo < 25;
-        if (budgetFilter === '25_100')    return lo <= 100 && hi >= 25;
-        if (budgetFilter === '100_250')   return lo <= 250 && hi >= 100;
-        if (budgetFilter === '250_plus')  return hi > 250;
-        return true;
+      const matchesSubcategory = !activeSubcategory || p.subcategory === activeSubcategory;
+
+      const matchesLocation = (() => {
+        if (!activeLocation) return true;
+        if (!p.primaryLocation) return false;
+        const a = activeLocation.toLowerCase();
+        const b = p.primaryLocation.toLowerCase();
+        if (a.includes(b) || b.includes(a)) return true;
+        const cityA = a.split(',')[0].trim();
+        const cityB = b.split(',')[0].trim();
+        return cityA.length > 0 && cityA === cityB;
       })();
+
+      const matchesBudget = budgetMax == null || p.priceMin <= budgetMax;
+
       const matchesRemote =
         !remoteFilter ||
         (remoteFilter === 'remote' ? p.offeredRemotely : !p.offeredRemotely);
-      return matchesSearch && matchesCategory && matchesLocation && matchesBudget && matchesRemote;
+
+      const matchesLanguage =
+        selectedLanguages.length === 0 ||
+        (p.languages ?? []).some((l) => selectedLanguages.includes(l));
+
+      // Rating / Verified depend on per-seller data — until it loads, the post
+      // passes through so results aren't briefly emptied.
+      const meta = sellerMeta[p.sellerId];
+      const matchesRating = minRating === 0 || !meta || meta.rating >= minRating;
+      const matchesVerified =
+        !verifiedFilter || !meta ||
+        (verifiedFilter === 'yes' ? meta.verified : !meta.verified);
+
+      return matchesSearch && matchesCategory && matchesSubcategory && matchesLocation &&
+        matchesBudget && matchesRemote && matchesLanguage && matchesRating && matchesVerified;
     })
     .sort((a, b) => {
       if (sortBy === 'oldest') return a.createdAt - b.createdAt;
@@ -340,6 +426,19 @@ const BuyerSearch = () => {
       if (sortBy === 'price_desc') return b.priceMin - a.priceMin;
       return b.createdAt - a.createdAt;
     });
+
+  // Applied-filter chips shown below the filter bar.
+  const filterChips: { key: string; label: string; onRemove: () => void }[] = [];
+  if (activeSearch) filterChips.push({ key: 'search', label: `"${activeSearch}"`, onRemove: () => { setActiveSearch(''); setInputValue(''); } });
+  if (activeLocation) filterChips.push({ key: 'location', label: activeLocation, onRemove: () => setActiveLocation('') });
+  if (activeSubcategory) filterChips.push({ key: 'subcategory', label: getSubcategoryLabel(activeCategory, activeSubcategory), onRemove: () => setActiveSubcategory('') });
+  if (budgetMax != null) filterChips.push({ key: 'budget', label: `Up to $${budgetMax.toLocaleString()}`, onRemove: clearBudget });
+  if (minRating > 0) filterChips.push({ key: 'rating', label: `${minRating}★ & up`, onRemove: () => setMinRating(0) });
+  if (verifiedFilter) filterChips.push({ key: 'verified', label: verifiedFilter === 'yes' ? 'Verified' : 'Not verified', onRemove: () => setVerifiedFilter('') });
+  if (remoteFilter) filterChips.push({ key: 'remote', label: remoteFilter === 'remote' ? 'Remote only' : 'In-person only', onRemove: () => setRemoteFilter('') });
+  selectedLanguages.forEach((lang) =>
+    filterChips.push({ key: `lang-${lang}`, label: lang, onRemove: () => setSelectedLanguages((prev) => prev.filter((l) => l !== lang)) }),
+  );
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
@@ -351,34 +450,7 @@ const BuyerSearch = () => {
           </Link>
 
           <div className="hidden md:flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl relative">
-            <div ref={locationRef} className="relative shrink-0 h-full">
-              <button
-                onClick={() => setShowLocationMenu((v) => !v)}
-                className="px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-sm h-full bg-[#1A2035] hover:text-white transition-colors whitespace-nowrap rounded-l-lg"
-              >
-                {activeLocation || 'All locations'}
-                <ChevronDown className="w-4 h-4 ml-2 text-slate-500" />
-              </button>
-              {showLocationMenu && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                  <button
-                    onClick={() => { setActiveLocation(''); setShowLocationMenu(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${!activeLocation ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
-                  >
-                    All locations
-                  </button>
-                  {locationOptions.map((loc) => (
-                    <button
-                      key={loc}
-                      onClick={() => { setActiveLocation(loc); setShowLocationMenu(false); }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${activeLocation === loc ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
-                    >
-                      {loc}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <LocationSearch value={activeLocation} onChange={setActiveLocation} variant="header" />
             <input
               type="text"
               placeholder="Search for a service"
@@ -496,20 +568,12 @@ const BuyerSearch = () => {
           className="overflow-x-auto px-6 lg:px-12 py-3 flex-1"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          <ul className="flex items-center space-x-8 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max">
-            <li>
-              <button
-                onClick={() => setActiveCategory('')}
-                className={`transition-colors ${activeCategory === '' ? 'text-white underline underline-offset-4' : 'hover:text-white'}`}
-              >
-                All
-              </button>
-            </li>
-            {categories.map((cat) => (
+          <ul className="flex items-center space-x-6 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max">
+            {categoryOptions.map((cat) => (
               <li key={cat.value}>
                 <button
-                  onClick={() => setActiveCategory(cat.value)}
-                  className={`transition-colors ${activeCategory === cat.value ? 'text-white underline underline-offset-4' : 'hover:text-white'}`}
+                  onClick={() => selectCategory(cat.value)}
+                  className={`transition-colors ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
                 >
                   {cat.label}
                 </button>
@@ -531,20 +595,31 @@ const BuyerSearch = () => {
 
       {/* Main Content */}
       <main className="flex-1 px-6 lg:px-12 py-10">
+        {/* Breadcrumb */}
+        {activeCategory && (
+          <nav className="text-sm font-medium mb-3">
+            <button onClick={clearCategory} className="text-slate-400 hover:text-white transition-colors">
+              All Services
+            </button>
+            <span className="text-slate-600 mx-2">/</span>
+            <span className="text-white">{getCategoryLabel(activeCategory)}</span>
+          </nav>
+        )}
+
         <h1 className="text-3xl font-bold mb-8">
           {(() => {
-            const catLabel = categories.find(c => c.value === activeCategory)?.label ?? '';
+            const catLabel = activeCategory ? getCategoryLabel(activeCategory) : '';
+            const subLabel = activeSubcategory ? getSubcategoryLabel(activeCategory, activeSubcategory) : '';
             if (activeSearch)
-              return `Results for "${activeSearch}"${catLabel ? ` in ${catLabel}` : ''}${activeLocation ? ` · ${activeLocation}` : ''}`;
-            if (catLabel)
-              return `${catLabel}${activeLocation ? ` · ${activeLocation}` : ''}`;
-            if (activeLocation) return activeLocation;
+              return `Results for "${activeSearch}"${catLabel ? ` in ${catLabel}` : ''}`;
+            if (subLabel) return subLabel;
+            if (catLabel) return catLabel;
             return 'All Services';
           })()}
         </h1>
 
         {/* Filter bar */}
-        <div ref={filterBarRef} className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-6">
+        <div ref={filterBarRef} className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-6">
           {/* Sort */}
           <FilterDropdown
             label={sortBy === 'newest' ? 'Sort' : sortBy === 'oldest' ? 'Oldest first' : sortBy === 'price_asc' ? 'Price: Low → High' : 'Price: High → Low'}
@@ -560,28 +635,87 @@ const BuyerSearch = () => {
           </FilterDropdown>
 
           <div className="flex flex-wrap items-center gap-6">
-            {/* Budget */}
+            {/* Subcategory — only when a category is active */}
+            {activeCategory && subcategoryMap[activeCategory] && (
+              <FilterDropdown
+                label={activeSubcategory ? getSubcategoryLabel(activeCategory, activeSubcategory) : 'Subcategory'}
+                isOpen={openDropdown === 'subcategory'}
+                active={activeSubcategory !== ''}
+                onToggle={() => toggleDropdown('subcategory')}
+              >
+                <Opt label="All subcategories" selected={activeSubcategory === ''} onClick={() => { setActiveSubcategory(''); setOpenDropdown(null); }} />
+                {subcategoryMap[activeCategory].map((s) => (
+                  <Opt key={s.value} label={s.label} selected={activeSubcategory === s.value} onClick={() => { setActiveSubcategory(s.value); setOpenDropdown(null); }} />
+                ))}
+              </FilterDropdown>
+            )}
+
+            {/* Budget — custom "Up to $X" amount */}
             <FilterDropdown
-              label={budgetFilter === '' ? 'Budget' : budgetFilter === 'under_25' ? 'Under $25' : budgetFilter === '25_100' ? '$25 – $100' : budgetFilter === '100_250' ? '$100 – $250' : '$250+'}
+              label={budgetMax != null ? `Up to $${budgetMax.toLocaleString()}` : 'Budget'}
               isOpen={openDropdown === 'budget'}
-              active={budgetFilter !== ''}
+              active={budgetMax != null}
               onToggle={() => toggleDropdown('budget')}
             >
-              <Opt label="Any budget"    selected={budgetFilter === ''}          onClick={() => { setBudgetFilter('');          setOpenDropdown(null); }} />
-              <Opt label="Under $25"     selected={budgetFilter === 'under_25'}  onClick={() => { setBudgetFilter('under_25');  setOpenDropdown(null); }} />
-              <Opt label="$25 – $100"    selected={budgetFilter === '25_100'}    onClick={() => { setBudgetFilter('25_100');    setOpenDropdown(null); }} />
-              <Opt label="$100 – $250"   selected={budgetFilter === '100_250'}   onClick={() => { setBudgetFilter('100_250');   setOpenDropdown(null); }} />
-              <Opt label="$250+"         selected={budgetFilter === '250_plus'}  onClick={() => { setBudgetFilter('250_plus');  setOpenDropdown(null); }} />
+              <div className="p-4 w-56">
+                <label className="block text-xs text-slate-400 mb-2">Up to</label>
+                <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg px-3 h-10">
+                  <span className="text-slate-500 text-sm">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={budgetInput}
+                    onChange={(e) => setBudgetInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && applyBudget()}
+                    placeholder="Any"
+                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-500"
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <button onClick={clearBudget} className="text-xs text-slate-400 hover:text-white transition-colors">
+                    Clear all
+                  </button>
+                  <button onClick={applyBudget} className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+                    Apply
+                  </button>
+                </div>
+              </div>
             </FilterDropdown>
 
-            {/* Rating - coming soon */}
-            <FilterDropdown label="Rating" isOpen={openDropdown === 'rating'} active={false} onToggle={() => toggleDropdown('rating')}>
-              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            {/* Rating */}
+            <FilterDropdown
+              label={minRating > 0 ? `${minRating}★ & up` : 'Rating'}
+              isOpen={openDropdown === 'rating'}
+              active={minRating > 0}
+              onToggle={() => toggleDropdown('rating')}
+            >
+              <Opt label="Any rating" selected={minRating === 0} onClick={() => { setMinRating(0); setOpenDropdown(null); }} />
+              {[5, 4, 3, 2, 1].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => { setMinRating(n); setOpenDropdown(null); }}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${minRating === n ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                >
+                  <span className="flex">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={`w-3.5 h-3.5 ${i < n ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'}`} />
+                    ))}
+                  </span>
+                  <span className="text-xs">&amp; up</span>
+                </button>
+              ))}
             </FilterDropdown>
 
-            {/* Verified - coming soon */}
-            <FilterDropdown label="Verified" isOpen={openDropdown === 'verified'} active={false} onToggle={() => toggleDropdown('verified')}>
-              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            {/* Verified */}
+            <FilterDropdown
+              label={verifiedFilter === 'no' ? 'Not verified' : 'Verified'}
+              isOpen={openDropdown === 'verified'}
+              active={verifiedFilter !== ''}
+              onToggle={() => toggleDropdown('verified')}
+            >
+              <Opt label="Any"           selected={verifiedFilter === ''}    onClick={() => { setVerifiedFilter('');    setOpenDropdown(null); }} />
+              <Opt label="Verified only" selected={verifiedFilter === 'yes'} onClick={() => { setVerifiedFilter('yes'); setOpenDropdown(null); }} />
+              <Opt label="Not verified"  selected={verifiedFilter === 'no'}  onClick={() => { setVerifiedFilter('no');  setOpenDropdown(null); }} />
             </FilterDropdown>
 
             {/* Remote */}
@@ -596,26 +730,65 @@ const BuyerSearch = () => {
               <Opt label="In-person only"  selected={remoteFilter === 'in_person'} onClick={() => { setRemoteFilter('in_person'); setOpenDropdown(null); }} />
             </FilterDropdown>
 
-            {/* Language - coming soon */}
-            <FilterDropdown label="Language" isOpen={openDropdown === 'language'} active={false} onToggle={() => toggleDropdown('language')}>
-              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            {/* Language */}
+            <FilterDropdown
+              label={selectedLanguages.length > 0 ? `Language (${selectedLanguages.length})` : 'Language'}
+              isOpen={openDropdown === 'language'}
+              active={selectedLanguages.length > 0}
+              onToggle={() => toggleDropdown('language')}
+            >
+              <div className="max-h-64 overflow-y-auto py-1">
+                {languageOptions.length === 0 ? (
+                  <p className="px-4 py-3 text-xs text-slate-500 italic">No languages listed</p>
+                ) : (
+                  languageOptions.map((lang) => {
+                    const checked = selectedLanguages.includes(lang);
+                    return (
+                      <button
+                        key={lang}
+                        onClick={() => toggleLanguage(lang)}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                      >
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-primary border-primary' : 'border-slate-600'}`}>
+                          {checked && <Check className="w-3 h-3 text-white" />}
+                        </span>
+                        {lang}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </FilterDropdown>
 
             {/* Online Now - coming soon */}
             <FilterDropdown label="Online Now" isOpen={openDropdown === 'online'} active={false} onToggle={() => toggleDropdown('online')}>
               <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
             </FilterDropdown>
-
-            {hasActiveFilters && (
-              <button
-                onClick={clearAllFilters}
-                className="text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-full transition-colors"
-              >
-                Clear filters
-              </button>
-            )}
           </div>
         </div>
+
+        {/* Applied filter chips */}
+        {filterChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-8">
+            <span className="text-sm text-slate-400 mr-1">Filters</span>
+            {filterChips.map((chip) => (
+              <button
+                key={chip.key}
+                onClick={chip.onRemove}
+                className="flex items-center gap-1.5 bg-[#1A2035] border border-slate-700 hover:border-slate-500 text-slate-200 text-xs px-3 py-1.5 rounded-full transition-colors"
+              >
+                {chip.label}
+                <X className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            ))}
+            <button
+              onClick={clearAllFilters}
+              className="ml-auto text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
 
         {/* Grid */}
         {loading ? (

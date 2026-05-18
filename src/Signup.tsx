@@ -3,6 +3,7 @@ import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
@@ -55,7 +56,14 @@ const Signup = () => {
     setError('');
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      // Send a verification email so the account can earn its "Verified" badge.
+      // Non-fatal if it fails — the user can resend later.
+      try {
+        await sendEmailVerification(cred.user);
+      } catch {
+        // ignore — account is created regardless
+      }
       // useEffect above handles navigation once onAuthStateChanged fires
     } catch (err: any) {
       setError(getErrorMessage(err.code));
