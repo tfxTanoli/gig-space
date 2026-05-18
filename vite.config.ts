@@ -1,23 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
-  // basicSsl runs the dev server over HTTPS so signInWithRedirect can use
-  // the dev origin as its authDomain (Firebase builds an https:// handler URL).
-  plugins: [react(), tailwindcss(), basicSsl()],
+  plugins: [react(), tailwindcss()],
 
   server: {
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-      // Proxy Firebase's auth handler so /__/auth/* is served same-origin with
-      // the dev server — required for the signInWithRedirect flow to complete.
-      '/__': {
-        target: 'https://gigspace-208b4.firebaseapp.com',
         changeOrigin: true,
       },
     },

@@ -1,8 +1,13 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, signInWithGoogle } from './firebase';
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+} from 'firebase/auth';
+import { auth } from './firebase';
 import { useAuth } from './AuthContext';
 
 const errorMessages: Record<string, string> = {
@@ -11,7 +16,7 @@ const errorMessages: Record<string, string> = {
   'auth/invalid-email': 'Please enter a valid email address.',
   'auth/popup-closed-by-user': '',
   'auth/cancelled-popup-request': '',
-  'auth/popup-blocked': 'Please allow popups for this site to sign in with Google.',
+  'auth/popup-blocked': '',
   'auth/network-request-failed': 'Network error. Please check your connection.',
   'auth/unauthorized-domain': 'This domain is not authorised for Google sign-in.',
   'auth/operation-not-allowed': 'Google sign-in is not enabled. Please contact support.',
@@ -61,11 +66,21 @@ const Signup = () => {
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
+    const provider = new GoogleAuthProvider();
     try {
-      await signInWithGoogle();
-      // Redirect: navigates away. Popup: onAuthStateChanged in useAuth
-      // triggers the navigation effect above.
+      await signInWithPopup(auth, provider);
+      // useEffect above handles navigation
     } catch (err: any) {
+      if (err.code === 'auth/popup-blocked') {
+        // Popup blocked — fall back to redirect
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectErr: any) {
+          setError(getErrorMessage(redirectErr.code));
+          setLoading(false);
+        }
+        return;
+      }
       const msg = getErrorMessage(err.code);
       if (msg) setError(msg);
       setLoading(false);

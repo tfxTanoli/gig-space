@@ -1,7 +1,5 @@
 {
   "rewrites": [
-    { "source": "/__/auth/:path*", "destination": "https://gigspace-208b4.firebaseapp.com/__/auth/:path*" },
-    { "source": "/__/firebase/:path*", "destination": "https://gigspace-208b4.firebaseapp.com/__/firebase/:path*" },
     { "source": "/share", "destination": "/api/og" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
