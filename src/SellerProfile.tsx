@@ -5,11 +5,18 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { ref as dbRef, set, get } from 'firebase/database';
 import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
+import UsernameField from './UsernameField';
+import { normalizeUsername, validateUsername, claimUsername } from './username';
+import { useUsernameAvailability } from './useUsernameAvailability';
 
 const SellerProfile = () => {
   const { user } = useAuth();
   const [name, setName] = useState(user?.displayName ?? '');
   const [username, setUsername] = useState('');
+  const { status: usernameStatus, message: usernameMessage } = useUsernameAvailability(
+    username,
+    user?.uid,
+  );
   const [logoPreview, setLogoPreview] = useState<string | null>(user?.photoURL ?? null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,10 +41,22 @@ const SellerProfile = () => {
   const handleContinue = async () => {
     if (!user) return;
     if (!name.trim()) { setError('Please enter your name.'); return; }
-    if (!username.trim()) { setError('Please enter a username.'); return; }
+    const uname = normalizeUsername(username);
+    if (!uname) { setError('Please enter a username.'); return; }
+    const usernameError = validateUsername(uname);
+    if (usernameError) { setError(usernameError); return; }
+    if (usernameStatus === 'taken') { setError('This username is already taken.'); return; }
 
     setLoading(true);
     setError('');
+
+    try {
+      await claimUsername(user.uid, uname);
+    } catch {
+      setError('This username is already taken.');
+      setLoading(false);
+      return;
+    }
 
     try {
       let photoURL = user.photoURL ?? '';
@@ -56,7 +75,7 @@ const SellerProfile = () => {
 
       await set(dbRef(database, `users/${user.uid}`), {
         name: name.trim(),
-        username: username.trim(),
+        username: uname,
         photoURL,
         accountType: 'seller',
         email: user.email ?? '',
@@ -131,12 +150,11 @@ const SellerProfile = () => {
         </div>
 
         <div className="w-full mb-8">
-          <label className="block text-white text-sm font-medium mb-2">Username</label>
-          <input
-            type="text"
+          <UsernameField
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+            onChange={setUsername}
+            status={usernameStatus}
+            message={usernameMessage}
           />
         </div>
 

@@ -7,6 +7,12 @@
         ".write": "auth !== null && ((auth.uid === $uid && (!newData.hasChild('role') || newData.child('role').val() !== 'admin')) || root.child('users').child(auth.uid).child('role').val() === 'admin')"
       }
     },
+    "usernames": {
+      ".read": true,
+      "$username": {
+        ".write": "auth !== null && ((newData.exists() && newData.val() === auth.uid && (!data.exists() || data.val() === auth.uid)) || (!newData.exists() && (!data.exists() || data.val() === auth.uid)))"
+      }
+    },
     "services": {
       ".read": true,
       ".indexOn": ["sellerId", "createdAt"],

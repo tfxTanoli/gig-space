@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, t
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue, set } from 'firebase/database';
 import { auth, database } from './firebase';
+import { ensureUsernameIndexed } from './username';
 
 export interface UserProfile {
   name: string;
@@ -36,6 +37,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let profileUnsub: (() => void) | null = null;
+    // Tracks which uid has had its username backfilled into the index this session.
+    let usernameSyncedUid: string | null = null;
 
     // Fallback: if Firebase Auth doesn't resolve within 6s (e.g. blocked by
     // browser tracking prevention), treat session as unauthenticated so the
@@ -73,6 +76,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             ref(database, `users/${firebaseUser.uid}/emailVerified`),
             firebaseUser.emailVerified,
           ).catch(() => {
+            // non-fatal — will retry on the next load
+          });
+        }
+
+        // Backfill the usernames index for users whose profile predates it.
+        // Runs at most once per session; ensureUsernameIndexed only writes
+        // when the slot is empty.
+        if (profile?.username && usernameSyncedUid !== firebaseUser.uid) {
+          usernameSyncedUid = firebaseUser.uid;
+          ensureUsernameIndexed(firebaseUser.uid, profile.username).catch(() => {
             // non-fatal — will retry on the next load
           });
         }

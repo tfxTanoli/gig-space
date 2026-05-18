@@ -4,6 +4,8 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { ref as dbRef, onValue, update } from 'firebase/database';
 import { storage, database } from '../firebase';
 import { useAuth } from '../AuthContext';
+import { useUsernameAvailability } from '../useUsernameAvailability';
+import { normalizeUsername, validateUsername, claimUsername } from '../username';
 import {
   getAffiliateConnectLink,
   checkAffiliateConnectStatus,
@@ -126,6 +128,11 @@ export default function AffiliateSettingsTab() {
     setPhotoPreview(userProfile?.photoURL ?? null);
   }, [userProfile]);
 
+  const { status: usernameStatus, message: usernameMessage } = useUsernameAvailability(
+    username,
+    user?.uid,
+  );
+
   useEffect(() => {
     if (!user) return;
     const unsub = onValue(dbRef(database, `affiliates/${user.uid}`), (snap) => {
@@ -159,11 +166,23 @@ export default function AffiliateSettingsTab() {
   const handleSave = async () => {
     if (!user) return;
     if (!name.trim())     { setError('Please enter your name.'); return; }
-    if (!username.trim()) { setError('Please enter a username.'); return; }
+    const uname = normalizeUsername(username);
+    if (!uname) { setError('Please enter a username.'); return; }
+    const usernameError = validateUsername(uname);
+    if (usernameError) { setError(usernameError); return; }
+    if (usernameStatus === 'taken') { setError('This username is already taken.'); return; }
 
     setSaving(true);
     setError('');
     setSaveSuccess(false);
+
+    try {
+      await claimUsername(user.uid, uname, userProfile?.username);
+    } catch {
+      setError('This username is already taken.');
+      setSaving(false);
+      return;
+    }
 
     try {
       let photoURL = userProfile?.photoURL ?? '';
@@ -177,7 +196,7 @@ export default function AffiliateSettingsTab() {
 
       await update(dbRef(database, `users/${user.uid}`), {
         name:     name.trim(),
-        username: username.trim(),
+        username: uname,
         photoURL,
       });
 
@@ -248,11 +267,30 @@ export default function AffiliateSettingsTab() {
 
         <div>
           <label className="block text-slate-400 text-xs font-medium mb-1.5">Username</label>
-          <input
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            className="w-full bg-[#0E1422] border border-slate-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
-          />
+          <div className="relative">
+            <input
+              value={username}
+              onChange={e => setUsername(normalizeUsername(e.target.value))}
+              className={`w-full bg-[#0E1422] border rounded-xl px-4 py-3 pr-10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                usernameStatus === 'available'
+                  ? 'border-green-500/60'
+                  : usernameStatus === 'taken' || usernameStatus === 'invalid'
+                    ? 'border-red-500/60'
+                    : 'border-slate-700/50 focus:border-primary/50'
+              }`}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2">
+              {usernameStatus === 'checking' && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+              {usernameStatus === 'available' && <CheckCircle className="w-4 h-4 text-green-500" />}
+              {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <AlertCircle className="w-4 h-4 text-red-500" />}
+            </span>
+          </div>
+          {(usernameStatus === 'taken' || usernameStatus === 'invalid') && usernameMessage && (
+            <p className="text-red-400 text-sm mt-1.5">{usernameMessage}</p>
+          )}
+          {usernameStatus === 'available' && (
+            <p className="text-green-500 text-sm mt-1.5">Username is available.</p>
+          )}
         </div>
 
         <button

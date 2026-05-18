@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Shield, Eye, EyeOff } from 'lucide-react';
+import { Camera, Shield, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import {
   updateProfile,
   EmailAuthProvider,
@@ -10,6 +10,8 @@ import { ref, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { database, storage } from './firebase';
 import { useAuth } from './AuthContext';
+import { useUsernameAvailability } from './useUsernameAvailability';
+import { normalizeUsername, validateUsername, claimUsername } from './username';
 
 type Section = 'profile' | 'security';
 
@@ -52,6 +54,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const isEmailProvider =
     user?.providerData.some((p) => p.providerId === 'password') ?? false;
 
+  const { status: usernameStatus, message: usernameMessage } = useUsernameAvailability(
+    username,
+    user?.uid,
+  );
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -73,7 +80,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const handleProfileSave = async () => {
     if (!user) return;
     const trimName = name.trim();
-    const trimUsername = username.trim();
+    const trimUsername = normalizeUsername(username);
     if (!trimName) {
       setProfileMsg({ text: 'Name cannot be empty.', ok: false });
       return;
@@ -82,8 +89,24 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
       setProfileMsg({ text: 'Username cannot be empty.', ok: false });
       return;
     }
+    const usernameError = validateUsername(trimUsername);
+    if (usernameError) {
+      setProfileMsg({ text: usernameError, ok: false });
+      return;
+    }
+    if (usernameStatus === 'taken') {
+      setProfileMsg({ text: 'This username is already taken.', ok: false });
+      return;
+    }
     setProfileSaving(true);
     setProfileMsg(null);
+    try {
+      await claimUsername(user.uid, trimUsername, userProfile?.username);
+    } catch {
+      setProfileMsg({ text: 'This username is already taken.', ok: false });
+      setProfileSaving(false);
+      return;
+    }
     try {
       await updateProfile(user, { displayName: trimName });
       await update(ref(database, `users/${user.uid}`), {
@@ -218,16 +241,33 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
               <span className="bg-[#0E1422] border border-r-0 border-slate-700 text-slate-500 text-sm px-3 py-2.5 rounded-l-lg select-none">
                 @
               </span>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) =>
-                  setUsername(e.target.value.replace(/[^a-z0-9_]/gi, '').toLowerCase())
-                }
-                className="flex-1 bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 rounded-r-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
-                placeholder="username"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(normalizeUsername(e.target.value))}
+                  className={`w-full bg-[#0E1422] border text-white text-sm px-4 py-2.5 pr-10 rounded-r-lg focus:outline-none transition-colors placeholder-slate-600 ${
+                    usernameStatus === 'available'
+                      ? 'border-green-500/60'
+                      : usernameStatus === 'taken' || usernameStatus === 'invalid'
+                        ? 'border-red-500/60'
+                        : 'border-slate-700 focus:border-primary'
+                  }`}
+                  placeholder="username"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {usernameStatus === 'checking' && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+                  {usernameStatus === 'available' && <CheckCircle className="w-4 h-4 text-green-500" />}
+                  {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <AlertCircle className="w-4 h-4 text-red-500" />}
+                </span>
+              </div>
             </div>
+            {(usernameStatus === 'taken' || usernameStatus === 'invalid') && usernameMessage && (
+              <p className="text-red-400 text-sm mt-1.5">{usernameMessage}</p>
+            )}
+            {usernameStatus === 'available' && (
+              <p className="text-green-500 text-sm mt-1.5">Username is available.</p>
+            )}
           </div>
 
           {/* Email (read-only) */}
