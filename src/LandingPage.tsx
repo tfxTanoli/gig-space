@@ -203,12 +203,12 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="border-t border-slate-800 mt-12 py-12 px-6 lg:px-12 text-center text-sm text-slate-500">
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-8">
-          <Link to="#" className="hover:text-slate-300 transition-colors">About Us</Link>
-          <Link to="/account-type" className="hover:text-slate-300 transition-colors">For Sellers</Link>
-          <Link to="#" className="hover:text-slate-300 transition-colors">For Buyers</Link>
-          <Link to="/affiliate-signup" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="#" className="hover:text-slate-300 transition-colors">Terms & Conditions</Link>
-          <Link to="#" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
+          <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
+          <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
+          <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
+          <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
+          <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
         </div>
         <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>

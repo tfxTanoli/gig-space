@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { ErrorBoundary } from './ErrorBoundary';
 
@@ -30,6 +30,8 @@ const WelcomeEmail        = lazy(() => import('./WelcomeEmail'));
 const ResetPasswordEmail  = lazy(() => import('./ResetPasswordEmail'));
 const PasswordUpdatedEmail  = lazy(() => import('./PasswordUpdatedEmail'));
 const ConfirmPasswordReset  = lazy(() => import('./ConfirmPasswordReset'));
+const TermsAndConditions  = lazy(() => import('./TermsAndConditions'));
+const PrivacyPolicy       = lazy(() => import('./PrivacyPolicy'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
@@ -60,6 +62,14 @@ const AdminRoute = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function ReferralCapture() {
   const [searchParams] = useSearchParams();
   useEffect(() => {
@@ -74,6 +84,7 @@ function ReferralCapture() {
 function AppRoutes() {
   return (
     <>
+      <ScrollToTop />
       <ReferralCapture />
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -91,6 +102,8 @@ function AppRoutes() {
           <Route path="/service-detail"     element={<ServiceDetail />} />
           <Route path="/admin-dashboard"    element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/about"              element={<AboutUs />} />
+          <Route path="/terms"              element={<TermsAndConditions />} />
+          <Route path="/privacy"            element={<PrivacyPolicy />} />
           <Route path="/post-service"       element={<ProtectedRoute><PostService /></ProtectedRoute>} />
           <Route path="/signup"             element={<Signup />} />
           <Route path="/signin"             element={<Signin />} />
