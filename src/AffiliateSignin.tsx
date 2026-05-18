@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from './firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, signInWithGoogle } from './firebase';
+import { useAuth } from './AuthContext';
 
 const errorMessages: Record<string, string> = {
   'auth/user-not-found': 'No account found with this email.',
@@ -12,6 +13,7 @@ const errorMessages: Record<string, string> = {
   'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
   'auth/popup-closed-by-user': '',
   'auth/cancelled-popup-request': '',
+  'auth/popup-blocked': 'Please allow popups for this site to sign in with Google.',
 };
 
 const getErrorMessage = (code: string) =>
@@ -19,10 +21,16 @@ const getErrorMessage = (code: string) =>
 
 const AffiliateSignin = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    navigate('/affiliate-dashboard');
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,13 +50,12 @@ const AffiliateSignin = () => {
     setError('');
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate('/affiliate-dashboard');
+      await signInWithGoogle();
+      // Redirect: navigates away. Popup: onAuthStateChanged in useAuth
+      // triggers the navigation effect above.
     } catch (err: any) {
       const msg = getErrorMessage(err.code);
       if (msg) setError(msg);
-    } finally {
       setLoading(false);
     }
   };

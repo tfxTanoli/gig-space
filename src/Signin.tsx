@@ -1,13 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-} from 'firebase/auth';
-import { auth } from './firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, signInWithGoogle } from './firebase';
 import { useAuth } from './AuthContext';
 
 const errorMessages: Record<string, string> = {
@@ -18,7 +13,7 @@ const errorMessages: Record<string, string> = {
   'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
   'auth/popup-closed-by-user': '',
   'auth/cancelled-popup-request': '',
-  'auth/popup-blocked': '',
+  'auth/popup-blocked': 'Please allow popups for this site to sign in with Google.',
   'auth/network-request-failed': 'Network error. Please check your connection.',
   'auth/unauthorized-domain': 'This domain is not authorised for Google sign-in. Please contact support.',
   'auth/operation-not-allowed': 'Google sign-in is not enabled. Please contact support.',
@@ -68,20 +63,11 @@ const Signin = () => {
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      // useEffect above handles navigation
+      await signInWithGoogle();
+      // Redirect: navigates away. Popup: onAuthStateChanged in useAuth
+      // triggers the navigation effect above.
     } catch (err: any) {
-      if (err.code === 'auth/popup-blocked') {
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectErr: any) {
-          setError(getErrorMessage(redirectErr.code));
-          setLoading(false);
-        }
-        return;
-      }
       const msg = getErrorMessage(err.code);
       if (msg) setError(msg);
       setLoading(false);

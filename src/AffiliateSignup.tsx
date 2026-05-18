@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { ref, get } from 'firebase/database';
-import { auth, database } from './firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, signInWithGoogle } from './firebase';
+import { useAuth } from './AuthContext';
 
 const errorMessages: Record<string, string> = {
   'auth/email-already-in-use': 'An account with this email already exists.',
@@ -11,6 +11,7 @@ const errorMessages: Record<string, string> = {
   'auth/invalid-email': 'Please enter a valid email address.',
   'auth/popup-closed-by-user': '',
   'auth/cancelled-popup-request': '',
+  'auth/popup-blocked': 'Please allow popups for this site to sign in with Google.',
 };
 
 const getErrorMessage = (code: string) =>
@@ -18,10 +19,16 @@ const getErrorMessage = (code: string) =>
 
 const AffiliateSignup = () => {
   const navigate = useNavigate();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    navigate(userProfile ? '/affiliate-dashboard' : '/affiliate-profile');
+  }, [user, userProfile, authLoading, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -41,18 +48,12 @@ const AffiliateSignup = () => {
     setError('');
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
-      const snap = await get(ref(database, `users/${cred.user.uid}`));
-      if (snap.exists()) {
-        navigate('/affiliate-dashboard');
-      } else {
-        navigate('/affiliate-profile');
-      }
+      await signInWithGoogle();
+      // Redirect: navigates away. Popup: onAuthStateChanged in useAuth
+      // triggers the navigation effect above.
     } catch (err: any) {
       const msg = getErrorMessage(err.code);
       if (msg) setError(msg);
-    } finally {
       setLoading(false);
     }
   };
@@ -60,7 +61,7 @@ const AffiliateSignup = () => {
   return (
     <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">
       <div className="w-full max-w-7xl flex items-center mb-16 lg:mb-32">
-        <Logo className="h-6" />
+        <Link to="/affiliate"><Logo className="h-6" /></Link>
       </div>
 
       <div className="w-full max-w-md">

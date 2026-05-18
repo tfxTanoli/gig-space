@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
-import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
+import { type User, onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { ref, onValue } from 'firebase/database';
 import { auth, database } from './firebase';
 
@@ -33,40 +33,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     let profileUnsub: (() => void) | null = null;
+    let authUnsub: (() => void) | null = null;
 
-    // Fallback: if Firebase Auth doesn't resolve within 6s (e.g. blocked by
-    // browser tracking prevention), treat session as unauthenticated so the
-    // app doesn't stay blank forever.
-    const fallback = setTimeout(() => setLoading(false), 6000);
+    const fallback = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 6000);
 
-    const authUnsub = onAuthStateChanged(auth, (firebaseUser) => {
-      clearTimeout(fallback);
-      profileUnsub?.();
-      profileUnsub = null;
+    const subscribeToAuth = () => {
+      if (cancelled) return;
+      authUnsub = onAuthStateChanged(auth, (firebaseUser) => {
+        clearTimeout(fallback);
+        profileUnsub?.();
+        profileUnsub = null;
 
-      if (!firebaseUser) {
-        setUser(null);
-        setUserProfile(null);
-        setLoading(false);
-        return;
-      }
+        if (!firebaseUser) {
+          setUser(null);
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        }
 
-      // Hold the spinner while we load the profile so components never see
-      // an intermediate state where user is set but userProfile is still null.
-      setLoading(true);
-      setUser(firebaseUser);
+        setLoading(true);
+        setUser(firebaseUser);
 
-      const userRef = ref(database, `users/${firebaseUser.uid}`);
-      profileUnsub = onValue(userRef, (snapshot) => {
-        setUserProfile(snapshot.val() ?? null);
-        setLoading(false);
+        const userRef = ref(database, `users/${firebaseUser.uid}`);
+        profileUnsub = onValue(userRef, (snapshot) => {
+          setUserProfile(snapshot.val() ?? null);
+          setLoading(false);
+        });
       });
-    });
+    };
+
+    // getRedirectResult MUST resolve before onAuthStateChanged is set up.
+    // With signInWithRedirect, Firebase only completes the sign-in when
+    // getRedirectResult is awaited. If onAuthStateChanged fires first it
+    // sees null and drops loading, leaving the user stuck on the sign-in page.
+    getRedirectResult(auth)
+      .catch(() => {})
+      .finally(subscribeToAuth);
 
     return () => {
+      cancelled = true;
       clearTimeout(fallback);
-      authUnsub();
+      authUnsub?.();
       profileUnsub?.();
     };
   }, []);
