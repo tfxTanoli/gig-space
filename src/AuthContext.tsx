@@ -45,6 +45,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // app doesn't stay blank forever.
     const fallback = setTimeout(() => setLoading(false), 6000);
 
+    const SESSION_TIMEOUT_MS = 48 * 60 * 60 * 1000; // 48 hours
+
     const authUnsub = onAuthStateChanged(auth, (firebaseUser) => {
       clearTimeout(fallback);
       profileUnsub?.();
@@ -54,6 +56,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setUserProfile(null);
         setLoading(false);
+        return;
+      }
+
+      // Enforce 48-hour session timeout based on the last sign-in time stored
+      // in the Firebase Auth token (more reliable than localStorage).
+      const lastSignIn = firebaseUser.metadata.lastSignInTime
+        ? new Date(firebaseUser.metadata.lastSignInTime).getTime()
+        : Date.now();
+      if (Date.now() - lastSignIn > SESSION_TIMEOUT_MS) {
+        signOut(auth);
         return;
       }
 

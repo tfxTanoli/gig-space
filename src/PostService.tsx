@@ -704,7 +704,7 @@ const PostService = () => {
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col items-center">
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center mb-8">
-        <Link to="/">
+        <Link to="/seller-dashboard">
           <Logo className="h-6" />
         </Link>
         <CurrentUserAvatar size="sm" />

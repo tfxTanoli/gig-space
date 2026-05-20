@@ -3,6 +3,8 @@ import { Search, ArrowRight, ChevronLeft, ChevronRight, Car, PenTool, Home, Pack
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import LocationSearch from './LocationSearch';
+import { useAuth } from './AuthContext';
+import { CurrentUserAvatar } from './UserAvatar';
 
 const categories = [
   { name: 'Automotive', icon: Car },
@@ -51,6 +53,12 @@ const LandingPage = () => {
   const [heroQuery, setHeroQuery] = useState('');
   const [heroLocation, setHeroLocation] = useState('');
   const navigate = useNavigate();
+  const { user, userProfile } = useAuth();
+  const dashboardLink = userProfile?.role === 'admin'
+    ? '/admin-dashboard'
+    : userProfile?.accountType === 'seller'
+      ? '/seller-dashboard'
+      : '/buyer-dashboard';
 
   const goToSearch = () => {
     const params = new URLSearchParams();
@@ -73,10 +81,19 @@ const LandingPage = () => {
         <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
           <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
-          <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
-          <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
-            Sign up <ArrowRight className="ml-2 w-4 h-4" />
-          </Link>
+          {user ? (
+            <Link to={dashboardLink} className="flex items-center gap-2 text-white hover:text-slate-300 transition-colors">
+              <CurrentUserAvatar size="sm" />
+              <span>Dashboard</span>
+            </Link>
+          ) : (
+            <>
+              <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
+              <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                Sign up <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Mobile hamburger */}
@@ -93,10 +110,19 @@ const LandingPage = () => {
           <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
             <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Sellers</Link>
             <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
-            <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
-            <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
-              Sign up <ArrowRight className="ml-2 w-4 h-4" />
-            </Link>
+            {user ? (
+              <Link to={dashboardLink} className="flex items-center gap-2 text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
+                <CurrentUserAvatar size="sm" />
+                <span>Dashboard</span>
+              </Link>
+            ) : (
+              <>
+                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
+                <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                  Sign up <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </>
+            )}
           </div>
         )}
       </header>
