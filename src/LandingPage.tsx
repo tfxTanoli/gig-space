@@ -140,7 +140,7 @@ const LandingPage = () => {
 
         {/* Search Bar */}
         <div className="w-full max-w-3xl flex flex-col md:flex-row items-center bg-[#1A2035] p-2 rounded-xl border border-slate-700/50 shadow-xl">
-          <LocationSearch value={heroLocation} onChange={setHeroLocation} variant="hero" />
+          <LocationSearch value={heroLocation} onChange={(label) => setHeroLocation(label)} variant="hero" />
 
           <div className="hidden md:block w-[1px] h-8 bg-slate-700 mx-2"></div>
 

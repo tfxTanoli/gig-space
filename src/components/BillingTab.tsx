@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
+
 import { ShieldCheck, CreditCard, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import type { Payment } from '../stripe/types';
 
@@ -31,28 +32,43 @@ function statusIcon(status: string) {
 }
 
 export default function BillingTab() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    // If auth is still resolving, wait
+    if (authLoading) return;
+    // If no user, nothing to load
+    if (!user) {
+      setPayments([]);
+      setLoading(false);
+      return;
+    }
 
     const q = query(ref(database, 'payments'), orderByChild('buyerId'), equalTo(user.uid));
-    return onValue(q, (snap) => {
-      if (!snap.exists()) {
+    return onValue(
+      q,
+      (snap) => {
+        if (!snap.exists()) {
+          setPayments([]);
+          setLoading(false);
+          return;
+        }
+        const result: Payment[] = [];
+        snap.forEach((child) => {
+          result.push({ id: child.key!, ...child.val() } as Payment);
+        });
+        setPayments(result.sort((a, b) => b.createdAt - a.createdAt));
+        setLoading(false);
+      },
+      (_err) => {
+        // Permission error or network issue — stop spinner and show empty state
         setPayments([]);
         setLoading(false);
-        return;
       }
-      const result: Payment[] = [];
-      snap.forEach((child) => {
-        result.push({ id: child.key!, ...child.val() } as Payment);
-      });
-      setPayments(result.sort((a, b) => b.createdAt - a.createdAt));
-      setLoading(false);
-    });
-  }, [user]);
+    );
+  }, [user, authLoading]);
 
   const totalSpent = payments
     .filter((p) => p.status === 'paid' || p.status === 'released')

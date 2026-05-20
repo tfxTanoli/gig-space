@@ -6,14 +6,14 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import OrderDetail, { type Order } from './OrderDetail';
 
-type OrderFilter = 'all' | 'pending' | 'in_progress' | 'delivered' | 'completed' | 'cancelled';
+type OrderFilter = 'all' | 'pending' | 'in_progress' | 'delivered' | 'completed' | 'canceled';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending:     { label: 'Pending',     className: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'  },
   in_progress: { label: 'In Progress', className: 'bg-blue-500/20   text-blue-400   border border-blue-500/30'    },
   delivered:   { label: 'Delivered',   className: 'bg-purple-500/20 text-purple-400 border border-purple-500/30'  },
   completed:   { label: 'Completed',   className: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' },
-  cancelled:   { label: 'Cancelled',   className: 'bg-slate-700/80  text-slate-400  border border-slate-600'      },
+  cancelled:   { label: 'Canceled',    className: 'bg-slate-700/80  text-slate-400  border border-slate-600'      },
 };
 
 const filterOptions: Array<{ value: OrderFilter; label: string }> = [
@@ -22,7 +22,7 @@ const filterOptions: Array<{ value: OrderFilter; label: string }> = [
   { value: 'in_progress', label: 'In Progress' },
   { value: 'delivered',   label: 'Delivered'   },
   { value: 'completed',   label: 'Completed'   },
-  { value: 'cancelled',   label: 'Cancelled'   },
+  { value: 'cancelled',   label: 'Canceled'    },
 ];
 
 const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searchQuery?: string }) => {

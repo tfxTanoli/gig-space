@@ -6,6 +6,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
 import { UserAvatar } from './UserAvatar';
+import LocationIcon from './LocationIcon';
 
 interface SavedService {
   id: string;
@@ -21,9 +22,9 @@ interface SavedService {
 }
 
 function formatPrice(svc: SavedService) {
-  const suffix = svc.priceType === 'per_hour' ? '/hr' : '/project';
-  if (svc.priceMax) return `$${svc.priceMin} – $${svc.priceMax}${suffix}`;
-  return `$${svc.priceMin}${suffix}`;
+  const suffix = svc.priceType === 'per_hour' ? 'per hour' : 'per project';
+  if (svc.priceMax) return { prefix: '', price: `$${svc.priceMin} – $${svc.priceMax}`, suffix };
+  return { prefix: 'From', price: `$${svc.priceMin}`, suffix };
 }
 
 const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
@@ -32,19 +33,15 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
   const [services, setServices] = useState<SavedService[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Track per-service onValue unsubscribers so we can tear down when a service
-  // is removed from the saved list without remounting the whole component.
   const serviceUnsubs = useRef<Record<string, () => void>>({});
 
   useEffect(() => {
     if (!user) return;
 
-    // Listen to the saved-IDs list first
     const savedUnsub = onValue(ref(database, `savedServices/${user.uid}`), (snap) => {
       const ids: string[] = [];
       snap.forEach((child) => { ids.push(child.key!); });
 
-      // Tear down listeners for IDs no longer saved
       Object.keys(serviceUnsubs.current).forEach((id) => {
         if (!ids.includes(id)) {
           serviceUnsubs.current[id]();
@@ -59,13 +56,11 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
         return;
       }
 
-      // Subscribe to each service node that isn't already subscribed
       ids.forEach((id) => {
-        if (serviceUnsubs.current[id]) return; // already listening
+        if (serviceUnsubs.current[id]) return;
 
         serviceUnsubs.current[id] = onValue(ref(database, `services/${id}`), (svcSnap) => {
           if (!svcSnap.exists()) {
-            // Service deleted — remove from list and clean up listener
             setServices((prev) => prev.filter((s) => s.id !== id));
             serviceUnsubs.current[id]?.();
             delete serviceUnsubs.current[id];
@@ -132,54 +127,63 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {displayed.map((svc) => (
-            <div key={svc.id} className="bg-[#111827] border border-slate-800 hover:border-slate-600 rounded-xl overflow-hidden transition-colors group flex flex-col">
-              {/* Image */}
-              <Link to={`/service-detail?id=${svc.id}`} className="block relative aspect-[4/3] bg-[#1A2035] overflow-hidden">
-                {svc.images?.[0] ? (
-                  <img
-                    src={svc.images[0]}
-                    alt={svc.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-8 h-8 text-slate-600" />
-                  </div>
-                )}
-                {/* Unsave button overlay */}
-                <button
-                  onClick={(e) => { e.preventDefault(); toggleSave(svc.id); }}
-                  className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
-                  title="Remove from saved"
-                >
-                  <Bookmark className={`w-4 h-4 ${isSaved(svc.id) ? 'fill-primary text-primary' : 'text-white'}`} />
-                </button>
-              </Link>
-
-              {/* Body */}
-              <div className="p-3.5 flex flex-col flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserAvatar photoURL={svc.sellerPhotoURL} name={svc.sellerName} size="sm" />
-                  <span className="text-slate-400 text-xs truncate">{svc.sellerName}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {displayed.map((svc) => {
+            const { prefix, price, suffix } = formatPrice(svc);
+            const location = svc.offeredRemotely ? 'Remote / Online' : svc.primaryLocation;
+            return (
+              <div key={svc.id} className="group block">
+                {/* Image */}
+                <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+                  <Link to={`/service-detail?id=${svc.id}`} className="block w-full h-full">
+                    {svc.images?.[0] ? (
+                      <img
+                        src={svc.images[0]}
+                        alt={svc.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out will-change-transform"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="w-8 h-8 text-slate-600" />
+                      </div>
+                    )}
+                  </Link>
+                  {/* Unsave button */}
+                  <button
+                    onClick={(e) => { e.preventDefault(); toggleSave(svc.id); }}
+                    className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+                    title="Remove from saved"
+                  >
+                    <Bookmark className={`w-4 h-4 ${isSaved(svc.id) ? 'fill-primary text-primary' : 'text-white'}`} />
+                  </button>
                 </div>
 
-                <Link to={`/service-detail?id=${svc.id}`}>
-                  <h3 className="text-white text-sm font-semibold line-clamp-2 leading-snug mb-2 hover:text-blue-400 transition-colors">
+                {/* Info */}
+                <Link to={`/service-detail?id=${svc.id}`} className="block">
+                  <div className="flex items-center gap-2 mb-2">
+                    <UserAvatar photoURL={svc.sellerPhotoURL} name={svc.sellerName} size="sm" />
+                    <span className="text-sm font-medium truncate">{svc.sellerName}</span>
+                  </div>
+                  <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
                     {svc.title}
                   </h3>
+                  {location && (
+                    <div className="flex items-center text-slate-400 text-xs mb-3">
+                      <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
+                      {location}
+                    </div>
+                  )}
+                  <div className="text-sm">
+                    {prefix && <span className="text-slate-400">{prefix} </span>}
+                    <span className="font-bold text-lg">{price}</span>
+                    <span className="text-slate-400 text-xs ml-1">{suffix}</span>
+                  </div>
                 </Link>
-
-                <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-800">
-                  <span className="text-white text-sm font-bold">{formatPrice(svc)}</span>
-                  <span className="text-slate-500 text-xs">
-                    {svc.offeredRemotely ? 'Remote' : svc.primaryLocation}
-                  </span>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

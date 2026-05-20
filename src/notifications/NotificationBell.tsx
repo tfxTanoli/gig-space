@@ -181,9 +181,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
       >
         <Bell className="w-5 h-5" />
         {displayCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none pointer-events-none">
-            {displayCount > 9 ? '9+' : displayCount}
-          </span>
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0E1422] pointer-events-none" />
         )}
       </button>
 
@@ -195,9 +193,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-white">Notifications</h3>
               {displayCount > 0 && (
-                <span className="text-[10px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-full">
-                  {displayCount}
-                </span>
+                <span className="w-2 h-2 rounded-full bg-red-500" />
               )}
             </div>
 

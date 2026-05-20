@@ -8,6 +8,12 @@ import {
   Send, ImagePlus, ArrowLeft, MessageSquare, X,
   Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2,
 } from 'lucide-react';
+
+const MessagesIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1.57641 12.7014C1.69894 13.0105 1.72622 13.3492 1.65474 13.6739L0.767243 16.4156C0.738646 16.5546 0.74604 16.6987 0.788722 16.834C0.831405 16.9694 0.907961 17.0916 1.01113 17.1891C1.1143 17.2866 1.24067 17.3562 1.37824 17.3911C1.51582 17.4261 1.66004 17.4253 1.79724 17.3889L4.64141 16.5572C4.94784 16.4965 5.26518 16.523 5.55724 16.6339C7.33673 17.4649 9.35255 17.6407 11.249 17.1303C13.1455 16.6199 14.8008 15.4561 15.9228 13.8442C17.0448 12.2323 17.5615 10.2759 17.3817 8.3202C17.2018 6.36449 16.337 4.53514 14.9398 3.15491C13.5426 1.77468 11.7028 0.932277 9.74506 0.776325C7.78729 0.620374 5.83735 1.1609 4.23928 2.30253C2.6412 3.44416 1.49769 5.11353 1.01049 7.01611C0.523289 8.91869 0.723717 10.9322 1.57641 12.7014Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 import { startCheckout } from './stripe/paymentHelpers';
 import PaymentModal from './components/PaymentModal';
 import { sendNotification } from './notifications/notificationHelpers';
@@ -694,7 +700,7 @@ export default function ChatMessages({
       )}
 
       {/* ── Main chat layout ── */}
-      <div className="flex rounded-xl border border-slate-800 overflow-hidden flex-1 min-h-0">
+      <div className="flex rounded-xl border border-slate-800 overflow-hidden flex-1 min-h-0 h-full">
         {/* Left: Conversation list */}
         <div
           className={`w-72 shrink-0 border-r border-slate-800 bg-[#111827] flex flex-col ${
@@ -711,7 +717,7 @@ export default function ChatMessages({
             </div>
           ) : conversations.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <MessageSquare className="w-10 h-10 text-slate-700" />
+              <MessagesIcon className="w-10 h-10 text-slate-700" />
               <p className="text-slate-500 text-sm">No conversations yet.</p>
               {mode === 'buyer' && (
                 <p className="text-slate-600 text-xs">
@@ -771,7 +777,7 @@ export default function ChatMessages({
         >
           {!selectedConvId ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
-              <MessageSquare className="w-12 h-12 text-slate-700" />
+              <MessagesIcon className="w-12 h-12 text-slate-700" />
               <p className="text-slate-500 text-sm">Select a conversation to start chatting</p>
             </div>
           ) : (

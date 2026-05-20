@@ -5,6 +5,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
+  verifyBeforeUpdateEmail,
 } from 'firebase/auth';
 import { ref, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -28,9 +29,19 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   // Profile fields
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<Msg | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+
+  // Track original values to detect changes
+  const [originalUsername, setOriginalUsername] = useState('');
+  const [originalEmail, setOriginalEmail] = useState('');
+
+  // Email change: require current password to reauthenticate
+  const [emailConfirmPassword, setEmailConfirmPassword] = useState('');
+  const [showEmailPassword, setShowEmailPassword] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Security fields
@@ -46,13 +57,21 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   // Sync form when profile data loads
   useEffect(() => {
     if (userProfile) {
+      const u = userProfile.username ?? '';
+      const e = userProfile.email ?? user?.email ?? '';
       setName(userProfile.name ?? '');
-      setUsername(userProfile.username ?? '');
+      setUsername(u);
+      setOriginalUsername(u);
+      setEmail(e);
+      setOriginalEmail(e);
     }
-  }, [userProfile]);
+  }, [userProfile, user]);
 
   const isEmailProvider =
     user?.providerData.some((p) => p.providerId === 'password') ?? false;
+
+  const usernameChanged = username !== originalUsername;
+  const emailChanged = email !== originalEmail;
 
   const { status: usernameStatus, message: usernameMessage } = useUsernameAvailability(
     username,
@@ -62,6 +81,20 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+
+    // Validate type: JPG/PNG only
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+      setProfileMsg({ text: 'Only JPG or PNG images are allowed.', ok: false });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+    // Validate size: max 1MB
+    if (file.size > 1024 * 1024) {
+      setProfileMsg({ text: 'Image must be 1 MB or smaller.', ok: false });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setPhotoUploading(true);
     try {
       const sr = storageRef(storage, `avatars/${user.uid}`);
@@ -70,7 +103,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
       await updateProfile(user, { photoURL: url });
       await update(ref(database, `users/${user.uid}`), { photoURL: url });
     } catch {
-      // photo stays unchanged on error
+      setProfileMsg({ text: 'Failed to upload photo. Please try again.', ok: false });
     } finally {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -81,6 +114,8 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
     if (!user) return;
     const trimName = name.trim();
     const trimUsername = normalizeUsername(username);
+    const trimEmail = email.trim().toLowerCase();
+
     if (!trimName) {
       setProfileMsg({ text: 'Name cannot be empty.', ok: false });
       return;
@@ -94,25 +129,86 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
       setProfileMsg({ text: usernameError, ok: false });
       return;
     }
-    if (usernameStatus === 'taken') {
+    if (usernameChanged && usernameStatus === 'taken') {
       setProfileMsg({ text: 'This username is already taken.', ok: false });
       return;
     }
+
+    // Email change requires reauthentication
+    if (emailChanged) {
+      if (!isEmailProvider) {
+        setProfileMsg({ text: 'Email cannot be changed for Google-linked accounts.', ok: false });
+        return;
+      }
+      if (!trimEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) {
+        setProfileMsg({ text: 'Please enter a valid email address.', ok: false });
+        return;
+      }
+      if (!emailConfirmPassword) {
+        setProfileMsg({ text: 'Enter your current password to change your email.', ok: false });
+        return;
+      }
+    }
+
     setProfileSaving(true);
     setProfileMsg(null);
+
     try {
-      await claimUsername(user.uid, trimUsername, userProfile?.username);
-    } catch {
-      setProfileMsg({ text: 'This username is already taken.', ok: false });
-      setProfileSaving(false);
-      return;
-    }
-    try {
+      // Claim new username if changed
+      if (usernameChanged) {
+        try {
+          await claimUsername(user.uid, trimUsername, userProfile?.username);
+        } catch {
+          setProfileMsg({ text: 'This username is already taken.', ok: false });
+          setProfileSaving(false);
+          return;
+        }
+      }
+
+      // Update name
       await updateProfile(user, { displayName: trimName });
-      await update(ref(database, `users/${user.uid}`), {
+      const dbUpdates: Record<string, unknown> = {
         name: trimName,
         username: trimUsername,
-      });
+      };
+
+      // Update email if changed
+      if (emailChanged && isEmailProvider && user.email) {
+        try {
+          const credential = EmailAuthProvider.credential(user.email, emailConfirmPassword);
+          await reauthenticateWithCredential(user, credential);
+          await verifyBeforeUpdateEmail(user, trimEmail);
+          // Update DB immediately but mark as unverified pending confirmation
+          dbUpdates.email = trimEmail;
+          dbUpdates.emailVerified = false;
+          setEmailConfirmPassword('');
+          await update(ref(database, `users/${user.uid}`), dbUpdates);
+          setOriginalUsername(trimUsername);
+          setOriginalEmail(trimEmail);
+          setProfileMsg({
+            text: `Verification email sent to ${trimEmail}. Click the link to confirm your new email.`,
+            ok: true,
+          });
+          return;
+        } catch (err: unknown) {
+          const isWrongPassword =
+            err instanceof Error &&
+            (err.message.includes('wrong-password') ||
+              err.message.includes('invalid-credential') ||
+              err.message.includes('INVALID_LOGIN_CREDENTIALS'));
+          setProfileMsg({
+            text: isWrongPassword
+              ? 'Current password is incorrect.'
+              : 'Failed to update email. Please try again.',
+            ok: false,
+          });
+          setProfileSaving(false);
+          return;
+        }
+      }
+
+      await update(ref(database, `users/${user.uid}`), dbUpdates);
+      setOriginalUsername(trimUsername);
       setProfileMsg({ text: 'Profile updated successfully.', ok: true });
     } catch {
       setProfileMsg({ text: 'Failed to update profile. Please try again.', ok: false });
@@ -159,7 +255,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 w-full">
       <div>
         <h2 className="text-xl font-bold text-white">Settings</h2>
         <p className="text-slate-400 text-sm mt-1">Manage your account preferences</p>
@@ -206,22 +302,22 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
             <div>
               <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <Camera className="w-4 h-4" />
-                {photoUploading ? 'Uploading…' : 'Change photo'}
+                {photoUploading ? 'Uploading…' : (mode === 'seller' ? 'Change logo' : 'Change photo')}
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png"
                   className="hidden"
                   onChange={handlePhotoUpload}
                   disabled={photoUploading}
                 />
               </label>
-              <p className="text-slate-500 text-xs mt-1.5">JPG, PNG or WebP · max 5 MB</p>
+              <p className="text-slate-500 text-xs mt-1.5">JPG or PNG · max 1 MB</p>
             </div>
           </div>
 
-          {/* Name */}
-          <div>
+          {/* Name — max-w keeps field comfortable but card fills full width */}
+          <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Display name
             </label>
@@ -235,7 +331,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
           </div>
 
           {/* Username */}
-          <div>
+          <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
             <div className="flex items-center">
               <span className="bg-[#0E1422] border border-r-0 border-slate-700 text-slate-500 text-sm px-3 py-2.5 rounded-l-lg select-none">
@@ -247,57 +343,82 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
                   value={username}
                   onChange={(e) => setUsername(normalizeUsername(e.target.value))}
                   className={`w-full bg-[#0E1422] border text-white text-sm px-4 py-2.5 pr-10 rounded-r-lg focus:outline-none transition-colors placeholder-slate-600 ${
-                    usernameStatus === 'available'
+                    usernameChanged && usernameStatus === 'available'
                       ? 'border-green-500/60'
-                      : usernameStatus === 'taken' || usernameStatus === 'invalid'
+                      : usernameChanged && (usernameStatus === 'taken' || usernameStatus === 'invalid')
                         ? 'border-red-500/60'
                         : 'border-slate-700 focus:border-primary'
                   }`}
                   placeholder="username"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {usernameStatus === 'checking' && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
-                  {usernameStatus === 'available' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                  {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <AlertCircle className="w-4 h-4 text-red-500" />}
+                  {usernameChanged && usernameStatus === 'checking' && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+                  {usernameChanged && usernameStatus === 'available' && <CheckCircle className="w-4 h-4 text-green-500" />}
+                  {usernameChanged && (usernameStatus === 'taken' || usernameStatus === 'invalid') && <AlertCircle className="w-4 h-4 text-red-500" />}
                 </span>
               </div>
             </div>
-            {(usernameStatus === 'taken' || usernameStatus === 'invalid') && usernameMessage && (
+            {usernameChanged && (usernameStatus === 'taken' || usernameStatus === 'invalid') && usernameMessage && (
               <p className="text-red-400 text-sm mt-1.5">{usernameMessage}</p>
             )}
-            {usernameStatus === 'available' && (
+            {usernameChanged && usernameStatus === 'available' && (
               <p className="text-green-500 text-sm mt-1.5">Username is available.</p>
             )}
           </div>
 
-          {/* Email (read-only) */}
-          <div>
+          {/* Email */}
+          <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Email address
             </label>
-            <input
-              type="email"
-              value={userProfile?.email ?? user?.email ?? ''}
-              disabled
-              className="w-full bg-[#0E1422] border border-slate-700 text-slate-500 text-sm px-4 py-2.5 rounded-lg cursor-not-allowed"
-            />
-            <p className="text-slate-600 text-xs mt-1">Email cannot be changed</p>
-          </div>
-
-          {/* Account type badge */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Account type
-            </label>
-            <span
-              className={`inline-block text-xs px-3 py-1.5 rounded-full font-medium ${
-                mode === 'seller'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-              }`}
-            >
-              {mode === 'seller' ? 'Seller' : 'Buyer'}
-            </span>
+            {isEmailProvider ? (
+              <>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+                  placeholder="your@email.com"
+                />
+                {emailChanged && (
+                  <div className="mt-2">
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Current password (required to change email)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showEmailPassword ? 'text' : 'password'}
+                        value={emailConfirmPassword}
+                        onChange={(e) => setEmailConfirmPassword(e.target.value)}
+                        autoComplete="current-password"
+                        className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+                        placeholder="Enter current password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                      >
+                        {showEmailPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-amber-400 text-xs mt-1.5">
+                      A verification link will be sent to your new email. Your email updates once you click it.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <input
+                  type="email"
+                  value={userProfile?.email ?? user?.email ?? ''}
+                  disabled
+                  className="w-full bg-[#0E1422] border border-slate-700 text-slate-500 text-sm px-4 py-2.5 rounded-lg cursor-not-allowed"
+                />
+                <p className="text-slate-600 text-xs mt-1">Email is managed by your Google account</p>
+              </>
+            )}
           </div>
 
           {/* Feedback */}
@@ -319,7 +440,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
       {/* ── Security ── */}
       {section === 'security' && (
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-6 space-y-5">
+        <div className="bg-[#111827] border border-slate-800 rounded-xl p-6 space-y-5 max-w-lg">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Shield className="w-4.5 h-4.5 text-primary" />

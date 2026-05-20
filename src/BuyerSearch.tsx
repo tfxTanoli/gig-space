@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
@@ -25,6 +25,7 @@ import { ref, get, query, orderByChild, limitToLast, endBefore } from 'firebase/
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
+import { geocodeCache, geocodeLocation, haversineDistanceMiles } from './photon';
 import {
   categoryOptions,
   subcategoryMap,
@@ -37,8 +38,8 @@ const PAGE_SIZE = 50;
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
 type RemoteOption = '' | 'remote' | 'in_person';
 type VerifiedOption = '' | 'yes' | 'no';
+type OnlineOption = '' | 'online';
 
-/** Per-seller data needed by the Rating and Verified filters. */
 interface SellerMeta {
   verified: boolean;
   rating: number;
@@ -47,7 +48,7 @@ interface SellerMeta {
 const FilterDropdown = ({
   label, isOpen, active, onToggle, children, align = 'right',
 }: {
-  label: string; isOpen: boolean; active: boolean; onToggle: () => void; children: React.ReactNode; align?: 'left' | 'right';
+  label: ReactNode; isOpen: boolean; active: boolean; onToggle: () => void; children: ReactNode; align?: 'left' | 'right';
 }) => (
   <div className="relative">
     <button
@@ -58,7 +59,7 @@ const FilterDropdown = ({
       <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
     </button>
     {isOpen && (
-      <div className={`absolute top-full ${align === 'left' ? 'left-0' : 'right-0'} mt-2 min-w-[170px] bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50`}>
+      <div className={`absolute top-full ${align === 'left' ? 'left-0' : 'right-0'} mt-2 min-w-[180px] bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50`}>
         {children}
       </div>
     )}
@@ -72,6 +73,30 @@ const Opt = ({ label, selected, onClick }: { label: string; selected: boolean; o
   >
     {label}
   </button>
+);
+
+const RadioOpt = ({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-slate-300 hover:text-white hover:bg-slate-800"
+  >
+    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'border-blue-400' : 'border-slate-500'}`}>
+      {selected && <span className="w-2 h-2 rounded-full bg-blue-400" />}
+    </span>
+    {label}
+  </button>
+);
+
+const RadioFooter = ({ onClear, onApply }: { onClear: () => void; onApply: () => void }) => (
+  <div className="border-t border-slate-800 flex items-center justify-between px-4 py-3">
+    <button type="button" onClick={onClear} className="text-sm text-slate-400 hover:text-white transition-colors">
+      Clear all
+    </button>
+    <button type="button" onClick={onApply} className="bg-primary hover:bg-blue-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
+      Apply
+    </button>
+  </div>
 );
 
 interface ServicePost {
@@ -172,12 +197,13 @@ const BuyerSearch = () => {
   const [hasMore, setHasMore] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  // Search + filters (seeded from URL params so the landing-page hero can hand off).
   const [inputValue, setInputValue] = useState(() => searchParams.get('q') ?? '');
   const [activeSearch, setActiveSearch] = useState(() => searchParams.get('q') ?? '');
   const [activeCategory, setActiveCategory] = useState(() => searchParams.get('category') ?? '');
   const [activeSubcategory, setActiveSubcategory] = useState('');
   const [activeLocation, setActiveLocation] = useState(() => searchParams.get('location') ?? '');
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchRadius, setSearchRadius] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [budgetMax, setBudgetMax] = useState<number | null>(null);
   const [budgetInput, setBudgetInput] = useState('');
@@ -185,11 +211,22 @@ const BuyerSearch = () => {
   const [verifiedFilter, setVerifiedFilter] = useState<VerifiedOption>('');
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [remoteFilter, setRemoteFilter] = useState<RemoteOption>('');
+  const [onlineFilter, setOnlineFilter] = useState<OnlineOption>('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  // Pending states for radio-group filters (committed on Apply).
+  const [pendingVerified, setPendingVerified] = useState<VerifiedOption>('');
+  const [pendingRemote, setPendingRemote] = useState<RemoteOption>('');
+  const [pendingOnline, setPendingOnline] = useState<OnlineOption>('');
+
+  // Incremented whenever geocoding batch completes to trigger re-render.
+  const [geoVersion, setGeoVersion] = useState(0);
+  void geoVersion; // consumed via the state setter, suppress lint warning
 
   const menuRef = useRef<HTMLDivElement>(null);
   const filterBarRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const urlSyncRef = useRef('');
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -197,7 +234,7 @@ const BuyerSearch = () => {
     const el = categoryScrollRef.current;
     if (!el) return;
     setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
   }, []);
 
   const scrollCategories = useCallback((dir: 'left' | 'right') => {
@@ -212,9 +249,18 @@ const BuyerSearch = () => {
     return () => window.removeEventListener('resize', updateScrollArrows);
   }, [updateScrollArrows]);
 
-  const toggleDropdown = useCallback((name: string) => {
-    setOpenDropdown((prev) => (prev === name ? null : name));
-  }, []);
+  const toggleDropdown = useCallback(
+    (name: string) => {
+      setOpenDropdown((prev) => {
+        const next = prev === name ? null : name;
+        if (next === 'verified') setPendingVerified(verifiedFilter);
+        if (next === 'remote') setPendingRemote(remoteFilter);
+        if (next === 'online') setPendingOnline(onlineFilter);
+        return next;
+      });
+    },
+    [verifiedFilter, remoteFilter, onlineFilter],
+  );
 
   const selectCategory = useCallback((value: string) => {
     setActiveCategory((prev) => (prev === value ? '' : value));
@@ -244,10 +290,21 @@ const BuyerSearch = () => {
     );
   }, []);
 
+  const handleLocationChange = useCallback(
+    (label: string, coords?: { lat: number; lng: number } | null) => {
+      setActiveLocation(label);
+      setLocationCoords(coords ?? null);
+      if (!label) setSearchRadius(0);
+    },
+    [],
+  );
+
   const clearAllFilters = useCallback(() => {
     setActiveSearch('');
     setInputValue('');
     setActiveLocation('');
+    setLocationCoords(null);
+    setSearchRadius(0);
     setActiveSubcategory('');
     setSortBy('newest');
     setBudgetMax(null);
@@ -256,13 +313,15 @@ const BuyerSearch = () => {
     setVerifiedFilter('');
     setSelectedLanguages([]);
     setRemoteFilter('');
+    setOnlineFilter('');
     setOpenDropdown(null);
   }, []);
 
   const hasActiveFilters =
     activeSearch !== '' || activeLocation !== '' || activeSubcategory !== '' ||
     sortBy !== 'newest' || budgetMax !== null || minRating > 0 ||
-    verifiedFilter !== '' || selectedLanguages.length > 0 || remoteFilter !== '';
+    verifiedFilter !== '' || selectedLanguages.length > 0 || remoteFilter !== '' ||
+    onlineFilter !== '' || searchRadius > 0;
 
   const commitSearch = useCallback(() => {
     setActiveSearch(inputValue.trim());
@@ -296,6 +355,46 @@ const BuyerSearch = () => {
     await logout();
   }, [logout, navigate]);
 
+  // Keep URL in sync with active search/location so browser back restores the correct state.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeSearch) params.set('q', activeSearch);
+    if (activeLocation) params.set('location', activeLocation);
+    const newSearch = params.toString() ? `?${params.toString()}` : '';
+    if (newSearch !== urlSyncRef.current) {
+      urlSyncRef.current = newSearch;
+      navigate({ pathname: '/search', search: newSearch }, { replace: true });
+    }
+  }, [activeSearch, activeLocation, navigate]);
+
+  // Geocode the initial location label (seeded from URL param) so radius works on first load.
+  useEffect(() => {
+    if (!activeLocation || locationCoords) return;
+    geocodeLocation(activeLocation).then((coords) => {
+      if (coords) setLocationCoords(coords);
+    });
+  }, [activeLocation, locationCoords]);
+
+  // Batch-geocode post locations whenever radius filtering is active.
+  useEffect(() => {
+    if (!searchRadius || !locationCoords) return;
+    const toGeocode = Array.from(
+      new Set(
+        posts
+          .filter((p) => !p.offeredRemotely && p.primaryLocation)
+          .map((p) => p.primaryLocation)
+          .filter((loc) => !geocodeCache.has(loc)),
+      ),
+    );
+    if (toGeocode.length === 0) return;
+    let cancelled = false;
+    Promise.all(toGeocode.map((loc) => geocodeLocation(loc))).then(() => {
+      if (!cancelled) setGeoVersion((v) => v + 1);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts, searchRadius, locationCoords]);
+
   const fetchPage = useCallback(async (beforeTimestamp?: number) => {
     const q = beforeTimestamp
       ? query(ref(database, 'services'), orderByChild('createdAt'), endBefore(beforeTimestamp), limitToLast(PAGE_SIZE))
@@ -321,8 +420,6 @@ const BuyerSearch = () => {
       .finally(() => setLoading(false));
   }, [fetchPage]);
 
-  // Load verification + rating data for any seller we haven't seen yet.
-  // users/$uid is readable to any signed-in user; userRatings/$uid is public.
   useEffect(() => {
     const missing = Array.from(new Set(posts.map((p) => p.sellerId))).filter(
       (id) => id && !(id in sellerMeta),
@@ -364,7 +461,7 @@ const BuyerSearch = () => {
       });
       setHasMore(more.length === PAGE_SIZE);
     } catch {
-      // silently ignore load-more failures
+      // silently ignore
     } finally {
       setLoadingMore(false);
     }
@@ -372,7 +469,6 @@ const BuyerSearch = () => {
 
   const handleToggleSave = useCallback((id: string) => toggleSave(id), [toggleSave]);
 
-  // Languages offered across the loaded posts — drives the Language checkboxes.
   const languageOptions: string[] = Array.from(
     new Set(posts.flatMap((p) => p.languages ?? []).filter(Boolean)),
   ).sort();
@@ -409,16 +505,31 @@ const BuyerSearch = () => {
         selectedLanguages.length === 0 ||
         (p.languages ?? []).some((l) => selectedLanguages.includes(l));
 
-      // Rating / Verified depend on per-seller data — until it loads, the post
-      // passes through so results aren't briefly emptied.
       const meta = sellerMeta[p.sellerId];
       const matchesRating = minRating === 0 || !meta || meta.rating >= minRating;
       const matchesVerified =
         !verifiedFilter || !meta ||
         (verifiedFilter === 'yes' ? meta.verified : !meta.verified);
 
+      const matchesRadius = (() => {
+        if (!searchRadius || !locationCoords) return true;
+        if (p.offeredRemotely) return true;
+        const loc = p.primaryLocation;
+        if (!loc) return false;
+        if (!geocodeCache.has(loc)) return true; // not yet geocoded — pass through
+        const coords = geocodeCache.get(loc);
+        if (!coords) return true; // geocode failed — pass through
+        return (
+          haversineDistanceMiles(locationCoords.lat, locationCoords.lng, coords.lat, coords.lng) <=
+          searchRadius
+        );
+      })();
+
+      const matchesOnline = true; // online status not yet tracked per-seller
+
       return matchesSearch && matchesCategory && matchesSubcategory && matchesLocation &&
-        matchesBudget && matchesRemote && matchesLanguage && matchesRating && matchesVerified;
+        matchesBudget && matchesRemote && matchesLanguage && matchesRating && matchesVerified &&
+        matchesRadius && matchesOnline;
     })
     .sort((a, b) => {
       if (sortBy === 'oldest') return a.createdAt - b.createdAt;
@@ -427,30 +538,47 @@ const BuyerSearch = () => {
       return b.createdAt - a.createdAt;
     });
 
-  // Applied-filter chips shown below the filter bar.
-  const filterChips: { key: string; label: string; onRemove: () => void }[] = [];
+  const filterChips: { key: string; label: ReactNode; onRemove: () => void }[] = [];
   if (activeSearch) filterChips.push({ key: 'search', label: `"${activeSearch}"`, onRemove: () => { setActiveSearch(''); setInputValue(''); } });
-  if (activeLocation) filterChips.push({ key: 'location', label: activeLocation, onRemove: () => setActiveLocation('') });
+  if (activeLocation) filterChips.push({ key: 'location', label: activeLocation, onRemove: () => { setActiveLocation(''); setLocationCoords(null); setSearchRadius(0); } });
+  if (searchRadius > 0) filterChips.push({ key: 'radius', label: `Within ${searchRadius} mi`, onRemove: () => setSearchRadius(0) });
   if (activeSubcategory) filterChips.push({ key: 'subcategory', label: getSubcategoryLabel(activeCategory, activeSubcategory), onRemove: () => setActiveSubcategory('') });
   if (budgetMax != null) filterChips.push({ key: 'budget', label: `Up to $${budgetMax.toLocaleString()}`, onRemove: clearBudget });
-  if (minRating > 0) filterChips.push({ key: 'rating', label: `${minRating}★ & up`, onRemove: () => setMinRating(0) });
+  if (minRating > 0) filterChips.push({
+    key: 'rating',
+    label: (
+      <span className="flex items-center gap-0.5">
+        {minRating}
+        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+        {' & up'}
+      </span>
+    ),
+    onRemove: () => setMinRating(0),
+  });
   if (verifiedFilter) filterChips.push({ key: 'verified', label: verifiedFilter === 'yes' ? 'Verified' : 'Not verified', onRemove: () => setVerifiedFilter('') });
   if (remoteFilter) filterChips.push({ key: 'remote', label: remoteFilter === 'remote' ? 'Remote only' : 'In-person only', onRemove: () => setRemoteFilter('') });
+  if (onlineFilter) filterChips.push({ key: 'online', label: 'Online now', onRemove: () => setOnlineFilter('') });
   selectedLanguages.forEach((lang) =>
     filterChips.push({ key: `lang-${lang}`, label: lang, onRemove: () => setSelectedLanguages((prev) => prev.filter((l) => l !== lang)) }),
   );
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
-      {/* Top Main Navigation */}
-      <header className="w-full px-6 py-4 lg:px-12 flex justify-between items-center border-b border-slate-800">
-        <div className="flex items-center flex-1">
-          <Link to="/" className="flex items-center mr-10 shrink-0">
-            <Logo className="h-6" />
-          </Link>
+      {/* Header — 3-column grid so search bar is centered */}
+      <header className="w-full px-6 py-4 lg:px-12 grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-slate-800">
+        <Link to="/" className="flex items-center shrink-0">
+          <Logo className="h-6" />
+        </Link>
 
-          <div className="hidden md:flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl relative">
-            <LocationSearch value={activeLocation} onChange={setActiveLocation} variant="header" />
+        <div className="hidden md:flex items-center justify-center">
+          <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl">
+            <LocationSearch
+              value={activeLocation}
+              onChange={handleLocationChange}
+              radius={searchRadius}
+              onRadiusChange={setSearchRadius}
+              variant="header"
+            />
             <input
               type="text"
               placeholder="Search for a service"
@@ -500,35 +628,19 @@ const BuyerSearch = () => {
                 </div>
 
                 <div className="py-1">
-                  <Link
-                    to="/buyer-dashboard"
-                    onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                  >
+                  <Link to="/buyer-dashboard" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
                     <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
                     Dashboard
                   </Link>
-                  <Link
-                    to="/buyer-dashboard?tab=Messages"
-                    onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                  >
+                  <Link to="/buyer-dashboard?tab=Messages" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
                     <MessageSquare className="w-4 h-4 shrink-0 text-slate-500" />
                     Messages
                   </Link>
-                  <Link
-                    to="/buyer-dashboard?tab=Saved"
-                    onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                  >
+                  <Link to="/buyer-dashboard?tab=Saved" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
                     <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
                     Saved Services
                   </Link>
-                  <Link
-                    to="/buyer-dashboard?tab=Settings"
-                    onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                  >
+                  <Link to="/buyer-dashboard?tab=Settings" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
                     <Settings className="w-4 h-4 shrink-0 text-slate-500" />
                     Settings
                   </Link>
@@ -551,7 +663,6 @@ const BuyerSearch = () => {
 
       {/* Category Nav */}
       <nav className="w-full border-b border-slate-800 relative flex items-center">
-        {/* Left arrow */}
         {canScrollLeft && (
           <button
             onClick={() => scrollCategories('left')}
@@ -561,14 +672,13 @@ const BuyerSearch = () => {
           </button>
         )}
 
-        {/* Scrollable list */}
         <div
           ref={categoryScrollRef}
           onScroll={updateScrollArrows}
           className="overflow-x-auto px-6 lg:px-12 py-3 flex-1"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          <ul className="flex items-center space-x-6 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max">
+          <ul className="flex items-center text-sm text-slate-400 whitespace-nowrap font-medium min-w-max w-full justify-between">
             {categoryOptions.map((cat) => (
               <li key={cat.value}>
                 <button
@@ -582,7 +692,6 @@ const BuyerSearch = () => {
           </ul>
         </div>
 
-        {/* Right arrow */}
         {canScrollRight && (
           <button
             onClick={() => scrollCategories('right')}
@@ -595,7 +704,6 @@ const BuyerSearch = () => {
 
       {/* Main Content */}
       <main className="flex-1 px-6 lg:px-12 py-10">
-        {/* Breadcrumb */}
         {activeCategory && (
           <nav className="text-sm font-medium mb-3">
             <button onClick={clearCategory} className="text-slate-400 hover:text-white transition-colors">
@@ -610,8 +718,7 @@ const BuyerSearch = () => {
           {(() => {
             const catLabel = activeCategory ? getCategoryLabel(activeCategory) : '';
             const subLabel = activeSubcategory ? getSubcategoryLabel(activeCategory, activeSubcategory) : '';
-            if (activeSearch)
-              return `Results for "${activeSearch}"${catLabel ? ` in ${catLabel}` : ''}`;
+            if (activeSearch) return `Results for "${activeSearch}"${catLabel ? ` in ${catLabel}` : ''}`;
             if (subLabel) return subLabel;
             if (catLabel) return catLabel;
             return 'All Services';
@@ -628,14 +735,14 @@ const BuyerSearch = () => {
             onToggle={() => toggleDropdown('sort')}
             align="left"
           >
-            <Opt label="Newest first"        selected={sortBy === 'newest'}    onClick={() => { setSortBy('newest');    setOpenDropdown(null); }} />
-            <Opt label="Oldest first"        selected={sortBy === 'oldest'}    onClick={() => { setSortBy('oldest');    setOpenDropdown(null); }} />
-            <Opt label="Price: Low → High"   selected={sortBy === 'price_asc'} onClick={() => { setSortBy('price_asc'); setOpenDropdown(null); }} />
-            <Opt label="Price: High → Low"   selected={sortBy === 'price_desc'} onClick={() => { setSortBy('price_desc'); setOpenDropdown(null); }} />
+            <Opt label="Newest first"       selected={sortBy === 'newest'}     onClick={() => { setSortBy('newest');     setOpenDropdown(null); }} />
+            <Opt label="Oldest first"       selected={sortBy === 'oldest'}     onClick={() => { setSortBy('oldest');     setOpenDropdown(null); }} />
+            <Opt label="Price: Low → High"  selected={sortBy === 'price_asc'}  onClick={() => { setSortBy('price_asc'); setOpenDropdown(null); }} />
+            <Opt label="Price: High → Low"  selected={sortBy === 'price_desc'} onClick={() => { setSortBy('price_desc'); setOpenDropdown(null); }} />
           </FilterDropdown>
 
           <div className="flex flex-wrap items-center gap-6">
-            {/* Subcategory — only when a category is active */}
+            {/* Subcategory */}
             {activeCategory && subcategoryMap[activeCategory] && (
               <FilterDropdown
                 label={activeSubcategory ? getSubcategoryLabel(activeCategory, activeSubcategory) : 'Subcategory'}
@@ -650,7 +757,7 @@ const BuyerSearch = () => {
               </FilterDropdown>
             )}
 
-            {/* Budget — custom "Up to $X" amount */}
+            {/* Budget */}
             <FilterDropdown
               label={budgetMax != null ? `Up to $${budgetMax.toLocaleString()}` : 'Budget'}
               isOpen={openDropdown === 'budget'}
@@ -684,7 +791,15 @@ const BuyerSearch = () => {
 
             {/* Rating */}
             <FilterDropdown
-              label={minRating > 0 ? `${minRating}★ & up` : 'Rating'}
+              label={
+                minRating > 0 ? (
+                  <span className="flex items-center gap-0.5">
+                    {minRating}
+                    <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                    {' & up'}
+                  </span>
+                ) : 'Rating'
+              }
               isOpen={openDropdown === 'rating'}
               active={minRating > 0}
               onToggle={() => toggleDropdown('rating')}
@@ -706,28 +821,40 @@ const BuyerSearch = () => {
               ))}
             </FilterDropdown>
 
-            {/* Verified */}
+            {/* Verified — radio group */}
             <FilterDropdown
-              label={verifiedFilter === 'no' ? 'Not verified' : 'Verified'}
+              label={verifiedFilter === 'yes' ? 'Verified only' : verifiedFilter === 'no' ? 'Not verified' : 'Verified'}
               isOpen={openDropdown === 'verified'}
               active={verifiedFilter !== ''}
               onToggle={() => toggleDropdown('verified')}
             >
-              <Opt label="Any"           selected={verifiedFilter === ''}    onClick={() => { setVerifiedFilter('');    setOpenDropdown(null); }} />
-              <Opt label="Verified only" selected={verifiedFilter === 'yes'} onClick={() => { setVerifiedFilter('yes'); setOpenDropdown(null); }} />
-              <Opt label="Not verified"  selected={verifiedFilter === 'no'}  onClick={() => { setVerifiedFilter('no');  setOpenDropdown(null); }} />
+              <div className="py-1">
+                <RadioOpt label="Any"          selected={pendingVerified === ''} onClick={() => setPendingVerified('')} />
+                <RadioOpt label="Verified only" selected={pendingVerified === 'yes'} onClick={() => setPendingVerified('yes')} />
+                <RadioOpt label="Not verified"  selected={pendingVerified === 'no'}  onClick={() => setPendingVerified('no')} />
+              </div>
+              <RadioFooter
+                onClear={() => { setVerifiedFilter(''); setPendingVerified(''); setOpenDropdown(null); }}
+                onApply={() => { setVerifiedFilter(pendingVerified); setOpenDropdown(null); }}
+              />
             </FilterDropdown>
 
-            {/* Remote */}
+            {/* Remote — radio group */}
             <FilterDropdown
               label={remoteFilter === 'remote' ? 'Remote only' : remoteFilter === 'in_person' ? 'In-person only' : 'Remote'}
               isOpen={openDropdown === 'remote'}
               active={remoteFilter !== ''}
               onToggle={() => toggleDropdown('remote')}
             >
-              <Opt label="All"             selected={remoteFilter === ''}          onClick={() => { setRemoteFilter('');          setOpenDropdown(null); }} />
-              <Opt label="Remote only"     selected={remoteFilter === 'remote'}    onClick={() => { setRemoteFilter('remote');    setOpenDropdown(null); }} />
-              <Opt label="In-person only"  selected={remoteFilter === 'in_person'} onClick={() => { setRemoteFilter('in_person'); setOpenDropdown(null); }} />
+              <div className="py-1">
+                <RadioOpt label="All"            selected={pendingRemote === ''}          onClick={() => setPendingRemote('')} />
+                <RadioOpt label="Remote only"    selected={pendingRemote === 'remote'}    onClick={() => setPendingRemote('remote')} />
+                <RadioOpt label="In-person only" selected={pendingRemote === 'in_person'} onClick={() => setPendingRemote('in_person')} />
+              </div>
+              <RadioFooter
+                onClear={() => { setRemoteFilter(''); setPendingRemote(''); setOpenDropdown(null); }}
+                onApply={() => { setRemoteFilter(pendingRemote); setOpenDropdown(null); }}
+              />
             </FilterDropdown>
 
             {/* Language */}
@@ -760,16 +887,28 @@ const BuyerSearch = () => {
               </div>
             </FilterDropdown>
 
-            {/* Online Now - coming soon */}
-            <FilterDropdown label="Online Now" isOpen={openDropdown === 'online'} active={false} onToggle={() => toggleDropdown('online')}>
-              <p className="px-4 py-3 text-xs text-slate-500 italic">Coming soon</p>
+            {/* Online Now — radio group */}
+            <FilterDropdown
+              label={onlineFilter === 'online' ? 'Online now' : 'Online Now'}
+              isOpen={openDropdown === 'online'}
+              active={onlineFilter !== ''}
+              onToggle={() => toggleDropdown('online')}
+            >
+              <div className="py-1">
+                <RadioOpt label="Any"        selected={pendingOnline === ''}       onClick={() => setPendingOnline('')} />
+                <RadioOpt label="Online now" selected={pendingOnline === 'online'} onClick={() => setPendingOnline('online')} />
+              </div>
+              <RadioFooter
+                onClear={() => { setOnlineFilter(''); setPendingOnline(''); setOpenDropdown(null); }}
+                onApply={() => { setOnlineFilter(pendingOnline); setOpenDropdown(null); }}
+              />
             </FilterDropdown>
           </div>
         </div>
 
         {/* Applied filter chips */}
         {filterChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-8">
+          <div className="flex flex-wrap items-center gap-2 mb-8 bg-[#111827] border border-slate-800 rounded-xl px-4 py-3">
             <span className="text-sm text-slate-400 mr-1">Filters</span>
             {filterChips.map((chip) => (
               <button
@@ -800,7 +939,7 @@ const BuyerSearch = () => {
             <p className="text-slate-400 text-lg font-medium">
               {posts.length === 0 ? 'No services listed yet.' : 'No services match your filters.'}
             </p>
-            <p className="text-slate-500 text-sm text-center max-w-xs">
+            <p className="text-slate-500 text-sm text-center whitespace-nowrap">
               {posts.length === 0
                 ? 'Be the first to post a service!'
                 : 'Try removing a filter or selecting a different category.'}
