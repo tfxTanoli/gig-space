@@ -141,7 +141,7 @@ const PostService = () => {
   const validate = (): boolean => {
     setStepError('');
     if (step === 1 && !category) { setStepError('Please select a category.'); return false; }
-    if (step === 2 && title.trim().length < 5) { setStepError('Title must be at least 5 characters.'); return false; }
+    if (step === 2 && title.trim().length < 20) { setStepError('Title must be at least 20 characters.'); return false; }
     if (step === 3 && (!priceMin || isNaN(parseFloat(priceMin)) || parseFloat(priceMin) <= 0)) {
       setStepError('Please enter a valid minimum price.');
       return false;
