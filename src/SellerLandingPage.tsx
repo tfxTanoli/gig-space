@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircle2 } from 'lucide-react';
 import Logo from './Logo';
 import { Link } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+import { CurrentUserAvatar } from './UserAvatar';
 
 const features = [
   {
@@ -41,6 +43,13 @@ const faqs = [
 
 const SellerLandingPage = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const { user, userProfile } = useAuth();
+
+  const dashboardLink = userProfile?.role === 'admin'
+    ? '/admin-dashboard'
+    : userProfile?.accountType === 'seller'
+      ? '/seller-dashboard'
+      : '/buyer-dashboard';
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -56,10 +65,19 @@ const SellerLandingPage = () => {
         <nav className="flex items-center space-x-6 text-sm font-medium">
           <Link to="/" className="text-white hover:text-slate-300 transition-colors">For Buyers</Link>
           <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
-          <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
-          <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
-            Sign up <ArrowRight className="ml-2 w-4 h-4" />
-          </Link>
+          {user ? (
+            <Link to={dashboardLink} className="flex items-center gap-2 text-white hover:text-slate-300 transition-colors">
+              <CurrentUserAvatar size="sm" />
+              <span>Dashboard</span>
+            </Link>
+          ) : (
+            <>
+              <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
+              <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                Sign up <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
