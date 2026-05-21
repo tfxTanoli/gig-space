@@ -128,7 +128,7 @@ const AdminDashboard = () => {
 
   const handleSignOut = async () => {
     await logout();
-    navigate('/signin');
+    navigate('/search', { replace: true });
   };
 
   const [activeTab, setActiveTab]   = useState<TabName>('Home');

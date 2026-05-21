@@ -87,8 +87,8 @@ const BuyerDashboard = () => {
 
   const handleLogout = useCallback(async () => {
     setShowUserMenu(false);
-    navigate('/', { replace: true });
     await logout();
+    navigate('/search', { replace: true });
   }, [logout, navigate]);
 
   // Auto-open the correct tab from URL params

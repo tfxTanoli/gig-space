@@ -351,9 +351,8 @@ const BuyerSearch = () => {
 
   const handleLogout = useCallback(async () => {
     setShowMenu(false);
-    navigate('/', { replace: true });
     await logout();
-  }, [logout, navigate]);
+  }, [logout]);
 
   // Keep URL in sync with active search/location so browser back restores the correct state.
   useEffect(() => {
@@ -603,61 +602,69 @@ const BuyerSearch = () => {
           <span className="text-slate-600" aria-hidden="true" title="Notifications coming soon">
             <Bell className="w-5 h-5" />
           </span>
-          <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
-            Create New Post
-          </Link>
-          <div ref={menuRef} className="relative">
-            <button
-              onClick={() => setShowMenu((v) => !v)}
-              className="focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full"
-              aria-label="Open user menu"
-              aria-expanded={showMenu}
-            >
-              <CurrentUserAvatar size="sm" />
-            </button>
+          {user && (
+            <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
+              Create New Post
+            </Link>
+          )}
+          {user ? (
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={() => setShowMenu((v) => !v)}
+                className="focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full"
+                aria-label="Open user menu"
+                aria-expanded={showMenu}
+              >
+                <CurrentUserAvatar size="sm" />
+              </button>
 
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-slate-800">
-                  <p className="text-white text-sm font-semibold truncate">
-                    {userProfile?.name ?? 'User'}
-                  </p>
-                  <p className="text-slate-500 text-xs truncate mt-0.5">
-                    {user?.email ?? ''}
-                  </p>
-                </div>
+              {showMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-slate-800">
+                    <p className="text-white text-sm font-semibold truncate">
+                      {userProfile?.name ?? 'User'}
+                    </p>
+                    <p className="text-slate-500 text-xs truncate mt-0.5">
+                      {user?.email ?? ''}
+                    </p>
+                  </div>
 
-                <div className="py-1">
-                  <Link to="/buyer-dashboard" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                    <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
-                    Dashboard
-                  </Link>
-                  <Link to="/buyer-dashboard?tab=Messages" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                    <MessageSquare className="w-4 h-4 shrink-0 text-slate-500" />
-                    Messages
-                  </Link>
-                  <Link to="/buyer-dashboard?tab=Saved" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                    <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
-                    Saved Services
-                  </Link>
-                  <Link to="/buyer-dashboard?tab=Settings" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                    <Settings className="w-4 h-4 shrink-0 text-slate-500" />
-                    Settings
-                  </Link>
-                </div>
+                  <div className="py-1">
+                    <Link to="/buyer-dashboard" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                      <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
+                      Dashboard
+                    </Link>
+                    <Link to="/buyer-dashboard?tab=Messages" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                      <MessageSquare className="w-4 h-4 shrink-0 text-slate-500" />
+                      Messages
+                    </Link>
+                    <Link to="/buyer-dashboard?tab=Saved" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                      <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
+                      Saved Services
+                    </Link>
+                    <Link to="/buyer-dashboard?tab=Settings" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                      <Settings className="w-4 h-4 shrink-0 text-slate-500" />
+                      Settings
+                    </Link>
+                  </div>
 
-                <div className="border-t border-slate-800 py-1">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-slate-800/80 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 shrink-0" />
-                    Sign Out
-                  </button>
+                  <div className="border-t border-slate-800 py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-slate-800/80 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/signin" className="text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+              Log in
+            </Link>
+          )}
         </div>
       </header>
 

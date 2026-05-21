@@ -50,9 +50,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return <>{children}</>;
   }
 
-  const lastType = localStorage.getItem('lastAccountType');
-  const to = lastType === 'seller' ? '/for-sellers' : lastType === 'buyer' ? '/' : '/signin';
-  return <Navigate to={to} replace />;
+  return <Navigate to="/search" replace />;
 };
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {

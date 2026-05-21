@@ -60,7 +60,7 @@ const AffiliateSignup = () => {
   return (
     <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">
       <div className="w-full max-w-7xl flex items-center mb-16 lg:mb-32">
-        <Link to="/affiliate"><Logo className="h-6" /></Link>
+        <Logo className="h-6" />
       </div>
 
       <div className="w-full max-w-md">

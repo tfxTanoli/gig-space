@@ -9,9 +9,7 @@ const ResetPasswordEmail = () => {
       
       {/* Logo Header */}
       <div className="mb-12">
-        <Link to="/" className="flex items-center">
-          <Logo className="h-8" />
-        </Link>
+        <Logo className="h-8" />
       </div>
 
       {/* Email Container */}
