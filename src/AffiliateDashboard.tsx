@@ -65,9 +65,7 @@ const AffiliateDashboard = () => {
 
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-slate-800/60">
-          <Link to="/affiliate-dashboard">
-            <Logo className="h-6" />
-          </Link>
+          <Logo className="h-6" />
         </div>
 
         {/* Nav */}
@@ -137,9 +135,9 @@ const AffiliateDashboard = () => {
           </button>
 
           {/* Mobile logo */}
-          <Link to="/affiliate-dashboard" className="md:hidden">
+          <span className="md:hidden">
             <Logo className="h-5" />
-          </Link>
+          </span>
 
           <div className="flex-1" />
 

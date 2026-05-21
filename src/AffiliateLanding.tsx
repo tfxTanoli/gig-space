@@ -58,9 +58,7 @@ const AffiliateLanding = () => {
 
       {/* Header */}
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
-        <Link to="/" className="flex items-center">
-          <Logo className="h-6" />
-        </Link>
+        <Logo className="h-6" />
         <nav className="flex items-center space-x-6 text-sm font-medium">
           <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">
             Affiliate Log In
@@ -281,8 +279,8 @@ const AffiliateLanding = () => {
           <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
           <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
+          <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
         <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>

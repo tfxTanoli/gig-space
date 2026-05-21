@@ -3,7 +3,7 @@ import { ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircl
 import Logo from './Logo';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { CurrentUserAvatar } from './UserAvatar';
+import HeaderUserMenu from './HeaderUserMenu';
 
 const features = [
   {
@@ -43,13 +43,7 @@ const faqs = [
 
 const SellerLandingPage = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-  const { user, userProfile } = useAuth();
-
-  const dashboardLink = userProfile?.role === 'admin'
-    ? '/admin-dashboard'
-    : userProfile?.accountType === 'seller'
-      ? '/seller-dashboard'
-      : '/buyer-dashboard';
+  const { user } = useAuth();
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -66,10 +60,7 @@ const SellerLandingPage = () => {
           <Link to="/" className="text-white hover:text-slate-300 transition-colors">For Buyers</Link>
           <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
           {user ? (
-            <Link to={dashboardLink} className="flex items-center gap-2 text-white hover:text-slate-300 transition-colors">
-              <CurrentUserAvatar size="sm" />
-              <span>Dashboard</span>
-            </Link>
+            <HeaderUserMenu />
           ) : (
             <>
               <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
@@ -264,8 +255,8 @@ const SellerLandingPage = () => {
           <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
           <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
+          <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
         <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>

@@ -498,9 +498,9 @@ const AdminDashboard = () => {
         `}
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-          <Link to="/" onClick={() => setSidebarOpen(false)}>
+          <div onClick={() => setSidebarOpen(false)}>
             <Logo className="h-6" />
-          </Link>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"

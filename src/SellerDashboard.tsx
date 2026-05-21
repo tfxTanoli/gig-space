@@ -404,9 +404,7 @@ const SellerDashboard = () => {
       {/* Sidebar — desktop only */}
       <aside className="w-72 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
-          <Link to="/seller-dashboard">
-            <Logo className="h-6" />
-          </Link>
+          <Logo className="h-6" />
         </div>
 
         {userProfile && (
@@ -471,9 +469,9 @@ const SellerDashboard = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800">
           {/* Mobile: logo */}
-          <Link to="/seller-dashboard" className="md:hidden mr-3">
+          <span className="md:hidden mr-3">
             <Logo className="h-5" />
-          </Link>
+          </span>
           <div className="flex items-center flex-1">
             <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-500 mr-2 md:mr-3 shrink-0" />
             <input

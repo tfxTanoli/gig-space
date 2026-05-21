@@ -565,9 +565,7 @@ const BuyerSearch = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Header — 3-column grid so search bar is centered */}
       <header className="w-full px-6 py-4 lg:px-12 grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-slate-800">
-        <Link to="/" className="flex items-center shrink-0">
-          <Logo className="h-6" />
-        </Link>
+        <Logo className="h-6" />
 
         <div className="hidden md:flex items-center justify-center">
           <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl">

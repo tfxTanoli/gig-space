@@ -1,8 +1,12 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
+import { useAuth } from './AuthContext';
+import HeaderUserMenu from './HeaderUserMenu';
 
 const TermsAndConditions = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Header */}
@@ -11,10 +15,16 @@ const TermsAndConditions = () => {
           <Logo className="h-6" />
         </div>
         <nav className="flex items-center space-x-6 text-sm font-medium">
-          <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
-          <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
-            Sign up <ArrowRight className="ml-2 w-4 h-4" />
-          </Link>
+          {user ? (
+            <HeaderUserMenu />
+          ) : (
+            <>
+              <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
+              <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                Sign up <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -71,8 +81,8 @@ const TermsAndConditions = () => {
           <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
           <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
+          <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
         <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>

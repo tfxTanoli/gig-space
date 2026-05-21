@@ -285,9 +285,7 @@ const ServiceDetail = () => {
 
       {/* ── Header ── */}
       <header className="bg-[#0E1422] border-b border-slate-800/70 px-6 py-3.5 flex items-center justify-between">
-        <Link to="/" className="flex items-center">
-          <Logo className="h-5" />
-        </Link>
+        <Logo className="h-5" />
         <div className="flex items-center gap-5">
           <button className="text-slate-400 hover:text-white transition-colors">
             <MessageCircle className="w-5 h-5" />

@@ -5,6 +5,7 @@ import Logo from './Logo';
 import LocationSearch from './LocationSearch';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
+import HeaderUserMenu from './HeaderUserMenu';
 
 const categories = [
   { name: 'Automotive', icon: Car },
@@ -53,12 +54,7 @@ const LandingPage = () => {
   const [heroQuery, setHeroQuery] = useState('');
   const [heroLocation, setHeroLocation] = useState('');
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
-  const dashboardLink = userProfile?.role === 'admin'
-    ? '/admin-dashboard'
-    : userProfile?.accountType === 'seller'
-      ? '/seller-dashboard'
-      : '/buyer-dashboard';
+  const { user } = useAuth();
 
   const goToSearch = () => {
     const params = new URLSearchParams();
@@ -82,10 +78,7 @@ const LandingPage = () => {
           <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
           {user ? (
-            <Link to={dashboardLink} className="flex items-center gap-2 text-white hover:text-slate-300 transition-colors">
-              <CurrentUserAvatar size="sm" />
-              <span>Dashboard</span>
-            </Link>
+            <HeaderUserMenu />
           ) : (
             <>
               <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
@@ -111,10 +104,7 @@ const LandingPage = () => {
             <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Sellers</Link>
             <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
             {user ? (
-              <Link to={dashboardLink} className="flex items-center gap-2 text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
-                <CurrentUserAvatar size="sm" />
-                <span>Dashboard</span>
-              </Link>
+              <HeaderUserMenu />
             ) : (
               <>
                 <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
@@ -251,8 +241,8 @@ const LandingPage = () => {
           <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
           <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
+          <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
         <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
