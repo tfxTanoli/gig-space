@@ -22,7 +22,7 @@ const filterOptions: Array<{ value: OrderFilter; label: string }> = [
   { value: 'in_progress', label: 'In Progress' },
   { value: 'delivered',   label: 'Delivered'   },
   { value: 'completed',   label: 'Completed'   },
-  { value: 'cancelled',   label: 'Canceled'    },
+  { value: 'canceled',    label: 'Canceled'    },
 ];
 
 const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searchQuery?: string }) => {

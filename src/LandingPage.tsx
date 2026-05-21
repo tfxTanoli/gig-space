@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import LocationSearch from './LocationSearch';
 import { useAuth } from './AuthContext';
-import { CurrentUserAvatar } from './UserAvatar';
 import HeaderUserMenu from './HeaderUserMenu';
 
 const categories = [

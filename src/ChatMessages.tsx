@@ -5,7 +5,7 @@ import { database, storage } from './firebase';
 import { useAuth } from './AuthContext';
 import { UserAvatar } from './UserAvatar';
 import {
-  Send, ImagePlus, ArrowLeft, MessageSquare, X,
+  Send, ImagePlus, ArrowLeft, X,
   Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2,
 } from 'lucide-react';
 

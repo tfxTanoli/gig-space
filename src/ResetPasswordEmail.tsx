@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, KeyRound } from 'lucide-react';
 import Logo from './Logo';
 
