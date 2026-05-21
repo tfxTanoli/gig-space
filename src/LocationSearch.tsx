@@ -4,10 +4,7 @@ import { searchLocations, type LocationResult } from './photon';
 
 interface LocationSearchProps {
   value: string;
-  onChange: (label: string, coords?: { lat: number; lng: number } | null) => void;
-  /** Miles radius for distance filtering. 0 = any distance (no filter). */
-  radius?: number;
-  onRadiusChange?: (miles: number) => void;
+  onChange: (label: string, coords?: { lat: number; lng: number } | null, locationType?: 'precise' | 'broad') => void;
   variant?: 'header' | 'hero';
 }
 
@@ -21,8 +18,6 @@ function truncateLabel(label: string): string {
 const LocationSearch = ({
   value,
   onChange,
-  radius = 0,
-  onRadiusChange,
   variant = 'header',
 }: LocationSearchProps) => {
   const [open, setOpen] = useState(false);
@@ -74,16 +69,15 @@ const LocationSearch = ({
       if (r) {
         const coords =
           r.lat !== undefined && r.lng !== undefined ? { lat: r.lat, lng: r.lng } : null;
-        onChange(r.label, coords);
+        onChange(r.label, coords, r.locationType);
       } else {
         onChange('', null);
-        onRadiusChange?.(0);
       }
       setOpen(false);
       setQuery('');
       setResults([]);
     },
-    [onChange, onRadiusChange],
+    [onChange],
   );
 
   const displayLabel = value ? truncateLabel(value) : 'All locations';
@@ -153,39 +147,6 @@ const LocationSearch = ({
             ))}
           </div>
 
-          {/* Radius slider — header mode only, when a location is selected */}
-          {variant === 'header' && value && (
-            <div className="border-t border-slate-800 px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-slate-300">Distance</span>
-                <span className="text-xs text-slate-400">
-                  {radius === 0 ? 'Any distance' : `Within ${radius} mi`}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={radius}
-                onChange={(e) => onRadiusChange?.(parseInt(e.target.value, 10))}
-                className="w-full accent-blue-500 cursor-pointer"
-              />
-              <div className="flex justify-between text-xs text-slate-500 mt-1">
-                <span>Any</span>
-                <span>100 mi</span>
-              </div>
-              {radius > 0 && (
-                <button
-                  type="button"
-                  onClick={() => onRadiusChange?.(0)}
-                  className="mt-2 text-xs text-slate-400 hover:text-white transition-colors"
-                >
-                  Clear distance
-                </button>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>

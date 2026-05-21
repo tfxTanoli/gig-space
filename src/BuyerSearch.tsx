@@ -113,6 +113,8 @@ interface ServicePost {
   priceType: 'per_project' | 'per_hour';
   images: string[];
   primaryLocation: string;
+  primaryLocationLat?: number;
+  primaryLocationLng?: number;
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
@@ -203,7 +205,9 @@ const BuyerSearch = () => {
   const [activeSubcategory, setActiveSubcategory] = useState('');
   const [activeLocation, setActiveLocation] = useState(() => searchParams.get('location') ?? '');
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationType, setLocationType] = useState<'precise' | 'broad' | ''>('');
   const [searchRadius, setSearchRadius] = useState(0);
+  const [pendingRadius, setPendingRadius] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [budgetMax, setBudgetMax] = useState<number | null>(null);
   const [budgetInput, setBudgetInput] = useState('');
@@ -256,10 +260,11 @@ const BuyerSearch = () => {
         if (next === 'verified') setPendingVerified(verifiedFilter);
         if (next === 'remote') setPendingRemote(remoteFilter);
         if (next === 'online') setPendingOnline(onlineFilter);
+        if (next === 'radius') setPendingRadius(searchRadius);
         return next;
       });
     },
-    [verifiedFilter, remoteFilter, onlineFilter],
+    [verifiedFilter, remoteFilter, onlineFilter, searchRadius],
   );
 
   const selectCategory = useCallback((value: string) => {
@@ -291,10 +296,11 @@ const BuyerSearch = () => {
   }, []);
 
   const handleLocationChange = useCallback(
-    (label: string, coords?: { lat: number; lng: number } | null) => {
+    (label: string, coords?: { lat: number; lng: number } | null, lt?: 'precise' | 'broad') => {
       setActiveLocation(label);
       setLocationCoords(coords ?? null);
-      if (!label) setSearchRadius(0);
+      setLocationType(lt ?? '');
+      if (!label || lt === 'broad') setSearchRadius(0);
     },
     [],
   );
@@ -304,7 +310,9 @@ const BuyerSearch = () => {
     setInputValue('');
     setActiveLocation('');
     setLocationCoords(null);
+    setLocationType('');
     setSearchRadius(0);
+    setPendingRadius(0);
     setActiveSubcategory('');
     setSortBy('newest');
     setBudgetMax(null);
@@ -369,8 +377,11 @@ const BuyerSearch = () => {
   // Geocode the initial location label (seeded from URL param) so radius works on first load.
   useEffect(() => {
     if (!activeLocation || locationCoords) return;
-    geocodeLocation(activeLocation).then((coords) => {
-      if (coords) setLocationCoords(coords);
+    geocodeLocation(activeLocation).then((result) => {
+      if (result) {
+        setLocationCoords({ lat: result.lat, lng: result.lng });
+        setLocationType(result.locationType);
+      }
     });
   }, [activeLocation, locationCoords]);
 
@@ -513,6 +524,11 @@ const BuyerSearch = () => {
       const matchesRadius = (() => {
         if (!searchRadius || !locationCoords) return true;
         if (p.offeredRemotely) return true;
+        // Prefer coordinates stored on the post at creation time.
+        if (p.primaryLocationLat != null && p.primaryLocationLng != null) {
+          return haversineDistanceMiles(locationCoords.lat, locationCoords.lng, p.primaryLocationLat, p.primaryLocationLng) <= searchRadius;
+        }
+        // Fall back to client-side geocode cache for older posts.
         const loc = p.primaryLocation;
         if (!loc) return false;
         if (!geocodeCache.has(loc)) return true; // not yet geocoded — pass through
@@ -572,8 +588,6 @@ const BuyerSearch = () => {
             <LocationSearch
               value={activeLocation}
               onChange={handleLocationChange}
-              radius={searchRadius}
-              onRadiusChange={setSearchRadius}
               variant="header"
             />
             <input
@@ -759,6 +773,30 @@ const BuyerSearch = () => {
                 {subcategoryMap[activeCategory].map((s) => (
                   <Opt key={s.value} label={s.label} selected={activeSubcategory === s.value} onClick={() => { setActiveSubcategory(s.value); setOpenDropdown(null); }} />
                 ))}
+              </FilterDropdown>
+            )}
+
+            {/* Radius — only shown for city/ZIP/address-level locations */}
+            {locationType === 'precise' && (
+              <FilterDropdown
+                label={searchRadius > 0 ? `Within ${searchRadius} mi` : 'Radius'}
+                isOpen={openDropdown === 'radius'}
+                active={searchRadius > 0}
+                onToggle={() => toggleDropdown('radius')}
+              >
+                <div className="py-1">
+                  <RadioOpt label="Any distance"  selected={pendingRadius === 0}   onClick={() => setPendingRadius(0)} />
+                  <RadioOpt label="Within 1 mi"   selected={pendingRadius === 1}   onClick={() => setPendingRadius(1)} />
+                  <RadioOpt label="Within 5 mi"   selected={pendingRadius === 5}   onClick={() => setPendingRadius(5)} />
+                  <RadioOpt label="Within 10 mi"  selected={pendingRadius === 10}  onClick={() => setPendingRadius(10)} />
+                  <RadioOpt label="Within 25 mi"  selected={pendingRadius === 25}  onClick={() => setPendingRadius(25)} />
+                  <RadioOpt label="Within 50 mi"  selected={pendingRadius === 50}  onClick={() => setPendingRadius(50)} />
+                  <RadioOpt label="Within 100 mi" selected={pendingRadius === 100} onClick={() => setPendingRadius(100)} />
+                </div>
+                <RadioFooter
+                  onClear={() => { setSearchRadius(0); setPendingRadius(0); setOpenDropdown(null); }}
+                  onApply={() => { setSearchRadius(pendingRadius); setOpenDropdown(null); }}
+                />
               </FilterDropdown>
             )}
 

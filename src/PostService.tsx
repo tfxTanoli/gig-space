@@ -8,6 +8,7 @@ import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
 import { categoryOptions, subcategoryMap } from './categories';
+import { geocodeLocation } from './photon';
 
 const TOTAL_STEPS = 9;
 
@@ -171,6 +172,17 @@ const PostService = () => {
         setImagePreviews([]);
       }
 
+      // Geocode primary location so radius filtering works without client-side API calls.
+      let primaryLocationLat: number | null = null;
+      let primaryLocationLng: number | null = null;
+      if (primaryLocation.trim()) {
+        const coords = await geocodeLocation(primaryLocation.trim());
+        if (coords) {
+          primaryLocationLat = coords.lat;
+          primaryLocationLng = coords.lng;
+        }
+      }
+
       const payload: Record<string, unknown> = {
         sellerId: user.uid,
         sellerName: userProfile.name,
@@ -186,6 +198,8 @@ const PostService = () => {
         images: allImages,
         languages,
         primaryLocation: primaryLocation.trim(),
+        primaryLocationLat,
+        primaryLocationLng,
         extraLocations,
         offeredRemotely,
         updatedAt: Date.now(),

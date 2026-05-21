@@ -18,6 +18,7 @@ export interface LocationResult {
   label: string;
   lat?: number;
   lng?: number;
+  locationType?: 'precise' | 'broad';
 }
 
 // Only OSM place/boundary features — excludes amenities, buildings, airports, etc.
@@ -26,6 +27,9 @@ const PLACE_VALUES = new Set([
   'neighbourhood', 'district', 'municipality', 'county', 'state', 'region',
   'country', 'island', 'locality', 'administrative',
 ]);
+
+// Broad administrative areas where a radius filter makes no sense.
+const BROAD_VALUES = new Set(['county', 'state', 'region', 'country', 'island', 'administrative']);
 
 // Lower = higher priority in autocomplete results.
 const PLACE_PRIORITY: Record<string, number> = {
@@ -77,7 +81,7 @@ export async function searchLocations(
     }[] = data?.features ?? [];
 
     const seen = new Set<string>();
-    const candidates: Array<{ label: string; lat: number; lng: number; priority: number }> = [];
+    const candidates: Array<{ label: string; lat: number; lng: number; priority: number; locationType: 'precise' | 'broad' }> = [];
 
     for (const feature of features) {
       const props = feature.properties ?? {};
@@ -93,24 +97,25 @@ export async function searchLocations(
       seen.add(label);
 
       const [lng = 0, lat = 0] = feature.geometry?.coordinates ?? [];
-      candidates.push({ label, lat, lng, priority: PLACE_PRIORITY[osmValue] ?? 20 });
+      const locationType: 'precise' | 'broad' = BROAD_VALUES.has(osmValue) ? 'broad' : 'precise';
+      candidates.push({ label, lat, lng, priority: PLACE_PRIORITY[osmValue] ?? 20, locationType });
     }
 
     // Cities and towns rise to the top; states and countries fall lower.
     candidates.sort((a, b) => a.priority - b.priority);
 
-    return candidates.slice(0, 6).map(({ label, lat, lng }) => ({ label, lat, lng }));
+    return candidates.slice(0, 6).map(({ label, lat, lng, locationType }) => ({ label, lat, lng, locationType }));
   } catch {
     return [];
   }
 }
 
 // Module-level geocode cache shared across all calls.
-export const geocodeCache = new Map<string, { lat: number; lng: number } | null>();
+export const geocodeCache = new Map<string, { lat: number; lng: number; locationType: 'precise' | 'broad' } | null>();
 
 export async function geocodeLocation(
   location: string,
-): Promise<{ lat: number; lng: number } | null> {
+): Promise<{ lat: number; lng: number; locationType: 'precise' | 'broad' } | null> {
   if (geocodeCache.has(location)) return geocodeCache.get(location)!;
 
   try {
@@ -124,7 +129,9 @@ export async function geocodeLocation(
     if (!feature?.geometry?.coordinates) { geocodeCache.set(location, null); return null; }
 
     const [lng, lat] = feature.geometry.coordinates;
-    const result = { lat, lng };
+    const osmValue = feature.properties?.osm_value ?? '';
+    const locationType: 'precise' | 'broad' = BROAD_VALUES.has(osmValue) ? 'broad' : 'precise';
+    const result = { lat, lng, locationType };
     geocodeCache.set(location, result);
     return result;
   } catch {
