@@ -39,7 +39,7 @@ const Signin = () => {
   // Navigate as soon as auth state resolves with a signed-in user.
   useEffect(() => {
     if (authLoading || !user) return;
-    if (!userProfile) {
+    if (!userProfile?.accountType) {
       navigate('/account-type');
     } else {
       navigate(

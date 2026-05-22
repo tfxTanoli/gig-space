@@ -1,18 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Shield, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Camera, Shield, Eye, EyeOff, Loader2, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import {
   updateProfile,
   EmailAuthProvider,
+  GoogleAuthProvider,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   updatePassword,
   verifyBeforeUpdateEmail,
 } from 'firebase/auth';
-import { ref, update } from 'firebase/database';
+import { ref, update, get } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { database, storage } from './firebase';
 import { useAuth } from './AuthContext';
 import { useUsernameAvailability } from './useUsernameAvailability';
 import { normalizeUsername, validateUsername, claimUsername } from './username';
+import { useNavigate } from 'react-router-dom';
 
 type Section = 'profile' | 'security';
 
@@ -22,7 +25,8 @@ interface Msg {
 }
 
 const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [section, setSection] = useState<Section>('profile');
 
@@ -43,6 +47,15 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const [showEmailPassword, setShowEmailPassword] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete account state
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteShowPassword, setDeleteShowPassword] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState<Msg | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   // Security fields
   const [currentPassword, setCurrentPassword] = useState('');
@@ -254,6 +267,80 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
     }
   };
 
+  const openDeleteCard = async () => {
+    setDeleteOpen(true);
+    setDeleteMsg(null);
+    setDeleteConfirmText('');
+    setDeletePassword('');
+    if (user) {
+      try {
+        const snap = await get(ref(database, `wallets/${user.uid}`));
+        const w = snap.val() as { availableBalance?: number; pendingBalance?: number } | null;
+        const total = (w?.availableBalance ?? 0) + (w?.pendingBalance ?? 0);
+        setWalletBalance(total > 0 ? total : 0);
+      } catch {
+        setWalletBalance(0);
+      }
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (deleteConfirmText !== 'DELETE') {
+      setDeleteMsg({ text: 'Type DELETE exactly to confirm.', ok: false });
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteMsg(null);
+
+    try {
+      // Re-authenticate before deletion
+      if (isEmailProvider) {
+        if (!deletePassword) {
+          setDeleteMsg({ text: 'Enter your current password to confirm.', ok: false });
+          setDeleteLoading(false);
+          return;
+        }
+        if (!user.email) throw new Error('No email on account');
+        const credential = EmailAuthProvider.credential(user.email, deletePassword);
+        await reauthenticateWithCredential(user, credential);
+      } else {
+        const provider = new GoogleAuthProvider();
+        await reauthenticateWithPopup(user, provider);
+      }
+
+      const token = await user.getIdToken();
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const body = await res.json() as { error?: string };
+        throw new Error(body.error ?? 'Failed to delete account');
+      }
+
+      // Auth user is now deleted on the server — sign out locally and go home
+      await logout();
+      navigate('/');
+    } catch (err: unknown) {
+      const isWrongPassword =
+        err instanceof Error &&
+        (err.message.includes('wrong-password') ||
+          err.message.includes('invalid-credential') ||
+          err.message.includes('INVALID_LOGIN_CREDENTIALS'));
+      setDeleteMsg({
+        text: isWrongPassword
+          ? 'Incorrect password.'
+          : err instanceof Error ? err.message : 'Failed to delete account.',
+        ok: false,
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 w-full">
       <div>
@@ -440,6 +527,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
       {/* ── Security ── */}
       {section === 'security' && (
+        <>
         <div className="bg-[#111827] border border-slate-800 rounded-xl p-6 space-y-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -555,6 +643,119 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
             </div>
           )}
         </div>
+
+        {/* ── Delete Account ── */}
+        <div className="bg-[#111827] border border-red-900/40 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+              <Trash2 className="w-4 h-4 text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-semibold text-sm">Delete account</h3>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Permanently remove your account and all associated data. This cannot be undone.
+              </p>
+            </div>
+          </div>
+
+          {!deleteOpen ? (
+            <button
+              onClick={openDeleteCard}
+              className="text-sm font-medium px-5 py-2 rounded-lg border border-red-700/50 text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              Delete my account
+            </button>
+          ) : (
+            <div className="space-y-4 max-w-lg">
+              {/* Wallet warning */}
+              {walletBalance !== null && walletBalance > 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                  <p className="text-amber-400 text-sm font-medium">Wallet balance will be forfeited</p>
+                  <p className="text-amber-300/80 text-xs mt-1">
+                    You have <span className="font-semibold">${walletBalance.toFixed(2)}</span> in your wallet.
+                    These funds will be returned to the platform when your account is deleted.
+                    Please withdraw before proceeding.
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <p className="text-red-300 text-xs leading-relaxed">
+                  All your data will be permanently deleted — profile, services, saved items, and wallet history.
+                  Active orders must be completed before deletion.
+                </p>
+              </div>
+
+              {/* Password re-auth (email users) */}
+              {isEmailProvider && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Current password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={deleteShowPassword ? 'text' : 'password'}
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      autoComplete="current-password"
+                      className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
+                      placeholder="Enter your password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setDeleteShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      {deleteShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Type DELETE */}
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                  Type <span className="text-white font-mono">DELETE</span> to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
+                  placeholder="DELETE"
+                />
+              </div>
+
+              {deleteMsg && (
+                <p className={`text-sm ${deleteMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {deleteMsg.text}
+                </p>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+                >
+                  {deleteLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>
+                  ) : (
+                    <><Trash2 className="w-4 h-4" /> Permanently delete account</>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setDeleteOpen(false); setDeleteMsg(null); }}
+                  disabled={deleteLoading}
+                  className="text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        </>
       )}
     </div>
   );

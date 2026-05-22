@@ -139,6 +139,7 @@
     },
 
     "affiliateCodes": {
+      ".indexOn": [".value"],
       "$code": {
         ".read": true,
         ".write": "auth !== null && newData.val() === auth.uid"
@@ -184,6 +185,11 @@
         ".read": "auth !== null && auth.uid === $uid",
         ".write": "auth !== null"
       }
+    },
+
+    "accountDeletionForfeits": {
+      ".read": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": false
     }
   }
 }

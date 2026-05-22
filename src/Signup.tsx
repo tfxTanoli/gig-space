@@ -38,7 +38,7 @@ const Signup = () => {
   // This fires for popup sign-in, email sign-up, and redirect returns.
   useEffect(() => {
     if (authLoading || !user) return;
-    if (!userProfile) {
+    if (!userProfile?.accountType) {
       navigate('/account-type');
     } else {
       navigate(

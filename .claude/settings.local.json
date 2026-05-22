@@ -15,7 +15,8 @@
       "Bash(npm run *)",
       "PowerShell(Start-Process -NoNewWindow -FilePath \"npm\" -ArgumentList \"run\",\"dev\",\"--\",\"--host\" -WorkingDirectory \"d:\\\\Fiverr\\\\gig-space\")",
       "PowerShell($npmPath = \\(Get-Command npm\\).Source; Write-Host $npmPath)",
-      "Bash(echo \"PID: $!\")"
+      "Bash(echo \"PID: $!\")",
+      "Bash(nohup npm run dev -- --host)"
     ]
   }
 }

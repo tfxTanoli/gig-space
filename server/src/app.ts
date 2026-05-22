@@ -783,6 +783,121 @@ app.delete('/api/payment-methods/:pmId', requireAuth, async (req: AuthRequest, r
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/account/delete
+// Permanently deletes the calling user's account. Blocked if they have any
+// active orders (in_progress or delivered) as buyer or seller.
+// Any wallet balance is forfeited back to the platform (funds are already held
+// in the platform's Stripe account — no Stripe action needed).
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Response) => {
+  const uid = req.uid!;
+  try {
+    // 1. Block if active orders exist as buyer or seller
+    const [buyerOrdersSnap, sellerOrdersSnap] = await Promise.all([
+      db.ref('orders').orderByChild('buyerId').equalTo(uid).get(),
+      db.ref('orders').orderByChild('sellerId').equalTo(uid).get(),
+    ]);
+
+    const hasActiveOrder = (snap: admin.database.DataSnapshot) => {
+      let active = false;
+      snap.forEach((child) => {
+        const s = (child.val() as { status?: string }).status;
+        if (s === 'in_progress' || s === 'delivered') active = true;
+      });
+      return active;
+    };
+
+    if (hasActiveOrder(buyerOrdersSnap) || hasActiveOrder(sellerOrdersSnap)) {
+      res.status(400).json({
+        error: 'You have active orders. Please complete or cancel them before deleting your account.',
+      });
+      return;
+    }
+
+    // 2. Gather data needed for cleanup
+    const [userSnap, walletSnap, servicesSnap, affiliateCodeSnap] = await Promise.all([
+      db.ref(`users/${uid}`).get(),
+      db.ref(`wallets/${uid}`).get(),
+      db.ref('services').orderByChild('sellerId').equalTo(uid).get(),
+      db.ref('affiliateCodes').orderByValue().equalTo(uid).get(),
+    ]);
+
+    const userData = userSnap.val() as {
+      username?: string; stripeCustomerId?: string;
+    } | null;
+
+    const walletData = walletSnap.val() as {
+      availableBalance?: number; pendingBalance?: number; stripeConnectedAccountId?: string;
+    } | null;
+
+    const forfeited = (walletData?.availableBalance ?? 0) + (walletData?.pendingBalance ?? 0);
+
+    // 3. Build multi-path nullification (removes all nodes)
+    const deletions: Record<string, null> = {
+      [`users/${uid}`]: null,
+      [`wallets/${uid}`]: null,
+      [`walletTransactions/${uid}`]: null,
+      [`savedServices/${uid}`]: null,
+      [`userConversations/${uid}`]: null,
+      [`notifications/${uid}`]: null,
+      [`notificationCounts/${uid}`]: null,
+      [`affiliates/${uid}`]: null,
+    };
+
+    if (userData?.username) {
+      deletions[`usernames/${userData.username}`] = null;
+    }
+
+    // Remove all services owned by this user
+    servicesSnap.forEach((child) => {
+      deletions[`services/${child.key}`] = null;
+    });
+
+    // Remove affiliate referral code if one exists
+    affiliateCodeSnap.forEach((child) => {
+      deletions[`affiliateCodes/${child.key}`] = null;
+    });
+
+    // Log the forfeiture if there was a balance
+    let forfeitureLogId: string | null = null;
+    if (forfeited > 0) {
+      forfeitureLogId = db.ref('accountDeletionForfeits').push().key!;
+    }
+
+    await db.ref().update(deletions);
+
+    if (forfeitureLogId && forfeited > 0) {
+      await db.ref(`accountDeletionForfeits/${forfeitureLogId}`).set({
+        uid,
+        amount: forfeited,
+        availableBalance: walletData?.availableBalance ?? 0,
+        pendingBalance: walletData?.pendingBalance ?? 0,
+        createdAt: Date.now(),
+      });
+    }
+
+    // 4. Delete Stripe customer (removes saved payment methods)
+    const stripeCustomerId = userData?.stripeCustomerId;
+    if (stripeCustomerId) {
+      try {
+        await stripe.customers.del(stripeCustomerId);
+      } catch {
+        // Non-fatal — customer may already be deleted or not exist
+      }
+    }
+
+    // 5. Delete Firebase Auth user — must be last
+    await admin.auth().deleteUser(uid);
+
+    res.json({ success: true, forfeited });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/account/delete error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);
 
