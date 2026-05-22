@@ -26,12 +26,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
 import { geocodeCache, geocodeLocation, haversineDistanceMiles } from './photon';
-import {
-  categoryOptions,
-  subcategoryMap,
-  getCategoryLabel,
-  getSubcategoryLabel,
-} from './categories';
+import { useCategories } from './CategoriesContext';
 
 const MessagesIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -272,6 +267,7 @@ const PaginationBar = ({
 
 const BuyerSearch = () => {
   const { user, userProfile, logout } = useAuth();
+  const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
   const { isSaved, toggleSave } = useSavedServices();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -872,32 +868,53 @@ const BuyerSearch = () => {
           )}
         </div>
 
-        {/* Subcategory flyout — appears on hover */}
+        {/* Subcategory flyout — Fiverr-style list panel */}
         {hoveredCategory && subcategoryMap[hoveredCategory] && (
           <div
-            className="absolute left-0 right-0 top-full bg-[#0E1422] border-b border-slate-800 shadow-xl z-40"
+            className="absolute left-0 right-0 top-full bg-[#111827] border-b border-slate-700 shadow-2xl z-40"
             onMouseEnter={keepFlyout}
             onMouseLeave={hideFlyout}
           >
-            <div className="px-6 lg:px-12 py-4 flex flex-wrap gap-2">
-              {subcategoryMap[hoveredCategory].map((sub) => (
+            <div className="px-6 lg:px-12 py-5">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-800">
+                <h3 className="text-white font-semibold text-sm">
+                  {getCategoryLabel(hoveredCategory)}
+                </h3>
                 <button
-                  key={sub.value}
-                  onClick={() => {
-                    setActiveCategory(hoveredCategory);
-                    setActiveSubcategory(sub.value);
-                    setHoveredCategory(null);
-                    if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
-                  }}
-                  className={`px-4 py-1.5 text-sm rounded-lg transition-colors border ${
-                    activeCategory === hoveredCategory && activeSubcategory === sub.value
-                      ? 'bg-primary border-primary text-white'
-                      : 'border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600'
-                  }`}
+                  onClick={() => selectCategory(hoveredCategory)}
+                  className="text-primary text-xs font-medium hover:text-blue-400 transition-colors"
                 >
-                  {sub.label}
+                  View all →
                 </button>
-              ))}
+              </div>
+              <div
+                className={`grid gap-x-10 ${
+                  subcategoryMap[hoveredCategory].length > 16
+                    ? 'grid-cols-3'
+                    : subcategoryMap[hoveredCategory].length > 8
+                    ? 'grid-cols-2'
+                    : 'grid-cols-1'
+                }`}
+              >
+                {subcategoryMap[hoveredCategory].map((sub) => (
+                  <button
+                    key={sub.value}
+                    onClick={() => {
+                      setActiveCategory(hoveredCategory);
+                      setActiveSubcategory(sub.value);
+                      setHoveredCategory(null);
+                      if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
+                    }}
+                    className={`text-left py-2 text-sm border-b border-slate-800/50 transition-colors ${
+                      activeCategory === hoveredCategory && activeSubcategory === sub.value
+                        ? 'text-primary font-medium'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

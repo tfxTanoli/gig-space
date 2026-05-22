@@ -7,7 +7,7 @@ import { ref as dbRef, push, set, get } from 'firebase/database';
 import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
-import { categoryOptions, subcategoryMap } from './categories';
+import { useCategories } from './CategoriesContext';
 import { geocodeLocation } from './photon';
 
 const TOTAL_STEPS = 9;
@@ -15,6 +15,7 @@ const TOTAL_STEPS = 9;
 
 const PostService = () => {
   const { user, userProfile } = useAuth();
+  const { categoryOptions, subcategoryMap } = useCategories();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isNewUser = searchParams.get('new') === 'true';

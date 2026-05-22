@@ -5,6 +5,23 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 
+  resolve: {
+    dedupe: ['react', 'react-dom', 'react-dom/client'],
+  },
+
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react-router-dom',
+      'firebase/app',
+      'firebase/auth',
+      'firebase/database',
+      'firebase/storage',
+    ],
+  },
+
   server: {
     proxy: {
       '/api': {

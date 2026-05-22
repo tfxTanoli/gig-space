@@ -11,7 +11,7 @@ import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, onValue } from 'firebase/database';
 import { database } from './firebase';
-import { categoryOptions } from './categories';
+import { useCategories } from './CategoriesContext';
 
 const filters = [
   "Budget", "Rating", "Verified", "Remote", "Language", "Online Now"
@@ -42,6 +42,7 @@ function formatPrice(post: ServicePost) {
 }
 
 const BuyerSearchFiltered = () => {
+  const { categoryOptions } = useCategories();
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category') ?? '';
 

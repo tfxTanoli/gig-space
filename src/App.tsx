@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
+import { CategoriesProvider } from './CategoriesContext';
 import { ErrorBoundary } from './ErrorBoundary';
 
 // Route-based code splitting — each page is its own chunk
@@ -126,7 +127,9 @@ function App() {
     <ErrorBoundary>
       <Router>
         <AuthProvider>
-          <AppRoutes />
+          <CategoriesProvider>
+            <AppRoutes />
+          </CategoriesProvider>
         </AuthProvider>
       </Router>
     </ErrorBoundary>
