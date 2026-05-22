@@ -585,18 +585,6 @@ const BuyerSearch = () => {
     }
   }, [loadingMore, posts, fetchPage]);
 
-  const handleNextPage = useCallback(() => {
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (hasMore && nextPage >= totalPagesRef.current - 1) void loadMore();
-  }, [currentPage, hasMore, loadMore]);
-
-  const handlePrevPage = useCallback(() => {
-    setCurrentPage((p) => Math.max(0, p - 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
   const handlePageSelect = useCallback((page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
