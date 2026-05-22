@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ArrowRight, UserPlus, Share2, DollarSign, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
+import { useAuth } from './AuthContext';
+import { CurrentUserAvatar } from './UserAvatar';
 
 const faqs = [
   {
@@ -47,11 +49,17 @@ const categories = [
 ];
 
 const AffiliateLanding = () => {
+  const { user, loading } = useAuth();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
+
+  // When logged in, CTA links go straight to the affiliate dashboard.
+  // When logged out, they go to the affiliate-specific sign-up/sign-in pages.
+  const ctaHref = user ? '/affiliate-dashboard' : '/affiliate-signup';
+  const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
@@ -60,15 +68,30 @@ const AffiliateLanding = () => {
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
         <Logo className="h-6" />
         <nav className="flex items-center space-x-6 text-sm font-medium">
-          <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">
-            Affiliate Log In
-          </Link>
-          <Link
-            to="/signup"
-            className="flex items-center text-white px-4 py-2 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
-          >
-            Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
-          </Link>
+          {!loading && (
+            user ? (
+              <>
+                <Link to="/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors">
+                  Affiliate Dashboard
+                </Link>
+                <Link to="/affiliate-dashboard">
+                  <CurrentUserAvatar size="sm" />
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/affiliate-signin" className="text-white hover:text-slate-300 transition-colors">
+                  Affiliate Log In
+                </Link>
+                <Link
+                  to="/affiliate-signup"
+                  className="flex items-center text-white px-4 py-2 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
+                >
+                  Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </>
+            )
+          )}
         </nav>
       </header>
 
@@ -83,10 +106,10 @@ const AffiliateLanding = () => {
           Earn 50% of our platform fee on every completed job.
         </p>
         <Link
-          to="/signup"
+          to={ctaHref}
           className="inline-flex items-center px-6 py-3 border border-slate-500 text-white font-semibold rounded-full hover:bg-slate-800 transition-colors"
         >
-          Become an Affiliate <ArrowRight className="w-4 h-4 ml-2" />
+          {ctaLabel} <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </section>
 
@@ -108,7 +131,7 @@ const AffiliateLanding = () => {
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Create your free affiliate account in minutes and get instant access to your unique referral link and tracking dashboard.
             </p>
-            <Link to="/signup" className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
+            <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
               Get started for free <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
@@ -121,7 +144,7 @@ const AffiliateLanding = () => {
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Promote Gigspace anywhere — social media, your audience, or direct outreach. Every click and referral is tracked automatically.
             </p>
-            <Link to="/signup" className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
+            <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
               Get your referral link <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
@@ -134,7 +157,7 @@ const AffiliateLanding = () => {
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               When someone books a service through your link, you earn 50% of our platform fee once the job is completed.
             </p>
-            <Link to="/signup" className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
+            <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
               Start getting paid <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
@@ -265,10 +288,10 @@ const AffiliateLanding = () => {
           💰 with Gigspace
         </h2>
         <Link
-          to="/signup"
+          to={ctaHref}
           className="inline-flex items-center px-6 py-3 border border-slate-500 text-white font-semibold rounded-full hover:bg-slate-800 transition-colors"
         >
-          Become an Affiliate <ArrowRight className="w-4 h-4 ml-2" />
+          {ctaLabel} <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </section>
 
