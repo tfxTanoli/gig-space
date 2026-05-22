@@ -111,6 +111,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Keep lastSeen timestamp current so the "Online now" filter can show live status.
+  useEffect(() => {
+    if (!user) return;
+    const update = () =>
+      set(ref(database, `users/${user.uid}/lastSeen`), Date.now()).catch(() => {});
+    update();
+    const iv = setInterval(update, 60_000);
+    return () => clearInterval(iv);
+  }, [user]);
+
   const logout = useCallback(() => signOut(auth), []);
 
   const value = useMemo(

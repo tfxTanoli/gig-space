@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
@@ -40,6 +40,7 @@ const MessagesIcon = ({ className }: { className?: string }) => (
 );
 
 const PAGE_SIZE = 50;
+const ITEMS_PER_PAGE = 20;
 
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
 type RemoteOption = '' | 'remote' | 'in_person';
@@ -49,6 +50,7 @@ type OnlineOption = '' | 'online';
 interface SellerMeta {
   verified: boolean;
   rating: number;
+  lastSeen?: number | null;
 }
 
 const FilterDropdown = ({
@@ -192,6 +194,82 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave }: ServiceCardProps) => 
   );
 });
 
+const PaginationBar = ({
+  currentPage,
+  totalPages,
+  hasMore,
+  loadingMore,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onPageChange: (page: number) => void;
+}) => {
+  const getPageNumbers = (): (number | '...')[] => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i);
+    const pages: (number | '...')[] = [0];
+    if (currentPage > 3) pages.push('...');
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages - 2, currentPage + 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (currentPage < totalPages - 4) pages.push('...');
+    if (totalPages > 1) pages.push(totalPages - 1);
+    return pages;
+  };
+
+  const canPrev = currentPage > 0;
+  const canNext = hasMore || currentPage < totalPages - 1;
+
+  return (
+    <div className="flex items-center justify-center gap-1 flex-wrap">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={!canPrev}
+        className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-slate-800"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Prev
+      </button>
+
+      {getPageNumbers().map((page, idx) =>
+        page === '...' ? (
+          <span key={`e-${idx}`} className="px-2 py-2 text-slate-500 text-sm select-none">…</span>
+        ) : (
+          <button
+            key={page}
+            onClick={() => onPageChange(page as number)}
+            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+              page === currentPage
+                ? 'bg-primary text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            {(page as number) + 1}
+          </button>
+        ),
+      )}
+
+      {hasMore && (
+        <span className="px-1 py-2 text-slate-500 text-sm select-none">…</span>
+      )}
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={!canNext}
+        className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-slate-800"
+      >
+        {loadingMore && currentPage >= totalPages - 1 ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <>Next <ChevronRight className="w-4 h-4" /></>
+        )}
+      </button>
+    </div>
+  );
+};
+
 const BuyerSearch = () => {
   const { user, userProfile, logout } = useAuth();
   const { isSaved, toggleSave } = useSavedServices();
@@ -223,6 +301,8 @@ const BuyerSearch = () => {
   const [remoteFilter, setRemoteFilter] = useState<RemoteOption>('');
   const [onlineFilter, setOnlineFilter] = useState<OnlineOption>('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   // Pending states for radio-group filters (committed on Apply).
   const [pendingVerified, setPendingVerified] = useState<VerifiedOption>('');
@@ -237,6 +317,8 @@ const BuyerSearch = () => {
   const filterBarRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const urlSyncRef = useRef('');
+  const flyoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const totalPagesRef = useRef(1);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -251,6 +333,19 @@ const BuyerSearch = () => {
     const el = categoryScrollRef.current;
     if (!el) return;
     el.scrollBy({ left: dir === 'left' ? -240 : 240, behavior: 'smooth' });
+  }, []);
+
+  const showFlyout = useCallback((cat: string) => {
+    if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
+    setHoveredCategory(cat);
+  }, []);
+
+  const hideFlyout = useCallback(() => {
+    flyoutTimeoutRef.current = setTimeout(() => setHoveredCategory(null), 150);
+  }, []);
+
+  const keepFlyout = useCallback(() => {
+    if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
   }, []);
 
   useEffect(() => {
@@ -276,6 +371,8 @@ const BuyerSearch = () => {
   const selectCategory = useCallback((value: string) => {
     setActiveCategory((prev) => (prev === value ? '' : value));
     setActiveSubcategory('');
+    setHoveredCategory(null);
+    if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
   }, []);
 
   const clearCategory = useCallback(() => {
@@ -336,6 +433,13 @@ const BuyerSearch = () => {
     sortBy !== 'newest' || budgetMax !== null || minRating > 0 ||
     verifiedFilter !== '' || selectedLanguages.length > 0 || remoteFilter !== '' ||
     onlineFilter !== '' || searchRadius > 0;
+
+  const languageKey = useMemo(() => selectedLanguages.slice().sort().join(','), [selectedLanguages]);
+
+  // Reset to first page whenever any filter changes.
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [activeSearch, activeCategory, activeSubcategory, activeLocation, budgetMax, minRating, verifiedFilter, languageKey, remoteFilter, onlineFilter, searchRadius, sortBy]);
 
   const commitSearch = useCallback(() => {
     setActiveSearch(inputValue.trim());
@@ -445,13 +549,15 @@ const BuyerSearch = () => {
 
     Promise.all(
       missing.map(async (id) => {
-        const [verifiedSnap, ratingSnap] = await Promise.all([
+        const [verifiedSnap, ratingSnap, lastSeenSnap] = await Promise.all([
           get(ref(database, `users/${id}/emailVerified`)).catch(() => null),
           get(ref(database, `userRatings/${id}`)).catch(() => null),
+          get(ref(database, `users/${id}/lastSeen`)).catch(() => null),
         ]);
         const r = ratingSnap?.val();
         const rating = r && r.reviewCount > 0 ? r.totalStars / r.reviewCount : 0;
-        return [id, { verified: verifiedSnap?.val() === true, rating }] as const;
+        const lastSeen: number | null = typeof lastSeenSnap?.val() === 'number' ? lastSeenSnap.val() : null;
+        return [id, { verified: verifiedSnap?.val() === true, rating, lastSeen }] as const;
       }),
     ).then((entries) => {
       if (cancelled) return;
@@ -482,6 +588,24 @@ const BuyerSearch = () => {
       setLoadingMore(false);
     }
   }, [loadingMore, posts, fetchPage]);
+
+  const handleNextPage = useCallback(() => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (hasMore && nextPage >= totalPagesRef.current - 1) void loadMore();
+  }, [currentPage, hasMore, loadMore]);
+
+  const handlePrevPage = useCallback(() => {
+    setCurrentPage((p) => Math.max(0, p - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handlePageSelect = useCallback((page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (hasMore && page >= totalPagesRef.current - 1) void loadMore();
+  }, [hasMore, loadMore]);
 
   const handleToggleSave = useCallback((id: string) => toggleSave(id), [toggleSave]);
 
@@ -546,7 +670,13 @@ const BuyerSearch = () => {
         );
       })();
 
-      const matchesOnline = true; // online status not yet tracked per-seller
+      const matchesOnline = (() => {
+        if (!onlineFilter) return true;
+        const m = sellerMeta[p.sellerId];
+        if (!m) return true; // meta not yet loaded — pass through
+        if (m.lastSeen == null) return false; // never set — not online
+        return Date.now() - m.lastSeen < 5 * 60_000; // within 5 minutes
+      })();
 
       return matchesSearch && matchesCategory && matchesSubcategory && matchesLocation &&
         matchesBudget && matchesRemote && matchesLanguage && matchesRating && matchesVerified &&
@@ -578,9 +708,16 @@ const BuyerSearch = () => {
   });
   if (verifiedFilter) filterChips.push({ key: 'verified', label: verifiedFilter === 'yes' ? 'Verified' : 'Not verified', onRemove: () => setVerifiedFilter('') });
   if (remoteFilter) filterChips.push({ key: 'remote', label: remoteFilter === 'remote' ? 'Remote only' : 'In-person only', onRemove: () => setRemoteFilter('') });
-  if (onlineFilter) filterChips.push({ key: 'online', label: 'Online now', onRemove: () => setOnlineFilter('') });
   selectedLanguages.forEach((lang) =>
     filterChips.push({ key: `lang-${lang}`, label: lang, onRemove: () => setSelectedLanguages((prev) => prev.filter((l) => l !== lang)) }),
+  );
+  if (onlineFilter) filterChips.push({ key: 'online', label: 'Online now', onRemove: () => setOnlineFilter('') });
+
+  const totalPages = Math.max(1, Math.ceil(displayedPosts.length / ITEMS_PER_PAGE));
+  totalPagesRef.current = totalPages;
+  const paginatedPosts = displayedPosts.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE,
   );
 
   return (
@@ -691,43 +828,78 @@ const BuyerSearch = () => {
       </header>
 
       {/* Category Nav */}
-      <nav className="w-full border-b border-slate-800 relative flex items-center">
-        {canScrollLeft && (
-          <button
-            onClick={() => scrollCategories('left')}
-            className="absolute left-0 z-10 h-full px-2 bg-gradient-to-r from-[#0E1422] via-[#0E1422]/90 to-transparent flex items-center text-slate-400 hover:text-white transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        )}
+      <nav className="w-full border-b border-slate-800 relative flex flex-col">
+        <div className="flex items-center w-full">
+          {canScrollLeft && (
+            <button
+              onClick={() => scrollCategories('left')}
+              className="absolute left-0 z-10 h-12 px-2 bg-gradient-to-r from-[#0E1422] via-[#0E1422]/90 to-transparent flex items-center text-slate-400 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
 
-        <div
-          ref={categoryScrollRef}
-          onScroll={updateScrollArrows}
-          className="overflow-x-auto px-6 lg:px-12 py-3 flex-1"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          <ul className="flex items-center text-sm text-slate-400 whitespace-nowrap font-medium min-w-max w-full justify-between">
-            {categoryOptions.map((cat) => (
-              <li key={cat.value}>
-                <button
-                  onClick={() => selectCategory(cat.value)}
-                  className={`transition-colors ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
+          <div
+            ref={categoryScrollRef}
+            onScroll={updateScrollArrows}
+            className="overflow-x-auto px-6 lg:px-12 py-3 flex-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <ul className="flex items-center text-sm text-slate-400 whitespace-nowrap font-medium min-w-max w-full justify-between">
+              {categoryOptions.map((cat) => (
+                <li key={cat.value}
+                  onMouseEnter={() => subcategoryMap[cat.value] && showFlyout(cat.value)}
+                  onMouseLeave={hideFlyout}
                 >
-                  {cat.label}
-                </button>
-              </li>
-            ))}
-          </ul>
+                  <button
+                    onClick={() => selectCategory(cat.value)}
+                    className={`transition-colors py-1 ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
+                  >
+                    {cat.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {canScrollRight && (
+            <button
+              onClick={() => scrollCategories('right')}
+              className="absolute right-0 z-10 h-12 px-2 bg-gradient-to-l from-[#0E1422] via-[#0E1422]/90 to-transparent flex items-center text-slate-400 hover:text-white transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
-        {canScrollRight && (
-          <button
-            onClick={() => scrollCategories('right')}
-            className="absolute right-0 z-10 h-full px-2 bg-gradient-to-l from-[#0E1422] via-[#0E1422]/90 to-transparent flex items-center text-slate-400 hover:text-white transition-colors"
+        {/* Subcategory flyout — appears on hover */}
+        {hoveredCategory && subcategoryMap[hoveredCategory] && (
+          <div
+            className="absolute left-0 right-0 top-full bg-[#0E1422] border-b border-slate-800 shadow-xl z-40"
+            onMouseEnter={keepFlyout}
+            onMouseLeave={hideFlyout}
           >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+            <div className="px-6 lg:px-12 py-4 flex flex-wrap gap-2">
+              {subcategoryMap[hoveredCategory].map((sub) => (
+                <button
+                  key={sub.value}
+                  onClick={() => {
+                    setActiveCategory(hoveredCategory);
+                    setActiveSubcategory(sub.value);
+                    setHoveredCategory(null);
+                    if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
+                  }}
+                  className={`px-4 py-1.5 text-sm rounded-lg transition-colors border ${
+                    activeCategory === hoveredCategory && activeSubcategory === sub.value
+                      ? 'bg-primary border-primary text-white'
+                      : 'border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600'
+                  }`}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </nav>
 
@@ -1013,8 +1185,8 @@ const BuyerSearch = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {displayedPosts.map((post) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+              {paginatedPosts.map((post) => (
                 <ServiceCard
                   key={post.id}
                   post={post}
@@ -1024,17 +1196,30 @@ const BuyerSearch = () => {
               ))}
             </div>
 
-            <div className="flex flex-col items-center gap-4 py-6 border-t border-slate-800 mb-16">
-              <p className="text-slate-400 text-sm">{displayedPosts.length} service{displayedPosts.length !== 1 ? 's' : ''} shown</p>
-              {hasMore && (
-                <button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="flex items-center gap-2 bg-[#111827] hover:bg-slate-800 disabled:opacity-50 border border-slate-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
-                >
-                  {loadingMore ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading…</> : 'Load more'}
-                </button>
-              )}
+            {/* Pagination */}
+            <div className="border-t border-slate-800 pt-6 pb-16">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                <p className="text-slate-400 text-sm">
+                  {loadingMore && paginatedPosts.length === 0
+                    ? 'Loading…'
+                    : (() => {
+                        const start = currentPage * ITEMS_PER_PAGE + 1;
+                        const end = Math.min((currentPage + 1) * ITEMS_PER_PAGE, displayedPosts.length);
+                        return hasMore
+                          ? `Showing ${start}–${end} results`
+                          : `Showing ${start}–${end} of ${displayedPosts.length} result${displayedPosts.length !== 1 ? 's' : ''}`;
+                      })()}
+                </p>
+                {(totalPages > 1 || hasMore) && (
+                  <PaginationBar
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    hasMore={hasMore}
+                    loadingMore={loadingMore}
+                    onPageChange={handlePageSelect}
+                  />
+                )}
+              </div>
             </div>
           </>
         )}

@@ -69,7 +69,7 @@ export async function searchLocations(
 
   try {
     const res = await fetch(
-      `${PHOTON_ENDPOINT}?q=${encodeURIComponent(q)}&limit=12`,
+      `${PHOTON_ENDPOINT}?q=${encodeURIComponent(q)}&limit=20`,
       { signal },
     );
     if (!res.ok) return [];
@@ -98,13 +98,17 @@ export async function searchLocations(
 
       const [lng = 0, lat = 0] = feature.geometry?.coordinates ?? [];
       const locationType: 'precise' | 'broad' = BROAD_VALUES.has(osmValue) ? 'broad' : 'precise';
-      candidates.push({ label, lat, lng, priority: PLACE_PRIORITY[osmValue] ?? 20, locationType });
+      // Boost features whose name exactly matches the query (e.g. "France" when typing "france")
+      // so countries/states surface above unrelated places that start with the same letters.
+      const isExactMatch = (props.name ?? '').toLowerCase() === q.toLowerCase();
+      const priority = isExactMatch ? -1 : (PLACE_PRIORITY[osmValue] ?? 20);
+      candidates.push({ label, lat, lng, priority, locationType });
     }
 
     // Cities and towns rise to the top; states and countries fall lower.
     candidates.sort((a, b) => a.priority - b.priority);
 
-    return candidates.slice(0, 6).map(({ label, lat, lng, locationType }) => ({ label, lat, lng, locationType }));
+    return candidates.slice(0, 8).map(({ label, lat, lng, locationType }) => ({ label, lat, lng, locationType }));
   } catch {
     return [];
   }
