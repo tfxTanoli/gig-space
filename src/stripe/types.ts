@@ -66,6 +66,15 @@ export interface StripeConnectStatus {
   detailsSubmitted: boolean;
 }
 
+// ── Saved payment method (from Stripe Customer) ────────────────────────────
+export interface SavedPaymentMethod {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
+
 // ── Cloud Function request/response shapes ─────────────────────────────────
 export interface CreateCheckoutRequest {
   conversationId: string;

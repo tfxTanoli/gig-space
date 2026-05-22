@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
 
-import { ShieldCheck, CreditCard, Clock, CheckCircle, XCircle, Loader2, Plus } from 'lucide-react';
-import type { Payment } from '../stripe/types';
+import { ShieldCheck, CreditCard, Clock, CheckCircle, XCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+import type { Payment, SavedPaymentMethod } from '../stripe/types';
+import { listPaymentMethods, removePaymentMethod } from '../stripe/paymentHelpers';
+import AddPaymentMethodModal from './AddPaymentMethodModal';
 
 const statusStyles: Record<string, string> = {
   paid:     'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -35,6 +37,37 @@ export default function BillingTab() {
   const { user, loading: authLoading } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savedMethods, setSavedMethods] = useState<SavedPaymentMethod[]>([]);
+  const [loadingMethods, setLoadingMethods] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const fetchMethods = useCallback(async () => {
+    if (!user) return;
+    setLoadingMethods(true);
+    try {
+      const methods = await listPaymentMethods();
+      setSavedMethods(methods);
+    } catch {
+      // silently fail — show empty state
+    } finally {
+      setLoadingMethods(false);
+    }
+  }, [user]);
+
+  useEffect(() => { fetchMethods(); }, [fetchMethods]);
+
+  const handleRemove = async (pmId: string) => {
+    setRemovingId(pmId);
+    try {
+      await removePaymentMethod(pmId);
+      setSavedMethods((prev) => prev.filter((m) => m.id !== pmId));
+    } catch {
+      // silently fail
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   useEffect(() => {
     // If auth is still resolving, wait
@@ -125,19 +158,65 @@ export default function BillingTab() {
       <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <h3 className="text-white font-semibold text-sm">Saved payment methods</h3>
-          <button className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-blue-400 transition-colors">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-blue-400 transition-colors"
+          >
             <Plus className="w-3.5 h-3.5" />
             Add new
           </button>
         </div>
-        <div className="flex flex-col items-center justify-center py-10 gap-3">
-          <CreditCard className="w-9 h-9 text-slate-700" />
-          <p className="text-slate-500 text-sm">No saved payment methods.</p>
-          <p className="text-slate-600 text-xs text-center max-w-xs">
-            Save a card or bank account for faster checkout on future orders.
-          </p>
-        </div>
+
+        {loadingMethods ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-5 h-5 animate-spin text-slate-600" />
+          </div>
+        ) : savedMethods.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-3">
+            <CreditCard className="w-9 h-9 text-slate-700" />
+            <p className="text-slate-500 text-sm">No saved payment methods.</p>
+            <p className="text-slate-600 text-xs text-center max-w-xs">
+              Save a card for faster checkout on future orders.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-800">
+            {savedMethods.map((pm) => (
+              <div key={pm.id} className="flex items-center gap-4 px-5 py-3.5">
+                <div className="w-8 h-8 rounded-lg bg-[#0E1422] border border-slate-800 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium">
+                    {pm.brand.charAt(0).toUpperCase() + pm.brand.slice(1)} ending in {pm.last4}
+                  </p>
+                  <p className="text-slate-500 text-xs mt-0.5">
+                    Expires {String(pm.expMonth).padStart(2, '0')}/{pm.expYear}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRemove(pm.id)}
+                  disabled={removingId === pm.id}
+                  className="text-slate-600 hover:text-red-400 transition-colors disabled:opacity-40"
+                  title="Remove card"
+                >
+                  {removingId === pm.id
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Trash2 className="w-4 h-4" />
+                  }
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {showAddModal && (
+        <AddPaymentMethodModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => { setShowAddModal(false); fetchMethods(); }}
+        />
+      )}
 
       {/* Payment history */}
       <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">

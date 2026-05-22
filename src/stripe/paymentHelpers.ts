@@ -5,11 +5,11 @@ import type {
   WithdrawRequest,
   WithdrawResponse,
   StripeConnectStatus,
+  SavedPaymentMethod,
 } from './types';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-// ── Helper: get Firebase ID token and call the Express API ───────────────────
 async function apiFetch<T>(
   path: string,
   body: Record<string, unknown>
@@ -31,7 +31,28 @@ async function apiFetch<T>(
   return data as T;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+async function apiGet<T>(path: string): Promise<T> {
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+  return data as T;
+}
+
+async function apiDelete<T>(path: string): Promise<T> {
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+  return data as T;
+}
 
 /**
  * Creates a Stripe embedded checkout session and returns the client secret.
@@ -86,4 +107,27 @@ export async function checkConnectStatus(
  */
 export async function requestWithdrawal(amount: number): Promise<WithdrawResponse> {
   return apiFetch<WithdrawResponse>('/api/withdraw', { amount } as WithdrawRequest as unknown as Record<string, unknown>);
+}
+
+/**
+ * Creates a Stripe SetupIntent for saving a payment method.
+ * The backend also creates/retrieves a Stripe Customer for the current user.
+ */
+export async function createSetupIntent(): Promise<{ clientSecret: string }> {
+  return apiFetch<{ clientSecret: string }>('/api/payment-methods/setup-intent', {});
+}
+
+/**
+ * Lists saved payment methods for the current user.
+ */
+export async function listPaymentMethods(): Promise<SavedPaymentMethod[]> {
+  const data = await apiGet<{ paymentMethods: SavedPaymentMethod[] }>('/api/payment-methods');
+  return data.paymentMethods;
+}
+
+/**
+ * Detaches (removes) a saved payment method.
+ */
+export async function removePaymentMethod(pmId: string): Promise<void> {
+  await apiDelete<{ success: boolean }>(`/api/payment-methods/${pmId}`);
 }

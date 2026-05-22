@@ -691,6 +691,98 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/payment-methods/setup-intent
+// Creates/retrieves a Stripe Customer for the user and returns a SetupIntent
+// client secret so the frontend can mount a PaymentElement to save a card.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/payment-methods/setup-intent', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const userSnap = await db.ref(`users/${uid}`).get();
+    const userData = userSnap.val() as { email?: string; name?: string; stripeCustomerId?: string } | null;
+
+    let customerId = userData?.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        ...(userData?.email ? { email: userData.email } : {}),
+        ...(userData?.name  ? { name:  userData.name  } : {}),
+        metadata: { firebaseUid: uid },
+      });
+      customerId = customer.id;
+      await db.ref(`users/${uid}/stripeCustomerId`).set(customerId);
+    }
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+    });
+
+    res.json({ clientSecret: setupIntent.client_secret });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/payment-methods/setup-intent error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/payment-methods
+// Lists saved card payment methods for the current user's Stripe Customer.
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/payment-methods', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const snap = await db.ref(`users/${uid}/stripeCustomerId`).get();
+    const customerId = snap.val() as string | null;
+
+    if (!customerId) {
+      res.json({ paymentMethods: [] }); return;
+    }
+
+    const methods = await stripe.paymentMethods.list({ customer: customerId, type: 'card' });
+    res.json({
+      paymentMethods: methods.data.map((pm) => ({
+        id: pm.id,
+        brand: pm.card?.brand ?? 'card',
+        last4: pm.card?.last4 ?? '****',
+        expMonth: pm.card?.exp_month ?? 0,
+        expYear: pm.card?.exp_year ?? 0,
+      })),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/payment-methods error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/payment-methods/:pmId
+// Detaches a saved payment method from the user's Stripe Customer.
+// ─────────────────────────────────────────────────────────────────────────────
+app.delete('/api/payment-methods/:pmId', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const { pmId } = req.params;
+
+    const snap = await db.ref(`users/${uid}/stripeCustomerId`).get();
+    const customerId = snap.val() as string | null;
+    if (!customerId) { res.status(404).json({ error: 'No saved methods found' }); return; }
+
+    const pm = await stripe.paymentMethods.retrieve(pmId);
+    if (pm.customer !== customerId) { res.status(403).json({ error: 'Forbidden' }); return; }
+
+    await stripe.paymentMethods.detach(pmId);
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error(`/api/payment-methods/${req.params.pmId} delete error:`, msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);
 
