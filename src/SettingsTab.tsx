@@ -440,7 +440,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
       {/* ── Security ── */}
       {section === 'security' && (
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-6 space-y-5 max-w-lg">
+        <div className="bg-[#111827] border border-slate-800 rounded-xl p-6 space-y-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Shield className="w-4.5 h-4.5 text-primary" />
@@ -458,7 +458,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
           {isEmailProvider ? (
             <>
               {/* Current password */}
-              <div>
+              <div className="max-w-lg">
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Current password
                 </label>
@@ -482,7 +482,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
               </div>
 
               {/* New password */}
-              <div>
+              <div className="max-w-lg">
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   New password
                 </label>
@@ -506,7 +506,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
               </div>
 
               {/* Confirm new password */}
-              <div>
+              <div className="max-w-lg">
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Confirm new password
                 </label>
@@ -546,7 +546,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
               </button>
             </>
           ) : (
-            <div className="bg-[#0E1422] border border-slate-700 rounded-lg p-4">
+            <div className="max-w-lg bg-[#0E1422] border border-slate-700 rounded-lg p-4">
               <p className="text-slate-400 text-sm">
                 To manage your password, visit your{' '}
                 <span className="text-white font-medium">Google Account</span> settings at

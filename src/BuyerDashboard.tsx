@@ -7,10 +7,9 @@ import {
   CreditCard,
   Settings,
   RefreshCw,
-  Search,
   CheckCircle,
   LayoutDashboard,
-  MessageSquare,
+  BadgeDollarSign,
   LogOut,
 } from 'lucide-react';
 import Logo from './Logo';
@@ -48,7 +47,6 @@ const BuyerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Home');
-  const [searchQuery, setSearchQuery] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const [paymentSuccessToast, setPaymentSuccessToast] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -178,12 +176,6 @@ const BuyerDashboard = () => {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
   const isMessagesTab = activeTab === 'Messages';
 
   return (
@@ -263,18 +255,7 @@ const BuyerDashboard = () => {
           <span className="md:hidden mr-3">
             <Logo className="h-5" />
           </span>
-          <div className="flex items-center flex-1">
-            <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-500 mr-2 md:mr-3 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search services…"
-              autoComplete="one-time-code"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="bg-transparent border-none text-sm text-white focus:outline-none w-full max-w-sm placeholder-slate-500"
-            />
-          </div>
+          <div className="flex-1" />
           <div className="flex items-center gap-2 md:gap-4">
             <NotificationBell onNavigate={setActiveTab} />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
@@ -313,7 +294,7 @@ const BuyerDashboard = () => {
                       onClick={() => { setActiveTab('Messages'); setShowUserMenu(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
-                      <MessageSquare className="w-4 h-4 shrink-0 text-slate-500" />
+                      <MessagesIcon className="w-4 h-4 shrink-0 text-slate-500" />
                       Messages
                     </button>
                     <button
@@ -323,6 +304,14 @@ const BuyerDashboard = () => {
                       <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
                       Saved Services
                     </button>
+                    <Link
+                      to="/affiliate"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
+                      Affiliate Program
+                    </Link>
                     <button
                       onClick={() => { setActiveTab('Settings'); setShowUserMenu(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
@@ -386,8 +375,8 @@ const BuyerDashboard = () => {
             </div>
           )}
 
-          {activeTab === 'Orders' && <OrdersTab mode="buyer" searchQuery={searchQuery} />}
-          {activeTab === 'Saved' && <SavedTab searchQuery={searchQuery} />}
+          {activeTab === 'Orders' && <OrdersTab mode="buyer" searchQuery="" />}
+          {activeTab === 'Saved' && <SavedTab searchQuery="" />}
           {activeTab === 'Settings' && <SettingsTab mode="buyer" />}
           {activeTab === 'Billing' && <BillingTab />}
 

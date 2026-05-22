@@ -3,7 +3,7 @@ import { ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
 
-import { ShieldCheck, CreditCard, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ShieldCheck, CreditCard, Clock, CheckCircle, XCircle, Loader2, Plus } from 'lucide-react';
 import type { Payment } from '../stripe/types';
 
 const statusStyles: Record<string, string> = {
@@ -83,7 +83,7 @@ export default function BillingTab() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 w-full">
       <div>
         <h2 className="text-xl font-bold text-white">Billing & Payments</h2>
         <p className="text-slate-400 text-sm mt-1">Your payment history through Gigspace escrow.</p>
@@ -117,6 +117,24 @@ export default function BillingTab() {
           <p className="text-blue-400/70 text-xs mt-0.5 leading-relaxed">
             Payments are held securely until you approve the delivery. Funds are only released to the
             seller once you're satisfied with the work.
+          </p>
+        </div>
+      </div>
+
+      {/* Saved payment methods */}
+      <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <h3 className="text-white font-semibold text-sm">Saved payment methods</h3>
+          <button className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-blue-400 transition-colors">
+            <Plus className="w-3.5 h-3.5" />
+            Add new
+          </button>
+        </div>
+        <div className="flex flex-col items-center justify-center py-10 gap-3">
+          <CreditCard className="w-9 h-9 text-slate-700" />
+          <p className="text-slate-500 text-sm">No saved payment methods.</p>
+          <p className="text-slate-600 text-xs text-center max-w-xs">
+            Save a card or bank account for faster checkout on future orders.
           </p>
         </div>
       </div>
