@@ -1232,8 +1232,8 @@ const BuyerSearch = () => {
           <Link to="/for-sellers" className="hover:text-white transition-colors">For Sellers</Link>
           <Link to="/" className="hover:text-white transition-colors">For Buyers</Link>
           <Link to="/affiliate" className="hover:text-white transition-colors">Affiliate Program</Link>
-          <button className="hover:text-white transition-colors">Terms &amp; Conditions</button>
-          <button className="hover:text-white transition-colors">Privacy Policy</button>
+          <button className="hover:text-white transition-colors cursor-pointer">Terms &amp; Conditions</button>
+          <button className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
         </div>
         <p className="text-xs text-slate-500">© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
