@@ -1121,7 +1121,7 @@ export default function ChatMessages({
                   value={inputText}
                   onChange={(e) => { setInputText(e.target.value); autoResizeInput(e.target); }}
                   onKeyDown={handleKeyDown}
-                  placeholder={imageFile ? 'Add a caption… (Enter to send)' : 'Type a message… (Enter to send)'}
+                  placeholder={imageFile ? 'Add a caption…' : 'Type a message…'}
                   className="flex-1 bg-[#0E1422] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   rows={1}
                   style={{ minHeight: '40px' }}
