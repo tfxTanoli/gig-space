@@ -28,12 +28,10 @@ if (!admin.apps.length) {
       );
       credential = admin.credential.cert(parsed);
     } else {
-      console.error(
-        `[Firebase] serviceAccountKey.json not found at: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}\n` +
-        `  → Download it from Firebase Console → Project Settings → Service Accounts → Generate new private key\n` +
-        `  → Save it as server/serviceAccountKey.json  OR  paste its contents into FIREBASE_SERVICE_ACCOUNT_JSON in server/.env`
+      throw new Error(
+        `[Firebase] serviceAccountKey.json not found at: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}. ` +
+        `Set FIREBASE_SERVICE_ACCOUNT_BASE64 or FIREBASE_SERVICE_ACCOUNT_JSON in your environment variables.`
       );
-      process.exit(1);
     }
   }
 
@@ -74,10 +72,11 @@ async function readMinWithdrawal(): Promise<number> {
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (e.g. server-to-server, curl)
+    // Allow requests with no origin (e.g. server-to-server, curl, Vercel health checks)
     if (!origin) return cb(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: origin ${origin} not allowed`));
+    // Return false (not an Error) so Express responds with 403, not 500
+    cb(null, false);
   },
   credentials: true,
 }));
