@@ -284,16 +284,16 @@ const ServiceDetail = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
 
       {/* ── Header ── */}
-      <header className="bg-[#0E1422] border-b border-slate-800/70 px-6 py-3.5 flex items-center justify-between">
+      <header className="bg-[#0E1422] border-b border-slate-800/70 px-4 md:px-6 py-3.5 flex items-center justify-between">
         <Logo className="h-5" />
-        <div className="flex items-center gap-5">
-          <button className="text-slate-400 hover:text-white transition-colors">
+        <div className="flex items-center gap-3 md:gap-5">
+          <button className="text-slate-400 hover:text-white transition-colors hidden md:block">
             <MessageCircle className="w-5 h-5" />
           </button>
-          <button className="text-slate-400 hover:text-white transition-colors">
+          <button className="text-slate-400 hover:text-white transition-colors hidden md:block">
             <Bell className="w-5 h-5" />
           </button>
-          <Link to="/post-service" className="text-white text-sm font-medium hover:text-slate-300 transition-colors">
+          <Link to="/post-service" className="text-white text-sm font-medium hover:text-slate-300 transition-colors hidden md:block">
             Create New Post
           </Link>
           <CurrentUserAvatar size="sm" />
@@ -301,10 +301,10 @@ const ServiceDetail = () => {
       </header>
 
       {/* ── Main two-column content ── */}
-      <main className="max-w-6xl mx-auto w-full px-6 lg:px-10 py-8 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10">
+      <main className="max-w-6xl mx-auto w-full px-4 md:px-6 lg:px-10 py-6 md:py-8 flex flex-col lg:grid lg:grid-cols-[1fr_380px] gap-8 md:gap-10">
 
-        {/* ═══ LEFT COLUMN ═══ */}
-        <div>
+        {/* ═══ LEFT COLUMN — images + description (shown after CTA on mobile) ═══ */}
+        <div className="order-2 lg:order-1">
           {/* Main image / placeholder */}
           {images.length > 0 ? (
             <>
@@ -359,8 +359,8 @@ const ServiceDetail = () => {
           </div>
         </div>
 
-        {/* ═══ RIGHT COLUMN ═══ */}
-        <div>
+        {/* ═══ RIGHT COLUMN — price/CTA (shown first on mobile) ═══ */}
+        <div className="order-1 lg:order-2">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
             <Link to="/search" className="hover:text-white transition-colors">All Services</Link>
@@ -516,7 +516,7 @@ const ServiceDetail = () => {
       </main>
 
       {/* ── Customer Reviews ── */}
-      <section className="border-t border-slate-800/60 px-6 lg:px-10 py-10 max-w-6xl mx-auto w-full">
+      <section className="border-t border-slate-800/60 px-4 md:px-6 lg:px-10 py-8 md:py-10 max-w-6xl mx-auto w-full">
         <h2 className="text-xl font-bold text-white mb-6">Customer Reviews</h2>
 
         {reviewsLoading ? (

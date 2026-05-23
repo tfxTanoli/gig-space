@@ -1,4 +1,5 @@
-import { ArrowRight, ShieldCheck, Zap, Globe, Scale, Heart, Users } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, ShieldCheck, Zap, Globe, Scale, Heart, Users, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -39,15 +40,18 @@ const values = [
 
 const AboutUs = () => {
   const { user } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Header */}
-      <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
+      <header className="w-full px-4 py-4 md:px-6 md:py-6 lg:px-12 flex justify-between items-center relative">
         <div className="flex items-center">
           <Logo className="h-6" />
         </div>
-        <nav className="flex items-center space-x-6 text-sm font-medium">
+
+        {/* Desktop nav */}
+        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
           {user ? (
             <HeaderUserMenu />
           ) : (
@@ -59,18 +63,43 @@ const AboutUs = () => {
             </>
           )}
         </nav>
+
+        {/* Mobile hamburger */}
+        <button
+          className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
+          onClick={() => setMenuOpen(prev => !prev)}
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+            {user ? (
+              <HeaderUserMenu />
+            ) : (
+              <>
+                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
+                <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                  Sign up <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center pt-20 pb-24 px-4 text-center max-w-4xl mx-auto">
-        <div className="inline-block border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold text-slate-300 mb-8 tracking-wide">
+      <section className="flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-24 px-4 text-center max-w-4xl mx-auto">
+        <div className="inline-block border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold text-slate-300 mb-6 md:mb-8 tracking-wide">
           About Us
         </div>
-        
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight tracking-tight">
+
+        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight tracking-tight">
           Changing the way people<br />work together
         </h1>
-        <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+        <p className="text-slate-400 text-base md:text-lg lg:text-xl max-w-2xl mx-auto leading-relaxed">
           From home services to digital work, Gigspace brings people together to collaborate, create, and accomplish any project big or small.
         </p>
       </section>

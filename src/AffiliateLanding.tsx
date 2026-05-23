@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, UserPlus, Share2, DollarSign, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, UserPlus, Share2, DollarSign, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -51,6 +51,7 @@ const categories = [
 const AffiliateLanding = () => {
   const { user, loading } = useAuth();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -65,9 +66,11 @@ const AffiliateLanding = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
 
       {/* Header */}
-      <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
+      <header className="w-full px-4 py-4 md:px-6 md:py-6 lg:px-12 flex justify-between items-center relative">
         <Logo className="h-6" />
-        <nav className="flex items-center space-x-6 text-sm font-medium">
+
+        {/* Desktop nav */}
+        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
           {!loading && (
             user ? (
               <HeaderUserMenu />
@@ -86,15 +89,48 @@ const AffiliateLanding = () => {
             )
           )}
         </nav>
+
+        {/* Mobile hamburger */}
+        <button
+          className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
+          onClick={() => setMenuOpen(prev => !prev)}
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+            {!loading && (
+              user ? (
+                <HeaderUserMenu />
+              ) : (
+                <>
+                  <Link to="/affiliate-signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
+                    Affiliate Log In
+                  </Link>
+                  <Link
+                    to="/affiliate-signup"
+                    className="flex items-center justify-center text-white px-4 py-3 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
+                  </Link>
+                </>
+              )
+            )}
+          </div>
+        )}
       </header>
 
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center pt-20 pb-28 px-4 text-center">
-        <p className="text-slate-400 text-sm mb-8">The Gigspace affiliate program is now live!</p>
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-cyan-400 mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
+      <section className="flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-28 px-4 text-center">
+        <p className="text-slate-400 text-sm mb-6 md:mb-8">The Gigspace affiliate program is now live!</p>
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-cyan-400 mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
           Earn Big Commissions for<br />Every Job Booked
         </h1>
-        <p className="text-slate-400 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
+        <p className="text-slate-400 text-base md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed">
           Get paid every time someone hires a service through your link.
           Earn 50% of our platform fee on every completed job.
         </p>

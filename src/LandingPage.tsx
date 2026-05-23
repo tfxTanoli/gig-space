@@ -67,7 +67,7 @@ const LandingPage = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
 
       {/* Header */}
-      <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center relative">
+      <header className="w-full px-4 py-4 md:px-6 md:py-6 lg:px-12 flex justify-between items-center relative">
         <div className="flex items-center">
           <Logo className="h-6" />
         </div>
@@ -117,12 +117,12 @@ const LandingPage = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="flex-1 flex flex-col items-center justify-center pt-24 pb-16 px-4 text-center">
-        <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+      <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-24 pb-12 md:pb-16 px-4 text-center">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6">
           Local talent. On demand.
         </h1>
-        <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-12">
-          Hire talented pros for in-person services or remote experts for digital work. 
+        <p className="text-slate-400 text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 md:mb-12">
+          Hire talented pros for in-person services or remote experts for digital work.
           <br className="hidden md:block"/>
           One marketplace for everything you need.
         </p>
@@ -153,9 +153,9 @@ const LandingPage = () => {
       </section>
 
       {/* Categories Section */}
-      <section className="px-6 lg:px-12 py-16">
-        <div className="flex justify-between items-center mb-10 max-w-7xl mx-auto">
-          <h2 className="text-lg font-semibold text-slate-300">Popular Service Categories</h2>
+      <section className="px-4 md:px-6 lg:px-12 py-10 md:py-16">
+        <div className="flex justify-between items-center mb-6 md:mb-10 max-w-7xl mx-auto">
+          <h2 className="text-base md:text-lg font-semibold text-slate-300">Popular Service Categories</h2>
           <div className="flex items-center space-x-2">
             <button className="w-8 h-8 rounded-full bg-[#1A2035] flex items-center justify-center text-slate-400 hover:text-white transition-colors">
               <ChevronLeft className="w-4 h-4" />
@@ -165,8 +165,8 @@ const LandingPage = () => {
             </button>
           </div>
         </div>
-        
-        <div className="flex flex-wrap justify-center gap-8 md:gap-12 max-w-7xl mx-auto">
+
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 md:gap-8 max-w-7xl mx-auto">
           {categories.map((cat, index) => {
             const Icon = cat.icon;
             return (
@@ -175,10 +175,10 @@ const LandingPage = () => {
                 to={`/search?category=${encodeURIComponent(cat.name)}`}
                 className="flex flex-col items-center group cursor-pointer"
               >
-                <div className="w-20 h-20 rounded-full bg-[#1A2035] flex items-center justify-center mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-[#212942]">
-                  <Icon className="w-8 h-8 text-primary" strokeWidth={1.5} />
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#1A2035] flex items-center justify-center mb-3 md:mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-[#212942]">
+                  <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary" strokeWidth={1.5} />
                 </div>
-                <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors text-center">
                   {cat.name}
                 </span>
               </Link>

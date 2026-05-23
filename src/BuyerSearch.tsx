@@ -706,108 +706,141 @@ const BuyerSearch = () => {
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
-      {/* Header — 3-column grid so search bar is centered */}
-      <header className="w-full px-6 py-4 lg:px-12 grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-slate-800">
-        <Logo className="h-6" onClick={(e) => { e.preventDefault(); window.location.href = '/search'; }} />
+      {/* Header */}
+      <header className="w-full px-4 py-3 md:px-6 md:py-4 lg:px-12 border-b border-slate-800">
+        {/* Top row: logo + right actions */}
+        <div className="flex items-center gap-3">
+          <Logo className="h-5 md:h-6 shrink-0" onClick={(e) => { e.preventDefault(); window.location.href = '/search'; }} />
 
-        <div className="hidden md:flex items-center justify-center">
-          <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl">
-            <LocationSearch
-              value={activeLocation}
-              onChange={handleLocationChange}
-              variant="header"
-            />
-            <input
-              type="text"
-              placeholder="Search for a service"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
-              className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-500"
-            />
-            <button
-              onClick={commitSearch}
-              className="bg-primary h-full px-4 flex items-center justify-center hover:bg-blue-600 transition-colors rounded-r-lg"
-            >
-              <Search className="w-4 h-4 text-white" />
-            </button>
+          {/* Desktop search — centered */}
+          <div className="hidden md:flex flex-1 items-center justify-center">
+            <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl">
+              <LocationSearch
+                value={activeLocation}
+                onChange={handleLocationChange}
+                variant="header"
+              />
+              <input
+                type="text"
+                placeholder="Search for a service"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
+                className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-500"
+              />
+              <button
+                onClick={commitSearch}
+                className="bg-primary h-full px-4 flex items-center justify-center hover:bg-blue-600 transition-colors rounded-r-lg"
+              >
+                <Search className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 md:gap-4 ml-auto shrink-0">
+            <span className="text-slate-600 hidden md:block" aria-hidden="true">
+              <MessageCircle className="w-5 h-5" />
+            </span>
+            <span className="text-slate-600 hidden md:block" aria-hidden="true" title="Notifications coming soon">
+              <Bell className="w-5 h-5" />
+            </span>
+            {user && (
+              <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden lg:block">
+                Create New Post
+              </Link>
+            )}
+            {user ? (
+              <div ref={menuRef} className="relative">
+                <button
+                  onClick={() => setShowMenu((v) => !v)}
+                  className="focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full"
+                  aria-label="Open user menu"
+                  aria-expanded={showMenu}
+                >
+                  <CurrentUserAvatar size="sm" />
+                </button>
+
+                {showMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                    <div className="px-4 py-3 border-b border-slate-800">
+                      <p className="text-white text-sm font-semibold truncate">
+                        {userProfile?.name ?? 'User'}
+                      </p>
+                      <p className="text-slate-500 text-xs truncate mt-0.5">
+                        {user?.email ?? ''}
+                      </p>
+                    </div>
+
+                    <div className="py-1">
+                      <Link to="/buyer-dashboard" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                        <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
+                        Dashboard
+                      </Link>
+                      <Link to="/buyer-dashboard?tab=Messages" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                        <MessagesIcon className="w-4 h-4 shrink-0 text-slate-500" />
+                        Messages
+                      </Link>
+                      <Link to="/buyer-dashboard?tab=Saved" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                        <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
+                        Saved Services
+                      </Link>
+                      <Link to="/affiliate" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                        <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
+                        Affiliate Program
+                      </Link>
+                      {user && (
+                        <Link to="/post-service" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors lg:hidden">
+                          <Settings className="w-4 h-4 shrink-0 text-slate-500" />
+                          Create New Post
+                        </Link>
+                      )}
+                      <Link to="/buyer-dashboard?tab=Settings" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                        <Settings className="w-4 h-4 shrink-0 text-slate-500" />
+                        Settings
+                      </Link>
+                    </div>
+
+                    <div className="border-t border-slate-800 py-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-slate-800/80 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4 shrink-0" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link to="/signin" className="text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                Log in
+              </Link>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-6 shrink-0">
-          <span className="text-slate-600" aria-hidden="true">
-            <MessageCircle className="w-5 h-5" />
-          </span>
-          <span className="text-slate-600" aria-hidden="true" title="Notifications coming soon">
-            <Bell className="w-5 h-5" />
-          </span>
-          {user && (
-            <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
-              Create New Post
-            </Link>
-          )}
-          {user ? (
-            <div ref={menuRef} className="relative">
-              <button
-                onClick={() => setShowMenu((v) => !v)}
-                className="focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full"
-                aria-label="Open user menu"
-                aria-expanded={showMenu}
-              >
-                <CurrentUserAvatar size="sm" />
-              </button>
-
-              {showMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-slate-800">
-                    <p className="text-white text-sm font-semibold truncate">
-                      {userProfile?.name ?? 'User'}
-                    </p>
-                    <p className="text-slate-500 text-xs truncate mt-0.5">
-                      {user?.email ?? ''}
-                    </p>
-                  </div>
-
-                  <div className="py-1">
-                    <Link to="/buyer-dashboard" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                      <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
-                      Dashboard
-                    </Link>
-                    <Link to="/buyer-dashboard?tab=Messages" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                      <MessagesIcon className="w-4 h-4 shrink-0 text-slate-500" />
-                      Messages
-                    </Link>
-                    <Link to="/buyer-dashboard?tab=Saved" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                      <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
-                      Saved Services
-                    </Link>
-                    <Link to="/affiliate" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                      <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
-                      Affiliate Program
-                    </Link>
-                    <Link to="/buyer-dashboard?tab=Settings" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                      <Settings className="w-4 h-4 shrink-0 text-slate-500" />
-                      Settings
-                    </Link>
-                  </div>
-
-                  <div className="border-t border-slate-800 py-1">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-slate-800/80 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4 shrink-0" />
-                      Sign Out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link to="/signin" className="text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
-              Log in
-            </Link>
-          )}
+        {/* Mobile search bar — shown only on small screens */}
+        <div className="md:hidden mt-3 flex items-center bg-[#1A2035] border border-slate-700 rounded-lg h-10">
+          <LocationSearch
+            value={activeLocation}
+            onChange={handleLocationChange}
+            variant="header"
+          />
+          <input
+            type="text"
+            placeholder="Search for a service"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
+            className="flex-1 bg-transparent px-3 text-sm text-white focus:outline-none placeholder-slate-500 min-w-0"
+          />
+          <button
+            onClick={commitSearch}
+            className="bg-primary h-full px-3 flex items-center justify-center hover:bg-blue-600 transition-colors rounded-r-lg"
+          >
+            <Search className="w-4 h-4 text-white" />
+          </button>
         </div>
       </header>
 
@@ -829,7 +862,7 @@ const BuyerSearch = () => {
             className="overflow-x-auto px-6 lg:px-12 py-3 flex-1"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <ul className="flex items-center text-sm text-slate-400 whitespace-nowrap font-medium min-w-max w-full justify-between">
+            <ul className="flex items-center gap-5 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max w-full justify-between">
               {categoryOptions.map((cat) => (
                 <li key={cat.value}
                   onMouseEnter={() => subcategoryMap[cat.value] && showFlyout(cat.value)}
@@ -903,7 +936,7 @@ const BuyerSearch = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 px-6 lg:px-12 py-10">
+      <main className="flex-1 px-4 md:px-6 lg:px-12 py-6 md:py-10">
         {activeCategory && (
           <nav className="text-sm font-medium mb-3">
             <button onClick={clearCategory} className="text-slate-400 hover:text-white transition-colors">
@@ -914,7 +947,7 @@ const BuyerSearch = () => {
           </nav>
         )}
 
-        <h1 className="text-3xl font-bold mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-5 md:mb-8">
           {(() => {
             const catLabel = activeCategory ? getCategoryLabel(activeCategory) : '';
             const subLabel = activeSubcategory ? getSubcategoryLabel(activeCategory, activeSubcategory) : '';
@@ -925,23 +958,27 @@ const BuyerSearch = () => {
           })()}
         </h1>
 
-        {/* Filter bar */}
-        <div ref={filterBarRef} className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-6">
-          {/* Sort */}
-          <FilterDropdown
-            label={sortBy === 'newest' ? 'Sort' : sortBy === 'oldest' ? 'Oldest first' : sortBy === 'price_asc' ? 'Price: Low → High' : 'Price: High → Low'}
-            isOpen={openDropdown === 'sort'}
-            active={sortBy !== 'newest'}
-            onToggle={() => toggleDropdown('sort')}
-            align="left"
-          >
-            <Opt label="Newest first"       selected={sortBy === 'newest'}     onClick={() => { setSortBy('newest');     setOpenDropdown(null); }} />
-            <Opt label="Oldest first"       selected={sortBy === 'oldest'}     onClick={() => { setSortBy('oldest');     setOpenDropdown(null); }} />
-            <Opt label="Price: Low → High"  selected={sortBy === 'price_asc'}  onClick={() => { setSortBy('price_asc'); setOpenDropdown(null); }} />
-            <Opt label="Price: High → Low"  selected={sortBy === 'price_desc'} onClick={() => { setSortBy('price_desc'); setOpenDropdown(null); }} />
-          </FilterDropdown>
+        {/* Filter bar — horizontally scrollable on mobile */}
+        <div ref={filterBarRef} className="mb-6 border-b border-slate-800 pb-4">
+          <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex items-center gap-4 md:gap-6 min-w-max md:min-w-0 md:flex-wrap">
+              {/* Sort */}
+              <FilterDropdown
+                label={sortBy === 'newest' ? 'Sort' : sortBy === 'oldest' ? 'Oldest first' : sortBy === 'price_asc' ? 'Price: Low → High' : 'Price: High → Low'}
+                isOpen={openDropdown === 'sort'}
+                active={sortBy !== 'newest'}
+                onToggle={() => toggleDropdown('sort')}
+                align="left"
+              >
+                <Opt label="Newest first"       selected={sortBy === 'newest'}     onClick={() => { setSortBy('newest');     setOpenDropdown(null); }} />
+                <Opt label="Oldest first"       selected={sortBy === 'oldest'}     onClick={() => { setSortBy('oldest');     setOpenDropdown(null); }} />
+                <Opt label="Price: Low → High"  selected={sortBy === 'price_asc'}  onClick={() => { setSortBy('price_asc'); setOpenDropdown(null); }} />
+                <Opt label="Price: High → Low"  selected={sortBy === 'price_desc'} onClick={() => { setSortBy('price_desc'); setOpenDropdown(null); }} />
+              </FilterDropdown>
 
-          <div className="flex flex-wrap items-center gap-6">
+              <div className="w-px h-5 bg-slate-700 shrink-0" />
+
+          <div className="flex items-center gap-4 md:gap-6">
             {/* Subcategory */}
             {activeCategory && subcategoryMap[activeCategory] && (
               <FilterDropdown
@@ -1128,6 +1165,8 @@ const BuyerSearch = () => {
               />
             </FilterDropdown>
           </div>
+            </div>
+          </div>
         </div>
 
         {/* Applied filter chips */}
@@ -1184,7 +1223,7 @@ const BuyerSearch = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
               {paginatedPosts.map((post) => (
                 <ServiceCard
                   key={post.id}

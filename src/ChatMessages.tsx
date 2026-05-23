@@ -703,7 +703,7 @@ export default function ChatMessages({
       <div className="flex rounded-xl border border-slate-800 overflow-hidden flex-1 min-h-0 h-full">
         {/* Left: Conversation list */}
         <div
-          className={`w-72 shrink-0 border-r border-slate-800 bg-[#111827] flex flex-col ${
+          className={`w-full md:w-72 shrink-0 border-r border-slate-800 bg-[#111827] flex flex-col ${
             selectedConvId ? 'hidden md:flex' : 'flex'
           }`}
         >

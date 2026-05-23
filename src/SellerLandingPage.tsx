@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircle2, Menu, X } from 'lucide-react';
 import Logo from './Logo';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -43,6 +43,7 @@ const faqs = [
 
 const SellerLandingPage = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
 
   const toggleFaq = (index: number) => {
@@ -52,11 +53,13 @@ const SellerLandingPage = () => {
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Header */}
-      <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
+      <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center relative">
         <div className="flex items-center">
           <Logo className="h-6" />
         </div>
-        <nav className="flex items-center space-x-6 text-sm font-medium">
+
+        {/* Desktop nav */}
+        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
           <Link to="/" className="text-white hover:text-slate-300 transition-colors">For Buyers</Link>
           <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
           {user ? (
@@ -70,19 +73,46 @@ const SellerLandingPage = () => {
             </>
           )}
         </nav>
+
+        {/* Mobile hamburger */}
+        <button
+          className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
+          onClick={() => setMenuOpen(prev => !prev)}
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
+        {/* Mobile dropdown menu */}
+        {menuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+            <Link to="/" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Buyers</Link>
+            <Link to="/affiliate-signup" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
+            {user ? (
+              <HeaderUserMenu />
+            ) : (
+              <>
+                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
+                <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                  Sign up <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
-      <section className="flex-1 flex flex-col items-center justify-center pt-24 pb-20 px-4 text-center">
-        <div className="inline-flex flex-row items-center bg-[#1A2035] text-white border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold mb-8 space-x-2">
+      <section className="flex-1 flex flex-col items-center justify-center pt-12 md:pt-24 pb-16 md:pb-20 px-4 text-center">
+        <div className="inline-flex flex-row items-center bg-[#1A2035] text-white border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 md:mb-8 space-x-2">
           <span>✨</span>
           <span>A global marketplace for talent</span>
         </div>
-        
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
+
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
           Get Discovered. Get Hired.<br/>Get Paid.
         </h1>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed">
           Reach thousands of buyers searching for local and remote gigs.<br className="hidden md:block" />
           Turn your skills into a booming business without the guesswork.
         </p>

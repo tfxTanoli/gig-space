@@ -474,23 +474,23 @@ const PostService = () => {
               {(existingImageURLs.length > 0 || imagePreviews.length > 0) && (
                 <div className="grid grid-cols-3 gap-3">
                   {existingImageURLs.map((src, i) => (
-                    <div key={`existing-${i}`} className="relative group aspect-square rounded-lg overflow-hidden bg-[#1A2035]">
+                    <div key={`existing-${i}`} className="relative aspect-square rounded-lg overflow-hidden bg-[#1A2035]">
                       <img src={src} alt={`existing ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <button
                         onClick={() => removeExistingImage(i)}
-                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1.5 right-1.5 w-7 h-7 bg-black/70 rounded-full flex items-center justify-center transition-opacity hover:bg-black/90"
                       >
                         <X className="w-3.5 h-3.5 text-white" />
                       </button>
                     </div>
                   ))}
                   {imagePreviews.map((src, i) => (
-                    <div key={`new-${i}`} className="relative group aspect-square rounded-lg overflow-hidden bg-[#1A2035]">
+                    <div key={`new-${i}`} className="relative aspect-square rounded-lg overflow-hidden bg-[#1A2035]">
                       <img src={src} alt={`new upload ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <div className="absolute top-1.5 left-1.5 bg-primary/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">NEW</div>
                       <button
                         onClick={() => removeImage(i)}
-                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1.5 right-1.5 w-7 h-7 bg-black/70 rounded-full flex items-center justify-center transition-opacity hover:bg-black/90"
                       >
                         <X className="w-3.5 h-3.5 text-white" />
                       </button>
