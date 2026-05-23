@@ -708,7 +708,7 @@ const BuyerSearch = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Header — 3-column grid so search bar is centered */}
       <header className="w-full px-6 py-4 lg:px-12 grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-slate-800">
-        <Logo className="h-6" />
+        <Logo className="h-6" onClick={(e) => { e.preventDefault(); window.location.href = '/search'; }} />
 
         <div className="hidden md:flex items-center justify-center">
           <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg h-10 w-full max-w-xl">
@@ -837,7 +837,7 @@ const BuyerSearch = () => {
                 >
                   <button
                     onClick={() => selectCategory(cat.value)}
-                    className={`transition-colors py-1 ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
+                    className={`transition-colors py-1 cursor-pointer ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
                   >
                     {cat.label}
                   </button>
@@ -864,16 +864,10 @@ const BuyerSearch = () => {
             onMouseLeave={hideFlyout}
           >
             <div className="px-6 lg:px-12 py-5">
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-800">
+              <div className="mb-3 pb-3 border-b border-slate-800">
                 <h3 className="text-white font-semibold text-sm">
                   {getCategoryLabel(hoveredCategory)}
                 </h3>
-                <button
-                  onClick={() => selectCategory(hoveredCategory)}
-                  className="text-primary text-xs font-medium hover:text-blue-400 transition-colors"
-                >
-                  View all →
-                </button>
               </div>
               <div
                 className={`grid gap-x-10 ${
@@ -893,7 +887,7 @@ const BuyerSearch = () => {
                       setHoveredCategory(null);
                       if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
                     }}
-                    className={`text-left py-2 text-sm border-b border-slate-800/50 transition-colors ${
+                    className={`text-left py-2 text-sm border-b border-slate-800/50 transition-colors cursor-pointer ${
                       activeCategory === hoveredCategory && activeSubcategory === sub.value
                         ? 'text-primary font-medium'
                         : 'text-slate-300 hover:text-white'

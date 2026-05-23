@@ -1,7 +1,7 @@
-import { useId } from 'react';
+import { useId, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 
-const Logo = ({ className, to = '/search' }: { className?: string; to?: string }) => {
+const Logo = ({ className, to = '/search', onClick }: { className?: string; to?: string; onClick?: (e: MouseEvent<HTMLAnchorElement>) => void }) => {
   const uid = useId().replace(/:/g, '');
   const gradientId = `gsg_${uid}`;
   const svg = (
@@ -18,7 +18,7 @@ const Logo = ({ className, to = '/search' }: { className?: string; to?: string }
     </defs>
   </svg>
   );
-  return <Link to={to} className="inline-flex items-center">{svg}</Link>;
+  return <Link to={to} className="inline-flex items-center" onClick={onClick}>{svg}</Link>;
 };
 
 export default Logo;
