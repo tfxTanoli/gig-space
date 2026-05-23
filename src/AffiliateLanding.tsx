@@ -3,7 +3,7 @@ import { ArrowRight, UserPlus, Share2, DollarSign, Car, Palette, Home, Package, 
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
-import { CurrentUserAvatar } from './UserAvatar';
+import HeaderUserMenu from './HeaderUserMenu';
 
 const faqs = [
   {
@@ -70,14 +70,7 @@ const AffiliateLanding = () => {
         <nav className="flex items-center space-x-6 text-sm font-medium">
           {!loading && (
             user ? (
-              <>
-                <Link to="/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors">
-                  Affiliate Dashboard
-                </Link>
-                <Link to="/affiliate-dashboard">
-                  <CurrentUserAvatar size="sm" />
-                </Link>
-              </>
+              <HeaderUserMenu />
             ) : (
               <>
                 <Link to="/affiliate-signin" className="text-white hover:text-slate-300 transition-colors">
