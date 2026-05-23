@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // While using the test key, Resend only allows sending FROM onboarding@resend.dev.
 // Once you verify a custom domain in the Resend dashboard, change this to your own address.
 const FROM = 'GigSpace <onboarding@resend.dev>';
@@ -213,6 +211,12 @@ export async function sendEmailNotification(
   recipientName: string,
   payload: EmailPayload
 ): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email notification');
+    return;
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const html = buildHtml(payload, recipientName);
 
   const { error } = await resend.emails.send({
