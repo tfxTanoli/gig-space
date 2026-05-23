@@ -47,7 +47,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 // ─── Express ──────────────────────────────────────────────────────────────────
 const app = express();
 
-// Accept a comma-separated FRONTEND_URL env var so multiple origins can be whitelisted
+// FRONTEND_URL accepts a comma-separated list of allowed origins (e.g. prod + preview)
 // e.g. FRONTEND_URL=https://gig-space.vercel.app,https://gig-space-lbk7.vercel.app
 const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 const ALLOWED_ORIGINS = rawFrontendUrl.split(',').map(u => u.trim()).filter(Boolean);
