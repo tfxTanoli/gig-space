@@ -51,7 +51,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteShowPassword, setDeleteShowPassword] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteMsg, setDeleteMsg] = useState<Msg | null>(null);
+  const [deleteMsg, setDeleteMsg] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   // Security fields
@@ -279,7 +279,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const handleDeleteAccount = async () => {
     if (!user) return;
     if (deleteConfirmText !== 'DELETE') {
-      setDeleteMsg({ text: 'Type DELETE exactly to confirm.', ok: false });
+      setDeleteMsg('Type DELETE exactly to confirm.');
       return;
     }
 
@@ -290,7 +290,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
       // Re-authenticate before deletion
       if (isEmailProvider) {
         if (!deletePassword) {
-          setDeleteMsg({ text: 'Enter your current password to confirm.', ok: false });
+          setDeleteMsg('Enter your current password to confirm.');
           setDeleteLoading(false);
           return;
         }
@@ -328,12 +328,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
         (err.message.includes('wrong-password') ||
           err.message.includes('invalid-credential') ||
           err.message.includes('INVALID_LOGIN_CREDENTIALS'));
-      setDeleteMsg({
-        text: isWrongPassword
+      setDeleteMsg(
+        isWrongPassword
           ? 'Incorrect password.'
           : err instanceof Error ? err.message : 'Failed to delete account.',
-        ok: false,
-      });
+      );
     } finally {
       setDeleteLoading(false);
     }
@@ -722,9 +721,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
               </div>
 
               {deleteMsg && (
-                <p className={`text-sm ${deleteMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {deleteMsg.text}
-                </p>
+                <p className="text-sm text-red-400">{deleteMsg}</p>
               )}
 
               <div className="flex items-center gap-3">
