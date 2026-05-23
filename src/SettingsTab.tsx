@@ -20,10 +20,6 @@ import { useNavigate } from 'react-router-dom';
 
 type Section = 'profile' | 'security';
 
-interface Msg {
-  text: string;
-  ok: boolean;
-}
 
 const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const { user, userProfile, logout } = useAuth();
@@ -36,7 +32,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
-  const [profileMsg, setProfileMsg] = useState<Msg | null>(null);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
 
   // Track original values to detect changes
@@ -66,7 +62,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordMsg, setPasswordMsg] = useState<Msg | null>(null);
+  const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
 
   // Sync form when profile data loads
   useEffect(() => {
@@ -98,13 +94,13 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
     // Validate type: JPG/PNG only
     if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
-      setProfileMsg({ text: 'Only JPG or PNG images are allowed.', ok: false });
+      toast.error('Only JPG or PNG images are allowed.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
     // Validate size: max 1MB
     if (file.size > 1024 * 1024) {
-      setProfileMsg({ text: 'Image must be 1 MB or smaller.', ok: false });
+      toast.error('Image must be 1 MB or smaller.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -117,7 +113,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
       await updateProfile(user, { photoURL: url });
       await update(ref(database, `users/${user.uid}`), { photoURL: url });
     } catch {
-      setProfileMsg({ text: 'Failed to upload photo. Please try again.', ok: false });
+      toast.error('Failed to upload photo. Please try again.');
     } finally {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -131,35 +127,35 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
     const trimEmail = email.trim().toLowerCase();
 
     if (!trimName) {
-      setProfileMsg({ text: 'Name cannot be empty.', ok: false });
+      setProfileMsg('Name cannot be empty.');
       return;
     }
     if (!trimUsername) {
-      setProfileMsg({ text: 'Username cannot be empty.', ok: false });
+      setProfileMsg('Username cannot be empty.');
       return;
     }
     const usernameError = validateUsername(trimUsername);
     if (usernameError) {
-      setProfileMsg({ text: usernameError, ok: false });
+      setProfileMsg(usernameError);
       return;
     }
     if (usernameChanged && usernameStatus === 'taken') {
-      setProfileMsg({ text: 'This username is already taken.', ok: false });
+      setProfileMsg('This username is already taken.');
       return;
     }
 
     // Email change requires reauthentication
     if (emailChanged) {
       if (!isEmailProvider) {
-        setProfileMsg({ text: 'Email cannot be changed for Google-linked accounts.', ok: false });
+        setProfileMsg('Email cannot be changed for Google-linked accounts.');
         return;
       }
       if (!trimEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) {
-        setProfileMsg({ text: 'Please enter a valid email address.', ok: false });
+        setProfileMsg('Please enter a valid email address.');
         return;
       }
       if (!emailConfirmPassword) {
-        setProfileMsg({ text: 'Enter your current password to change your email.', ok: false });
+        setProfileMsg('Enter your current password to change your email.');
         return;
       }
     }
@@ -173,7 +169,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
         try {
           await claimUsername(user.uid, trimUsername, userProfile?.username);
         } catch {
-          setProfileMsg({ text: 'This username is already taken.', ok: false });
+          setProfileMsg('This username is already taken.');
           setProfileSaving(false);
           return;
         }
@@ -199,10 +195,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
           await update(ref(database, `users/${user.uid}`), dbUpdates);
           setOriginalUsername(trimUsername);
           setOriginalEmail(trimEmail);
-          setProfileMsg({
-            text: `Verification email sent to ${trimEmail}. Click the link to confirm your new email.`,
-            ok: true,
-          });
+          toast.success(`Verification email sent to ${trimEmail}. Click the link to confirm.`);
           return;
         } catch (err: unknown) {
           const isWrongPassword =
@@ -210,12 +203,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
             (err.message.includes('wrong-password') ||
               err.message.includes('invalid-credential') ||
               err.message.includes('INVALID_LOGIN_CREDENTIALS'));
-          setProfileMsg({
-            text: isWrongPassword
+          setProfileMsg(
+            isWrongPassword
               ? 'Current password is incorrect.'
               : 'Failed to update email. Please try again.',
-            ok: false,
-          });
+          );
           setProfileSaving(false);
           return;
         }
@@ -223,9 +215,9 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
       await update(ref(database, `users/${user.uid}`), dbUpdates);
       setOriginalUsername(trimUsername);
-      setProfileMsg({ text: 'Profile updated successfully.', ok: true });
+      toast.success('Profile updated successfully.');
     } catch {
-      setProfileMsg({ text: 'Failed to update profile. Please try again.', ok: false });
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setProfileSaving(false);
     }
@@ -234,11 +226,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
   const handlePasswordChange = async () => {
     if (!user || !user.email) return;
     if (newPassword !== confirmPassword) {
-      setPasswordMsg({ text: 'New passwords do not match.', ok: false });
+      setPasswordMsg('New passwords do not match.');
       return;
     }
     if (newPassword.length < 6) {
-      setPasswordMsg({ text: 'Password must be at least 6 characters.', ok: false });
+      setPasswordMsg('Password must be at least 6 characters.');
       return;
     }
     setPasswordSaving(true);
@@ -247,7 +239,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
-      setPasswordMsg({ text: 'Password updated successfully.', ok: true });
+      toast.success('Password updated successfully.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -257,12 +249,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
         (err.message.includes('wrong-password') ||
           err.message.includes('invalid-credential') ||
           err.message.includes('INVALID_LOGIN_CREDENTIALS'));
-      setPasswordMsg({
-        text: isWrongPassword
+      setPasswordMsg(
+        isWrongPassword
           ? 'Current password is incorrect.'
           : 'Failed to update password. Please try again.',
-        ok: false,
-      });
+      );
     } finally {
       setPasswordSaving(false);
     }
@@ -515,11 +506,9 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
             )}
           </div>
 
-          {/* Feedback */}
+          {/* Validation errors */}
           {profileMsg && (
-            <p className={`text-sm ${profileMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
-              {profileMsg.text}
-            </p>
+            <p className="text-sm text-red-400">{profileMsg}</p>
           )}
 
           <button
@@ -625,9 +614,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
               </div>
 
               {passwordMsg && (
-                <p className={`text-sm ${passwordMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {passwordMsg.text}
-                </p>
+                <p className="text-sm text-red-400">{passwordMsg}</p>
               )}
 
               <button
