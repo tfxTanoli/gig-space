@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Home, Settings, RefreshCw, Bell, Menu, X } from 'lucide-react';
+import { Home, Settings, RefreshCw, FileText, Menu, X } from 'lucide-react';
 
 const PayoutsIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -12,27 +12,30 @@ const PayoutsIcon = ({ className }: { className?: string }) => (
     <path d="M10 11.6668C10.9205 11.6668 11.6667 10.9206 11.6667 10.0002C11.6667 9.07969 10.9205 8.3335 10 8.3335C9.07952 8.3335 8.33333 9.07969 8.33333 10.0002C8.33333 10.9206 9.07952 11.6668 10 11.6668Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+
 import Logo from './Logo';
-import { CurrentUserAvatar } from './UserAvatar';
 import { useAuth } from './AuthContext';
+import NotificationBell from './notifications/NotificationBell';
+import HeaderUserMenu from './HeaderUserMenu';
 import AffiliateHomeTab from './affiliate/AffiliateHomeTab';
 import AffiliatePayoutsTab from './affiliate/AffiliatePayoutsTab';
 import AffiliateSettingsTab from './affiliate/AffiliateSettingsTab';
+import StatementsTab from './components/StatementsTab';
 
-type TabName = 'Home' | 'Payouts' | 'Settings';
+type TabName = 'Home' | 'Payouts' | 'Statements' | 'Settings';
 
 const TABS: Array<{ name: TabName; Icon: React.ComponentType<{ className?: string }>; subtitle: string }> = [
-  { name: 'Home',     Icon: Home,        subtitle: 'Overview & stats'     },
-  { name: 'Payouts',  Icon: PayoutsIcon, subtitle: 'Earnings & payouts'   },
-  { name: 'Settings', Icon: Settings,    subtitle: 'Profile & account'    },
+  { name: 'Home',       Icon: Home,        subtitle: 'Overview & stats'      },
+  { name: 'Payouts',    Icon: PayoutsIcon, subtitle: 'Earnings & payouts'    },
+  { name: 'Statements', Icon: FileText,    subtitle: 'Transaction history'   },
+  { name: 'Settings',   Icon: Settings,    subtitle: 'Profile & account'     },
 ];
 
 const AffiliateDashboard = () => {
-  const { userProfile, logout } = useAuth();
+  const { logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Allow ?tab=Payouts etc. from return URLs (e.g. Stripe Connect callback)
   const tabParam = searchParams.get('tab') as TabName | null;
   const validTab = TABS.find(t => t.name === tabParam)?.name ?? 'Home';
   const [activeTab, setActiveTab] = useState<TabName>(validTab);
@@ -40,20 +43,20 @@ const AffiliateDashboard = () => {
   useEffect(() => {
     if (tabParam && TABS.find(t => t.name === tabParam)) {
       setActiveTab(tabParam);
-      // Clean the tab param from the URL without a page reload
       setSearchParams(prev => { prev.delete('tab'); prev.delete('connect_refresh'); return prev; }, { replace: true });
     }
   }, [tabParam, setSearchParams]);
 
-  const navigate = (tab: TabName) => {
+  const navigateTab = (tab: TabName) => {
     setActiveTab(tab);
     setMobileOpen(false);
   };
 
   const renderTab = () => {
-    if (activeTab === 'Home')     return <AffiliateHomeTab />;
-    if (activeTab === 'Payouts')  return <AffiliatePayoutsTab />;
-    if (activeTab === 'Settings') return <AffiliateSettingsTab />;
+    if (activeTab === 'Home')       return <AffiliateHomeTab />;
+    if (activeTab === 'Payouts')    return <AffiliatePayoutsTab />;
+    if (activeTab === 'Statements') return <StatementsTab />;
+    if (activeTab === 'Settings')   return <AffiliateSettingsTab />;
     return null;
   };
 
@@ -75,7 +78,7 @@ const AffiliateDashboard = () => {
             return (
               <button
                 key={name}
-                onClick={() => navigate(name)}
+                onClick={() => navigateTab(name)}
                 className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   active
                     ? 'bg-blue-600/10 text-primary'
@@ -88,17 +91,6 @@ const AffiliateDashboard = () => {
             );
           })}
         </nav>
-
-        {/* User info */}
-        {userProfile && (
-          <div className="px-4 py-4 border-t border-slate-800 flex items-center gap-3">
-            <CurrentUserAvatar size="md" />
-            <div className="min-w-0">
-              <p className="text-white text-sm font-semibold truncate">{userProfile.name}</p>
-              <p className="text-slate-400 text-xs truncate">@{userProfile.username}</p>
-            </div>
-          </div>
-        )}
 
         {/* Bottom actions */}
         <div className="p-4 border-t border-slate-800 space-y-1">
@@ -141,12 +133,13 @@ const AffiliateDashboard = () => {
 
           <div className="flex-1" />
 
-          <div className="flex items-center gap-4">
-            <button className="text-slate-400 hover:text-white transition-colors">
-              <Bell className="w-5 h-5" />
-            </button>
+          <div className="flex items-center gap-3">
+            <NotificationBell onNavigate={(tab) => {
+              const t = TABS.find(t => t.name === tab);
+              if (t) navigateTab(t.name);
+            }} />
             <div className="w-px h-6 bg-slate-700" />
-            <CurrentUserAvatar size="sm" />
+            <HeaderUserMenu />
           </div>
         </header>
 
@@ -156,7 +149,7 @@ const AffiliateDashboard = () => {
             {TABS.map(({ name, Icon }) => (
               <button
                 key={name}
-                onClick={() => navigate(name)}
+                onClick={() => navigateTab(name)}
                 className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === name
                     ? 'bg-blue-600/10 text-primary'

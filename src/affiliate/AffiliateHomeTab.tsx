@@ -212,7 +212,10 @@ export default function AffiliateHomeTab() {
 
       {/* Recent Commissions */}
       <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-        <h3 className="text-white font-semibold text-sm mb-4">Recent Commissions</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <DollarSign className="w-4 h-4 text-primary" />
+          <h3 className="text-white font-semibold text-sm">Recent Commissions</h3>
+        </div>
         {commissionsLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />

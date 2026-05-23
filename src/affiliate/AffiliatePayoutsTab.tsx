@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Clock, ArrowDownLeft, X, Loader2 } from 'lucide-react';
+import {
+  DollarSign, Clock, ArrowDownLeft, ArrowUpRight, X, Loader2,
+  FileText, BanknoteArrowDown, ExternalLink, AlertCircle, CheckCircle,
+  Link as LinkIcon,
+} from 'lucide-react';
 import { ref as dbRef, onValue } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
@@ -7,10 +11,118 @@ import {
   fetchAffiliateCommissions,
   fetchAffiliatePayouts,
   requestAffiliateWithdrawal,
+  getAffiliateConnectLink,
+  checkAffiliateConnectStatus,
   type AffiliateStats,
   type AffiliateCommission,
   type AffiliatePayout,
 } from './affiliateHelpers';
+
+/* ── Stripe Connect card ──────────────────────────────────────────────────── */
+
+function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null }) {
+  const [connectStatus, setConnectStatus] = useState<{
+    payoutsEnabled: boolean; chargesEnabled: boolean; detailsSubmitted: boolean;
+  } | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [connecting, setConnecting]       = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!stats?.stripeConnectedAccountId) return;
+    setStatusLoading(true);
+    checkAffiliateConnectStatus(stats.stripeConnectedAccountId)
+      .then(setConnectStatus)
+      .catch(console.error)
+      .finally(() => setStatusLoading(false));
+  }, [stats?.stripeConnectedAccountId]);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    setError(null);
+    try {
+      const { url } = await getAffiliateConnectLink();
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect Stripe. Try again.');
+      setConnecting(false);
+    }
+  };
+
+  const isFullyEnabled = connectStatus?.payoutsEnabled && connectStatus?.chargesEnabled;
+
+  return (
+    <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#635bff]/10 border border-[#635bff]/20 flex items-center justify-center shrink-0">
+          <LinkIcon className="w-5 h-5 text-[#635bff]" />
+        </div>
+        <div>
+          <h3 className="text-white font-semibold text-sm">Stripe Payout Account</h3>
+          <p className="text-slate-500 text-xs mt-0.5">Connect your bank account to receive withdrawals</p>
+        </div>
+      </div>
+
+      {!stats?.stripeConnectedAccountId && (
+        <p className="text-slate-400 text-xs leading-relaxed">
+          Your commissions are tracked automatically — no Stripe connection needed. Connect Stripe
+          only when you're ready to withdraw your available balance to your bank.
+        </p>
+      )}
+
+      {statusLoading ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-5 h-5 text-slate-500 animate-spin" />
+        </div>
+      ) : !stats?.stripeConnectedAccountId ? (
+        <div className="space-y-3">
+          {error && (
+            <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-red-300 text-xs leading-relaxed">{error}</p>
+            </div>
+          )}
+          <button
+            onClick={handleConnect}
+            disabled={connecting}
+            className="flex items-center gap-2 bg-[#635bff] hover:bg-[#5147e6] disabled:opacity-60 text-white text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors"
+          >
+            {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+            {connecting ? 'Connecting…' : 'Connect Stripe Account'}
+          </button>
+        </div>
+      ) : isFullyEnabled ? (
+        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-emerald-400 text-sm font-medium">Payouts enabled</span>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2.5">
+            <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0" />
+            <span className="text-yellow-400 text-sm">
+              {connectStatus?.detailsSubmitted
+                ? 'Stripe is reviewing your account'
+                : 'Complete your Stripe onboarding to enable payouts'}
+            </span>
+          </div>
+          {!connectStatus?.detailsSubmitted && (
+            <button
+              onClick={handleConnect}
+              disabled={connecting}
+              className="flex items-center gap-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 disabled:opacity-60 text-yellow-300 text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors"
+            >
+              {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+              {connecting ? 'Loading…' : 'Complete Onboarding'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Withdraw modal ───────────────────────────────────────────────────────── */
 
 function WithdrawModal({
   available,
@@ -21,9 +133,9 @@ function WithdrawModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount]   = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
 
   const handle = async () => {
     const num = parseFloat(amount);
@@ -94,6 +206,8 @@ function WithdrawModal({
   );
 }
 
+/* ── Status pills ─────────────────────────────────────────────────────────── */
+
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
     available: 'text-emerald-400 bg-emerald-500/10',
@@ -108,6 +222,8 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
+/* ── Main component ───────────────────────────────────────────────────────── */
+
 export default function AffiliatePayoutsTab() {
   const { user } = useAuth();
   const [stats, setStats]               = useState<AffiliateStats | null>(null);
@@ -117,7 +233,6 @@ export default function AffiliatePayoutsTab() {
   const [listLoading, setListLoading]   = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
 
-  // Read balances directly from Firebase RTDB (real-time, no server needed)
   useEffect(() => {
     if (!user) return;
     const unsub = onValue(dbRef(database, `affiliates/${user.uid}`), (snap) => {
@@ -157,6 +272,8 @@ export default function AffiliatePayoutsTab() {
     );
   }
 
+  const available = stats?.availableBalance ?? 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -170,15 +287,8 @@ export default function AffiliatePayoutsTab() {
           <div className="w-9 h-9 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-3">
             <DollarSign className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-white">${(stats?.availableBalance ?? 0).toFixed(2)}</p>
+          <p className="text-2xl font-bold text-white">${available.toFixed(2)}</p>
           <p className="text-slate-500 text-xs mt-0.5">Available to withdraw</p>
-          <button
-            onClick={() => setShowWithdraw(true)}
-            disabled={(stats?.availableBalance ?? 0) < 10}
-            className="mt-4 w-full bg-primary hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 rounded-xl transition-colors"
-          >
-            Withdraw
-          </button>
         </div>
 
         <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
@@ -198,9 +308,28 @@ export default function AffiliatePayoutsTab() {
         </div>
       </div>
 
+      {/* Withdraw button */}
+      <button
+        onClick={() => setShowWithdraw(true)}
+        disabled={available < 10}
+        className="flex items-center gap-2 bg-primary hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors"
+      >
+        <ArrowUpRight className="w-4 h-4" />
+        Withdraw funds
+        {available < 10 && (
+          <span className="text-blue-300 font-normal">(min $10)</span>
+        )}
+      </button>
+
+      {/* Stripe Connect */}
+      <AffiliateStripeConnectCard stats={stats} />
+
       {/* Commission History */}
       <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-        <h3 className="text-white font-semibold text-sm mb-4">Commission History</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="w-4 h-4 text-primary" />
+          <h3 className="text-white font-semibold text-sm">Commission History</h3>
+        </div>
         {commissions.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-slate-500 text-sm">No commissions yet</p>
@@ -239,7 +368,10 @@ export default function AffiliatePayoutsTab() {
 
       {/* Payout History */}
       <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-        <h3 className="text-white font-semibold text-sm mb-4">Payout History</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <BanknoteArrowDown className="w-4 h-4 text-primary" />
+          <h3 className="text-white font-semibold text-sm">Payout History</h3>
+        </div>
         {payouts.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-slate-500 text-sm">No withdrawals yet</p>
@@ -278,7 +410,7 @@ export default function AffiliatePayoutsTab() {
 
       {showWithdraw && (
         <WithdrawModal
-          available={stats?.availableBalance ?? 0}
+          available={available}
           onClose={() => setShowWithdraw(false)}
           onSuccess={() => { setShowWithdraw(false); loadLists(); }}
         />
