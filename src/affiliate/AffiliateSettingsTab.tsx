@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect, type ChangeEvent } from 'react';
-import { User, Loader2, CheckCircle, ExternalLink, AlertCircle, Link as LinkIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { User, Loader2, CheckCircle, ExternalLink, AlertCircle, Link as LinkIcon, Eye, EyeOff, Trash2 } from 'lucide-react';
+import {
+  EmailAuthProvider,
+  GoogleAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+} from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, onValue, update } from 'firebase/database';
+import { useNavigate } from 'react-router-dom';
 import { storage, database } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { useUsernameAvailability } from '../useUsernameAvailability';
@@ -111,7 +119,8 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
 }
 
 export default function AffiliateSettingsTab() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [name, setName]         = useState('');
   const [username, setUsername] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -121,6 +130,73 @@ export default function AffiliateSettingsTab() {
   const [error, setError]               = useState('');
   const [stats, setStats]               = useState<AffiliateStats | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete account state
+  const [deleteOpen, setDeleteOpen]               = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletePassword, setDeletePassword]       = useState('');
+  const [deleteShowPassword, setDeleteShowPassword] = useState(false);
+  const [deleteLoading, setDeleteLoading]         = useState(false);
+  const [deleteMsg, setDeleteMsg]                 = useState<string | null>(null);
+
+  const isEmailProvider =
+    user?.providerData.some((p) => p.providerId === 'password') ?? false;
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    setDeleteLoading(true);
+    setDeleteMsg(null);
+
+    try {
+      if (isEmailProvider) {
+        if (!deletePassword) {
+          setDeleteMsg('Enter your current password to confirm.');
+          setDeleteLoading(false);
+          return;
+        }
+        if (!user.email) throw new Error('No email on account');
+        const credential = EmailAuthProvider.credential(user.email, deletePassword);
+        await reauthenticateWithCredential(user, credential);
+      } else {
+        const provider = new GoogleAuthProvider();
+        await reauthenticateWithPopup(user, provider);
+      }
+
+      const token = await user.getIdToken();
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const body = await res.json() as { error?: string };
+        const errMsg = body.error ?? 'Failed to delete account';
+        if (res.status === 400 && errMsg.toLowerCase().includes('active order')) {
+          toast.error('You have an active order that must be completed before you can delete your account.');
+          setDeleteLoading(false);
+          return;
+        }
+        throw new Error(errMsg);
+      }
+
+      await logout();
+      navigate('/');
+    } catch (err: unknown) {
+      const isWrongPassword =
+        err instanceof Error &&
+        (err.message.includes('wrong-password') ||
+          err.message.includes('invalid-credential') ||
+          err.message.includes('INVALID_LOGIN_CREDENTIALS'));
+      setDeleteMsg(
+        isWrongPassword
+          ? 'Incorrect password.'
+          : err instanceof Error ? err.message : 'Failed to delete account.',
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   useEffect(() => {
     setName(userProfile?.name ?? '');
@@ -305,6 +381,112 @@ export default function AffiliateSettingsTab() {
 
       {/* Stripe Connect */}
       <AffiliateStripeConnectCard stats={stats} />
+
+      {/* Delete Account */}
+      <div className="bg-[#111827] border border-red-900/40 rounded-2xl p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+            <Trash2 className="w-5 h-5 text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-semibold text-sm">Delete account</h3>
+            <p className="text-slate-500 text-xs mt-0.5">
+              Permanently remove your account and all associated data. This cannot be undone.
+            </p>
+          </div>
+        </div>
+
+        {!deleteOpen ? (
+          <button
+            onClick={() => { setDeleteOpen(true); setDeleteMsg(null); setDeleteConfirmText(''); setDeletePassword(''); }}
+            className="text-sm font-medium px-5 py-2 rounded-lg border border-red-700/50 text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            Delete my account
+          </button>
+        ) : (
+          <div className="space-y-4">
+            {stats && (stats.availableBalance > 0 || stats.pendingBalance > 0) && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+                <p className="text-amber-400 text-sm font-medium">Affiliate balance will be forfeited</p>
+                <p className="text-amber-300/80 text-xs mt-1">
+                  You have <span className="font-semibold">${(stats.availableBalance + stats.pendingBalance).toFixed(2)}</span> in affiliate earnings.
+                  Any unpaid commissions will be forfeited upon deletion.
+                </p>
+              </div>
+            )}
+
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+              <p className="text-red-300 text-xs leading-relaxed">
+                All your data will be permanently deleted — including your profile and affiliate link.
+                Any unpaid commissions will be forfeited upon deletion.
+              </p>
+            </div>
+
+            {isEmailProvider && (
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                  Current password
+                </label>
+                <div className="relative">
+                  <input
+                    type={deleteShowPassword ? 'text' : 'password'}
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    autoComplete="current-password"
+                    className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-xl focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDeleteShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    {deleteShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                Type <span className="text-white font-mono">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
+                placeholder="DELETE"
+              />
+            </div>
+
+            {deleteMsg && (
+              <p className="text-sm text-red-400">{deleteMsg}</p>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading || deleteConfirmText !== 'DELETE' || (isEmailProvider && !deletePassword)}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+              >
+                {deleteLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>
+                ) : (
+                  <><Trash2 className="w-4 h-4" /> Permanently delete account</>
+                )}
+              </button>
+              <button
+                onClick={() => { setDeleteOpen(false); setDeleteMsg(null); }}
+                disabled={deleteLoading}
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

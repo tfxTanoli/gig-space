@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { Camera, Shield, Eye, EyeOff, Loader2, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import {
   updateProfile,
@@ -318,7 +319,13 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
       if (!res.ok) {
         const body = await res.json() as { error?: string };
-        throw new Error(body.error ?? 'Failed to delete account');
+        const errMsg = body.error ?? 'Failed to delete account';
+        if (res.status === 400 && errMsg.toLowerCase().includes('active order')) {
+          toast.error('You have an active order that must be completed before you can delete your account.');
+          setDeleteLoading(false);
+          return;
+        }
+        throw new Error(errMsg);
       }
 
       // Auth user is now deleted on the server — sign out locally and go home
@@ -681,8 +688,9 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                 <p className="text-red-300 text-xs leading-relaxed">
-                  All your data will be permanently deleted — profile, services, saved items, and wallet history.
-                  Active orders must be completed before deletion.
+                  {mode === 'seller'
+                    ? 'All your data will be permanently deleted — profile, active posts, and wallet history. Active orders must be completed before deletion.'
+                    : 'All your data will be permanently deleted — profile, order history, and saved items. Active orders must be completed before deletion.'}
                 </p>
               </div>
 
@@ -735,7 +743,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+                  disabled={deleteLoading || deleteConfirmText !== 'DELETE' || (isEmailProvider && !deletePassword)}
                   className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
                 >
                   {deleteLoading ? (

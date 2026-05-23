@@ -816,11 +816,13 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
     }
 
     // 2. Gather data needed for cleanup
-    const [userSnap, walletSnap, servicesSnap, affiliateCodeSnap] = await Promise.all([
+    const [userSnap, walletSnap, servicesSnap, affiliateCodeSnap, affiliateSnap, affiliateCommissionsSnap] = await Promise.all([
       db.ref(`users/${uid}`).get(),
       db.ref(`wallets/${uid}`).get(),
       db.ref('services').orderByChild('sellerId').equalTo(uid).get(),
       db.ref('affiliateCodes').orderByValue().equalTo(uid).get(),
+      db.ref(`affiliates/${uid}`).get(),
+      db.ref('affiliateCommissions').orderByChild('affiliateId').equalTo(uid).get(),
     ]);
 
     const userData = userSnap.val() as {
@@ -831,7 +833,15 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
       availableBalance?: number; pendingBalance?: number; stripeConnectedAccountId?: string;
     } | null;
 
-    const forfeited = (walletData?.availableBalance ?? 0) + (walletData?.pendingBalance ?? 0);
+    const affiliateData = affiliateSnap.val() as {
+      availableBalance?: number; pendingBalance?: number; stripeConnectedAccountId?: string;
+    } | null;
+
+    const forfeited =
+      (walletData?.availableBalance ?? 0) +
+      (walletData?.pendingBalance ?? 0) +
+      (affiliateData?.availableBalance ?? 0) +
+      (affiliateData?.pendingBalance ?? 0);
 
     // 3. Build multi-path nullification (removes all nodes)
     const deletions: Record<string, null> = {
@@ -859,6 +869,11 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
       deletions[`affiliateCodes/${child.key}`] = null;
     });
 
+    // Remove orphaned affiliate commissions where this user was the affiliate
+    affiliateCommissionsSnap.forEach((child) => {
+      deletions[`affiliateCommissions/${child.key}`] = null;
+    });
+
     // Log the forfeiture if there was a balance
     let forfeitureLogId: string | null = null;
     if (forfeited > 0) {
@@ -871,8 +886,10 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
       await db.ref(`accountDeletionForfeits/${forfeitureLogId}`).set({
         uid,
         amount: forfeited,
-        availableBalance: walletData?.availableBalance ?? 0,
-        pendingBalance: walletData?.pendingBalance ?? 0,
+        walletAvailable: walletData?.availableBalance ?? 0,
+        walletPending: walletData?.pendingBalance ?? 0,
+        affiliateAvailable: affiliateData?.availableBalance ?? 0,
+        affiliatePending: affiliateData?.pendingBalance ?? 0,
         createdAt: Date.now(),
       });
     }
@@ -884,6 +901,26 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
         await stripe.customers.del(stripeCustomerId);
       } catch {
         // Non-fatal — customer may already be deleted or not exist
+      }
+    }
+
+    // Delete seller Stripe connected account (non-fatal)
+    const sellerStripeAccountId = walletData?.stripeConnectedAccountId;
+    if (sellerStripeAccountId) {
+      try {
+        await stripe.accounts.del(sellerStripeAccountId);
+      } catch {
+        // Non-fatal — account may have a balance or already be deleted
+      }
+    }
+
+    // Delete affiliate Stripe connected account (non-fatal)
+    const affiliateStripeAccountId = affiliateData?.stripeConnectedAccountId;
+    if (affiliateStripeAccountId) {
+      try {
+        await stripe.accounts.del(affiliateStripeAccountId);
+      } catch {
+        // Non-fatal — account may have a balance or already be deleted
       }
     }
 
