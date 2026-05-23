@@ -46,7 +46,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 // ─── Express ──────────────────────────────────────────────────────────────────
 const app = express();
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// Accept a comma-separated FRONTEND_URL env var so multiple origins can be whitelisted
+// e.g. FRONTEND_URL=https://gig-space.vercel.app,https://gig-space-lbk7.vercel.app
+const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const ALLOWED_ORIGINS = rawFrontendUrl.split(',').map(u => u.trim()).filter(Boolean);
 
 // Hardcoded fallbacks — overridden at runtime by settings/fees in Firebase
 const PLATFORM_FEE_PERCENT_DEFAULT = 5;
@@ -68,7 +72,15 @@ async function readMinWithdrawal(): Promise<number> {
   return MINIMUM_WITHDRAWAL_DEFAULT;
 }
 
-app.use(cors({ origin: FRONTEND_URL }));
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (e.g. server-to-server, curl)
+    if (!origin) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/', (_req: Request, res: Response) => {
@@ -177,7 +189,7 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
       }],
       mode: 'payment',
       ui_mode: 'embedded',
-      return_url: `${FRONTEND_URL}/buyer-dashboard?tab=Orders&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      return_url: `${ALLOWED_ORIGINS[0]}/buyer-dashboard?tab=Orders&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         buyerId, sellerId, serviceId, conversationId, messageId,
         offerAmount: String(offerAmount),
@@ -351,8 +363,8 @@ app.get('/api/connect/debug', requireAuth, async (_req: AuthRequest, res: Respon
 app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const sellerId = req.uid!;
-    const returnUrl = `${FRONTEND_URL}/seller-dashboard?tab=Payouts`;
-    const refreshUrl = `${FRONTEND_URL}/seller-dashboard?tab=Payouts&connect_refresh=true`;
+    const returnUrl = `${ALLOWED_ORIGINS[0]}/seller-dashboard?tab=Payouts`;
+    const refreshUrl = `${ALLOWED_ORIGINS[0]}/seller-dashboard?tab=Payouts&connect_refresh=true`;
 
     const walletSnap = await db.ref(`wallets/${sellerId}/stripeConnectedAccountId`).get();
     let stripeAccountId: string = walletSnap.val() as string;
