@@ -5,12 +5,6 @@ import {
   CreditCard, BadgeDollarSign, Settings, Construction, LogOut, X,
 } from 'lucide-react';
 
-const PostsIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M10 2.5H4.16667C3.72464 2.5 3.30072 2.67559 2.98816 2.98816C2.67559 3.30072 2.5 3.72464 2.5 4.16667V15.8333C2.5 16.2754 2.67559 16.6993 2.98816 17.0118C3.30072 17.3244 3.72464 17.5 4.16667 17.5H15.8333C16.2754 17.5 16.6993 17.3244 17.0118 17.0118C17.3244 16.6993 17.5 16.2754 17.5 15.8333V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M15.3125 2.18769C15.644 1.85617 16.0937 1.66992 16.5625 1.66992C17.0313 1.66992 17.481 1.85617 17.8125 2.18769C18.144 2.51921 18.3303 2.96885 18.3303 3.43769C18.3303 3.90653 18.144 4.35617 17.8125 4.68769L10.3017 12.1994C10.1038 12.3971 9.85934 12.5418 9.59083 12.6202L7.19667 13.3202C7.12496 13.3411 7.04895 13.3424 6.97659 13.3238C6.90423 13.3053 6.83819 13.2676 6.78537 13.2148C6.73256 13.162 6.69491 13.096 6.67637 13.0236C6.65783 12.9512 6.65909 12.8752 6.68 12.8035L7.38 10.4094C7.45877 10.1411 7.60378 9.8969 7.80167 9.69936L15.3125 2.18769Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 import { ref as dbRef, get } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
@@ -33,7 +27,7 @@ import AdminOrderEditModal from './components/AdminOrderEditModal';
 import AdminOrderDeleteModal from './components/AdminOrderDeleteModal';
 import AdminAffiliateViewModal from './components/AdminAffiliateViewModal';
 
-type TabName = 'Home' | 'Posts' | 'Listings' | 'Users' | 'Orders' | 'Subscriptions' | 'Affiliates' | 'Settings';
+type TabName = 'Home' | 'Listings' | 'Users' | 'Orders' | 'Subscriptions' | 'Affiliates' | 'Settings';
 
 interface NavItem {
   name: TabName;
@@ -44,7 +38,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { name: 'Home',          Icon: Home,             subtitle: 'Overview & metrics' },
-  { name: 'Posts',         Icon: PostsIcon,        subtitle: 'Platform announcements', comingSoon: true },
   { name: 'Listings',      Icon: FileText,         subtitle: 'Service listings' },
   { name: 'Users',         Icon: Users,            subtitle: 'Registered accounts' },
   { name: 'Orders',        Icon: Package,          subtitle: 'All transactions' },
@@ -307,7 +300,7 @@ const AdminDashboard = () => {
       case 'Listings':   loadServices();   break;
       case 'Orders':     loadOrders();     break;
       case 'Affiliates': loadAffiliates(); break;
-      // Posts, Subscriptions, Settings: nothing to fetch here.
+      // Subscriptions, Settings: nothing to fetch here.
     }
   }, [user, accessChecked, accessDenied, activeTab, loadUsers, loadServices, loadOrders, loadAffiliates]);
 
