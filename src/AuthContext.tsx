@@ -8,7 +8,7 @@ export interface UserProfile {
   name: string;
   username: string;
   photoURL: string;
-  accountType: 'buyer' | 'seller';
+  accountType: 'buyer' | 'seller' | 'affiliate';
   email: string;
   createdAt: number;
   role?: string;

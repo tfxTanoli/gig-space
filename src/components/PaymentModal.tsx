@@ -55,21 +55,21 @@ export default function PaymentModal({ clientSecret, offerAmount, serviceTitle, 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative z-10 bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden"
+        className="relative z-10 bg-[#0E1422] border border-slate-700/50 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden"
         style={{ maxHeight: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50 shrink-0">
           <div>
-            <h3 className="font-semibold text-gray-900 text-base">Complete payment</h3>
-            <p className="text-gray-500 text-xs mt-0.5 truncate max-w-[280px]">
+            <h3 className="font-semibold text-white text-base">Complete payment</h3>
+            <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[280px]">
               {serviceTitle} — ${offerAmount}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors ml-4 shrink-0"
+            className="text-slate-400 hover:text-white transition-colors ml-4 shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -79,7 +79,7 @@ export default function PaymentModal({ clientSecret, offerAmount, serviceTitle, 
         <div className="flex-1 overflow-y-auto">
           {loading && (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           )}
           <div id="stripe-embedded-checkout" />
