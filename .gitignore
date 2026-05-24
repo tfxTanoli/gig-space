@@ -23,6 +23,9 @@ server/.env
 serviceAccountKey.json
 server/serviceAccountKey.json
 
+# Claude Code — local overrides contain secrets, never commit
+.claude/settings.local.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
