@@ -23,8 +23,9 @@ server/.env
 serviceAccountKey.json
 server/serviceAccountKey.json
 
-# Claude Code — local overrides contain secrets, never commit
+# Claude Code — local overrides and MCP config contain secrets, never commit
 .claude/settings.local.json
+.mcp.json
 
 # Editor directories and files
 .vscode/*
