@@ -57,9 +57,7 @@ const AffiliateLanding = () => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  // When logged in, CTA links go straight to the affiliate dashboard.
-  // When logged out, they go to the affiliate-specific sign-up/sign-in pages.
-  const ctaHref = user ? '/affiliate-dashboard' : '/affiliate-signup';
+  const ctaHref = user ? '/affiliate-dashboard' : '/signup';
   const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
 
   return (
@@ -76,11 +74,11 @@ const AffiliateLanding = () => {
               <HeaderUserMenu />
             ) : (
               <>
-                <Link to="/affiliate-signin" className="text-white hover:text-slate-300 transition-colors">
+                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">
                   Affiliate Log In
                 </Link>
                 <Link
-                  to="/affiliate-signup"
+                  to="/signup"
                   className="flex items-center text-white px-4 py-2 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
                 >
                   Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
@@ -107,11 +105,11 @@ const AffiliateLanding = () => {
                 <HeaderUserMenu />
               ) : (
                 <>
-                  <Link to="/affiliate-signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
+                  <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
                     Affiliate Log In
                   </Link>
                   <Link
-                    to="/affiliate-signup"
+                    to="/signup"
                     className="flex items-center justify-center text-white px-4 py-3 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >

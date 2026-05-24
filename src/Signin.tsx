@@ -47,6 +47,8 @@ const Signin = () => {
           ? '/admin-dashboard'
           : userProfile.accountType === 'seller'
           ? '/seller-dashboard'
+          : userProfile.accountType === 'affiliate'
+          ? '/affiliate-dashboard'
           : '/buyer-dashboard'
       );
     }

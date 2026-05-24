@@ -14,8 +14,6 @@ const AccountType         = lazy(() => import('./AccountType'));
 const SellerProfile       = lazy(() => import('./SellerProfile'));
 const BuyerProfile        = lazy(() => import('./BuyerProfile'));
 const AffiliateLanding    = lazy(() => import('./AffiliateLanding'));
-const AffiliateSignup     = lazy(() => import('./AffiliateSignup'));
-const AffiliateSignin     = lazy(() => import('./AffiliateSignin'));
 const AffiliateProfile    = lazy(() => import('./AffiliateProfile'));
 const AffiliateDashboard  = lazy(() => import('./AffiliateDashboard'));
 const ServiceDetail       = lazy(() => import('./ServiceDetail'));
@@ -96,8 +94,8 @@ function AppRoutes() {
           <Route path="/buyer-dashboard"    element={<ProtectedRoute><BuyerDashboard /></ProtectedRoute>} />
           <Route path="/affiliate-dashboard" element={<ProtectedRoute><AffiliateDashboard /></ProtectedRoute>} />
           <Route path="/affiliate"          element={<AffiliateLanding />} />
-          <Route path="/affiliate-signup"   element={<AffiliateSignup />} />
-          <Route path="/affiliate-signin"   element={<AffiliateSignin />} />
+          <Route path="/affiliate-signup"   element={<Navigate to="/signup" replace />} />
+          <Route path="/affiliate-signin"   element={<Navigate to="/signin" replace />} />
           <Route path="/affiliate-profile"  element={<ProtectedRoute><AffiliateProfile /></ProtectedRoute>} />
           <Route path="/service-detail"     element={<ServiceDetail />} />
           <Route path="/admin-dashboard"    element={<AdminRoute><AdminDashboard /></AdminRoute>} />
