@@ -109,6 +109,8 @@ app.post(
     try {
       if (event.type === 'checkout.session.completed') {
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+      } else if (event.type === 'payment_intent.succeeded') {
+        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
       } else if (event.type === 'payment_intent.payment_failed') {
         await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
       } else if (event.type === 'charge.refunded') {
@@ -237,6 +239,102 @@ app.post('/api/checkout/verify-session', requireAuth, async (req: AuthRequest, r
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/checkout/verify-session error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/checkout/create-payment-intent
+// Creates a PaymentIntent for Stripe Elements-based checkout.
+// The frontend mounts <PaymentElement> and confirms client-side.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      conversationId, messageId, serviceTitle, serviceId,
+      sellerName, sellerId, offerAmount, priceUnit,
+    } = req.body as {
+      conversationId: string; messageId: string; serviceTitle: string;
+      serviceId: string; sellerName: string; sellerId: string;
+      offerAmount: number; priceUnit: 'per_project' | 'per_hour';
+    };
+
+    if (!conversationId || !messageId || !serviceId || !sellerId || !offerAmount) {
+      res.status(400).json({ error: 'Missing required fields' }); return;
+    }
+    if (offerAmount <= 0) {
+      res.status(400).json({ error: 'Amount must be greater than 0' }); return;
+    }
+
+    const buyerId = req.uid!;
+    const amountInCents = Math.round(offerAmount * 100);
+    const PLATFORM_FEE_PERCENT = await readFeePct();
+    const platformFeeCents = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
+    const sellerAmountCents = amountInCents - platformFeeCents;
+
+    const walletSnap = await db.ref(`wallets/${sellerId}/stripeConnectedAccountId`).get();
+    const connectedAccountId = walletSnap.val() as string | null;
+
+    const piParams: Stripe.PaymentIntentCreateParams = {
+      amount: amountInCents,
+      currency: 'usd',
+      description: priceUnit === 'per_hour'
+        ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
+        : `${serviceTitle} — Fixed price (via ${sellerName})`,
+      metadata: {
+        buyerId, sellerId, serviceId, conversationId, messageId,
+        offerAmount: String(offerAmount),
+        platformFeePercent: String(PLATFORM_FEE_PERCENT),
+        platformFeeCents: String(platformFeeCents),
+        sellerAmountCents: String(sellerAmountCents),
+      },
+    };
+
+    if (connectedAccountId) {
+      piParams.application_fee_amount = platformFeeCents;
+      piParams.transfer_data = { destination: connectedAccountId };
+    }
+
+    const pi = await stripe.paymentIntents.create(piParams);
+    res.json({ clientSecret: pi.client_secret });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/checkout/create-payment-intent error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/checkout/verify-payment-intent
+// Fallback for redirect-based payment methods (e.g. iDEAL).
+// Retrieves the PaymentIntent and fulfils the order if succeeded.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/checkout/verify-payment-intent', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { paymentIntentId } = req.body as { paymentIntentId: string };
+    if (!paymentIntentId) { res.status(400).json({ error: 'paymentIntentId is required' }); return; }
+
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (pi.metadata?.buyerId !== req.uid) {
+      res.status(403).json({ error: 'Forbidden' }); return;
+    }
+
+    if (pi.status !== 'succeeded') {
+      res.json({ status: pi.status, fulfilled: false }); return;
+    }
+
+    const existing = await db.ref('payments')
+      .orderByChild('stripePaymentIntentId').equalTo(pi.id).limitToFirst(1).get();
+    if (existing.exists()) {
+      res.json({ status: 'succeeded', fulfilled: true, alreadyProcessed: true }); return;
+    }
+
+    await handlePaymentIntentSucceeded(pi);
+    res.json({ status: 'succeeded', fulfilled: true, alreadyProcessed: false });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/checkout/verify-payment-intent error:', msg);
     res.status(500).json({ error: msg });
   }
 });
@@ -612,6 +710,101 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   await db.ref().update(mainUpdates);
   console.log(`Order ${orderId} created for session ${session.id}`);
+}
+
+async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
+  const meta = pi.metadata;
+  if (!meta?.buyerId) return; // not a gig checkout — ignore
+
+  const { buyerId, sellerId, serviceId, conversationId, messageId,
+    offerAmount, platformFeePercent, platformFeeCents, sellerAmountCents } = meta;
+
+  const lockRef = db.ref(`checkoutLocks/${pi.id}`);
+  const { committed } = await lockRef.transaction((current) => {
+    if (current !== null) return;
+    return Date.now();
+  });
+  if (!committed) {
+    console.log(`PaymentIntent ${pi.id} already processed/processing — skipping duplicate`);
+    return;
+  }
+
+  const [buyerSnap, sellerSnap, msgSnap, serviceSnap] = await Promise.all([
+    db.ref(`users/${buyerId}`).get(),
+    db.ref(`users/${sellerId}`).get(),
+    db.ref(`messages/${conversationId}/${messageId}`).get(),
+    db.ref(`services/${serviceId}`).get(),
+  ]);
+
+  const buyer   = buyerSnap.val()   as { name?: string; photoURL?: string } | null;
+  const seller  = sellerSnap.val()  as { name?: string; photoURL?: string } | null;
+  const msg     = msgSnap.val()     as { offer?: { serviceTitle?: string; serviceImage?: string | null; description?: string; priceUnit?: string } } | null;
+  const service = serviceSnap.val() as { title?: string; images?: string[] } | null;
+
+  const offerAmountNum = parseFloat(offerAmount);
+  const platformFeePct = parseFloat(platformFeePercent);
+  const platformFeeAmt = parseInt(platformFeeCents, 10) / 100;
+  const sellerAmt      = parseInt(sellerAmountCents, 10) / 100;
+  const serviceTitle   = msg?.offer?.serviceTitle || service?.title || 'Service';
+  const serviceImage   = msg?.offer?.serviceImage ?? service?.images?.[0] ?? null;
+  const now = Date.now();
+
+  const orderId   = db.ref('orders').push().key!;
+  const paymentId = db.ref('payments').push().key!;
+  const txId      = db.ref(`walletTransactions/${sellerId}`).push().key!;
+
+  const mainUpdates: Record<string, unknown> = {
+    [`orders/${orderId}`]: {
+      buyerId, buyerName: buyer?.name || 'Buyer', buyerPhoto: buyer?.photoURL || '',
+      sellerId, sellerName: seller?.name || 'Seller', sellerPhoto: seller?.photoURL || '',
+      serviceId, serviceTitle, serviceImage,
+      price: offerAmountNum, priceType: msg?.offer?.priceUnit || 'per_project',
+      message: msg?.offer?.description || '',
+      status: 'in_progress', paymentId, paymentStatus: 'paid',
+      conversationId, createdAt: now,
+    },
+    [`payments/${paymentId}`]: {
+      orderId, conversationId, serviceId, buyerId, sellerId,
+      stripeSessionId: '',
+      stripePaymentIntentId: pi.id,
+      amount: offerAmountNum, currency: 'usd',
+      platformFeePercent: platformFeePct, platformFeeAmount: platformFeeAmt,
+      sellerAmount: sellerAmt, status: 'paid', createdAt: now, paidAt: now,
+    },
+    [`messages/${conversationId}/${messageId}/offerStatus`]: 'accepted',
+    [`messages/${conversationId}/${messageId}/orderId`]:     orderId,
+    [`wallets/${sellerId}/pendingBalance`]: admin.database.ServerValue.increment(sellerAmt),
+    [`wallets/${sellerId}/updatedAt`]:     now,
+    [`walletTransactions/${sellerId}/${txId}`]: {
+      type: 'payment_received', orderId, paymentId, amount: sellerAmt,
+      description: `Payment received for "${serviceTitle}"`, createdAt: now,
+    },
+  };
+
+  const buyerReferralSnap = await db.ref(`users/${buyerId}/referredBy`).get();
+  const affiliateId = buyerReferralSnap.val() as string | null;
+
+  if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
+    const commissionAmount = parseFloat((platformFeeAmt * 0.5).toFixed(2));
+    if (commissionAmount > 0) {
+      const commissionId = db.ref('affiliateCommissions').push().key!;
+      mainUpdates[`affiliateCommissions/${commissionId}`] = {
+        affiliateId, orderId, paymentId,
+        buyerId, buyerName: buyer?.name || 'Buyer',
+        sellerId, orderAmount: offerAmountNum,
+        platformFeeAmount: platformFeeAmt,
+        commissionAmount,
+        status: 'pending',
+        createdAt: now,
+      };
+      mainUpdates[`affiliates/${affiliateId}/pendingBalance`] =
+        admin.database.ServerValue.increment(commissionAmount);
+      mainUpdates[`affiliates/${affiliateId}/updatedAt`] = now;
+    }
+  }
+
+  await db.ref().update(mainUpdates);
+  console.log(`Order ${orderId} created for PaymentIntent ${pi.id}`);
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {

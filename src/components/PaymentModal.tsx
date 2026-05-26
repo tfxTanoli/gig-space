@@ -1,16 +1,103 @@
-import { useEffect, useRef, useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { X, Loader2, Lock } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
-interface EmbeddedCheckout {
-  mount: (selector: string) => void;
-  destroy: () => void;
+const appearance = {
+  theme: 'night' as const,
+  variables: {
+    colorPrimary: '#3b82f6',
+    colorBackground: '#111827',
+    colorText: '#f1f5f9',
+    colorTextSecondary: '#94a3b8',
+    borderRadius: '8px',
+    fontFamily: 'inherit',
+  },
+  rules: {
+    '.Input': { border: '1px solid #334155', backgroundColor: '#0f172a' },
+    '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none' },
+    '.Label': { color: '#94a3b8', fontSize: '12px' },
+  },
+};
+
+interface CheckoutFormProps {
+  offerAmount: number;
+  onSuccess: () => void;
+  onClose: () => void;
 }
 
-interface StripeWithEmbedded {
-  createEmbeddedCheckoutPage: (opts: { clientSecret: string }) => Promise<EmbeddedCheckout>;
+function CheckoutForm({ offerAmount, onSuccess, onClose }: CheckoutFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [ready, setReady] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePay = async () => {
+    if (!stripe || !elements) return;
+    setPaying(true);
+    setError(null);
+
+    const result = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/buyer-dashboard?tab=Orders&payment_intent_redirect=true`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (result.error) {
+      setError(result.error.message ?? 'Payment failed. Please try again.');
+      setPaying(false);
+    } else {
+      onSuccess();
+    }
+  };
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto p-5 min-h-0">
+        {!ready && (
+          <div className="flex items-center justify-center h-48">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          </div>
+        )}
+        <PaymentElement
+          onReady={() => setReady(true)}
+          options={{ layout: 'tabs' }}
+        />
+        {error && (
+          <p className="mt-3 text-red-400 text-sm">{error}</p>
+        )}
+      </div>
+
+      {ready && (
+        <div className="px-5 py-4 border-t border-slate-800 flex gap-3 shrink-0">
+          <button
+            onClick={onClose}
+            disabled={paying}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handlePay}
+            disabled={paying}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {paying ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Lock className="w-3.5 h-3.5" />
+            )}
+            {paying ? 'Processing…' : `Pay $${offerAmount}`}
+          </button>
+        </div>
+      )}
+    </>
+  );
 }
 
 interface PaymentModalProps {
@@ -18,72 +105,39 @@ interface PaymentModalProps {
   offerAmount: number;
   serviceTitle: string;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-export default function PaymentModal({ clientSecret, offerAmount, serviceTitle, onClose }: PaymentModalProps) {
-  const [loading, setLoading] = useState(true);
-  const checkoutRef = useRef<EmbeddedCheckout | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    const init = async () => {
-      const stripe = await stripePromise;
-      if (!stripe || !active) return;
-
-      const checkout = await (stripe as unknown as StripeWithEmbedded).createEmbeddedCheckoutPage({ clientSecret });
-      if (!active) {
-        checkout.destroy();
-        return;
-      }
-
-      checkoutRef.current = checkout;
-      checkout.mount('#stripe-embedded-checkout');
-      setLoading(false);
-    };
-
-    init().catch(console.error);
-
-    return () => {
-      active = false;
-      checkoutRef.current?.destroy();
-      checkoutRef.current = null;
-    };
-  }, [clientSecret]);
-
+export default function PaymentModal({
+  clientSecret,
+  offerAmount,
+  serviceTitle,
+  onClose,
+  onSuccess,
+}: PaymentModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative z-10 bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: '90vh' }}
+        className="relative z-10 bg-[#111827] border border-slate-700 sm:rounded-2xl rounded-t-2xl w-full sm:max-w-md shadow-2xl flex flex-col"
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
           <div>
-            <h3 className="font-semibold text-gray-900 text-base">Complete payment</h3>
-            <p className="text-gray-500 text-xs mt-0.5 truncate max-w-[280px]">
+            <h3 className="font-semibold text-white text-base">Complete payment</h3>
+            <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[280px]">
               {serviceTitle} — ${offerAmount}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors ml-4 shrink-0"
-          >
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors ml-4 shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Checkout body */}
-        <div className="flex-1 overflow-y-auto">
-          {loading && (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            </div>
-          )}
-          <div id="stripe-embedded-checkout" />
-        </div>
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+          <CheckoutForm offerAmount={offerAmount} onSuccess={onSuccess} onClose={onClose} />
+        </Elements>
       </div>
     </div>
   );

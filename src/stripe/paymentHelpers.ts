@@ -79,6 +79,30 @@ export async function verifyCheckoutSession(sessionId: string): Promise<void> {
 }
 
 /**
+ * Creates a PaymentIntent for Stripe Elements-based checkout.
+ * Returns the client secret used to mount <PaymentElement>.
+ */
+export async function startElementsCheckout(payload: CreateCheckoutRequest): Promise<string> {
+  const data = await apiFetch<{ clientSecret: string }>(
+    '/api/checkout/create-payment-intent',
+    payload as unknown as Record<string, unknown>
+  );
+  if (!data.clientSecret) throw new Error('No client secret returned from server.');
+  return data.clientSecret;
+}
+
+/**
+ * Fallback for redirect-based payment methods (e.g. iDEAL).
+ * Retrieves the PaymentIntent status and fulfils the order if succeeded.
+ */
+export async function verifyPaymentIntent(paymentIntentId: string): Promise<void> {
+  await apiFetch<{ status: string; fulfilled: boolean }>(
+    '/api/checkout/verify-payment-intent',
+    { paymentIntentId }
+  );
+}
+
+/**
  * Buyer approves delivery — atomically releases escrow to seller wallet.
  */
 export async function approveDelivery(orderId: string): Promise<void> {

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
-import { verifyCheckoutSession } from './stripe/paymentHelpers';
+import { verifyCheckoutSession, verifyPaymentIntent } from './stripe/paymentHelpers';
 import { CurrentUserAvatar } from './UserAvatar';
 import NotificationBell from './notifications/NotificationBell';
 import { sendNotification } from './notifications/notificationHelpers';
@@ -143,6 +143,58 @@ const BuyerDashboard = () => {
       next.delete('payment_success');
       next.delete('session_id');
       setSearchParams(next, { replace: true });
+    }
+
+    // Fallback for redirect-based payment methods (e.g. iDEAL) that return
+    // from the Elements confirmPayment redirect flow.
+    const paymentIntentRedirect = searchParams.get('payment_intent_redirect');
+    if (paymentIntentRedirect === 'true') {
+      const piId = searchParams.get('payment_intent');
+      if (piId) {
+        verifyPaymentIntent(piId).catch(console.error);
+      }
+      setPaymentSuccessToast(true);
+      setTimeout(() => setPaymentSuccessToast(false), 5000);
+
+      if (user) {
+        sendNotification(user.uid, {
+          type: 'offer_accepted',
+          title: 'Payment successful',
+          body: 'Your payment was processed. Your order is now in progress.',
+          senderId: user.uid,
+          senderName: userProfile?.name || '',
+          senderPhotoURL: userProfile?.photoURL || '',
+        }).catch(console.error);
+
+        try {
+          const raw = sessionStorage.getItem('pendingOfferNotif');
+          if (raw) {
+            const pending = JSON.parse(raw) as {
+              sellerId: string; sellerName: string; sellerPhotoURL: string;
+              conversationId: string; price: number; serviceTitle: string;
+            };
+            sendNotification(pending.sellerId, {
+              type: 'offer_accepted',
+              title: 'Your offer was accepted',
+              body: `${userProfile?.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
+              senderId: user.uid,
+              senderName: userProfile?.name || '',
+              senderPhotoURL: userProfile?.photoURL || '',
+              conversationId: pending.conversationId,
+            }).catch(console.error);
+            sessionStorage.removeItem('pendingOfferNotif');
+          }
+        } catch {
+          sessionStorage.removeItem('pendingOfferNotif');
+        }
+      }
+
+      const next2 = new URLSearchParams(searchParams);
+      next2.delete('payment_intent_redirect');
+      next2.delete('payment_intent');
+      next2.delete('payment_intent_client_secret');
+      next2.delete('redirect_status');
+      setSearchParams(next2, { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
