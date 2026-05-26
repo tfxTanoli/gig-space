@@ -813,9 +813,14 @@ const BuyerSearch = () => {
                 )}
               </div>
             ) : (
-              <Link to="/signin" className="text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
-                Log in
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link to="/signin" className="text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                  Log in
+                </Link>
+                <Link to="/signup" className="text-sm font-medium text-white px-4 py-2 bg-primary rounded-full hover:bg-blue-600 transition-colors">
+                  Sign up
+                </Link>
+              </div>
             )}
           </div>
         </div>
