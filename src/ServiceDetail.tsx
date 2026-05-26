@@ -1,4 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
+import { sanitizeHtml } from './utils/sanitize';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, Bell, ChevronLeft, ChevronRight,
@@ -353,9 +354,14 @@ const ServiceDetail = () => {
           {/* Description */}
           <div>
             <h2 className="text-base font-bold text-white mb-4">Description</h2>
-            <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
-              {post.description || <span className="text-slate-500">No description provided.</span>}
-            </div>
+            {post.description ? (
+              <div
+                className="text-slate-300 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.description) }}
+              />
+            ) : (
+              <span className="text-slate-500 text-sm">No description provided.</span>
+            )}
           </div>
         </div>
 

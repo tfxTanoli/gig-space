@@ -946,6 +946,114 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/subscriptions/create-listing-subscription
+//
+// Creates a Stripe Subscription for extra listing locations ($5/month each).
+// Returns a PaymentIntent client secret so the frontend can confirm the card.
+//
+// Flow:
+//   1. Get/create Stripe Customer for the seller.
+//   2. Get/create the reusable "$5/month extra location" Price, cached in
+//      Firebase at settings/stripe/extraLocationPriceId so it's only created
+//      once. Override with env STRIPE_EXTRA_LOCATION_PRICE_ID if set.
+//   3. Cancel any existing subscription already stored on the service record
+//      (handles re-publishing after editing extra locations).
+//   4. Create a new subscription with payment_behavior:'default_incomplete'
+//      so we get a PaymentIntent that the frontend must confirm with the card.
+//   5. Return { clientSecret, subscriptionId }.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const { extraLocationCount, serviceId } = req.body as {
+      extraLocationCount: number;
+      serviceId: string;
+    };
+
+    if (!extraLocationCount || extraLocationCount < 1) {
+      res.status(400).json({ error: 'extraLocationCount must be at least 1' });
+      return;
+    }
+
+    // 1. Get or create Stripe Customer ────────────────────────────────────────
+    const userSnap = await db.ref(`users/${uid}`).get();
+    const userData = userSnap.val() as {
+      email?: string; name?: string; stripeCustomerId?: string;
+    } | null;
+
+    let customerId = userData?.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        ...(userData?.email ? { email: userData.email } : {}),
+        ...(userData?.name  ? { name:  userData.name  } : {}),
+        metadata: { firebaseUid: uid },
+      });
+      customerId = customer.id;
+      await db.ref(`users/${uid}/stripeCustomerId`).set(customerId);
+    }
+
+    // 2. Get or create the recurring $5/month Price ───────────────────────────
+    let priceId: string | undefined = process.env.STRIPE_EXTRA_LOCATION_PRICE_ID || undefined;
+
+    if (!priceId) {
+      const cachedSnap = await db.ref('settings/stripe/extraLocationPriceId').get();
+      priceId = (cachedSnap.val() as string | null) ?? undefined;
+    }
+
+    if (!priceId) {
+      const product = await stripe.products.create({
+        name: 'Extra Listing Location',
+        description: 'Monthly fee for each additional location on a GigSpace listing ($5/month each).',
+      });
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: 500, // $5.00 in cents
+        currency: 'usd',
+        recurring: { interval: 'month' },
+      });
+      priceId = price.id;
+      await db.ref('settings/stripe/extraLocationPriceId').set(priceId);
+    }
+
+    // 3. Cancel any existing subscription on this service ────────────────────
+    if (serviceId) {
+      const existingSubSnap = await db.ref(`services/${serviceId}/subscriptionId`).get();
+      const existingSubId = existingSubSnap.val() as string | null;
+      if (existingSubId) {
+        try {
+          await stripe.subscriptions.cancel(existingSubId);
+        } catch {
+          // Non-fatal: subscription may already be cancelled or not found.
+        }
+      }
+    }
+
+    // 4. Create subscription in incomplete state ───────────────────────────────
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId, quantity: extraLocationCount }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: { save_default_payment_method: 'on_subscription' },
+      expand: ['latest_invoice.payment_intent'],
+    });
+
+    const latestInvoice = subscription.latest_invoice as Stripe.Invoice;
+    const paymentIntent = latestInvoice?.payment_intent as Stripe.PaymentIntent | null;
+
+    if (!paymentIntent?.client_secret) {
+      res.status(500).json({ error: 'Stripe did not return a payment intent — check subscription status.' });
+      return;
+    }
+
+    res.json({ clientSecret: paymentIntent.client_secret, subscriptionId: subscription.id });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/subscriptions/create-listing-subscription error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);
 

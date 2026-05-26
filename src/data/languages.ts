@@ -1,0 +1,18 @@
+export const LANGUAGES: string[] = [
+  'English', 'Spanish', 'French', 'German', 'Portuguese', 'Italian',
+  'Dutch', 'Russian', 'Chinese (Simplified)', 'Chinese (Traditional)',
+  'Japanese', 'Korean', 'Arabic', 'Hindi', 'Bengali', 'Urdu', 'Turkish',
+  'Vietnamese', 'Thai', 'Indonesian', 'Malay', 'Filipino (Tagalog)',
+  'Polish', 'Ukrainian', 'Romanian', 'Greek', 'Czech', 'Hungarian',
+  'Swedish', 'Danish', 'Finnish', 'Norwegian', 'Slovak', 'Bulgarian',
+  'Croatian', 'Serbian', 'Slovenian', 'Lithuanian', 'Latvian', 'Estonian',
+  'Icelandic', 'Irish', 'Welsh', 'Maltese', 'Albanian', 'Farsi',
+  'Macedonian', 'Bosnian', 'Armenian', 'Georgian', 'Azerbaijani',
+  'Kazakh', 'Uzbek', 'Turkmen', 'Kyrgyz', 'Tajik', 'Mongolian',
+  'Nepali', 'Sinhala', 'Tamil', 'Telugu', 'Kannada', 'Malayalam',
+  'Marathi', 'Gujarati', 'Punjabi', 'Pashto', 'Kurdish', 'Lao',
+  'Khmer', 'Burmese', 'Swahili', 'Hausa', 'Yoruba', 'Zulu', 'Xhosa',
+  'Amharic', 'Somali', 'Afrikaans', 'Quechua', 'Haitian Creole',
+  'Luxembourgish', 'Galician', 'Catalan', 'Basque', 'Corsican',
+  'Sardinian', 'Breton', 'Occitan',
+];

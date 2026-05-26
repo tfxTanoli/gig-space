@@ -131,3 +131,18 @@ export async function listPaymentMethods(): Promise<SavedPaymentMethod[]> {
 export async function removePaymentMethod(pmId: string): Promise<void> {
   await apiDelete<{ success: boolean }>(`/api/payment-methods/${pmId}`);
 }
+
+/**
+ * Creates a Stripe subscription for extra listing locations ($5/month each).
+ * Backend must implement POST /api/subscriptions/create-listing-subscription.
+ * Returns a PaymentIntent client secret and the new subscription ID.
+ */
+export async function createListingSubscription(payload: {
+  extraLocationCount: number;
+  serviceId: string;
+}): Promise<{ clientSecret: string; subscriptionId: string }> {
+  return apiFetch<{ clientSecret: string; subscriptionId: string }>(
+    '/api/subscriptions/create-listing-subscription',
+    payload as unknown as Record<string, unknown>,
+  );
+}
