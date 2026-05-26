@@ -923,7 +923,7 @@ const BuyerSearch = () => {
                     className={`text-left py-2 text-sm border-b border-slate-800/50 transition-colors cursor-pointer ${
                       activeCategory === hoveredCategory && activeSubcategory === sub.value
                         ? 'text-primary font-medium'
-                        : 'text-slate-300 hover:text-white'
+                        : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     {sub.label}
@@ -960,7 +960,7 @@ const BuyerSearch = () => {
 
         {/* Filter bar — horizontally scrollable on mobile */}
         <div ref={filterBarRef} className="mb-6 border-b border-slate-800 pb-4">
-          <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0" style={{ scrollbarWidth: 'none' }}>
+          <div className="-mx-4 md:mx-0 px-4 md:px-0">
             <div className="flex items-center gap-4 md:gap-6 min-w-max md:min-w-0 md:flex-wrap">
               {/* Sort */}
               <FilterDropdown
@@ -978,22 +978,7 @@ const BuyerSearch = () => {
 
               <div className="w-px h-5 bg-slate-700 shrink-0" />
 
-          <div className="flex items-center gap-4 md:gap-6">
-            {/* Subcategory */}
-            {activeCategory && subcategoryMap[activeCategory] && (
-              <FilterDropdown
-                label={activeSubcategory ? getSubcategoryLabel(activeCategory, activeSubcategory) : 'Subcategory'}
-                isOpen={openDropdown === 'subcategory'}
-                active={activeSubcategory !== ''}
-                onToggle={() => toggleDropdown('subcategory')}
-              >
-                <Opt label="All subcategories" selected={activeSubcategory === ''} onClick={() => { setActiveSubcategory(''); setOpenDropdown(null); }} />
-                {subcategoryMap[activeCategory].map((s) => (
-                  <Opt key={s.value} label={s.label} selected={activeSubcategory === s.value} onClick={() => { setActiveSubcategory(s.value); setOpenDropdown(null); }} />
-                ))}
-              </FilterDropdown>
-            )}
-
+          <div className="flex items-center gap-4 md:gap-6 ml-auto">
             {/* Radius — only shown for city/ZIP/address-level locations */}
             {locationType === 'precise' && (
               <FilterDropdown
