@@ -24,7 +24,7 @@ const appearance = {
 
 interface CheckoutFormProps {
   offerAmount: number;
-  onSuccess: () => void;
+  onSuccess: (paymentIntentId: string) => void;
   onClose: () => void;
 }
 
@@ -52,7 +52,7 @@ function CheckoutForm({ offerAmount, onSuccess, onClose }: CheckoutFormProps) {
       setError(result.error.message ?? 'Payment failed. Please try again.');
       setPaying(false);
     } else {
-      onSuccess();
+      onSuccess(result.paymentIntent?.id ?? '');
     }
   };
 
@@ -105,7 +105,7 @@ interface PaymentModalProps {
   offerAmount: number;
   serviceTitle: string;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (paymentIntentId: string) => void;
 }
 
 export default function PaymentModal({

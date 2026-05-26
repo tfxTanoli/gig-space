@@ -15,7 +15,7 @@ const MessagesIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 import { toast } from 'sonner';
-import { startElementsCheckout } from './stripe/paymentHelpers';
+import { startElementsCheckout, verifyPaymentIntent } from './stripe/paymentHelpers';
 import PaymentModal from './components/PaymentModal';
 import { sendNotification } from './notifications/notificationHelpers';
 
@@ -516,11 +516,16 @@ export default function ChatMessages({
     }
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (paymentIntentId: string) => {
     const offer = paymentOffer;
     setPaymentClientSecret(null);
     setPaymentOffer(null);
     toast.success('Payment successful! Your order is now in progress.');
+    // Trigger backend to create the order + set offerStatus to 'accepted' in Firebase.
+    // This is the inline-payment equivalent of verifyCheckoutSession for the old redirect flow.
+    if (paymentIntentId) {
+      verifyPaymentIntent(paymentIntentId).catch(console.error);
+    }
     if (user && userProfile && offer) {
       sendNotification(user.uid, {
         type: 'offer_accepted',
@@ -927,7 +932,7 @@ export default function ChatMessages({
                                     {acceptingOfferId === msg.id ? (
                                       <>
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        Redirecting to payment…
+                                        Loading payment…
                                       </>
                                     ) : (
                                       `Accept & Pay $${msg.offer.price}`
