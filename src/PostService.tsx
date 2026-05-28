@@ -13,7 +13,8 @@ import {
   Video as VideoIcon,
   Search,
   X,
-  Plus,
+  Check,
+  List,
   Loader2,
   Eye,
   Pencil,
@@ -36,7 +37,6 @@ import { sanitizeHtml } from './utils/sanitize';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
 const TOTAL_STEPS = 9;
-const MAX_IMAGES = 12;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
 
 type MediaItem =
@@ -49,7 +49,7 @@ const CARD_STYLE = {
     base: {
       color: '#e2e8f0',
       fontSize: '14px',
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+      fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
       '::placeholder': { color: '#475569' },
     },
     invalid: { color: '#f87171' },
@@ -69,6 +69,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
   const [cardName, setCardName] = useState('');
   const [processing, setProcessing] = useState(false);
   const [payError, setPayError] = useState('');
+  const [cardComplete, setCardComplete] = useState({ number: false, expiry: false, cvc: false });
 
   const total = extraLocationCount * 5;
 
@@ -98,8 +99,9 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
     }
   };
 
-  const fieldClass = 'w-full bg-[#1A2035] border border-slate-700/80 rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm text-white';
-  const stripeWrapClass = 'bg-[#1A2035] border border-slate-700/80 rounded-lg px-4 py-3.5';
+  const fieldClass = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm text-white';
+  const stripeWrapClass = 'bg-slate-800 border border-slate-700 rounded-lg px-4 py-3.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors';
+  const canPublish = !processing && !!stripe && cardName.trim().length > 0 && cardComplete.number && cardComplete.expiry && cardComplete.cvc;
 
   return (
     <>
@@ -111,7 +113,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
             Enter your billing information. Your subscription will renew monthly.
           </p>
           <p className="text-white font-semibold mb-6">
-            Total: <span className="text-primary">${total} /month</span>
+            Total: <span className="text-primary">${total}/mo</span>
           </p>
         </div>
 
@@ -129,7 +131,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
         <div>
           <label className="text-white text-sm font-medium block mb-2">Card number</label>
           <div className={stripeWrapClass}>
-            <CardNumberElement options={CARD_STYLE} />
+            <CardNumberElement options={CARD_STYLE} onChange={e => setCardComplete(p => ({ ...p, number: e.complete }))} />
           </div>
         </div>
 
@@ -137,13 +139,13 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           <div>
             <label className="text-white text-sm font-medium block mb-2">Expiration date</label>
             <div className={stripeWrapClass}>
-              <CardExpiryElement options={CARD_STYLE} />
+              <CardExpiryElement options={CARD_STYLE} onChange={e => setCardComplete(p => ({ ...p, expiry: e.complete }))} />
             </div>
           </div>
           <div>
             <label className="text-white text-sm font-medium block mb-2">CVC</label>
             <div className={stripeWrapClass}>
-              <CardCvcElement options={CARD_STYLE} />
+              <CardCvcElement options={CARD_STYLE} onChange={e => setCardComplete(p => ({ ...p, cvc: e.complete }))} />
             </div>
           </div>
         </div>
@@ -154,7 +156,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           </div>
         )}
 
-        <div className="w-full h-px bg-slate-800 my-2" />
+        <div className="w-full h-px bg-slate-800 my-6" />
         <div className="flex justify-between items-center">
           <button
             type="button"
@@ -167,7 +169,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           <button
             type="button"
             onClick={handlePublish}
-            disabled={processing || !stripe}
+            disabled={!canPublish}
             className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors text-sm"
           >
             {processing ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</> : 'Publish'}
@@ -178,75 +180,6 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
   );
 }
 
-// ── Preview modal ─────────────────────────────────────────────────────────────
-interface PreviewModalProps {
-  title: string;
-  description: string;
-  priceMin: string;
-  priceMax: string;
-  priceType: 'per_project' | 'per_hour';
-  mediaItems: MediaItem[];
-  videoSrc: string;
-  primaryLocation: string;
-  languages: string[];
-  onClose: () => void;
-}
-
-function PreviewModal({ title, description, priceMin, priceMax, priceType, mediaItems, videoSrc, primaryLocation, languages, onClose }: PreviewModalProps) {
-  const firstMedia = videoSrc || (mediaItems[0]?.kind === 'existing' ? mediaItems[0].url : mediaItems[0]?.kind === 'new' ? mediaItems[0].previewUrl : '');
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative z-10 bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: '85vh' }}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50 shrink-0">
-          <h3 className="font-semibold text-white text-base">Post Preview</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {firstMedia ? (
-            videoSrc ? (
-              <video src={videoSrc} className="w-full aspect-video rounded-xl object-cover bg-black" controls />
-            ) : (
-              <img src={firstMedia} alt="cover" className="w-full aspect-video rounded-xl object-cover" />
-            )
-          ) : (
-            <div className="w-full aspect-video rounded-xl bg-[#1A2035] flex items-center justify-center">
-              <ImageIcon className="w-12 h-12 text-slate-600" strokeWidth={1.5} />
-            </div>
-          )}
-          <h2 className="text-white font-semibold text-lg">{title || 'No title'}</h2>
-          <p className="text-primary font-semibold text-sm">
-            {priceMin ? `From $${priceMin}` : '—'}
-            {priceMax ? ` – $${priceMax}` : ''}
-            {' '}/ {priceType === 'per_project' ? 'project' : 'hr'}
-          </p>
-          {primaryLocation && (
-            <p className="text-slate-400 text-sm">📍 {primaryLocation}</p>
-          )}
-          {languages.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {languages.map((l) => (
-                <span key={l} className="bg-[#1A2035] text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full text-xs">{l}</span>
-              ))}
-            </div>
-          )}
-          {description && (
-            <div
-              className="text-slate-300 text-sm leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Main PostService component ────────────────────────────────────────────────
 const PostService = () => {
@@ -265,7 +198,6 @@ const PostService = () => {
   const [publishing, setPublishing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
 
   // Step 1 — Category
   const [category, setCategory] = useState('');
@@ -279,6 +211,7 @@ const PostService = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [descriptionLength, setDescriptionLength] = useState(0);
+  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Step 3 — Pricing
@@ -291,8 +224,7 @@ const PostService = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewURL, setVideoPreviewURL] = useState('');
   const [existingVideoURL, setExistingVideoURL] = useState('');
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
   const dragIndexRef = useRef<number | null>(null);
 
   // Step 5 — Primary Location (moved from old step 7)
@@ -302,10 +234,15 @@ const PostService = () => {
   const [primaryLocationLoading, setPrimaryLocationLoading] = useState(false);
   const [primaryLocationDropdownOpen, setPrimaryLocationDropdownOpen] = useState(false);
   const primaryLocationContainerRef = useRef<HTMLDivElement>(null);
+  const [offeredRemotely, setOfferedRemotely] = useState(false);
 
   // Step 6 — Extra Locations
   const [extraLocations, setExtraLocations] = useState<string[]>([]);
   const [extraLocationInput, setExtraLocationInput] = useState('');
+  const [extraLocationSuggestions, setExtraLocationSuggestions] = useState<LocationResult[]>([]);
+  const [extraLocationLoading, setExtraLocationLoading] = useState(false);
+  const [extraLocationDropdownOpen, setExtraLocationDropdownOpen] = useState(false);
+  const extraLocationContainerRef = useRef<HTMLDivElement>(null);
 
   // Step 7 — Languages (moved from old step 5)
   const [languages, setLanguages] = useState<string[]>([]);
@@ -319,6 +256,7 @@ const PostService = () => {
       if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) setCategoryOpen(false);
       if (subcategoryRef.current && !subcategoryRef.current.contains(e.target as Node)) setSubcategoryOpen(false);
       if (primaryLocationContainerRef.current && !primaryLocationContainerRef.current.contains(e.target as Node)) setPrimaryLocationDropdownOpen(false);
+      if (extraLocationContainerRef.current && !extraLocationContainerRef.current.contains(e.target as Node)) setExtraLocationDropdownOpen(false);
       if (languageContainerRef.current && !languageContainerRef.current.contains(e.target as Node)) setLanguageDropdownOpen(false);
     };
     document.addEventListener('mousedown', handler);
@@ -345,6 +283,19 @@ const PostService = () => {
     }, 300);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [primaryLocationInput]);
+
+  // ── Extra location Photon autocomplete ─────────────────────────────────────
+  useEffect(() => {
+    const q = extraLocationInput.trim();
+    if (q.length < 2) { setExtraLocationSuggestions([]); setExtraLocationLoading(false); return; }
+    setExtraLocationLoading(true);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const found = await searchLocations(q, controller.signal);
+      if (!controller.signal.aborted) { setExtraLocationSuggestions(found); setExtraLocationLoading(false); }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [extraLocationInput]);
 
   // ── Load existing post (edit mode) ─────────────────────────────────────────
   useEffect(() => {
@@ -373,6 +324,7 @@ const PostService = () => {
         setLanguages(Array.isArray(d.languages) ? (d.languages as string[]) : []);
         setExtraLocations(Array.isArray(d.extraLocations) ? (d.extraLocations as string[]) : []);
         setPrimaryLocation(String(d.primaryLocation ?? ''));
+        setOfferedRemotely(Boolean(d.offeredRemotely ?? false));
       })
       .catch(() => navigate('/seller-dashboard'))
       .finally(() => setLoadingEdit(false));
@@ -380,26 +332,39 @@ const PostService = () => {
   }, []);
 
   // ── Media handlers ─────────────────────────────────────────────────────────
-  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const remaining = MAX_IMAGES - mediaItems.length;
-    const toAdd = files.slice(0, remaining);
-    startTransition(() => {
-      setMediaItems((prev) => [
-        ...prev,
-        ...toAdd.map((file) => ({ kind: 'new' as const, file, previewUrl: URL.createObjectURL(file) })),
-      ]);
-    });
-    e.target.value = '';
-  };
+    const hasExistingVideo = !!(videoPreviewURL || existingVideoURL);
+    const totalExisting = mediaItems.length + (hasExistingVideo ? 1 : 0);
+    const slotsLeft = 12 - totalExisting;
+    if (slotsLeft <= 0) return;
 
-  const handleVideoSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > MAX_VIDEO_BYTES) { setStepError('Video must be under 50 MB.'); return; }
-    if (videoPreviewURL) URL.revokeObjectURL(videoPreviewURL);
-    setVideoFile(file);
-    setVideoPreviewURL(URL.createObjectURL(file));
+    let newVideo: File | null = null;
+    const newImages: File[] = [];
+    for (const f of files) {
+      if (f.type.startsWith('video/') && !hasExistingVideo && newVideo === null) {
+        if (f.size > MAX_VIDEO_BYTES) { setStepError('Video must be under 50 MB.'); continue; }
+        newVideo = f;
+      } else if (!f.type.startsWith('video/')) {
+        newImages.push(f);
+      }
+    }
+    const imageSlots = slotsLeft - (newVideo ? 1 : 0);
+    const imagesToAdd = newImages.slice(0, imageSlots);
+
+    startTransition(() => {
+      if (newVideo) {
+        if (videoPreviewURL) URL.revokeObjectURL(videoPreviewURL);
+        setVideoFile(newVideo);
+        setVideoPreviewURL(URL.createObjectURL(newVideo));
+      }
+      if (imagesToAdd.length > 0) {
+        setMediaItems((prev) => [
+          ...prev,
+          ...imagesToAdd.map((f) => ({ kind: 'new' as const, file: f, previewUrl: URL.createObjectURL(f) })),
+        ]);
+      }
+    });
     e.target.value = '';
   };
 
@@ -467,20 +432,34 @@ const PostService = () => {
     if (e.key === 'Escape') setPrimaryLocationDropdownOpen(false);
   };
 
-  // ── Extra location handler ─────────────────────────────────────────────────
+  // ── Extra location handlers ────────────────────────────────────────────────
+  const addExtraLocation = (label: string) => {
+    if (!extraLocations.includes(label)) setExtraLocations((prev) => [...prev, label]);
+    setExtraLocationInput('');
+    setExtraLocationSuggestions([]);
+    setExtraLocationDropdownOpen(false);
+  };
+
   const handleAddExtraLocation = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && extraLocationInput.trim()) {
       e.preventDefault();
-      const loc = extraLocationInput.trim();
-      if (!extraLocations.includes(loc)) setExtraLocations((prev) => [...prev, loc]);
-      setExtraLocationInput('');
+      addExtraLocation(extraLocationInput.trim());
     }
   };
 
   // ── WYSIWYG helpers ────────────────────────────────────────────────────────
+  const updateFormats = () => {
+    const s = new Set<string>();
+    ['bold', 'italic', 'underline', 'insertUnorderedList'].forEach((cmd) => {
+      try { if (document.queryCommandState(cmd)) s.add(cmd); } catch {}
+    });
+    setActiveFormats(s);
+  };
+
   const execFormat = (command: string) => {
-    document.execCommand(command, false, undefined);
     descriptionRef.current?.focus();
+    document.execCommand(command, false, undefined);
+    updateFormats();
   };
 
   // ── Upload all media ───────────────────────────────────────────────────────
@@ -511,13 +490,16 @@ const PostService = () => {
     if (step === 2) {
       if (title.trim().length < 20) { setStepError('Title must be at least 20 characters.'); return false; }
       const descText = descriptionRef.current?.textContent?.trim() ?? description.replace(/<[^>]*>/g, '').trim();
-      if (descText.length < 10) { setStepError('Please add a description (at least 10 characters).'); return false; }
+      if (descText.length < 150) { setStepError('Please add a description (at least 150 characters).'); return false; }
       if (descText.length > 1000) { setStepError('Description must be 1,000 characters or less.'); return false; }
     }
     if (step === 3) {
       const min = parseInt(priceMin);
+      const max = priceMax ? parseInt(priceMax) : null;
       if (!priceMin || isNaN(min) || min < 5) { setStepError('Minimum price must be at least $5.'); return false; }
-      if (min > 100000) { setStepError('Maximum price cannot exceed $100,000.'); return false; }
+      if (min > 100000) { setStepError('Minimum price cannot exceed $100,000.'); return false; }
+      if (max !== null && !isNaN(max) && max > 100000) { setStepError('Maximum price cannot exceed $100,000.'); return false; }
+      if (max !== null && !isNaN(max) && max < min) { setStepError('Maximum price must be greater than or equal to the minimum.'); return false; }
     }
     if (step === 5 && !primaryLocation.trim()) { setStepError('Please enter a primary location.'); return false; }
     return true;
@@ -564,6 +546,7 @@ const PostService = () => {
       primaryLocation: primaryLocation.trim(),
       primaryLocationLat,
       primaryLocationLng,
+      offeredRemotely,
       extraLocations,
       subscriptionId: subscriptionId ?? null,
       status,
@@ -648,19 +631,19 @@ const PostService = () => {
                   <button
                     type="button"
                     onClick={() => setCategoryOpen((v) => !v)}
-                    className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                   >
                     <span className={selectedCatLabel ? 'text-slate-300' : 'text-slate-500'}>{selectedCatLabel ?? 'Category'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${categoryOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {categoryOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#111827] border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
                       {categoryOptions.map((o) => (
                         <button
                           key={o.value}
                           type="button"
                           onClick={() => { setCategory(o.value); setSubcategory(''); setCategoryOpen(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${category === o.value ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${category === o.value ? 'text-white bg-slate-700' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
                         >
                           {o.label}
                         </button>
@@ -675,19 +658,19 @@ const PostService = () => {
                     type="button"
                     disabled={!category}
                     onClick={() => setSubcategoryOpen((v) => !v)}
-                    className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className={selectedSubLabel ? 'text-slate-300' : 'text-slate-500'}>{selectedSubLabel ?? 'Subcategory'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${subcategoryOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {subcategoryOpen && subcatOptions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#111827] border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
                       {subcatOptions.map((o) => (
                         <button
                           key={o.value}
                           type="button"
                           onClick={() => { setSubcategory(o.value); setSubcategoryOpen(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${subcategory === o.value ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${subcategory === o.value ? 'text-white bg-slate-700' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
                         >
                           {o.label}
                         </button>
@@ -712,7 +695,7 @@ const PostService = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-                className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-slate-300 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
               />
               <div className="text-right text-slate-500 text-xs mt-1">{title.length}/80 max</div>
             </div>
@@ -724,19 +707,19 @@ const PostService = () => {
               <p className="text-slate-400 text-sm mb-4">Add a detailed description of your service. Do not include any URLs or web addresses.</p>
 
               {/* WYSIWYG toolbar */}
-              <div className="flex items-center gap-1 mb-0 bg-[#111827] border border-b-0 border-slate-700/80 rounded-t-lg px-2 py-1.5">
+              <div className="flex items-center gap-1 mb-0 bg-slate-900 border border-b-0 border-slate-700 rounded-t-lg px-2 py-1.5">
                 {[
                   { label: <strong>B</strong>, cmd: 'bold', title: 'Bold' },
                   { label: <em>I</em>, cmd: 'italic', title: 'Italic' },
                   { label: <u>U</u>, cmd: 'underline', title: 'Underline' },
-                  { label: '• List', cmd: 'insertUnorderedList', title: 'Bullet list' },
+                  { label: <List className="w-4 h-4" />, cmd: 'insertUnorderedList', title: 'Bullet list' },
                 ].map(({ label, cmd, title: t }) => (
                   <button
                     key={cmd}
                     type="button"
                     title={t}
                     onMouseDown={(e) => { e.preventDefault(); execFormat(cmd); }}
-                    className="px-2.5 py-1 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition-colors text-sm font-mono select-none"
+                    className={`px-2.5 py-1 rounded hover:text-white hover:bg-slate-700 transition-colors text-sm font-mono select-none ${activeFormats.has(cmd) ? 'bg-slate-700 text-white' : 'text-slate-300'}`}
                   >
                     {label}
                   </button>
@@ -749,17 +732,11 @@ const PostService = () => {
                 contentEditable
                 suppressContentEditableWarning
                 onInput={() => {
-                  const len = descriptionRef.current?.textContent?.length ?? 0;
-                  if (len > 1000 && descriptionRef.current) {
-                    // trim excess — crude but prevents overflow
-                    const txt = descriptionRef.current.textContent ?? '';
-                    if (txt.length > 1000) {
-                      // keep content but show length warning; don't truncate mid-edit
-                    }
-                  }
-                  setDescriptionLength(Math.min(descriptionRef.current?.textContent?.length ?? 0, 9999));
+                  setDescriptionLength(descriptionRef.current?.textContent?.length ?? 0);
                 }}
-                className="w-full min-h-[180px] bg-[#1A2035] border border-slate-700/80 rounded-b-lg text-slate-300 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                onKeyUp={updateFormats}
+                onMouseUp={updateFormats}
+                className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-300 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
                 style={{ resize: 'vertical', overflow: 'auto', outline: 'none' }}
               />
               <div className={`text-right text-xs mt-1 ${descriptionLength > 1000 ? 'text-red-400' : 'text-slate-500'}`}>
@@ -779,9 +756,9 @@ const PostService = () => {
                 {/* Tooltip */}
                 <div className="relative group">
                   <div className="w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center text-slate-400 text-[10px] cursor-help select-none">i</div>
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-[#1A2035] border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-slate-300 leading-relaxed shadow-xl z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-slate-300 leading-relaxed shadow-xl z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                     This is your starting price. You can send custom offers to buyers later based on the specific scope and requirements of their project.
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-[#1A2035] border-b border-r border-slate-700 rotate-45 -mt-1" />
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-800 border-b border-r border-slate-700 rotate-45 -mt-1" />
                   </div>
                 </div>
               </div>
@@ -797,7 +774,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMin}
                       onChange={(e) => setPriceMin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-white pl-8 pr-12 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -811,7 +788,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMax}
                       onChange={(e) => setPriceMax(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-white pl-8 pr-12 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -838,54 +815,37 @@ const PostService = () => {
       case 4: {
         const hasVideo = !!(videoPreviewURL || existingVideoURL);
         const videoSrc = videoPreviewURL || existingVideoURL;
-        const totalImages = mediaItems.length;
-        const canAddImage = totalImages < MAX_IMAGES;
-        const canAddVideo = !hasVideo;
+        const totalAssets = mediaItems.length + (hasVideo ? 1 : 0);
+        const canAdd = totalAssets < 12;
 
         return (
           <div className="space-y-6">
             <div>
               <h2 className="text-white font-semibold mb-2">Images &amp; Video</h2>
               <p className="text-slate-400 text-sm mb-4">
-                Attract customer attention with up to {MAX_IMAGES} images and 1 video that showcase your services.
+                Upload up to 12 assets (images + 1 video) that showcase your services.
               </p>
               <ul className="text-slate-400 text-sm list-disc list-inside space-y-1.5 mb-8">
-                <li>Ideal image aspect ratio is 4:3 · Min 500 × 500 px · Max 100 MB</li>
-                <li>Video max 50 MB · Video will always appear first</li>
+                <li>Images: ideal 4:3 ratio · Min 500×500 px · Max 100 MB each</li>
+                <li>Video: max 1 · max 50 MB · always appears first in your gallery</li>
               </ul>
 
-              <input ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
-              <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
+              <input ref={mediaInputRef} type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleMediaSelect} />
 
               {/* Upload area — shown while slots remain */}
-              {(canAddImage || canAddVideo) && (
-                <div className="flex gap-3 mb-6">
-                  {canAddImage && (
-                    <button
-                      type="button"
-                      onClick={() => imageInputRef.current?.click()}
-                      className="flex-1 border border-dashed border-slate-700 rounded-xl bg-[#111827]/50 py-10 flex flex-col items-center justify-center cursor-pointer hover:bg-[#1A2035]/50 transition-colors"
-                    >
-                      <ImageIcon className="w-8 h-8 text-primary mb-2" strokeWidth={1.5} />
-                      <p className="text-slate-400 text-xs">
-                        <span className="text-primary font-semibold">Upload images</span>
-                      </p>
-                      <p className="text-slate-500 text-xs mt-0.5">{totalImages}/{MAX_IMAGES}</p>
-                    </button>
-                  )}
-                  {canAddVideo && (
-                    <button
-                      type="button"
-                      onClick={() => videoInputRef.current?.click()}
-                      className="flex-1 border border-dashed border-slate-700 rounded-xl bg-[#111827]/50 py-10 flex flex-col items-center justify-center cursor-pointer hover:bg-[#1A2035]/50 transition-colors"
-                    >
-                      <VideoIcon className="w-8 h-8 text-primary mb-2" strokeWidth={1.5} />
-                      <p className="text-slate-400 text-xs">
-                        <span className="text-primary font-semibold">Upload video</span>
-                      </p>
-                      <p className="text-slate-500 text-xs mt-0.5">max 50 MB</p>
-                    </button>
-                  )}
+              {canAdd && (
+                <div className="mb-6">
+                  <button
+                    type="button"
+                    onClick={() => mediaInputRef.current?.click()}
+                    className="w-full border border-dashed border-slate-700 rounded-xl bg-slate-900/50 py-10 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/50 transition-colors"
+                  >
+                    <ImageIcon className="w-8 h-8 text-primary mb-2" strokeWidth={1.5} />
+                    <p className="text-slate-400 text-xs">
+                      <span className="text-primary font-semibold">Upload media</span>
+                    </p>
+                    <p className="text-slate-500 text-xs mt-0.5">{totalAssets}/12 total</p>
+                  </button>
                 </div>
               )}
 
@@ -899,7 +859,7 @@ const PostService = () => {
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <VideoIcon className="w-6 h-6 text-white/70" />
                       </div>
-                      <div className="absolute top-1.5 left-1.5 bg-yellow-500/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded">Cover</div>
+                      <div className="absolute top-1.5 left-1.5 bg-yellow-500/90 text-black text-xs font-bold px-2 py-1 rounded">Cover</div>
                       <button
                         type="button"
                         onClick={removeVideo}
@@ -921,11 +881,11 @@ const PostService = () => {
                         onDragStart={() => handleDragStart(i)}
                         onDragOver={handleDragOver}
                         onDrop={() => handleDrop(i)}
-                        className="relative aspect-square rounded-lg overflow-hidden bg-[#1A2035] cursor-grab active:cursor-grabbing"
+                        className="relative aspect-square rounded-lg overflow-hidden bg-slate-800 cursor-grab active:cursor-grabbing"
                       >
                         <img src={src} alt={`media ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover pointer-events-none" />
                         {isCover && (
-                          <div className="absolute top-1.5 left-1.5 bg-yellow-500/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded">Cover</div>
+                          <div className="absolute top-1.5 left-1.5 bg-yellow-500/90 text-black text-xs font-bold px-2 py-1 rounded">Cover</div>
                         )}
                         <button
                           type="button"
@@ -950,7 +910,24 @@ const PostService = () => {
           <div className="space-y-8">
             <div>
               <h2 className="text-white font-semibold mb-2">Primary Location</h2>
-              <p className="text-slate-400 text-sm mb-4">Add your primary location. If your service is remote, enter the country where you are based.</p>
+              <p className="text-slate-400 text-sm mb-4">
+                {offeredRemotely ? 'Enter the country where you are based.' : 'Add your primary location where you offer this service in person.'}
+              </p>
+
+              {/* Remote toggle */}
+              <div className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg mb-4">
+                <div>
+                  <p className="text-white text-sm font-medium">Remote service</p>
+                  <p className="text-slate-400 text-xs">Toggle on if this service is offered online/remotely</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOfferedRemotely((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'}`}
+                >
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${offeredRemotely ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
 
               {primaryLocation ? (
                 <div className="flex flex-wrap gap-2 mb-4">
@@ -970,18 +947,18 @@ const PostService = () => {
                       onChange={(e) => { setPrimaryLocationInput(e.target.value); setPrimaryLocationDropdownOpen(true); }}
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
-                      placeholder="Type a location and press Enter to add"
-                      className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                      placeholder={offeredRemotely ? 'Search for your home country' : 'Type a location and press Enter to add'}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#111827] border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto">
                       {primaryLocationSuggestions.map((r) => (
                         <button
                           key={r.label}
                           type="button"
                           onClick={() => addPrimaryLocation(r.label)}
-                          className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                          className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
                         >
                           {r.label}
                         </button>
@@ -1001,21 +978,39 @@ const PostService = () => {
             <div>
               <h2 className="text-white font-semibold mb-2">Extra Locations (optional)</h2>
               <p className="text-slate-400 text-sm mb-4">Reach more buyers by adding extra locations — $5/month each.</p>
-              <div className="relative mb-4">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  value={extraLocationInput}
-                  onChange={(e) => setExtraLocationInput(e.target.value)}
-                  onKeyDown={handleAddExtraLocation}
-                  placeholder="Type a location and press Enter to add"
-                  className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
-                />
+              <div ref={extraLocationContainerRef} className="relative mb-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  {extraLocationLoading && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 animate-spin" />}
+                  <input
+                    type="text"
+                    value={extraLocationInput}
+                    onChange={(e) => { setExtraLocationInput(e.target.value); setExtraLocationDropdownOpen(true); }}
+                    onKeyDown={handleAddExtraLocation}
+                    onFocus={() => setExtraLocationDropdownOpen(true)}
+                    placeholder="Type a location and press Enter to add"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                  />
+                </div>
+                {extraLocationDropdownOpen && extraLocationSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto">
+                    {extraLocationSuggestions.map((r) => (
+                      <button
+                        key={r.label}
+                        type="button"
+                        onClick={() => addExtraLocation(r.label)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {extraLocations.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {extraLocations.map((loc) => (
-                    <span key={loc} className="flex items-center gap-1.5 bg-[#1A2035] text-slate-300 border border-slate-700 px-3 py-1 rounded-full text-sm">
+                    <span key={loc} className="flex items-center gap-1.5 bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1 rounded-full text-sm">
                       {loc}
                       <button type="button" onClick={() => setExtraLocations((prev) => prev.filter((l) => l !== loc))}><X className="w-3 h-3" /></button>
                     </span>
@@ -1044,17 +1039,17 @@ const PostService = () => {
                     onKeyDown={handleLanguageKeyDown}
                     onFocus={() => setLanguageDropdownOpen(true)}
                     placeholder="Type a language and press Enter to add"
-                    className="w-full bg-[#1A2035] border border-slate-700/80 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
                   />
                 </div>
                 {languageDropdownOpen && filteredLanguages.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#111827] border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto">
                     {filteredLanguages.map((lang) => (
                       <button
                         key={lang}
                         type="button"
                         onClick={() => addLanguage(lang)}
-                        className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                        className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
                       >
                         {lang}
                       </button>
@@ -1093,8 +1088,11 @@ const PostService = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowPreview(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A2035] border border-slate-700 text-white text-sm hover:bg-slate-800 transition-colors"
+                  onClick={() => {
+                    const id = draftId ?? editId;
+                    if (id) window.open(`/service-detail?id=${id}`, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm hover:bg-slate-700 transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                   Preview
@@ -1102,7 +1100,7 @@ const PostService = () => {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A2035] border border-slate-700 text-white text-sm hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm hover:bg-slate-700 transition-colors"
                 >
                   <Pencil className="w-4 h-4" />
                   Edit post
@@ -1110,7 +1108,7 @@ const PostService = () => {
                 <button
                   type="button"
                   onClick={() => setStep(4)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A2035] border border-slate-700 text-white text-sm hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm hover:bg-slate-700 transition-colors"
                 >
                   <Pencil className="w-4 h-4" />
                   Edit media
@@ -1131,22 +1129,6 @@ const PostService = () => {
                   onSuccess={(subId) => doPublish(subId)}
                 />
               </Elements>
-            )}
-
-            {/* Preview modal */}
-            {showPreview && (
-              <PreviewModal
-                title={title}
-                description={description}
-                priceMin={priceMin}
-                priceMax={priceMax}
-                priceType={priceType}
-                mediaItems={mediaItems}
-                videoSrc={videoSrc}
-                primaryLocation={primaryLocation}
-                languages={languages}
-                onClose={() => setShowPreview(false)}
-              />
             )}
           </div>
         );
@@ -1169,7 +1151,7 @@ const PostService = () => {
           <div className="space-y-8">
             <div>
               <div className="w-16 h-16 bg-[#0C4A26] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Plus className="w-8 h-8 text-[#2EEA60] rotate-45" strokeWidth={3} />
+                <Check className="w-8 h-8 text-[#2EEA60]" strokeWidth={3} />
               </div>
               <h2 className="text-white font-semibold text-center mb-2">
                 {editId ? 'Post updated!' : 'Your post is live!'}
@@ -1180,20 +1162,20 @@ const PostService = () => {
                   : 'Sellers who share their posts on social media get up to 3× more views. Share yours now!'}
               </p>
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-[#1A2035] border border-slate-700 text-white hover:bg-slate-800 transition-colors text-sm font-medium">
+                <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
                   <svg className="w-5 h-5 mr-3 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
                   Share to Facebook
                 </button>
-                <button onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${shareText}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-[#1A2035] border border-slate-700 text-white hover:bg-slate-800 transition-colors text-sm font-medium">
-                  <svg className="w-4 h-4 mr-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                <button onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${shareText}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3"><path d="M19.9986 10.0029C19.9986 15.0549 16.2549 19.2314 11.3915 19.9092C10.9368 19.9723 10.4716 20.0052 9.9993 20.0052C9.45417 20.0052 8.91886 19.9617 8.39756 19.8776C3.63649 19.1109 0 14.9813 0 10.0029C0 4.47862 4.4773 0 10 0C15.5227 0 20 4.47862 20 10.0029H19.9986Z" fill="white"/><path d="M4.05412 4.4115L8.66595 10.5792L4.02539 15.594H5.0701L9.1333 11.2037L12.4159 15.594H15.9705L11.0994 9.07935L15.419 4.4115H14.3743L10.6327 8.45487L7.60933 4.4115H4.05481H4.05412ZM5.58999 5.18106H7.22256L14.4332 14.8245H12.8006L5.58999 5.18106Z" fill="#1C1C1B"/></svg>
                   Share to X
                 </button>
-                <button onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-[#1A2035] border border-slate-700 text-white hover:bg-slate-800 transition-colors text-sm font-medium">
+                <button onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
                   <svg className="w-5 h-5 mr-3 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" /></svg>
                   Share to LinkedIn
                 </button>
-                <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out my service on GigSpace:\n\n${shareUrl}`)}`, '_self')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-[#1A2035] border border-slate-700 text-white hover:bg-slate-800 transition-colors text-sm font-medium">
-                  <svg className="w-5 h-5 mr-3" viewBox="0 0 48 48" fill="none"><path d="M35.76 11.28L24 19.34L12.24 11.28C13.25 10.3 14.65 9.68 16.2 9.68H31.8C33.35 9.68 34.75 10.3 35.76 11.28Z" fill="#EA4335" /><path d="M38.8 14.18V34.32C38.8 36.53 37.01 38.32 34.8 38.32H31.8V23.08L38.8 18.28V14.18Z" fill="#34A853" /><path d="M16.2 38.32H13.2C10.99 38.32 9.2 36.53 9.2 34.32V14.18L16.2 19.06V38.32Z" fill="#4285F4" /><path d="M38.8 14.18V18.28L24 28.4L9.2 18.28V14.18C9.2 13.11 9.63 12.13 10.33 11.41C10.84 10.91 11.49 10.57 12.24 11.28" fill="#FBBC05" /></svg>
+                <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out my service on GigSpace:\n\n${shareUrl}`)}`, '_self')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3"><path d="M1.36364 17.5037H4.54545V9.7764L0 6.36731V16.14C0 16.8934 0.610227 17.5037 1.36364 17.5037Z" fill="#4285F4"/><path d="M15.4541 17.5037H18.6359C19.3893 17.5037 19.9996 16.8934 19.9996 16.14V6.36731L15.4541 9.7764V17.5037Z" fill="#34A853"/><path d="M15.4541 3.86731V9.7764L19.9996 6.36731V4.54913C19.9996 2.8639 18.0757 1.9014 16.7268 2.91277L15.4541 3.86731Z" fill="#FBBC04"/><path fillRule="evenodd" clipRule="evenodd" d="M4.5459 9.7764V3.86731L10.0004 7.95822L15.455 3.86731V9.7764L10.0004 13.8673L4.5459 9.7764Z" fill="#EA4335"/><path d="M0 4.54913V6.36731L4.54545 9.7764V3.86731L3.27273 2.91277C1.92386 1.9014 0 2.8639 0 4.54913Z" fill="#C5221F"/></svg>
                   Share via email
                 </button>
               </div>
