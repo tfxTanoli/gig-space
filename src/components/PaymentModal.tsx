@@ -5,6 +5,11 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
+// Inter must be explicitly loaded into the Stripe iframe — it can't inherit from the parent page.
+const stripeFonts = [
+  { cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
+];
+
 const appearance = {
   theme: 'night' as const,
   variables: {
@@ -13,12 +18,14 @@ const appearance = {
     colorText: '#f1f5f9',
     colorTextSecondary: '#94a3b8',
     borderRadius: '8px',
-    fontFamily: 'inherit',
+    fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
+    fontSizeBase: '14px',
   },
   rules: {
     '.Input': { border: '1px solid #334155', backgroundColor: '#0f172a' },
     '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none' },
     '.Label': { color: '#94a3b8', fontSize: '12px' },
+    '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif' },
   },
 };
 
@@ -135,7 +142,7 @@ export default function PaymentModal({
           </button>
         </div>
 
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance, fonts: stripeFonts }}>
           <CheckoutForm offerAmount={offerAmount} onSuccess={onSuccess} onClose={onClose} />
         </Elements>
       </div>

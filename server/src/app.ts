@@ -278,6 +278,10 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
     const piParams: Stripe.PaymentIntentCreateParams = {
       amount: amountInCents,
       currency: 'usd',
+      payment_method_types: ['card', 'us_bank_account'],
+      payment_method_options: {
+        us_bank_account: { verification_method: 'automatic' },
+      },
       description: priceUnit === 'per_hour'
         ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
         : `${serviceTitle} — Fixed price (via ${sellerName})`,
