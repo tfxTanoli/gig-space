@@ -9,7 +9,8 @@ export type NotificationType =
   | 'offer_accepted'
   | 'delivery'
   | 'revision'
-  | 'review';
+  | 'review'
+  | 'referral_order';
 
 export interface NotificationPayload {
   type: NotificationType;

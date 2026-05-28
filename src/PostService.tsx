@@ -1075,7 +1075,6 @@ const PostService = () => {
       // ── STEP 8: Publish Post ──────────────────────────────────────────────
       case 8: {
         const hasExtraLocations = extraLocations.length > 0;
-        const videoSrc = videoPreviewURL || existingVideoURL;
 
         return (
           <div className="space-y-8">

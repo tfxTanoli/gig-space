@@ -61,7 +61,7 @@ const AffiliateDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
+    <div className="h-screen overflow-hidden bg-[#0E1422] flex text-white font-sans">
 
       {/* ── Sidebar (desktop) ─────────────────────────────────────────────── */}
       <aside className="w-72 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
@@ -134,10 +134,14 @@ const AffiliateDashboard = () => {
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
-            <NotificationBell onNavigate={(tab) => {
-              const t = TABS.find(t => t.name === tab);
-              if (t) navigateTab(t.name);
-            }} />
+            <NotificationBell
+              onNavigate={(tab) => {
+                const t = TABS.find(t => t.name === tab);
+                if (t) navigateTab(t.name);
+              }}
+              filterTypes={['referral_order']}
+              emptyStateText="You'll be notified about new orders from people you referred."
+            />
             <div className="w-px h-6 bg-slate-700" />
             <HeaderUserMenu />
           </div>
@@ -183,7 +187,7 @@ const AffiliateDashboard = () => {
         )}
 
         {/* Tab content */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden">
           {renderTab()}
         </main>
       </div>

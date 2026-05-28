@@ -693,6 +693,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const commissionAmount = parseFloat((platformFeeAmt * 0.5).toFixed(2));
     if (commissionAmount > 0) {
       const commissionId = db.ref('affiliateCommissions').push().key!;
+      const affNotifId = db.ref(`notifications/${affiliateId}`).push().key!;
       mainUpdates[`affiliateCommissions/${commissionId}`] = {
         affiliateId, orderId, paymentId,
         buyerId, buyerName: buyer?.name || 'Buyer',
@@ -705,6 +706,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       mainUpdates[`affiliates/${affiliateId}/pendingBalance`] =
         admin.database.ServerValue.increment(commissionAmount);
       mainUpdates[`affiliates/${affiliateId}/updatedAt`] = now;
+      mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
+        type: 'referral_order',
+        title: 'New referral order',
+        body: `You earned a $${commissionAmount.toFixed(2)} commission from a referred order.`,
+        senderId: buyerId,
+        senderName: buyer?.name || 'Buyer',
+        orderId,
+        isRead: false,
+        createdAt: now,
+      };
+      mainUpdates[`notificationCounts/${affiliateId}/unread`] =
+        admin.database.ServerValue.increment(1);
     }
   }
 
@@ -788,6 +801,7 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
     const commissionAmount = parseFloat((platformFeeAmt * 0.5).toFixed(2));
     if (commissionAmount > 0) {
       const commissionId = db.ref('affiliateCommissions').push().key!;
+      const affNotifId = db.ref(`notifications/${affiliateId}`).push().key!;
       mainUpdates[`affiliateCommissions/${commissionId}`] = {
         affiliateId, orderId, paymentId,
         buyerId, buyerName: buyer?.name || 'Buyer',
@@ -800,6 +814,18 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       mainUpdates[`affiliates/${affiliateId}/pendingBalance`] =
         admin.database.ServerValue.increment(commissionAmount);
       mainUpdates[`affiliates/${affiliateId}/updatedAt`] = now;
+      mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
+        type: 'referral_order',
+        title: 'New referral order',
+        body: `You earned a $${commissionAmount.toFixed(2)} commission from a referred order.`,
+        senderId: buyerId,
+        senderName: buyer?.name || 'Buyer',
+        orderId,
+        isRead: false,
+        createdAt: now,
+      };
+      mainUpdates[`notificationCounts/${affiliateId}/unread`] =
+        admin.database.ServerValue.increment(1);
     }
   }
 

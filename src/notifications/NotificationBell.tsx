@@ -9,6 +9,7 @@ import {
   CheckCircle,
   X,
   Loader2,
+  Users,
 } from 'lucide-react';
 import { useNotifications, type AppNotification } from './useNotifications';
 
@@ -35,6 +36,7 @@ const TYPE_CONFIG: Record<string, TypeConfig> = {
   delivery:       { Icon: Truck,         iconClass: 'text-purple-400',  bgClass: 'bg-purple-500/10'  },
   revision:       { Icon: RotateCcw,     iconClass: 'text-yellow-400',  bgClass: 'bg-yellow-500/10'  },
   review:         { Icon: Star,          iconClass: 'text-amber-400',   bgClass: 'bg-amber-500/10'   },
+  referral_order: { Icon: Users,         iconClass: 'text-violet-400',  bgClass: 'bg-violet-500/10'  },
 };
 
 const DEFAULT_TYPE: TypeConfig = {
@@ -48,6 +50,8 @@ function navTabForType(type: string): string {
     case 'message':
     case 'offer':
       return 'Messages';
+    case 'referral_order':
+      return 'Payouts';
     default:
       return 'Orders';
   }
@@ -125,13 +129,21 @@ function NotifItem({
 interface NotificationBellProps {
   /** Switches the active tab in the parent dashboard */
   onNavigate: (tab: string) => void;
+  /** If provided, only notifications of these types are shown */
+  filterTypes?: string[];
+  /** Custom empty-state body text */
+  emptyStateText?: string;
 }
 
-export default function NotificationBell({ onNavigate }: NotificationBellProps) {
+export default function NotificationBell({ onNavigate, filterTypes, emptyStateText }: NotificationBellProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const [open, setOpen] = useState(false);
   const [marking, setMarking] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const visibleNotifications = filterTypes
+    ? notifications.filter((n) => filterTypes.includes(n.type))
+    : notifications;
 
   // Close when clicking outside
   useEffect(() => {
@@ -169,7 +181,9 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
     }
   };
 
-  const displayCount = Math.min(Math.max(0, unreadCount), 99);
+  const displayCount = filterTypes
+    ? Math.min(visibleNotifications.filter((n) => !n.isRead).length, 99)
+    : Math.min(Math.max(0, unreadCount), 99);
 
   return (
     <div ref={containerRef} className="relative">
@@ -199,7 +213,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
 
             <div className="flex items-center gap-2">
               {/* Mark all read */}
-              {unreadCount > 0 && (
+              {visibleNotifications.some((n) => !n.isRead) && (
                 <button
                   onClick={handleMarkAllRead}
                   disabled={marking}
@@ -231,17 +245,17 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
             className="overflow-y-auto max-h-[400px]"
             style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}
           >
-            {notifications.length === 0 ? (
+            {visibleNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-10 px-4">
                 <Bell className="w-8 h-8 text-slate-700" />
                 <p className="text-slate-500 text-sm text-center">No notifications yet</p>
                 <p className="text-slate-600 text-xs text-center">
-                  You'll be notified about messages, orders, and reviews.
+                  {emptyStateText ?? "You'll be notified about messages, orders, and reviews."}
                 </p>
               </div>
             ) : (
               <div className="flex flex-col gap-2 p-3">
-                {notifications.map((n) => (
+                {visibleNotifications.map((n) => (
                   <NotifItem
                     key={n.id}
                     notif={n}

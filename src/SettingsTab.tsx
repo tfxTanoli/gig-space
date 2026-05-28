@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 type Section = 'profile' | 'security';
 
 
-const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
+const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
   const { user, userProfile, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -312,7 +312,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
         const body = await res.json() as { error?: string };
         const errMsg = body.error ?? 'Failed to delete account';
         if (res.status === 400 && errMsg.toLowerCase().includes('active order')) {
-          toast.error('You have an active order that must be completed before you can delete your account.');
+          toast.error(
+            mode === 'affiliate'
+              ? 'Unable to delete your account. Please contact support.'
+              : 'You have an active order that must be completed before you can delete your account.',
+          );
           setDeleteLoading(false);
           return;
         }
@@ -674,7 +678,9 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' }) => {
 
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                 <p className="text-red-300 text-xs leading-relaxed">
-                  {mode === 'seller'
+                  {mode === 'affiliate'
+                    ? 'All your data will be permanently deleted — including your profile and affiliate link. Any unpaid commissions will be forfeited upon deletion.'
+                    : mode === 'seller'
                     ? 'All your data will be permanently deleted — profile, active posts, and wallet history. Active orders must be completed before deletion.'
                     : 'All your data will be permanently deleted — profile, order history, and saved items. Active orders must be completed before deletion.'}
                 </p>
