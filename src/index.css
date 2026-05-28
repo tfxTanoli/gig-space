@@ -4,6 +4,7 @@
   --color-background: #0E1422;
   --color-card: #1e293b;
   --color-primary: #3B82F6;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
