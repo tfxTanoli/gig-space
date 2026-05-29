@@ -66,7 +66,7 @@ const SellerLandingPage = () => {
             <HeaderUserMenu />
           ) : (
             <>
-              <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
+              <Link to="/signin?next=/seller-dashboard" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
               <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
                 Sign up <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
@@ -92,7 +92,7 @@ const SellerLandingPage = () => {
               <HeaderUserMenu />
             ) : (
               <>
-                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
+                <Link to="/signin?next=/seller-dashboard" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
                 <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
                   Sign up <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>

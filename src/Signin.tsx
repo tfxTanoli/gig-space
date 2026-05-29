@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -30,6 +30,7 @@ const getErrorMessage = (code: string) =>
 
 const Signin = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,18 +42,24 @@ const Signin = () => {
     if (authLoading || !user) return;
     if (!userProfile?.accountType) {
       navigate('/account-type');
-    } else {
-      navigate(
-        userProfile.role === 'admin'
-          ? '/admin-dashboard'
-          : userProfile.accountType === 'seller'
-          ? '/seller-dashboard'
-          : userProfile.accountType === 'affiliate'
-          ? '/affiliate-dashboard'
-          : '/buyer-dashboard'
-      );
+      return;
     }
-  }, [user, userProfile, authLoading, navigate]);
+    // Honour an explicit ?next= redirect from the referring page (relative paths only)
+    const next = searchParams.get('next');
+    if (next && next.startsWith('/')) {
+      navigate(next);
+      return;
+    }
+    navigate(
+      userProfile.role === 'admin'
+        ? '/admin-dashboard'
+        : userProfile.accountType === 'seller'
+        ? '/seller-dashboard'
+        : userProfile.accountType === 'affiliate'
+        ? '/affiliate-dashboard'
+        : '/buyer-dashboard'
+    );
+  }, [user, userProfile, authLoading, navigate, searchParams]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

@@ -74,7 +74,7 @@ const AffiliateLanding = () => {
               <HeaderUserMenu />
             ) : (
               <>
-                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">
+                <Link to="/signin?next=/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors">
                   Affiliate Log In
                 </Link>
                 <Link
@@ -105,7 +105,7 @@ const AffiliateLanding = () => {
                 <HeaderUserMenu />
               ) : (
                 <>
-                  <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
+                  <Link to="/signin?next=/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
                     Affiliate Log In
                   </Link>
                   <Link
