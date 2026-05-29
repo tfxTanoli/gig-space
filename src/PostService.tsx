@@ -9,7 +9,6 @@ import {
 } from 'react';
 import {
   ChevronDown,
-  Image as ImageIcon,
   Video as VideoIcon,
   UploadCloud,
   Search,
