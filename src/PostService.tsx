@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Image as ImageIcon,
   Video as VideoIcon,
+  UploadCloud,
   Search,
   X,
   Check,
@@ -183,7 +184,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
 
 // ── Main PostService component ────────────────────────────────────────────────
 const PostService = () => {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, logout } = useAuth();
   const { categoryOptions, subcategoryMap } = useCategories();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -198,6 +199,8 @@ const PostService = () => {
   const [publishing, setPublishing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
 
   // Step 1 — Category
   const [category, setCategory] = useState('');
@@ -235,6 +238,7 @@ const PostService = () => {
   const [primaryLocationDropdownOpen, setPrimaryLocationDropdownOpen] = useState(false);
   const primaryLocationContainerRef = useRef<HTMLDivElement>(null);
   const [offeredRemotely, setOfferedRemotely] = useState(false);
+  const [primaryLocationIsCountry, setPrimaryLocationIsCountry] = useState(false);
 
   // Step 6 — Extra Locations
   const [extraLocations, setExtraLocations] = useState<string[]>([]);
@@ -258,6 +262,7 @@ const PostService = () => {
       if (primaryLocationContainerRef.current && !primaryLocationContainerRef.current.contains(e.target as Node)) setPrimaryLocationDropdownOpen(false);
       if (extraLocationContainerRef.current && !extraLocationContainerRef.current.contains(e.target as Node)) setExtraLocationDropdownOpen(false);
       if (languageContainerRef.current && !languageContainerRef.current.contains(e.target as Node)) setLanguageDropdownOpen(false);
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target as Node)) setAvatarMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -325,6 +330,7 @@ const PostService = () => {
         setExtraLocations(Array.isArray(d.extraLocations) ? (d.extraLocations as string[]) : []);
         setPrimaryLocation(String(d.primaryLocation ?? ''));
         setOfferedRemotely(Boolean(d.offeredRemotely ?? false));
+        setPrimaryLocationIsCountry(Boolean(d.offeredRemotely ?? false));
       })
       .catch(() => navigate('/seller-dashboard'))
       .finally(() => setLoadingEdit(false));
@@ -416,8 +422,10 @@ const PostService = () => {
   };
 
   // ── Primary location handlers ──────────────────────────────────────────────
-  const addPrimaryLocation = (label: string) => {
+  const addPrimaryLocation = (label: string, isCountry = false) => {
     setPrimaryLocation(label);
+    setPrimaryLocationIsCountry(isCountry);
+    if (!isCountry) setOfferedRemotely(false);
     setPrimaryLocationInput('');
     setPrimaryLocationSuggestions([]);
     setPrimaryLocationDropdownOpen(false);
@@ -500,6 +508,10 @@ const PostService = () => {
       if (min > 100000) { setStepError('Minimum price cannot exceed $100,000.'); return false; }
       if (max !== null && !isNaN(max) && max > 100000) { setStepError('Maximum price cannot exceed $100,000.'); return false; }
       if (max !== null && !isNaN(max) && max < min) { setStepError('Maximum price must be greater than or equal to the minimum.'); return false; }
+    }
+    if (step === 4) {
+      const hasVideo = !!(videoPreviewURL || existingVideoURL);
+      if (mediaItems.length === 0 && !hasVideo) { setStepError('Please upload at least one image or video.'); return false; }
     }
     if (step === 5 && !primaryLocation.trim()) { setStepError('Please enter a primary location.'); return false; }
     return true;
@@ -586,7 +598,13 @@ const PostService = () => {
     }
   };
 
-  const prevStep = () => { setStepError(''); if (step > 1) setStep((s) => s - 1); };
+  const prevStep = () => {
+    setStepError('');
+    if (step === 2 && descriptionRef.current) {
+      setDescription(sanitizeHtml(descriptionRef.current.innerHTML));
+    }
+    if (step > 1) setStep((s) => s - 1);
+  };
 
   // ── Publish (called from step 8 — no extra locations, or after Stripe success) ──
   const doPublish = async (subscriptionId?: string) => {
@@ -633,7 +651,7 @@ const PostService = () => {
                     onClick={() => setCategoryOpen((v) => !v)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                   >
-                    <span className={selectedCatLabel ? 'text-slate-300' : 'text-slate-500'}>{selectedCatLabel ?? 'Category'}</span>
+                    <span className={selectedCatLabel ? 'text-slate-200' : (categoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedCatLabel ?? 'Category'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${categoryOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {categoryOpen && (
@@ -643,7 +661,7 @@ const PostService = () => {
                           key={o.value}
                           type="button"
                           onClick={() => { setCategory(o.value); setSubcategory(''); setCategoryOpen(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${category === o.value ? 'text-white bg-slate-700' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${category === o.value ? 'text-slate-100 bg-slate-700' : 'text-slate-300 hover:text-slate-100 hover:bg-slate-700'}`}
                         >
                           {o.label}
                         </button>
@@ -660,7 +678,7 @@ const PostService = () => {
                     onClick={() => setSubcategoryOpen((v) => !v)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span className={selectedSubLabel ? 'text-slate-300' : 'text-slate-500'}>{selectedSubLabel ?? 'Subcategory'}</span>
+                    <span className={selectedSubLabel ? 'text-slate-200' : (subcategoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedSubLabel ?? 'Subcategory'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${subcategoryOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {subcategoryOpen && subcatOptions.length > 0 && (
@@ -670,7 +688,7 @@ const PostService = () => {
                           key={o.value}
                           type="button"
                           onClick={() => { setSubcategory(o.value); setSubcategoryOpen(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${subcategory === o.value ? 'text-white bg-slate-700' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${subcategory === o.value ? 'text-slate-100 bg-slate-700' : 'text-slate-300 hover:text-slate-100 hover:bg-slate-700'}`}
                         >
                           {o.label}
                         </button>
@@ -695,7 +713,7 @@ const PostService = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
               />
               <div className="text-right text-slate-500 text-xs mt-1">{title.length}/80 max</div>
             </div>
@@ -719,7 +737,7 @@ const PostService = () => {
                     type="button"
                     title={t}
                     onMouseDown={(e) => { e.preventDefault(); execFormat(cmd); }}
-                    className={`px-2.5 py-1 rounded hover:text-white hover:bg-slate-700 transition-colors text-sm font-mono select-none ${activeFormats.has(cmd) ? 'bg-slate-700 text-white' : 'text-slate-300'}`}
+                    className={`px-2.5 py-1 rounded hover:text-white hover:bg-slate-700 transition-colors text-sm font-mono select-none ${activeFormats.has(cmd) ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
                   >
                     {label}
                   </button>
@@ -736,7 +754,13 @@ const PostService = () => {
                 }}
                 onKeyUp={updateFormats}
                 onMouseUp={updateFormats}
-                className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-300 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData('text/plain');
+                  document.execCommand('insertText', false, text);
+                  setDescriptionLength(descriptionRef.current?.textContent?.length ?? 0);
+                }}
+                className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 style={{ resize: 'vertical', overflow: 'auto', outline: 'none' }}
               />
               <div className={`text-right text-xs mt-1 ${descriptionLength > 1000 ? 'text-red-400' : 'text-slate-500'}`}>
@@ -823,12 +847,18 @@ const PostService = () => {
             <div>
               <h2 className="text-white font-semibold mb-2">Images &amp; Video</h2>
               <p className="text-slate-400 text-sm mb-4">
-                Upload up to 12 assets (images + 1 video) that showcase your services.
+                Upload up to 12 assets total (images + 1 video) that showcase your services.
               </p>
-              <ul className="text-slate-400 text-sm list-disc list-inside space-y-1.5 mb-8">
-                <li>Images: ideal 4:3 ratio · Min 500×500 px · Max 100 MB each</li>
-                <li>Video: max 1 · max 50 MB · always appears first in your gallery</li>
-              </ul>
+              <div className="space-y-2 mb-8">
+                <div className="flex items-start gap-2 text-slate-400 text-sm">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Images: ideal 4:3 ratio · Min 500×500 px · Max 100 MB each</span>
+                </div>
+                <div className="flex items-start gap-2 text-slate-400 text-sm">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Video: max 1 file · max 50 MB</span>
+                </div>
+              </div>
 
               <input ref={mediaInputRef} type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleMediaSelect} />
 
@@ -840,11 +870,11 @@ const PostService = () => {
                     onClick={() => mediaInputRef.current?.click()}
                     className="w-full border border-dashed border-slate-700 rounded-xl bg-slate-900/50 py-10 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/50 transition-colors"
                   >
-                    <ImageIcon className="w-8 h-8 text-primary mb-2" strokeWidth={1.5} />
-                    <p className="text-slate-400 text-xs">
+                    <UploadCloud className="w-8 h-8 text-primary mb-2" strokeWidth={1.5} />
+                    <p className="text-slate-400 text-xs mt-1">
                       <span className="text-primary font-semibold">Upload media</span>
                     </p>
-                    <p className="text-slate-500 text-xs mt-0.5">{totalAssets}/12 total</p>
+                    <p className="text-slate-500 text-xs mt-0.5">{totalAssets}/12 assets used</p>
                   </button>
                 </div>
               )}
@@ -859,7 +889,7 @@ const PostService = () => {
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <VideoIcon className="w-6 h-6 text-white/70" />
                       </div>
-                      <div className="absolute top-1.5 left-1.5 bg-yellow-500/90 text-black text-xs font-bold px-2 py-1 rounded">Cover</div>
+                      <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">Cover</div>
                       <button
                         type="button"
                         onClick={removeVideo}
@@ -870,7 +900,7 @@ const PostService = () => {
                     </div>
                   )}
 
-                  {/* Image tiles — draggable */}
+                  {/* Image tiles — draggable, with set-as-cover */}
                   {mediaItems.map((item, i) => {
                     const src = item.kind === 'existing' ? item.url : item.previewUrl;
                     const isCover = !hasVideo && i === 0;
@@ -881,11 +911,24 @@ const PostService = () => {
                         onDragStart={() => handleDragStart(i)}
                         onDragOver={handleDragOver}
                         onDrop={() => handleDrop(i)}
-                        className="relative aspect-square rounded-lg overflow-hidden bg-slate-800 cursor-grab active:cursor-grabbing"
+                        className="group relative aspect-square rounded-lg overflow-hidden bg-slate-800 cursor-grab active:cursor-grabbing"
                       >
                         <img src={src} alt={`media ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover pointer-events-none" />
-                        {isCover && (
-                          <div className="absolute top-1.5 left-1.5 bg-yellow-500/90 text-black text-xs font-bold px-2 py-1 rounded">Cover</div>
+                        {isCover ? (
+                          <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">Cover</div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setMediaItems((prev) => {
+                              const next = [...prev];
+                              const [moved] = next.splice(i, 1);
+                              next.unshift(moved);
+                              return next;
+                            })}
+                            className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                          >
+                            Set cover
+                          </button>
                         )}
                         <button
                           type="button"
@@ -911,32 +954,43 @@ const PostService = () => {
             <div>
               <h2 className="text-white font-semibold mb-2">Primary Location</h2>
               <p className="text-slate-400 text-sm mb-4">
-                {offeredRemotely ? 'Enter the country where you are based.' : 'Add your primary location where you offer this service in person.'}
+                Add your primary location. Select a country to enable the Remote service toggle.
               </p>
 
-              {/* Remote toggle */}
-              <div className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg mb-4">
+              {/* Remote toggle — only enabled when a country is selected */}
+              <div className={`flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg mb-4 ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
                 <div>
                   <p className="text-white text-sm font-medium">Remote service</p>
-                  <p className="text-slate-400 text-xs">Toggle on if this service is offered online/remotely</p>
+                  <p className="text-slate-400 text-xs">
+                    {primaryLocationIsCountry
+                      ? 'Toggle on if this service is offered online/remotely'
+                      : 'Select a country as your primary location to enable'}
+                  </p>
                 </div>
                 <button
                   type="button"
+                  disabled={!primaryLocationIsCountry}
                   onClick={() => setOfferedRemotely((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'} ${!primaryLocationIsCountry ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${offeredRemotely ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
 
-              {primaryLocation ? (
+              {/* Selected location badge — always visible when set */}
+              {primaryLocation && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/30 px-3 py-1 rounded-full text-sm">
                     {primaryLocation}
-                    <button type="button" onClick={() => setPrimaryLocation('')}><X className="w-3 h-3" /></button>
+                    <button type="button" onClick={() => { setPrimaryLocation(''); setPrimaryLocationIsCountry(false); setOfferedRemotely(false); }}>
+                      <X className="w-3 h-3" />
+                    </button>
                   </span>
                 </div>
-              ) : (
+              )}
+
+              {/* Search input — shown when no location selected */}
+              {!primaryLocation && (
                 <div ref={primaryLocationContainerRef} className="relative mb-4">
                   <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -947,8 +1001,8 @@ const PostService = () => {
                       onChange={(e) => { setPrimaryLocationInput(e.target.value); setPrimaryLocationDropdownOpen(true); }}
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
-                      placeholder={offeredRemotely ? 'Search for your home country' : 'Type a location and press Enter to add'}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                      placeholder="Search for a city or country…"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
@@ -957,10 +1011,11 @@ const PostService = () => {
                         <button
                           key={r.label}
                           type="button"
-                          onClick={() => addPrimaryLocation(r.label)}
-                          className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                          onClick={() => addPrimaryLocation(r.label, r.isCountry ?? false)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors flex items-center justify-between"
                         >
-                          {r.label}
+                          <span>{r.label}</span>
+                          {r.isCountry && <span className="text-primary text-xs font-medium">Country</span>}
                         </button>
                       ))}
                     </div>
@@ -1010,7 +1065,7 @@ const PostService = () => {
               {extraLocations.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {extraLocations.map((loc) => (
-                    <span key={loc} className="flex items-center gap-1.5 bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1 rounded-full text-sm">
+                    <span key={loc} className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/30 px-3 py-1 rounded-full text-sm">
                       {loc}
                       <button type="button" onClick={() => setExtraLocations((prev) => prev.filter((l) => l !== loc))}><X className="w-3 h-3" /></button>
                     </span>
@@ -1119,7 +1174,10 @@ const PostService = () => {
             {hasExtraLocations && (
               <Elements
                 stripe={stripePromise}
-                options={{ appearance: { theme: 'night', variables: { colorPrimary: '#3b82f6' } } }}
+                options={{
+                  appearance: { theme: 'night', variables: { colorPrimary: '#3b82f6' } },
+                  fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap' }],
+                }}
               >
                 <Step8PaymentSection
                   extraLocationCount={extraLocations.length}
@@ -1162,7 +1220,7 @@ const PostService = () => {
               </p>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
-                  <svg className="w-5 h-5 mr-3 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3"><circle cx="10" cy="10" r="10" fill="#1877F2"/><path d="M13.214 12.75l.365-2.375H11.3V8.75c0-.65.318-1.282 1.338-1.282H13.7V5.44s-.87-.19-1.7-.19c-1.876 0-3.1 1.137-3.1 3.196v1.929H6.75v2.375H8.9V18.5c.362.057.732.087 1.1.087s.738-.03 1.1-.087V12.75h2.114z" fill="white"/></svg>
                   Share to Facebook
                 </button>
                 <button onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${shareText}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
@@ -1170,7 +1228,7 @@ const PostService = () => {
                   Share to X
                 </button>
                 <button onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
-                  <svg className="w-5 h-5 mr-3 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" /></svg>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3"><rect width="20" height="20" rx="3.5" fill="#0A66C2"/><path d="M5.5 8H4V16H5.5V8ZM4.75 7C4.06 7 3.5 6.44 3.5 5.75C3.5 5.06 4.06 4.5 4.75 4.5C5.44 4.5 6 5.06 6 5.75C6 6.44 5.44 7 4.75 7ZM16.5 16H15V12.25C15 11.42 14.58 10.75 13.75 10.75C12.92 10.75 12.5 11.42 12.5 12.25V16H11V8H12.5V9C12.92 8.33 13.83 7.75 14.75 7.75C15.94 7.75 16.5 8.83 16.5 10.25V16Z" fill="white"/></svg>
                   Share to LinkedIn
                 </button>
                 <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out my service on GigSpace:\n\n${shareUrl}`)}`, '_self')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
@@ -1209,7 +1267,30 @@ const PostService = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col items-center">
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center mb-8">
         <Logo className="h-6" />
-        <CurrentUserAvatar size="sm" />
+        <div ref={avatarMenuRef} className="relative">
+          <div onClick={() => setAvatarMenuOpen((v) => !v)} className="cursor-pointer">
+            <CurrentUserAvatar size="sm" />
+          </div>
+          {avatarMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 py-1">
+              <button
+                type="button"
+                onClick={() => { navigate('/seller-dashboard'); setAvatarMenuOpen(false); }}
+                className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+              >
+                Go to dashboard
+              </button>
+              <div className="w-full h-px bg-slate-700 my-1" />
+              <button
+                type="button"
+                onClick={() => { logout(); navigate('/signin'); }}
+                className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       <main className="w-full max-w-2xl px-6 pb-24">
@@ -1217,7 +1298,7 @@ const PostService = () => {
           {editId ? 'Edit service' : 'Post a service'}
         </h1>
 
-        <div className="w-full h-2 bg-[#1A2035] rounded-full mb-12 overflow-hidden">
+        <div className="w-full h-2 bg-slate-700 rounded-full mb-12 overflow-hidden">
           <div
             className="h-full bg-primary rounded-full transition-all duration-300 ease-in-out"
             style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}

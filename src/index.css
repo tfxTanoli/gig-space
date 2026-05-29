@@ -17,10 +17,10 @@
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px #1A2035 inset !important;
-    box-shadow: 0 0 0 1000px #1A2035 inset !important;
-    -webkit-text-fill-color: #ffffff !important;
-    caret-color: #ffffff;
+    -webkit-box-shadow: 0 0 0 1000px #1e293b inset !important;
+    box-shadow: 0 0 0 1000px #1e293b inset !important;
+    -webkit-text-fill-color: #f1f5f9 !important;
+    caret-color: #f1f5f9;
   }
 
   body {
@@ -28,6 +28,19 @@
     scroll-behavior: smooth;
     overflow-x: hidden;
     scrollbar-gutter: stable;
+  }
+
+  /* Global form field text colours */
+  input,
+  textarea,
+  select {
+    color: #f1f5f9; /* slate-100 */
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8; /* slate-400 */
+    opacity: 1;
   }
 
   /* Consistent focus ring */

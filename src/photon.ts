@@ -19,6 +19,7 @@ export interface LocationResult {
   lat?: number;
   lng?: number;
   locationType?: 'precise' | 'broad';
+  isCountry?: boolean;
 }
 
 // Only OSM place/boundary features — excludes amenities, buildings, airports, etc.
@@ -81,7 +82,7 @@ export async function searchLocations(
     }[] = data?.features ?? [];
 
     const seen = new Set<string>();
-    const candidates: Array<{ label: string; lat: number; lng: number; priority: number; locationType: 'precise' | 'broad' }> = [];
+    const candidates: Array<{ label: string; lat: number; lng: number; priority: number; locationType: 'precise' | 'broad'; isCountry: boolean }> = [];
 
     for (const feature of features) {
       const props = feature.properties ?? {};
@@ -98,17 +99,18 @@ export async function searchLocations(
 
       const [lng = 0, lat = 0] = feature.geometry?.coordinates ?? [];
       const locationType: 'precise' | 'broad' = BROAD_VALUES.has(osmValue) ? 'broad' : 'precise';
+      const isCountry = osmValue === 'country';
       // Boost features whose name exactly matches the query (e.g. "France" when typing "france")
       // so countries/states surface above unrelated places that start with the same letters.
       const isExactMatch = (props.name ?? '').toLowerCase() === q.toLowerCase();
       const priority = isExactMatch ? -1 : (PLACE_PRIORITY[osmValue] ?? 20);
-      candidates.push({ label, lat, lng, priority, locationType });
+      candidates.push({ label, lat, lng, priority, locationType, isCountry });
     }
 
     // Cities and towns rise to the top; states and countries fall lower.
     candidates.sort((a, b) => a.priority - b.priority);
 
-    return candidates.slice(0, 8).map(({ label, lat, lng, locationType }) => ({ label, lat, lng, locationType }));
+    return candidates.slice(0, 8).map(({ label, lat, lng, locationType, isCountry }) => ({ label, lat, lng, locationType, isCountry }));
   } catch {
     return [];
   }
