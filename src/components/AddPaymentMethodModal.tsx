@@ -6,6 +6,30 @@ import { createSetupIntent } from '../stripe/paymentHelpers';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
+// Inter must be explicitly passed into stripe.elements() — the iframe can't inherit from the parent page.
+const STRIPE_FONTS = [
+  { cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
+];
+
+const APPEARANCE = {
+  theme: 'night' as const,
+  variables: {
+    colorPrimary: '#3b82f6',
+    colorBackground: '#111827',
+    colorText: '#f1f5f9',
+    colorTextSecondary: '#94a3b8',
+    borderRadius: '8px',
+    fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
+    fontSizeBase: '14px',
+  },
+  rules: {
+    '.Input': { border: '1px solid #334155', backgroundColor: '#0f172a' },
+    '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none' },
+    '.Label': { color: '#94a3b8', fontSize: '12px' },
+    '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif' },
+  },
+};
+
 interface AddPaymentMethodModalProps {
   onClose: () => void;
   onSuccess: () => void;
@@ -29,22 +53,8 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
         stripeRef.current = stripe;
         const elements = stripe.elements({
           clientSecret,
-          appearance: {
-            theme: 'night',
-            variables: {
-              colorPrimary: '#3b82f6',
-              colorBackground: '#111827',
-              colorText: '#f1f5f9',
-              colorTextSecondary: '#94a3b8',
-              borderRadius: '8px',
-              fontFamily: 'inherit',
-            },
-            rules: {
-              '.Input': { border: '1px solid #334155', backgroundColor: '#0f172a' },
-              '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none' },
-              '.Label': { color: '#94a3b8', fontSize: '12px' },
-            },
-          },
+          appearance: APPEARANCE,
+          fonts: STRIPE_FONTS,
         });
         elementsRef.current = elements;
         const paymentElement = elements.create('payment', { layout: 'tabs' });
@@ -88,7 +98,6 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
         style={{ maxHeight: 'calc(100dvh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header — always visible */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
           <h3 className="font-semibold text-white text-base">Add payment method</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
@@ -96,7 +105,6 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
           </button>
         </div>
 
-        {/* Scrollable form area */}
         <div className="flex-1 overflow-y-auto p-5 min-h-0">
           {loading && (
             <div className="flex items-center justify-center h-48">
@@ -107,12 +115,12 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
           {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
         </div>
 
-        {/* Footer buttons — always pinned to bottom */}
         {!loading && (
           <div className="px-5 py-4 border-t border-slate-800 flex gap-3 shrink-0">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors"
+              disabled={saving}
+              className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-40"
             >
               Cancel
             </button>
@@ -122,7 +130,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
               className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Save card
+              {saving ? 'Saving…' : 'Save payment method'}
             </button>
           </div>
         )}

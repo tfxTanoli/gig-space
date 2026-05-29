@@ -949,7 +949,10 @@ app.post('/api/payment-methods/setup-intent', requireAuth, async (req: AuthReque
 
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
-      payment_method_types: ['card'],
+      payment_method_types: ['card', 'us_bank_account'],
+      payment_method_options: {
+        us_bank_account: { verification_method: 'automatic' },
+      },
       usage: 'off_session',
     });
 
