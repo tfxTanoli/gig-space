@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Home,
   Package,
@@ -345,6 +345,7 @@ const PostModal = ({ post, onClose }: PostModalProps) => {
 
 const SellerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('Home');
   const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<ServicePost[]>([]);
@@ -356,6 +357,16 @@ const SellerDashboard = () => {
   const navItems = sellerNavItems;
 
   const handleLogout = useCallback(() => logout(), [logout]);
+
+  // Read ?tab= from URL on mount/change and activate the matching tab
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const validTabs = sellerNavItems.map(i => i.name);
+    if (tab && validTabs.includes(tab)) {
+      setActiveTab(tab);
+      setSearchParams(prev => { prev.delete('tab'); return prev; }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!user) return;
