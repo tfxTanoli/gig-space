@@ -16,6 +16,7 @@ import {
   Star,
   Check,
   X,
+  ArrowRight,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import Logo from './Logo';
@@ -817,8 +818,8 @@ const BuyerSearch = () => {
                 <Link to="/signin" className="text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
                   Log in
                 </Link>
-                <Link to="/signup" className="text-sm font-medium text-white px-4 py-2 bg-primary rounded-full hover:bg-blue-600 transition-colors">
-                  Sign up
+                <Link to="/signup" className="flex items-center text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                  Sign up <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </div>
             )}
