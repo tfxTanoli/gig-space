@@ -10,7 +10,6 @@ import {
 import {
   ChevronDown,
   Video as VideoIcon,
-  UploadCloud,
   Search,
   X,
   Check,
@@ -22,12 +21,12 @@ import {
 import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import Logo from './Logo';
+import HeaderUserMenu from './HeaderUserMenu';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, push, set, get } from 'firebase/database';
 import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
-import { CurrentUserAvatar } from './UserAvatar';
 import { useCategories } from './CategoriesContext';
 import { geocodeLocation, searchLocations, type LocationResult } from './photon';
 import { createListingSubscription } from './stripe/paymentHelpers';
@@ -50,7 +49,7 @@ const CARD_STYLE = {
       color: '#e2e8f0',
       fontSize: '14px',
       fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
-      '::placeholder': { color: '#475569' },
+      '::placeholder': { color: '#475569', fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" },
     },
     invalid: { color: '#f87171' },
   },
@@ -70,6 +69,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
   const [processing, setProcessing] = useState(false);
   const [payError, setPayError] = useState('');
   const [cardComplete, setCardComplete] = useState({ number: false, expiry: false, cvc: false });
+  const [cardFocus, setCardFocus] = useState({ number: false, expiry: false, cvc: false });
 
   const total = extraLocationCount * 5;
 
@@ -99,8 +99,9 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
     }
   };
 
-  const fieldClass = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm text-white';
-  const stripeWrapClass = 'bg-slate-800 border border-slate-700 rounded-lg px-4 py-3.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors';
+  const fieldClass = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-sm text-white';
+  const stripeWrapClass = (field: 'number' | 'expiry' | 'cvc') =>
+    `bg-slate-800 border rounded-lg px-4 py-3.5 transition-colors ${cardFocus[field] ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-700'}`;
   const canPublish = !processing && !!stripe && cardName.trim().length > 0 && cardComplete.number && cardComplete.expiry && cardComplete.cvc;
 
   return (
@@ -130,22 +131,37 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
 
         <div>
           <label className="text-white text-sm font-medium block mb-2">Card number</label>
-          <div className={stripeWrapClass}>
-            <CardNumberElement options={CARD_STYLE} onChange={e => setCardComplete(p => ({ ...p, number: e.complete }))} />
+          <div className={stripeWrapClass('number')}>
+            <CardNumberElement
+              options={CARD_STYLE}
+              onChange={e => setCardComplete(p => ({ ...p, number: e.complete }))}
+              onFocus={() => setCardFocus(p => ({ ...p, number: true }))}
+              onBlur={() => setCardFocus(p => ({ ...p, number: false }))}
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-white text-sm font-medium block mb-2">Expiration date</label>
-            <div className={stripeWrapClass}>
-              <CardExpiryElement options={CARD_STYLE} onChange={e => setCardComplete(p => ({ ...p, expiry: e.complete }))} />
+            <div className={stripeWrapClass('expiry')}>
+              <CardExpiryElement
+                options={CARD_STYLE}
+                onChange={e => setCardComplete(p => ({ ...p, expiry: e.complete }))}
+                onFocus={() => setCardFocus(p => ({ ...p, expiry: true }))}
+                onBlur={() => setCardFocus(p => ({ ...p, expiry: false }))}
+              />
             </div>
           </div>
           <div>
             <label className="text-white text-sm font-medium block mb-2">CVC</label>
-            <div className={stripeWrapClass}>
-              <CardCvcElement options={CARD_STYLE} onChange={e => setCardComplete(p => ({ ...p, cvc: e.complete }))} />
+            <div className={stripeWrapClass('cvc')}>
+              <CardCvcElement
+                options={CARD_STYLE}
+                onChange={e => setCardComplete(p => ({ ...p, cvc: e.complete }))}
+                onFocus={() => setCardFocus(p => ({ ...p, cvc: true }))}
+                onBlur={() => setCardFocus(p => ({ ...p, cvc: false }))}
+              />
             </div>
           </div>
         </div>
@@ -183,7 +199,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
 
 // ── Main PostService component ────────────────────────────────────────────────
 const PostService = () => {
-  const { user, userProfile, logout } = useAuth();
+  const { user, userProfile } = useAuth();
   const { categoryOptions, subcategoryMap } = useCategories();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -198,8 +214,6 @@ const PostService = () => {
   const [publishing, setPublishing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const avatarMenuRef = useRef<HTMLDivElement>(null);
 
   // Step 1 — Category
   const [category, setCategory] = useState('');
@@ -226,6 +240,7 @@ const PostService = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewURL, setVideoPreviewURL] = useState('');
   const [existingVideoURL, setExistingVideoURL] = useState('');
+  const [videoIsCover, setVideoIsCover] = useState(true);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const dragIndexRef = useRef<number | null>(null);
 
@@ -261,7 +276,6 @@ const PostService = () => {
       if (primaryLocationContainerRef.current && !primaryLocationContainerRef.current.contains(e.target as Node)) setPrimaryLocationDropdownOpen(false);
       if (extraLocationContainerRef.current && !extraLocationContainerRef.current.contains(e.target as Node)) setExtraLocationDropdownOpen(false);
       if (languageContainerRef.current && !languageContainerRef.current.contains(e.target as Node)) setLanguageDropdownOpen(false);
-      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target as Node)) setAvatarMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -362,6 +376,7 @@ const PostService = () => {
         if (videoPreviewURL) URL.revokeObjectURL(videoPreviewURL);
         setVideoFile(newVideo);
         setVideoPreviewURL(URL.createObjectURL(newVideo));
+        setVideoIsCover(true);
       }
       if (imagesToAdd.length > 0) {
         setMediaItems((prev) => [
@@ -424,7 +439,8 @@ const PostService = () => {
   const addPrimaryLocation = (label: string, isCountry = false) => {
     setPrimaryLocation(label);
     setPrimaryLocationIsCountry(isCountry);
-    if (!isCountry) setOfferedRemotely(false);
+    if (isCountry) setOfferedRemotely(true);
+    else setOfferedRemotely(false);
     setPrimaryLocationInput('');
     setPrimaryLocationSuggestions([]);
     setPrimaryLocationDropdownOpen(false);
@@ -848,7 +864,7 @@ const PostService = () => {
               <p className="text-slate-400 text-sm mb-4">
                 Upload up to 12 assets total (images + 1 video) that showcase your services.
               </p>
-              <div className="space-y-2 mb-8">
+              <div className="space-y-2 mb-4">
                 <div className="flex items-start gap-2 text-slate-400 text-sm">
                   <span className="text-primary mt-0.5">•</span>
                   <span>Images: ideal 4:3 ratio · Min 500×500 px · Max 100 MB each</span>
@@ -869,7 +885,28 @@ const PostService = () => {
                     onClick={() => mediaInputRef.current?.click()}
                     className="w-full border border-dashed border-slate-700 rounded-xl bg-slate-900/50 py-10 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/50 transition-colors"
                   >
-                    <UploadCloud className="w-8 h-8 text-primary mb-2" strokeWidth={1.5} />
+                    <svg width="70" height="51" viewBox="0 0 70 51" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-3">
+                      <path d="M6.05172 8.74549L17.2131 6.88525V40.7377L12.3018 41.7717C9.01306 42.464 5.79705 40.3203 5.17081 37.0184L1.14319 15.7819C0.515988 12.4748 2.73148 9.29886 6.05172 8.74549Z" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
+                      <path d="M63.9483 8.74549L52.7869 6.88525V40.7377L57.6982 41.7717C60.9869 42.464 64.203 40.3203 64.8292 37.0184L68.8568 15.7819C69.484 12.4748 67.2685 9.29886 63.9483 8.74549Z" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
+                      <g filter="url(#filter0_d_114_4271)">
+                        <rect x="16.0654" width="37.8689" height="44.7541" rx="6" fill="#162456"/>
+                        <rect x="17.0654" y="1" width="35.8689" height="42.7541" rx="5" stroke="#2B7FFF" strokeWidth="2"/>
+                      </g>
+                      <path d="M38.9824 33.0893C39.7831 34.0105 41.215 34.0058 42.0098 33.0796L47.2451 26.976L52.9346 33.0981V38.7544C52.9344 41.5156 50.6958 43.7542 47.9346 43.7544H22.0654C19.3041 43.7544 17.0656 41.5157 17.0654 38.7544V35.2934L29.4727 22.145L38.9824 33.0893Z" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
+                      <circle cx="39.5897" cy="14.3442" r="4.16393" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
+                      <defs>
+                        <filter id="filter0_d_114_4271" x="13.0654" y="0" width="43.8687" height="50.7541" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                          <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                          <feOffset dy="3"/>
+                          <feGaussianBlur stdDeviation="1.5"/>
+                          <feComposite in2="hardAlpha" operator="out"/>
+                          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.12 0"/>
+                          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_114_4271"/>
+                          <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_114_4271" result="shape"/>
+                        </filter>
+                      </defs>
+                    </svg>
                     <p className="text-slate-400 text-xs mt-1">
                       <span className="text-primary font-semibold">Upload media</span>
                     </p>
@@ -881,14 +918,23 @@ const PostService = () => {
               {/* Media grid */}
               {(hasVideo || mediaItems.length > 0) && (
                 <div className="grid grid-cols-3 gap-3">
-                  {/* Video tile — always first, not draggable */}
-                  {hasVideo && (
-                    <div className="relative aspect-square rounded-lg overflow-hidden bg-black col-span-1">
+                  {/* Video tile — cover position (first) when videoIsCover */}
+                  {hasVideo && videoIsCover && (
+                    <div className="group relative aspect-square rounded-lg overflow-hidden bg-black col-span-1">
                       <video src={videoSrc} className="w-full h-full object-cover" muted />
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <VideoIcon className="w-6 h-6 text-white/70" />
                       </div>
                       <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">Cover</div>
+                      {mediaItems.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setVideoIsCover(false)}
+                          className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                        >
+                          Move out
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={removeVideo}
@@ -902,7 +948,7 @@ const PostService = () => {
                   {/* Image tiles — draggable, with set-as-cover */}
                   {mediaItems.map((item, i) => {
                     const src = item.kind === 'existing' ? item.url : item.previewUrl;
-                    const isCover = !hasVideo && i === 0;
+                    const isCover = (!hasVideo || !videoIsCover) && i === 0;
                     return (
                       <div
                         key={i}
@@ -918,12 +964,15 @@ const PostService = () => {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setMediaItems((prev) => {
-                              const next = [...prev];
-                              const [moved] = next.splice(i, 1);
-                              next.unshift(moved);
-                              return next;
-                            })}
+                            onClick={() => {
+                              if (hasVideo) setVideoIsCover(false);
+                              setMediaItems((prev) => {
+                                const next = [...prev];
+                                const [moved] = next.splice(i, 1);
+                                next.unshift(moved);
+                                return next;
+                              });
+                            }}
                             className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
                           >
                             Set cover
@@ -939,6 +988,30 @@ const PostService = () => {
                       </div>
                     );
                   })}
+
+                  {/* Video tile — non-cover position (last) when !videoIsCover */}
+                  {hasVideo && !videoIsCover && (
+                    <div className="group relative aspect-square rounded-lg overflow-hidden bg-black col-span-1">
+                      <video src={videoSrc} className="w-full h-full object-cover" muted />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <VideoIcon className="w-6 h-6 text-white/70" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVideoIsCover(true)}
+                        className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                      >
+                        Set cover
+                      </button>
+                      <button
+                        type="button"
+                        onClick={removeVideo}
+                        className="absolute top-1.5 right-1.5 w-7 h-7 bg-black/70 rounded-full flex items-center justify-center hover:bg-black/90 transition"
+                      >
+                        <X className="w-3.5 h-3.5 text-white" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -956,38 +1029,6 @@ const PostService = () => {
                 Add your primary location. Select a country to enable the Remote service toggle.
               </p>
 
-              {/* Remote toggle — only enabled when a country is selected */}
-              <div className={`flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg mb-4 ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
-                <div>
-                  <p className="text-white text-sm font-medium">Remote service</p>
-                  <p className="text-slate-400 text-xs">
-                    {primaryLocationIsCountry
-                      ? 'Toggle on if this service is offered online/remotely'
-                      : 'Select a country as your primary location to enable'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={!primaryLocationIsCountry}
-                  onClick={() => setOfferedRemotely((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'} ${!primaryLocationIsCountry ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${offeredRemotely ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-              </div>
-
-              {/* Selected location badge — always visible when set */}
-              {primaryLocation && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/30 px-3 py-1 rounded-full text-sm">
-                    {primaryLocation}
-                    <button type="button" onClick={() => { setPrimaryLocation(''); setPrimaryLocationIsCountry(false); setOfferedRemotely(false); }}>
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                </div>
-              )}
-
               {/* Search input — shown when no location selected */}
               {!primaryLocation && (
                 <div ref={primaryLocationContainerRef} className="relative mb-4">
@@ -1001,7 +1042,7 @@ const PostService = () => {
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
                       placeholder="Search for a city or country…"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm text-white"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
@@ -1021,6 +1062,38 @@ const PostService = () => {
                   )}
                 </div>
               )}
+
+              {/* Selected location badge — shown below search when set */}
+              {primaryLocation && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/30 px-3 py-1 rounded-full text-sm">
+                    {primaryLocation}
+                    <button type="button" onClick={() => { setPrimaryLocation(''); setPrimaryLocationIsCountry(false); setOfferedRemotely(false); }}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                </div>
+              )}
+
+              {/* Remote toggle — only enabled when a country is selected */}
+              <div className={`flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
+                <div>
+                  <p className={`text-sm font-medium ${!primaryLocationIsCountry ? 'text-slate-500' : 'text-white'}`}>Remote service</p>
+                  <p className="text-slate-400 text-xs">
+                    {primaryLocationIsCountry
+                      ? 'Toggle on if this service is offered online/remotely'
+                      : 'Select a country as your primary location to enable'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={!primaryLocationIsCountry}
+                  onClick={() => setOfferedRemotely((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'} ${!primaryLocationIsCountry ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${offeredRemotely ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -1227,7 +1300,7 @@ const PostService = () => {
                   Share to X
                 </button>
                 <button onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3"><rect width="20" height="20" rx="3.5" fill="#0A66C2"/><path d="M5.5 8H4V16H5.5V8ZM4.75 7C4.06 7 3.5 6.44 3.5 5.75C3.5 5.06 4.06 4.5 4.75 4.5C5.44 4.5 6 5.06 6 5.75C6 6.44 5.44 7 4.75 7ZM16.5 16H15V12.25C15 11.42 14.58 10.75 13.75 10.75C12.92 10.75 12.5 11.42 12.5 12.25V16H11V8H12.5V9C12.92 8.33 13.83 7.75 14.75 7.75C15.94 7.75 16.5 8.83 16.5 10.25V16Z" fill="white"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3"><rect width="20" height="20" rx="10" fill="#0A66C2"/><g clipPath="url(#clip_li_share)"><path d="M4.16699 5.72308C4.16699 5.3477 4.29838 5.03802 4.56114 4.79403C4.8239 4.55003 5.16549 4.42804 5.58591 4.42804C5.99883 4.42804 6.3329 4.54815 6.58816 4.7884C6.85092 5.03615 6.98231 5.35896 6.98231 5.75687C6.98231 6.11723 6.85468 6.41752 6.59942 6.65777C6.33667 6.90552 5.99132 7.02939 5.56339 7.02939H5.55213C5.13921 7.02939 4.80513 6.90552 4.54988 6.65777C4.29462 6.41002 4.16699 6.09846 4.16699 5.72308ZM4.31339 15.5767V8.05417H6.81339V15.5767H4.31339ZM8.19852 15.5767H10.6985V11.3762C10.6985 11.1135 10.7286 10.9108 10.7886 10.7681C10.8937 10.5129 11.0533 10.297 11.2672 10.1206C11.4812 9.94418 11.7496 9.85597 12.0724 9.85597C12.9132 9.85597 13.3337 10.4228 13.3337 11.5564V15.5767H15.8337V11.2636C15.8337 10.1525 15.5709 9.3098 15.0454 8.73547C14.5198 8.16115 13.8254 7.87399 12.962 7.87399C11.9936 7.87399 11.2391 8.29065 10.6985 9.12398V9.14651H10.6873L10.6985 9.12398V8.05417H8.19852C8.21354 8.2944 8.22105 9.04139 8.22105 10.2952C8.22105 11.5489 8.21354 13.3094 8.19852 15.5767Z" fill="white"/></g><defs><clipPath id="clip_li_share"><rect x="4.16699" y="4.16669" width="11.6667" height="11.6667" fill="white"/></clipPath></defs></svg>
                   Share to LinkedIn
                 </button>
                 <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out my service on GigSpace:\n\n${shareUrl}`)}`, '_self')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
@@ -1266,30 +1339,7 @@ const PostService = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col items-center">
       <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center mb-8">
         <Logo className="h-6" />
-        <div ref={avatarMenuRef} className="relative">
-          <div onClick={() => setAvatarMenuOpen((v) => !v)} className="cursor-pointer">
-            <CurrentUserAvatar size="sm" />
-          </div>
-          {avatarMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 py-1">
-              <button
-                type="button"
-                onClick={() => { navigate('/seller-dashboard'); setAvatarMenuOpen(false); }}
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
-              >
-                Go to dashboard
-              </button>
-              <div className="w-full h-px bg-slate-700 my-1" />
-              <button
-                type="button"
-                onClick={() => { logout(); navigate('/signin'); }}
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
-              >
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
+        <HeaderUserMenu />
       </header>
 
       <main className="w-full max-w-2xl px-6 pb-24">
