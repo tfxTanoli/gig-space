@@ -651,8 +651,7 @@ const SellerDashboard = () => {
     return () => unsub();
   }, [user]);
 
-  const activePosts = useMemo(() => posts.filter(p => p.status === 'active'), [posts]);
-  const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post), []);
+const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post), []);
   const handleDeleteDraft = useCallback((post: ServicePost) => setDeletingPost(post), []);
   const handleDeleteSuccess = useCallback((id: string) => {
     setPosts(prev => prev.filter(p => p.id !== id));
