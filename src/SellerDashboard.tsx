@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Home,
