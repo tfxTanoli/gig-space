@@ -25,7 +25,13 @@
       ".read": true,
       ".indexOn": ["sellerId", "createdAt"],
       "$postId": {
-        ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.exists() ? newData.child('sellerId').val() === auth.uid : data.child('sellerId').val() === auth.uid))"
+        ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.exists() ? newData.child('sellerId').val() === auth.uid : data.child('sellerId').val() === auth.uid))",
+        "views": {
+          ".write": "auth !== null"
+        },
+        "clicks": {
+          ".write": "auth !== null"
+        }
       }
     },
     "conversations": {
@@ -190,6 +196,13 @@
     "accountDeletionForfeits": {
       ".read": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
       ".write": false
+    },
+
+    "sellerStats": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": "auth !== null"
+      }
     }
   }
 }
