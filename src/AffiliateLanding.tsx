@@ -78,7 +78,7 @@ const AffiliateLanding = () => {
                   Affiliate Log In
                 </Link>
                 <Link
-                  to="/signup"
+                  to="/signup?next=/affiliate-dashboard"
                   className="flex items-center text-white px-4 py-2 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
                 >
                   Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
@@ -109,7 +109,7 @@ const AffiliateLanding = () => {
                     Affiliate Log In
                   </Link>
                   <Link
-                    to="/signup"
+                    to="/signup?next=/affiliate-dashboard"
                     className="flex items-center justify-center text-white px-4 py-3 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >
