@@ -57,7 +57,7 @@ const AffiliateLanding = () => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  const ctaHref = user ? '/affiliate-dashboard' : '/signup';
+  const ctaHref = user ? '/affiliate-dashboard' : '/signup?next=/affiliate-dashboard';
   const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
 
   return (

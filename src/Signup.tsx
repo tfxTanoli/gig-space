@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
@@ -28,28 +28,37 @@ const getErrorMessage = (code: string) =>
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const next = searchParams.get('next');
+
   // As soon as auth resolves with a signed-in user, navigate away.
   // This fires for popup sign-in, email sign-up, and redirect returns.
   useEffect(() => {
     if (authLoading || !user) return;
     if (!userProfile?.accountType) {
-      navigate('/account-type');
+      navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
     } else {
+      if (next && next.startsWith('/')) {
+        navigate(next);
+        return;
+      }
       navigate(
         userProfile.role === 'admin'
           ? '/admin-dashboard'
           : userProfile.accountType === 'seller'
           ? '/seller-dashboard'
+          : userProfile.accountType === 'affiliate'
+          ? '/affiliate-dashboard'
           : '/buyer-dashboard'
       );
     }
-  }, [user, userProfile, authLoading, navigate]);
+  }, [user, userProfile, authLoading, navigate, next]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -172,7 +181,7 @@ const Signup = () => {
 
         <p className="mt-8 text-center text-sm text-slate-400">
           Already have an account?{' '}
-          <Link to="/signin" className="text-primary hover:text-blue-400 font-semibold transition-colors">
+          <Link to={next ? `/signin?next=${encodeURIComponent(next)}` : '/signin'} className="text-primary hover:text-blue-400 font-semibold transition-colors">
             Sign in
           </Link>
         </p>
