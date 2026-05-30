@@ -75,7 +75,7 @@ const LandingPage = () => {
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
           <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors">For Sellers</Link>
-          <Link to="/signup" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
+          <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
           {user ? (
             <HeaderUserMenu />
           ) : (
@@ -101,7 +101,7 @@ const LandingPage = () => {
         {menuOpen && (
           <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
             <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Sellers</Link>
-            <Link to="/signup" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
+            <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
             {user ? (
               <HeaderUserMenu />
             ) : (
