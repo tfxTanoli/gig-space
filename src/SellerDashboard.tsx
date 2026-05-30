@@ -43,7 +43,7 @@ const PayoutsIcon = ({ className }: { className?: string }) => (
 import LocationIcon from './LocationIcon';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
-import { CurrentUserAvatar } from './UserAvatar';
+import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import NotificationBell from './notifications/NotificationBell';
 import { ref, query, orderByChild, equalTo, onValue, remove } from 'firebase/database';
 import { database } from './firebase';
@@ -68,6 +68,8 @@ interface ServicePost {
   offeredRemotely: boolean;
   status: 'active' | 'paused' | 'draft';
   createdAt: number;
+  views?: number;
+  clicks?: number;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -110,16 +112,18 @@ function formatPostPrice(post: ServicePost) {
 
 interface PostCardProps {
   post: ServicePost;
+  sellerName: string;
+  sellerPhotoURL: string;
   onSelect: (post: ServicePost) => void;
   onDelete: (post: ServicePost) => void;
 }
 
-const PostCard = memo(({ post, onSelect, onDelete }: PostCardProps) => {
+const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect, onDelete }: PostCardProps) => {
   const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
   const { prefix, price, suffix } = formatPostPrice(post);
   return (
     <div className="group">
-      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-[#1A2035] relative">
         <button
           onClick={() => onSelect(post)}
           className="block w-full h-full text-left"
@@ -162,6 +166,10 @@ const PostCard = memo(({ post, onSelect, onDelete }: PostCardProps) => {
         </Link>
       </div>
       <button onClick={() => onSelect(post)} className="w-full text-left">
+        <div className="flex items-center gap-2 mb-2">
+          <UserAvatar photoURL={sellerPhotoURL} name={sellerName} size="sm" />
+          <span className="text-sm font-medium text-slate-300 truncate">{sellerName}</span>
+        </div>
         <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline text-sm">
           {post.title}
         </h3>
@@ -176,10 +184,95 @@ const PostCard = memo(({ post, onSelect, onDelete }: PostCardProps) => {
           <span className="font-bold text-lg">{price}</span>
           <span className="text-slate-400 text-xs ml-1">{suffix}</span>
         </div>
+        {((post.views ?? 0) > 0 || (post.clicks ?? 0) > 0) && (
+          <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
+            {(post.views ?? 0) > 0 && <span>{post.views!.toLocaleString()} views</span>}
+            {(post.clicks ?? 0) > 0 && <span>{post.clicks!.toLocaleString()} clicks</span>}
+          </div>
+        )}
       </button>
     </div>
   );
 });
+
+/* ── Analytics Chart ── */
+const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; clicks: number }> }) => {
+  const today = new Date();
+  const days = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (29 - i));
+    return d.toISOString().slice(0, 10);
+  });
+
+  const filled = days.map((date) => {
+    const found = data.find((d) => d.date === date);
+    return { date, views: found?.views ?? 0, clicks: found?.clicks ?? 0 };
+  });
+
+  const maxVal = Math.max(1, ...filled.map((d) => Math.max(d.views, d.clicks)));
+  const totalViews = filled.reduce((s, d) => s + d.views, 0);
+  const totalClicks = filled.reduce((s, d) => s + d.clicks, 0);
+  const hasData = totalViews > 0 || totalClicks > 0;
+
+  const xOf = (i: number) => ((i / 29) * 100).toFixed(2);
+  const yOf = (v: number) => (38 - (v / maxVal) * 34).toFixed(2);
+
+  const linePath = (key: 'views' | 'clicks') =>
+    filled.map((d, i) => `${i === 0 ? 'M' : 'L'}${xOf(i)},${yOf(d[key])}`).join(' ');
+
+  const areaPath = (key: 'views' | 'clicks') =>
+    `${linePath(key)} L100,40 L0,40 Z`;
+
+  return (
+    <div className="bg-[#111827] border border-slate-800 rounded-xl p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-sm font-semibold text-white">Post Analytics</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Last 30 days across all posts</p>
+        </div>
+        <div className="flex items-center gap-5 text-xs text-slate-400">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shrink-0" />
+            Views <span className="text-white font-semibold ml-1">{totalViews.toLocaleString()}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shrink-0" />
+            Clicks <span className="text-white font-semibold ml-1">{totalClicks.toLocaleString()}</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="relative">
+        <svg viewBox="0 0 100 40" className="w-full h-24" preserveAspectRatio="none">
+          <line x1="0" y1={yOf(maxVal * 0.25)} x2="100" y2={yOf(maxVal * 0.25)} stroke="#1e293b" strokeWidth="0.5" />
+          <line x1="0" y1={yOf(maxVal * 0.5)} x2="100" y2={yOf(maxVal * 0.5)} stroke="#1e293b" strokeWidth="0.5" />
+          <line x1="0" y1={yOf(maxVal * 0.75)} x2="100" y2={yOf(maxVal * 0.75)} stroke="#1e293b" strokeWidth="0.5" />
+          {hasData ? (
+            <>
+              <path d={areaPath('views')} fill="rgba(59,130,246,0.08)" />
+              <path d={areaPath('clicks')} fill="rgba(245,158,11,0.06)" />
+              <path d={linePath('views')} fill="none" stroke="#3B82F6" strokeWidth="0.7" strokeLinejoin="round" />
+              <path d={linePath('clicks')} fill="none" stroke="#F59E0B" strokeWidth="0.7" strokeLinejoin="round" />
+            </>
+          ) : (
+            <path d="M0,20 L100,20" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
+          )}
+        </svg>
+        {!hasData && (
+          <div className="absolute inset-0 flex items-center justify-center px-4">
+            <p className="text-xs text-slate-600 text-center">No data yet — views and clicks appear after buyers visit your posts</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-between text-[10px] text-slate-600 mt-1.5">
+        {[0, 7, 14, 21, 29].map((i) => (
+          <span key={i}>{filled[i]?.date.slice(5)}</span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 /* ── Post detail modal ── */
 interface PostModalProps {
@@ -468,6 +561,7 @@ const SellerDashboard = () => {
   const [orderCount, setOrderCount] = useState<number | null>(null);
   const [pendingInProgressCount, setPendingInProgressCount] = useState(0);
   const [lifetimeEarnings, setLifetimeEarnings] = useState<number | null>(null);
+  const [dailyStats, setDailyStats] = useState<Array<{ date: string; views: number; clicks: number }>>([]);
   const unreadMessages = useUnreadMessages('seller');
 
   const navItems = sellerNavItems;
@@ -539,6 +633,20 @@ const SellerDashboard = () => {
     const unsub = onValue(walletRef, (snap) => {
       const w = snap.val() as { lifetimeEarnings?: number } | null;
       setLifetimeEarnings(w?.lifetimeEarnings ?? 0);
+    });
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const statsRef = ref(database, `sellerStats/${user.uid}/daily`);
+    const unsub = onValue(statsRef, (snap) => {
+      const data: Array<{ date: string; views: number; clicks: number }> = [];
+      snap.forEach((child) => {
+        const val = child.val() as { views?: number; clicks?: number };
+        data.push({ date: child.key!, views: val.views ?? 0, clicks: val.clicks ?? 0 });
+      });
+      setDailyStats(data.sort((a, b) => a.date.localeCompare(b.date)));
     });
     return () => unsub();
   }, [user]);
@@ -767,7 +875,7 @@ const SellerDashboard = () => {
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} onSelect={handleSelectPost} onDelete={handleDeleteDraft} />)}
+                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeleteDraft} />)}
                   </div>
                 </div>
               )}
@@ -790,6 +898,8 @@ const SellerDashboard = () => {
                 </Link>
               </div>
 
+              <AnalyticsChart data={dailyStats} />
+
               {postsLoading ? (
                 <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
                   <p className="text-slate-500 text-sm">Loading posts...</p>
@@ -803,7 +913,7 @@ const SellerDashboard = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {posts.map(post => <PostCard key={post.id} post={post} onSelect={handleSelectPost} onDelete={handleDeleteDraft} />)}
+                  {posts.map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeleteDraft} />)}
                 </div>
               )}
             </div>

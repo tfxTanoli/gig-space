@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { sanitizeHtml } from './utils/sanitize';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
@@ -8,7 +8,7 @@ import {
 import LocationIcon from './LocationIcon';
 import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
-import { ref, get, onValue, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, get, onValue, query, orderByChild, equalTo, update, increment } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
@@ -118,11 +118,17 @@ const ServiceDetail = () => {
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const isOwnService = !!(user && post && user.uid === post.sellerId);
+  const viewTrackedRef = useRef(false);
 
   const handleContactSeller = () => {
     if (!post) return;
     if (!user) { navigate('/signin'); return; }
     if (isOwnService) return;
+    const today = new Date().toISOString().slice(0, 10);
+    update(ref(database), {
+      [`services/${post.id}/clicks`]: increment(1),
+      [`sellerStats/${post.sellerId}/daily/${today}/clicks`]: increment(1),
+    }).catch(() => {});
     const params = new URLSearchParams({
       tab: 'Messages',
       with: post.sellerId,
@@ -146,6 +152,16 @@ const ServiceDetail = () => {
   }, [postId]);
 
   useEffect(() => { setActiveImg(0); }, [post?.id]);
+
+  useEffect(() => {
+    if (!post || isOwnService || viewTrackedRef.current) return;
+    viewTrackedRef.current = true;
+    const today = new Date().toISOString().slice(0, 10);
+    update(ref(database), {
+      [`services/${post.id}/views`]: increment(1),
+      [`sellerStats/${post.sellerId}/daily/${today}/views`]: increment(1),
+    }).catch(() => {});
+  }, [post, isOwnService]);
 
   useEffect(() => {
     if (!post) return;
