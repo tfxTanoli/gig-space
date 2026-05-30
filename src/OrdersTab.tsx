@@ -6,7 +6,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import OrderDetail, { type Order } from './OrderDetail';
 
-type OrderFilter = 'all' | 'pending' | 'in_progress' | 'delivered' | 'completed' | 'canceled';
+type OrderFilter = 'all' | 'pending' | 'in_progress' | 'delivered' | 'completed' | 'cancelled';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending:     { label: 'Pending',     className: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'  },
@@ -22,7 +22,7 @@ const filterOptions: Array<{ value: OrderFilter; label: string }> = [
   { value: 'in_progress', label: 'In Progress' },
   { value: 'delivered',   label: 'Delivered'   },
   { value: 'completed',   label: 'Completed'   },
-  { value: 'canceled',    label: 'Canceled'    },
+  { value: 'cancelled',   label: 'Canceled'    },
 ];
 
 const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searchQuery?: string }) => {

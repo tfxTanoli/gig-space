@@ -322,6 +322,21 @@ const PostService = () => {
 
     setEditId(id);
     setLoadingEdit(true);
+    // Reset all form fields before loading new data to prevent stale state
+    setCategory('');
+    setSubcategory('');
+    setTitle('');
+    setDescription('');
+    setPriceMin('');
+    setPriceMax('');
+    setPriceType('per_project');
+    setMediaItems([]);
+    setExistingVideoURL('');
+    setLanguages([]);
+    setExtraLocations([]);
+    setPrimaryLocation('');
+    setOfferedRemotely(false);
+    setPrimaryLocationIsCountry(false);
 
     get(dbRef(database, `services/${id}`))
       .then((snap) => {
@@ -696,9 +711,9 @@ const PostService = () => {
                     <span className={selectedSubLabel ? 'text-slate-200' : (subcategoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedSubLabel ?? 'Subcategory'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${subcategoryOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  {subcategoryOpen && subcatOptions.length > 0 && (
+                  {subcategoryOpen && (
                     <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
-                      {subcatOptions.map((o) => (
+                      {subcatOptions.length > 0 ? subcatOptions.map((o) => (
                         <button
                           key={o.value}
                           type="button"
@@ -707,7 +722,9 @@ const PostService = () => {
                         >
                           {o.label}
                         </button>
-                      ))}
+                      )) : (
+                        <p className="px-4 py-3 text-sm text-slate-500 text-center">No subcategories for this category</p>
+                      )}
                     </div>
                   )}
                 </div>

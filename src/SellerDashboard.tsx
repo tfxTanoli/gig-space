@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Home,
   Package,
@@ -138,14 +138,10 @@ const PostCard = memo(({ post, onSelect, onDelete }: PostCardProps) => {
             </div>
           )}
         </button>
-        <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium backdrop-blur-sm ${
-          post.status === 'active'
-            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-            : post.status === 'draft'
-            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-            : 'bg-slate-800/80 text-slate-400 border border-slate-700'
+        <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium ${
+          post.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
         }`}>
-          {post.status === 'active' ? 'Active' : post.status === 'draft' ? 'Draft' : 'Paused'}
+          {post.status === 'active' ? 'Active' : 'Draft'}
         </span>
         {post.status === 'draft' && (
           <button
@@ -159,7 +155,7 @@ const PostCard = memo(({ post, onSelect, onDelete }: PostCardProps) => {
         <Link
           to={`/post-service?id=${post.id}`}
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+          className="absolute top-2 right-2 w-7 h-7 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-colors"
           title="Edit post"
         >
           <PostsIcon className="w-3.5 h-3.5 text-white" />
@@ -279,13 +275,9 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
           )}
           {/* Status badge */}
           <span className={`absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full font-medium ${
-            post.status === 'active'
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : post.status === 'draft'
-              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-              : 'bg-slate-800/80 text-slate-400 border border-slate-700'
+            post.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
           }`}>
-            {post.status === 'active' ? 'Active' : post.status === 'draft' ? 'Draft' : 'Paused'}
+            {post.status === 'active' ? 'Active' : 'Draft'}
           </span>
         </div>
 
@@ -463,6 +455,7 @@ const DraftDeleteModal = ({ post, onClose, onSuccess }: DraftDeleteModalProps) =
 
 const SellerDashboard = () => {
   const { user, userProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('Home');
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -473,6 +466,8 @@ const SellerDashboard = () => {
   const [selectedPost, setSelectedPost] = useState<ServicePost | null>(null);
   const [deletingPost, setDeletingPost] = useState<ServicePost | null>(null);
   const [orderCount, setOrderCount] = useState<number | null>(null);
+  const [pendingInProgressCount, setPendingInProgressCount] = useState(0);
+  const [lifetimeEarnings, setLifetimeEarnings] = useState<number | null>(null);
   const unreadMessages = useUnreadMessages('seller');
 
   const navItems = sellerNavItems;
@@ -526,8 +521,24 @@ const SellerDashboard = () => {
     );
     const unsub = onValue(q, (snap) => {
       let count = 0;
-      snap.forEach(() => { count++; });
+      let pip = 0;
+      snap.forEach((child) => {
+        count++;
+        const st = (child.val() as { status?: string }).status;
+        if (st === 'pending' || st === 'in_progress') pip++;
+      });
       setOrderCount(count);
+      setPendingInProgressCount(pip);
+    });
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const walletRef = ref(database, `wallets/${user.uid}`);
+    const unsub = onValue(walletRef, (snap) => {
+      const w = snap.val() as { lifetimeEarnings?: number } | null;
+      setLifetimeEarnings(w?.lifetimeEarnings ?? 0);
     });
     return () => unsub();
   }, [user]);
@@ -563,16 +574,6 @@ const SellerDashboard = () => {
           <Logo className="h-6" />
         </div>
 
-        {userProfile && (
-          <div className="px-4 py-4 border-b border-slate-800 flex items-center gap-3">
-            <CurrentUserAvatar size="md" />
-            <div className="min-w-0">
-              <p className="text-white text-sm font-semibold truncate">{userProfile.name}</p>
-              <p className="text-slate-400 text-xs truncate">@{userProfile.username}</p>
-            </div>
-          </div>
-        )}
-
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-hidden">
           {navItems.map((item) => {
             const isActive = activeTab === item.name;
@@ -590,12 +591,17 @@ const SellerDashboard = () => {
                 <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-primary' : 'text-slate-400'}`} />
                 {item.name}
                 {item.name === 'Posts' && posts.length > 0 && (
-                  <span className="ml-auto text-xs bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded-full">
+                  <span className="ml-auto text-[10px] font-bold bg-blue-950 text-blue-500 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
                     {posts.length}
                   </span>
                 )}
+                {item.name === 'Orders' && pendingInProgressCount > 0 && (
+                  <span className="ml-auto text-[10px] font-bold bg-emerald-950 text-emerald-500 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                    {pendingInProgressCount > 9 ? '9+' : pendingInProgressCount}
+                  </span>
+                )}
                 {item.name === 'Messages' && unreadMessages > 0 && (
-                  <span className="ml-auto text-[10px] font-bold bg-blue-600 text-white min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                  <span className="ml-auto text-[10px] font-bold bg-amber-950 text-amber-500 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
                     {unreadMessages > 9 ? '9+' : unreadMessages}
                   </span>
                 )}
@@ -611,7 +617,7 @@ const SellerDashboard = () => {
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-red-400 transition-colors"
+            className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -636,6 +642,7 @@ const SellerDashboard = () => {
               autoComplete="one-time-code"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`); }}
               className="bg-transparent border-none text-sm text-white focus:outline-none w-full max-w-sm placeholder-slate-500"
             />
           </div>
@@ -697,7 +704,7 @@ const SellerDashboard = () => {
                   <div className="border-t border-slate-800 py-1">
                     <button
                       onClick={() => { setShowUserMenu(false); handleLogout(); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-slate-800/80 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-600 hover:bg-slate-800/80 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 shrink-0" />
                       Sign Out
@@ -709,7 +716,7 @@ const SellerDashboard = () => {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 flex flex-col overflow-y-auto overflow-x-hidden">
+        <main className={`flex-1 flex flex-col overflow-x-hidden ${activeTab === 'Messages' ? 'min-h-0 overflow-hidden' : 'p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'}`}>
 
           {/* HOME TAB */}
           {activeTab === 'Home' && (
@@ -728,12 +735,14 @@ const SellerDashboard = () => {
                   <p className="text-2xl font-bold text-white">{postsLoading ? '—' : posts.length}</p>
                 </div>
                 <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
-                  <p className="text-slate-400 text-xs mb-1">Active</p>
-                  <p className="text-2xl font-bold text-emerald-400">{postsLoading ? '—' : activePosts.length}</p>
-                </div>
-                <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
                   <p className="text-slate-400 text-xs mb-1">Orders</p>
                   <p className="text-2xl font-bold text-white">{orderCount === null ? '—' : orderCount}</p>
+                </div>
+                <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
+                  <p className="text-slate-400 text-xs mb-1">Earnings</p>
+                  <p className="text-2xl font-bold text-white">
+                    {lifetimeEarnings === null ? '—' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
+                  </p>
                 </div>
               </div>
 
@@ -842,7 +851,7 @@ const SellerDashboard = () => {
               <Icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{item.name}</span>
               {item.name === 'Messages' && unreadMessages > 0 && (
-                <span className="absolute top-1.5 right-1/4 translate-x-1/2 text-[9px] font-bold bg-blue-600 text-white min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center">
+                <span className="absolute top-1.5 right-1/4 translate-x-1/2 text-[9px] font-bold bg-amber-950 text-amber-500 min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center">
                   {unreadMessages > 9 ? '9+' : unreadMessages}
                 </span>
               )}

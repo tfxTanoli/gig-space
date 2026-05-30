@@ -99,7 +99,7 @@ export default function WalletTab() {
         />
       )}
 
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 w-full">
         <div>
           <h2 className="text-xl font-bold text-white">Payouts & Wallet</h2>
           <p className="text-slate-400 text-sm mt-1">Manage your earnings and withdraw funds.</p>
@@ -110,28 +110,28 @@ export default function WalletTab() {
           <BalanceCard
             label="Available"
             value={available}
-            icon={<Wallet className="w-4 h-4 text-emerald-400" />}
+            icon={<Wallet className="w-4 h-4 text-emerald-500" />}
             accent="emerald"
             tooltip="Ready to withdraw"
           />
           <BalanceCard
             label="Pending"
             value={pending}
-            icon={<Clock className="w-4 h-4 text-yellow-400" />}
-            accent="yellow"
+            icon={<Clock className="w-4 h-4 text-amber-500" />}
+            accent="amber"
             tooltip="Held in escrow — released when buyer approves delivery"
           />
           <BalanceCard
             label="Lifetime"
             value={wallet?.lifetimeEarnings ?? 0}
-            icon={<TrendingUp className="w-4 h-4 text-blue-400" />}
+            icon={<TrendingUp className="w-4 h-4 text-blue-500" />}
             accent="blue"
           />
           <BalanceCard
             label="Withdrawn"
             value={wallet?.totalWithdrawn ?? 0}
-            icon={<ArrowUpRight className="w-4 h-4 text-slate-400" />}
-            accent="slate"
+            icon={<ArrowUpRight className="w-4 h-4 text-indigo-500" />}
+            accent="indigo"
           />
         </div>
 
@@ -161,7 +161,7 @@ export default function WalletTab() {
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <DollarSign className="w-10 h-10 text-slate-700" />
               <p className="text-slate-500 text-sm">No transactions yet.</p>
-              <p className="text-slate-600 text-xs">Transactions appear here when orders are paid.</p>
+              <p className="text-slate-400 text-xs">Transactions appear here when orders are paid.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-800">
@@ -197,15 +197,15 @@ interface BalanceCardProps {
   label: string;
   value: number;
   icon: React.ReactNode;
-  accent: 'emerald' | 'yellow' | 'blue' | 'slate';
+  accent: 'emerald' | 'amber' | 'blue' | 'indigo';
   tooltip?: string;
 }
 
 const accentMap: Record<string, string> = {
-  emerald: 'bg-emerald-500/10 border-emerald-500/20',
-  yellow:  'bg-yellow-500/10  border-yellow-500/20',
-  blue:    'bg-blue-500/10    border-blue-500/20',
-  slate:   'bg-slate-700/30   border-slate-700',
+  emerald: 'bg-emerald-950 border-emerald-900',
+  amber:   'bg-amber-950   border-amber-900',
+  blue:    'bg-blue-950    border-blue-900',
+  indigo:  'bg-indigo-950  border-indigo-900',
 };
 
 function BalanceCard({ label, value, icon, accent, tooltip }: BalanceCardProps) {

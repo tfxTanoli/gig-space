@@ -863,20 +863,14 @@ export default function ChatMessages({
                       return (
                         <div
                           key={msg.id}
-                          className={`flex gap-2 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                          className="flex gap-2 items-start flex-row"
                         >
-                          {!isMe && (
-                            <UserAvatar
-                              photoURL={msg.senderPhotoURL}
-                              name={msg.senderName}
-                              size="sm"
-                            />
-                          )}
-                          <div
-                            className={`flex flex-col gap-1 max-w-[80%] ${
-                              isMe ? 'items-end' : 'items-start'
-                            }`}
-                          >
+                          <UserAvatar
+                            photoURL={msg.senderPhotoURL}
+                            name={msg.senderName}
+                            size="sm"
+                          />
+                          <div className="flex flex-col gap-1 max-w-[80%] items-start">
                             <div className="bg-[#111827] border border-slate-700 rounded-2xl overflow-hidden w-72 shadow-lg">
                               {/* Service image */}
                               {msg.offer.serviceImage && (
@@ -964,26 +958,20 @@ export default function ChatMessages({
                       return (
                         <div
                           key={msg.id}
-                          className={`flex gap-2 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                          className="flex gap-2 items-start flex-row"
                         >
-                          {!isMe && (
-                            <UserAvatar
-                              photoURL={msg.senderPhotoURL}
-                              name={msg.senderName}
-                              size="sm"
-                            />
-                          )}
-                          <div
-                            className={`flex flex-col gap-1 max-w-[72%] ${
-                              isMe ? 'items-end' : 'items-start'
-                            }`}
-                          >
+                          <UserAvatar
+                            photoURL={msg.senderPhotoURL}
+                            name={msg.senderName}
+                            size="sm"
+                          />
+                          <div className="flex flex-col gap-1 max-w-[72%] items-start">
                             {/* Service card */}
                             <div
-                              className={`rounded-2xl overflow-hidden border w-64 ${
+                              className={`rounded-2xl overflow-hidden border w-64 rounded-bl-md ${
                                 isMe
-                                  ? 'border-blue-500/40 bg-blue-600/10 rounded-br-md'
-                                  : 'border-slate-700 bg-[#111827] rounded-bl-md'
+                                  ? 'border-blue-500/40 bg-blue-600/10'
+                                  : 'border-slate-700 bg-[#111827]'
                               }`}
                             >
                               {msg.serviceContext.serviceImage && (
@@ -1029,20 +1017,14 @@ export default function ChatMessages({
                     return (
                       <div
                         key={msg.id}
-                        className={`flex gap-2 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                        className="flex gap-2 items-start flex-row"
                       >
-                        {!isMe && (
-                          <UserAvatar
-                            photoURL={msg.senderPhotoURL}
-                            name={msg.senderName}
-                            size="sm"
-                          />
-                        )}
-                        <div
-                          className={`flex flex-col gap-1 max-w-[65%] ${
-                            isMe ? 'items-end' : 'items-start'
-                          }`}
-                        >
+                        <UserAvatar
+                          photoURL={msg.senderPhotoURL}
+                          name={msg.senderName}
+                          size="sm"
+                        />
+                        <div className="flex flex-col gap-1 max-w-[65%] items-start">
                           {msg.imageURL && (
                             <a
                               href={msg.imageURL}
@@ -1059,10 +1041,8 @@ export default function ChatMessages({
                           )}
                           {msg.text && (
                             <div
-                              className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
-                                isMe
-                                  ? 'bg-blue-600 text-white rounded-br-md'
-                                  : 'bg-[#1A2035] text-slate-200 rounded-bl-md'
+                              className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words ${
+                                isMe ? 'bg-blue-600 text-white' : 'bg-[#1A2035] text-slate-200'
                               }`}
                             >
                               {msg.text}

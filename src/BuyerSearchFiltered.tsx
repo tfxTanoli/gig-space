@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import Logo from './Logo';
-import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
+import { UserAvatar } from './UserAvatar';
+import HeaderUserMenu from './HeaderUserMenu';
 import { ref, onValue } from 'firebase/database';
 import { database } from './firebase';
 import { useCategories } from './CategoriesContext';
@@ -103,7 +104,7 @@ const BuyerSearchFiltered = () => {
           <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
             Create New Post
           </Link>
-          <CurrentUserAvatar size="sm" />
+          <HeaderUserMenu />
         </div>
       </header>
 
