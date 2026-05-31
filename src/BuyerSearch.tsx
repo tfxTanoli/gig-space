@@ -17,8 +17,9 @@ import {
   Check,
   X,
   ArrowRight,
+  MapPin,
+  BadgeCheck,
 } from 'lucide-react';
-import LocationIcon from './LocationIcon';
 import Logo from './Logo';
 import LocationSearch from './LocationSearch';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
@@ -46,6 +47,7 @@ type OnlineOption = '' | 'online';
 interface SellerMeta {
   verified: boolean;
   rating: number;
+  reviewCount: number;
   lastSeen?: number | null;
 }
 
@@ -119,6 +121,7 @@ interface ServicePost {
   primaryLocation: string;
   primaryLocationLat?: number;
   primaryLocationLng?: number;
+  extraLocations?: string[];
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
@@ -134,14 +137,35 @@ interface ServiceCardProps {
   post: ServicePost;
   isSaved: boolean;
   onToggleSave: (id: string) => void;
+  meta?: SellerMeta;
 }
 
-const ServiceCard = memo(({ post, isSaved, onToggleSave }: ServiceCardProps) => {
+const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProps) => {
   const { prefix, price, suffix } = formatPrice(post);
-  const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
+  const hasReviews = meta != null && meta.reviewCount > 0;
+  const isVerified = meta?.verified ?? false;
+
+  const allLocations = post.offeredRemotely
+    ? []
+    : [
+        ...(post.primaryLocation ? [post.primaryLocation] : []),
+        ...(post.extraLocations ?? []),
+      ];
+
+  let locationLabel: string;
+  if (post.offeredRemotely) {
+    locationLabel = post.primaryLocation ? `Remote (${post.primaryLocation})` : 'Remote';
+  } else if (allLocations.length > 1) {
+    locationLabel = `${allLocations[0]} +${allLocations.length - 1} more`;
+  } else {
+    locationLabel = allLocations[0] ?? '';
+  }
+
+  const extraLocationNames = allLocations.slice(1);
+
   return (
     <div className="group block">
-      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-[#1A2035] relative">
         <Link to={`/service-detail?id=${post.id}`} className="block w-full h-full">
           {post.images?.[0] ? (
             <img
@@ -167,23 +191,54 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave }: ServiceCardProps) => 
       </div>
 
       <Link to={`/service-detail?id=${post.id}`} className="block">
-        <div className="flex items-center gap-2 mb-2">
+        {/* Avatar & Name */}
+        <div className="flex items-center gap-2 mb-1.5">
           <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
-          <span className="text-sm font-medium truncate">{post.sellerName}</span>
+          <span className="text-sm text-slate-300 truncate flex-1">{post.sellerName}</span>
+          {isVerified && <BadgeCheck className="w-4 h-4 text-blue-400 shrink-0" />}
         </div>
-        <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
+
+        {/* Title */}
+        <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:underline">
           {post.title}
         </h3>
-        {location && (
-          <div className="flex items-center text-slate-400 text-xs mb-3">
-            <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
-            {location}
+
+        {/* Location */}
+        {locationLabel && (
+          <div className="relative flex items-center text-slate-400 text-xs mb-2 group/loc">
+            <MapPin className="w-3 h-3 mr-1.5 shrink-0 text-slate-400" />
+            <span className="truncate">{locationLabel}</span>
+            {extraLocationNames.length > 0 && (
+              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max max-w-[200px]">
+                {extraLocationNames.map((loc) => (
+                  <p key={loc} className="text-xs text-slate-300 py-0.5">{loc}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        <div className="text-sm">
-          {prefix && <span className="text-slate-400">{prefix} </span>}
-          <span className="font-bold text-lg">{price}</span>
-          <span className="text-slate-400 text-xs ml-1">{suffix}</span>
+
+        {/* Reviews / New Seller badge */}
+        {hasReviews ? (
+          <div className="flex items-center gap-1 mb-2">
+            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            <span className="text-xs text-slate-400">
+              {meta!.rating.toFixed(1)} ({meta!.reviewCount})
+            </span>
+          </div>
+        ) : (
+          <div className="mb-2">
+            <span className="text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+              New seller
+            </span>
+          </div>
+        )}
+
+        {/* Price */}
+        <div className="flex items-baseline gap-1">
+          {prefix && <span className="text-xs text-slate-400">{prefix}</span>}
+          <span className="font-bold text-white">{price}</span>
+          <span className="text-xs text-slate-400">{suffix}</span>
         </div>
       </Link>
     </div>
@@ -556,9 +611,10 @@ const BuyerSearch = () => {
           get(ref(database, `users/${id}/lastSeen`)).catch(() => null),
         ]);
         const r = ratingSnap?.val();
-        const rating = r && r.reviewCount > 0 ? r.totalStars / r.reviewCount : 0;
+        const reviewCount: number = r?.reviewCount ?? 0;
+        const rating = reviewCount > 0 ? r.totalStars / reviewCount : 0;
         const lastSeen: number | null = typeof lastSeenSnap?.val() === 'number' ? lastSeenSnap.val() : null;
-        return [id, { verified: verifiedSnap?.val() === true, rating, lastSeen }] as const;
+        return [id, { verified: verifiedSnap?.val() === true, rating, reviewCount, lastSeen }] as const;
       }),
     ).then((entries) => {
       if (cancelled) return;
@@ -1225,6 +1281,7 @@ const BuyerSearch = () => {
                   post={post}
                   isSaved={isSaved(post.id)}
                   onToggleSave={handleToggleSave}
+                  meta={sellerMeta[post.sellerId]}
                 />
               ))}
             </div>

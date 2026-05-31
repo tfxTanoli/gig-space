@@ -5,12 +5,14 @@ import {
   MessageCircle,
   Bell,
   ChevronDown,
+  MapPin,
+  BadgeCheck,
+  Star,
 } from 'lucide-react';
-import LocationIcon from './LocationIcon';
 import Logo from './Logo';
 import { UserAvatar } from './UserAvatar';
 import HeaderUserMenu from './HeaderUserMenu';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, get } from 'firebase/database';
 import { database } from './firebase';
 import { useCategories } from './CategoriesContext';
 
@@ -31,9 +33,16 @@ interface ServicePost {
   priceType: 'per_project' | 'per_hour';
   images: string[];
   primaryLocation: string;
+  extraLocations?: string[];
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
+}
+
+interface SellerMeta {
+  verified: boolean;
+  rating: number;
+  reviewCount: number;
 }
 
 function formatPrice(post: ServicePost) {
@@ -49,6 +58,7 @@ const BuyerSearchFiltered = () => {
 
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sellerMeta, setSellerMeta] = useState<Record<string, SellerMeta>>({});
 
   useEffect(() => {
     const servicesRef = ref(database, 'services');
@@ -66,6 +76,34 @@ const BuyerSearchFiltered = () => {
     });
     return () => unsub();
   }, [categoryParam]);
+
+  useEffect(() => {
+    const missing = Array.from(new Set(posts.map((p) => p.sellerId))).filter(
+      (id) => id && !(id in sellerMeta),
+    );
+    if (missing.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      missing.map(async (id) => {
+        const [verifiedSnap, ratingSnap] = await Promise.all([
+          get(ref(database, `users/${id}/emailVerified`)).catch(() => null),
+          get(ref(database, `userRatings/${id}`)).catch(() => null),
+        ]);
+        const r = ratingSnap?.val();
+        const reviewCount: number = r?.reviewCount ?? 0;
+        const rating = reviewCount > 0 ? r.totalStars / reviewCount : 0;
+        return [id, { verified: verifiedSnap?.val() === true, rating, reviewCount }] as const;
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      setSellerMeta((prev) => {
+        const next = { ...prev };
+        for (const [id, meta] of entries) next[id] = meta;
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [posts, sellerMeta]);
 
   const pageTitle = categoryParam || 'All Services';
 
@@ -163,54 +201,99 @@ const BuyerSearchFiltered = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 mt-4">
               {posts.map((post) => {
                 const { prefix, price, suffix } = formatPrice(post);
-                const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
+                const meta = sellerMeta[post.sellerId];
+                const hasReviews = meta != null && meta.reviewCount > 0;
+                const isVerified = meta?.verified ?? false;
+
+                const allLocations = post.offeredRemotely
+                  ? []
+                  : [
+                      ...(post.primaryLocation ? [post.primaryLocation] : []),
+                      ...(post.extraLocations ?? []),
+                    ];
+
+                let locationLabel: string;
+                if (post.offeredRemotely) {
+                  locationLabel = post.primaryLocation ? `Remote (${post.primaryLocation})` : 'Remote';
+                } else if (allLocations.length > 1) {
+                  locationLabel = `${allLocations[0]} +${allLocations.length - 1} more`;
+                } else {
+                  locationLabel = allLocations[0] ?? '';
+                }
+
+                const extraLocationNames = allLocations.slice(1);
+
                 return (
-                  <Link
-                    key={post.id}
-                    to={`/service-detail?id=${post.id}`}
-                    className="group block"
-                  >
+                  <div key={post.id} className="group block">
                     {/* Image */}
-                    <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035]">
-                      {post.images?.[0] ? (
-                        <img
-                          src={post.images[0]}
-                          alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-slate-600 text-xs">No image</span>
+                    <Link to={`/service-detail?id=${post.id}`} className="block">
+                      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-[#1A2035]">
+                        {post.images?.[0] ? (
+                          <img
+                            src={post.images[0]}
+                            alt={post.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-slate-600 text-xs">No image</span>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+
+                    <Link to={`/service-detail?id=${post.id}`} className="block">
+                      {/* Avatar & Name */}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
+                        <span className="text-sm text-slate-300 truncate flex-1">{post.sellerName}</span>
+                        {isVerified && <BadgeCheck className="w-4 h-4 text-blue-400 shrink-0" />}
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:underline">
+                        {post.title}
+                      </h3>
+
+                      {/* Location */}
+                      {locationLabel && (
+                        <div className="relative flex items-center text-slate-400 text-xs mb-2 group/loc">
+                          <MapPin className="w-3 h-3 mr-1.5 shrink-0 text-slate-400" />
+                          <span className="truncate">{locationLabel}</span>
+                          {extraLocationNames.length > 0 && (
+                            <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max max-w-[200px]">
+                              {extraLocationNames.map((loc) => (
+                                <p key={loc} className="text-xs text-slate-300 py-0.5">{loc}</p>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
-                    </div>
 
-                    {/* Seller */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
-                      <span className="text-sm font-medium truncate">{post.sellerName}</span>
-                    </div>
+                      {/* Reviews / New Seller badge */}
+                      {hasReviews ? (
+                        <div className="flex items-center gap-1 mb-2">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          <span className="text-xs text-slate-400">
+                            {meta!.rating.toFixed(1)} ({meta!.reviewCount})
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mb-2">
+                          <span className="text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                            New seller
+                          </span>
+                        </div>
+                      )}
 
-                    {/* Title */}
-                    <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
-                      {post.title}
-                    </h3>
-
-                    {/* Location */}
-                    {location && (
-                      <div className="flex items-center text-slate-400 text-xs mb-3">
-                        <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
-                        {location}
+                      {/* Price */}
+                      <div className="flex items-baseline gap-1">
+                        {prefix && <span className="text-xs text-slate-400">{prefix}</span>}
+                        <span className="font-bold text-white">{price}</span>
+                        <span className="text-xs text-slate-400">{suffix}</span>
                       </div>
-                    )}
-
-                    {/* Price */}
-                    <div className="text-sm">
-                      {prefix && <span className="text-slate-400">{prefix} </span>}
-                      <span className="font-bold text-lg">{price}</span>
-                      <span className="text-slate-400 text-xs ml-1">{suffix}</span>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 );
               })}
             </div>
