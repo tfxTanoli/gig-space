@@ -92,8 +92,8 @@ const SellerProfile = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#818791] p-4">
-      <div className="bg-[#0E1422] rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
+    <div className="min-h-screen flex items-center justify-center bg-[#0f172b] p-4">
+      <div className="bg-[#1d293d] rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
 
         <div className="w-12 h-12 bg-[#0C4A26] rounded-full flex items-center justify-center mb-6">
           <User strokeWidth={2} className="text-[#2EEA60] w-6 h-6" />
