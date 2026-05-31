@@ -301,8 +301,8 @@ const ServiceDetail = () => {
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
 
       {/* ── Header ── */}
-      <header className="bg-[#0E1422] border-b border-slate-800/70 px-4 md:px-6 py-3.5 flex items-center justify-between">
-        <Logo className="h-5" />
+      <header className="bg-[#0E1422] border-b border-slate-800/70 px-4 md:px-6 lg:px-12 h-16 flex items-center justify-between">
+        <Logo className="h-6" />
         <div className="flex items-center gap-3 md:gap-5">
           <button className="text-slate-400 hover:text-white transition-colors hidden md:block">
             <MessageCircle className="w-5 h-5" />

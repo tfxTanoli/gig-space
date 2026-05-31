@@ -305,7 +305,7 @@ const BuyerDashboard = () => {
         <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800 shrink-0">
           {/* Mobile: logo */}
           <span className="md:hidden mr-3">
-            <Logo className="h-5" />
+            <Logo className="h-6" />
           </span>
           <div className="flex-1" />
           <div className="flex items-center gap-2 md:gap-4">

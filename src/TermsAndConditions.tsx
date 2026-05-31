@@ -10,7 +10,7 @@ const TermsAndConditions = () => {
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Header */}
-      <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center">
+      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
         <div className="flex items-center">
           <Logo className="h-6" />
         </div>

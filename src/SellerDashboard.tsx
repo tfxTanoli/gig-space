@@ -739,7 +739,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
         <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800">
           {/* Mobile: logo */}
           <span className="md:hidden mr-3">
-            <Logo className="h-5" />
+            <Logo className="h-6" />
           </span>
           <div className="flex items-center flex-1">
             <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-500 mr-2 md:mr-3 shrink-0" />

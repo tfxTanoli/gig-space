@@ -1354,7 +1354,7 @@ const PostService = () => {
 
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col items-center">
-      <header className="w-full px-6 py-6 lg:px-12 flex justify-between items-center mb-8">
+      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center mb-8">
         <Logo className="h-6" />
         <HeaderUserMenu />
       </header>

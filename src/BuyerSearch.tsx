@@ -768,10 +768,10 @@ const BuyerSearch = () => {
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Header */}
-      <header className="w-full px-4 py-3 md:px-6 md:py-4 lg:px-12 border-b border-slate-800">
+      <header className="w-full px-4 md:px-6 lg:px-12 border-b border-slate-800">
         {/* Top row: logo + right actions */}
-        <div className="flex items-center gap-3">
-          <Logo className="h-5 md:h-6 shrink-0" onClick={(e) => { e.preventDefault(); window.location.href = '/search'; }} />
+        <div className="h-16 flex items-center gap-3">
+          <Logo className="h-6 shrink-0" onClick={(e) => { e.preventDefault(); window.location.href = '/search'; }} />
 
           {/* Desktop search — centered */}
           <div className="hidden md:flex flex-1 items-center justify-center">

@@ -110,7 +110,7 @@ const BuyerSearchFiltered = () => {
   return (
     <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
       {/* Top Main Navigation */}
-      <header className="w-full px-6 py-4 lg:px-12 flex justify-between items-center border-b border-slate-800">
+      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center flex-1">
           <span className="mr-10 shrink-0">
             <Logo className="h-6" />
