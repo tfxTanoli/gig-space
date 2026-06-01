@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { ref, onValue, set } from 'firebase/database';
+import { ref, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
 import { auth, database } from './firebase';
 import { ensureUsernameIndexed } from './username';
 
@@ -111,17 +111,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Keep lastSeen timestamp current so the "Online now" filter can show live status.
+  // Keep online status and lastSeen current while the user is authenticated.
   useEffect(() => {
     if (!user) return;
-    const update = () =>
-      set(ref(database, `users/${user.uid}/lastSeen`), Date.now()).catch(() => {});
-    update();
-    const iv = setInterval(update, 60_000);
-    return () => clearInterval(iv);
+    const lastSeenRef = ref(database, `users/${user.uid}/lastSeen`);
+    const onlineRef  = ref(database, `users/${user.uid}/online`);
+
+    set(onlineRef, true).catch(() => {});
+    const updateLastSeen = () => set(lastSeenRef, Date.now()).catch(() => {});
+    updateLastSeen();
+
+    // On tab close / crash / network drop: mark offline and stamp lastSeen on server.
+    onDisconnect(onlineRef).set(false).catch(() => {});
+    onDisconnect(lastSeenRef).set(serverTimestamp()).catch(() => {});
+
+    const iv = setInterval(updateLastSeen, 60_000);
+    return () => {
+      clearInterval(iv);
+      onDisconnect(onlineRef).cancel().catch(() => {});
+      onDisconnect(lastSeenRef).cancel().catch(() => {});
+    };
   }, [user]);
 
-  const logout = useCallback(() => signOut(auth), []);
+  const logout = useCallback(async () => {
+    if (user) {
+      // Mark offline and record accurate lastSeen before signing out.
+      await Promise.all([
+        set(ref(database, `users/${user.uid}/online`), false),
+        set(ref(database, `users/${user.uid}/lastSeen`), Date.now()),
+      ]).catch(() => {});
+    }
+    return signOut(auth);
+  }, [user]);
 
   const value = useMemo(
     () => ({ user, userProfile, loading, logout }),

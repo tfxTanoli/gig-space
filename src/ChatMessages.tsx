@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { ref, onValue, push, update, get, increment, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, onValue, push, update, get, increment, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { database, storage } from './firebase';
 import { useAuth } from './AuthContext';
 import { UserAvatar } from './UserAvatar';
 import {
   Send, ImagePlus, ArrowLeft, X,
-  Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2,
+  Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Trash2,
 } from 'lucide-react';
 
 const MessagesIcon = ({ className }: { className?: string }) => (
@@ -123,6 +123,8 @@ export default function ChatMessages({
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [paymentOffer, setPaymentOffer] = useState<{ amount: number; title: string } | null>(null);
+
+  const [otherUserInfo, setOtherUserInfo] = useState<{ username: string; lastSeen: number | null; online: boolean } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -260,6 +262,23 @@ export default function ChatMessages({
 
     return () => unsub();
   }, [selectedConvId, user, mode]);
+
+  // ── Other user real-time info (username, lastSeen) ──
+  useEffect(() => {
+    const conv = conversations.find((c) => c.id === selectedConvId) ?? null;
+    if (!conv) { setOtherUserInfo(null); return; }
+    const otherId = mode === 'buyer' ? conv.sellerId : conv.buyerId;
+    const userRef = ref(database, `users/${otherId}`);
+    const unsub = onValue(userRef, (snap) => {
+      const d = snap.val();
+      setOtherUserInfo({
+        username: d?.username ?? '',
+        lastSeen: typeof d?.lastSeen === 'number' ? d.lastSeen : null,
+        online: d?.online === true,
+      });
+    });
+    return () => unsub();
+  }, [selectedConvId, conversations, mode]);
 
   // ── Auto-scroll ──
   useEffect(() => {
@@ -571,6 +590,38 @@ export default function ChatMessages({
   const unreadCount = (conv: Conversation) =>
     mode === 'buyer' ? (conv.unreadBuyer || 0) : (conv.unreadSeller || 0);
 
+  const formatMsgTimestamp = (ts: number) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const sameDay =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (sameDay) return time;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + time;
+  };
+
+  const formatLastSeen = (online: boolean, lastSeen: number | null): string => {
+    if (online) return 'Online now';
+    if (!lastSeen) return '';
+    const diff = Date.now() - lastSeen;
+    const mins = Math.floor(diff / 60_000);
+    if (mins < 1) return 'Last seen just now';
+    if (mins < 60) return `Last seen ${mins}m ago`;
+    const hrs = Math.floor(diff / 3_600_000);
+    if (hrs < 24) return `Last seen ${hrs}h ago`;
+    const days = Math.floor(diff / 86_400_000);
+    return `Last seen ${days}d ago`;
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!user || !selectedConvId) return;
+    if (!window.confirm('Remove this conversation from your inbox?')) return;
+    await remove(ref(database, `userConversations/${user.uid}/${selectedConvId}`));
+    setSelectedConvId(null);
+  };
+
   return (
     <>
       {/* ── Payment modal (buyer) ── */}
@@ -830,20 +881,55 @@ export default function ChatMessages({
           ) : (
             <>
               {/* Chat header */}
-              <div className="h-14 flex items-center gap-3 px-4 border-b border-slate-800 bg-[#111827] shrink-0">
+              <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800 bg-[#111827] shrink-0 min-h-[56px]">
                 <button
                   onClick={() => setSelectedConvId(null)}
-                  className="md:hidden text-slate-400 hover:text-white transition-colors mr-1"
+                  className="md:hidden text-slate-400 hover:text-white transition-colors mr-1 shrink-0"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 {selectedConv &&
                   (() => {
                     const { name, photoURL } = getOtherPerson(selectedConv);
+                    const online = otherUserInfo?.online === true;
+                    const lastSeenText = formatLastSeen(online, otherUserInfo?.lastSeen ?? null);
                     return (
                       <>
-                        <UserAvatar photoURL={photoURL} name={name} size="sm" />
-                        <p className="text-sm font-semibold text-white">{name || 'Unknown'}</p>
+                        {/* Avatar with online dot */}
+                        <div className="relative shrink-0">
+                          <UserAvatar photoURL={photoURL} name={name} size="sm" />
+                          <span
+                            className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#111827] ${
+                              online ? 'bg-emerald-400' : 'bg-slate-500'
+                            }`}
+                          />
+                        </div>
+                        {/* Name, username, last seen */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <p className="text-sm font-semibold text-white leading-tight">
+                              {name || 'Unknown'}
+                            </p>
+                            {otherUserInfo?.username && (
+                              <span className="text-xs text-slate-500">
+                                @{otherUserInfo.username}
+                              </span>
+                            )}
+                          </div>
+                          {lastSeenText && (
+                            <p className={`text-[11px] leading-tight ${online ? 'text-emerald-400' : 'text-slate-500'}`}>
+                              {lastSeenText}
+                            </p>
+                          )}
+                        </div>
+                        {/* Delete button */}
+                        <button
+                          onClick={handleDeleteConversation}
+                          title="Delete conversation"
+                          className="shrink-0 text-slate-500 hover:text-red-400 transition-colors p-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </>
                     );
                   })()}
@@ -867,12 +953,17 @@ export default function ChatMessages({
                           key={msg.id}
                           className="flex gap-2 items-start flex-row"
                         >
-                          <UserAvatar
-                            photoURL={msg.senderPhotoURL}
-                            name={msg.senderName}
-                            size="sm"
-                          />
+                          <div className="relative shrink-0">
+                            <UserAvatar
+                              photoURL={msg.senderPhotoURL}
+                              name={msg.senderName}
+                              size="sm"
+                            />
+                          </div>
                           <div className="flex flex-col gap-1 max-w-[80%] items-start">
+                            <span className="text-xs font-medium text-slate-400 px-1">
+                              {isMe ? 'Me' : (msg.senderName || 'Unknown')}
+                            </span>
                             <div className="bg-[#111827] border border-slate-700 rounded-2xl overflow-hidden w-72 shadow-lg">
                               {/* Service image */}
                               {msg.offer.serviceImage && (
@@ -944,11 +1035,8 @@ export default function ChatMessages({
                               </div>
                             </div>
 
-                            <span className="text-[11px] text-slate-600 px-1">
-                              {new Date(msg.timestamp).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                            <span className="text-[11px] text-slate-500 px-1 self-end">
+                              {formatMsgTimestamp(msg.timestamp)}
                             </span>
                           </div>
                         </div>
@@ -962,12 +1050,17 @@ export default function ChatMessages({
                           key={msg.id}
                           className="flex gap-2 items-start flex-row"
                         >
-                          <UserAvatar
-                            photoURL={msg.senderPhotoURL}
-                            name={msg.senderName}
-                            size="sm"
-                          />
+                          <div className="relative shrink-0">
+                            <UserAvatar
+                              photoURL={msg.senderPhotoURL}
+                              name={msg.senderName}
+                              size="sm"
+                            />
+                          </div>
                           <div className="flex flex-col gap-1 max-w-[72%] items-start">
+                            <span className="text-xs font-medium text-slate-400 px-1">
+                              {isMe ? 'Me' : (msg.senderName || 'Unknown')}
+                            </span>
                             {/* Service card */}
                             <div
                               className={`rounded-2xl overflow-hidden border w-64 rounded-bl-md ${
@@ -1004,11 +1097,8 @@ export default function ChatMessages({
                                 </div>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-600 px-1">
-                              {new Date(msg.timestamp).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                            <span className="text-[11px] text-slate-500 px-1 self-end">
+                              {formatMsgTimestamp(msg.timestamp)}
                             </span>
                           </div>
                         </div>
@@ -1021,12 +1111,17 @@ export default function ChatMessages({
                         key={msg.id}
                         className="flex gap-2 items-start flex-row"
                       >
-                        <UserAvatar
-                          photoURL={msg.senderPhotoURL}
-                          name={msg.senderName}
-                          size="sm"
-                        />
+                        <div className="relative shrink-0">
+                          <UserAvatar
+                            photoURL={msg.senderPhotoURL}
+                            name={msg.senderName}
+                            size="sm"
+                          />
+                        </div>
                         <div className="flex flex-col gap-1 max-w-[65%] items-start">
+                          <span className="text-xs font-medium text-slate-400 px-1">
+                            {isMe ? 'Me' : (msg.senderName || 'Unknown')}
+                          </span>
                           {msg.imageURL && (
                             <a
                               href={msg.imageURL}
@@ -1050,11 +1145,8 @@ export default function ChatMessages({
                               {msg.text}
                             </div>
                           )}
-                          <span className="text-[11px] text-slate-600 px-1">
-                            {new Date(msg.timestamp).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                          <span className="text-[11px] text-slate-500 px-1 self-end">
+                            {formatMsgTimestamp(msg.timestamp)}
                           </span>
                         </div>
                       </div>
