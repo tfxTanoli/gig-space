@@ -474,6 +474,7 @@ const BuyerSearch = () => {
     setLocationType('');
     setSearchRadius(0);
     setPendingRadius(0);
+    setActiveCategory('');
     setActiveSubcategory('');
     setSortBy('newest');
     setBudgetMax(null);
