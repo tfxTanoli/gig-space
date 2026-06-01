@@ -99,10 +99,9 @@ interface PostCardProps {
   sellerName: string;
   sellerPhotoURL: string;
   onSelect: (post: ServicePost) => void;
-  onDelete: (post: ServicePost) => void;
 }
 
-const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect, onDelete }: PostCardProps) => {
+const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardProps) => {
   const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
   const { prefix, price, suffix } = formatPostPrice(post);
   return (
@@ -869,7 +868,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeletePost} />)}
+                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} />)}
                   </div>
                 </div>
               )}
@@ -905,7 +904,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {posts.map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeletePost} />)}
+                  {posts.map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} />)}
                 </div>
               )}
             </div>
