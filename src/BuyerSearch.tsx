@@ -18,9 +18,9 @@ import {
   X,
   ArrowRight,
   MapPin,
-  BadgeCheck,
 } from 'lucide-react';
 import Logo from './Logo';
+import VerifiedBadgeIcon from './VerifiedBadgeIcon';
 import LocationSearch from './LocationSearch';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, get, query, orderByChild, limitToLast, endBefore } from 'firebase/database';
@@ -152,15 +152,10 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
         ...(post.extraLocations ?? []),
       ];
 
-  let locationLabel: string;
-  if (post.offeredRemotely) {
-    locationLabel = post.primaryLocation ? `Remote (${post.primaryLocation})` : 'Remote';
-  } else if (allLocations.length > 1) {
-    locationLabel = `${allLocations[0]} +${allLocations.length - 1} more`;
-  } else {
-    locationLabel = allLocations[0] ?? '';
-  }
-
+  const locationPrimary = post.offeredRemotely
+    ? (post.primaryLocation ? `Remote (${post.primaryLocation})` : 'Remote')
+    : (allLocations[0] ?? '');
+  const extraCount = post.offeredRemotely ? 0 : Math.max(0, allLocations.length - 1);
   const extraLocationNames = allLocations.slice(1);
 
   return (
@@ -192,10 +187,12 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
 
       <Link to={`/service-detail?id=${post.id}`} className="block">
         {/* Avatar & Name */}
-        <div className="flex items-center gap-2 mb-1.5">
+        <div className="flex items-center gap-2 mb-2.5">
           <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
-          <span className="text-sm text-slate-300 truncate flex-1">{post.sellerName}</span>
-          {isVerified && <BadgeCheck className="w-4 h-4 text-blue-400 shrink-0" />}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <span className="text-sm text-slate-300 truncate min-w-0">{post.sellerName}</span>
+            {isVerified && <VerifiedBadgeIcon />}
+          </div>
         </div>
 
         {/* Title */}
@@ -204,14 +201,19 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
         </h3>
 
         {/* Location */}
-        {locationLabel && (
-          <div className="relative flex items-center text-slate-400 text-xs mb-2 group/loc">
-            <MapPin className="w-3 h-3 mr-1.5 shrink-0 text-slate-400" />
-            <span className="truncate">{locationLabel}</span>
-            {extraLocationNames.length > 0 && (
-              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max max-w-[200px]">
+        {locationPrimary && (
+          <div className="relative flex items-center text-slate-400 text-[13px] mb-2 group/loc">
+            <MapPin className="w-3.5 h-3.5 mr-1.5 shrink-0 text-slate-400" />
+            <span className="truncate">
+              {locationPrimary}
+              {extraCount > 0 && (
+                <> <span className="underline underline-offset-2">+{extraCount} more</span></>
+              )}
+            </span>
+            {extraCount > 0 && (
+              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max">
                 {extraLocationNames.map((loc) => (
-                  <p key={loc} className="text-xs text-slate-300 py-0.5">{loc}</p>
+                  <p key={loc} className="text-[13px] text-slate-300 py-0.5">{loc}</p>
                 ))}
               </div>
             )}
@@ -220,15 +222,15 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
 
         {/* Reviews / New Seller badge */}
         {hasReviews ? (
-          <div className="flex items-center gap-1 mb-2">
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-            <span className="text-xs text-slate-400">
+          <div className="flex items-center gap-1.5 mb-2 h-[26px]">
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+            <span className="text-[13px] text-slate-400">
               {meta!.rating.toFixed(1)} ({meta!.reviewCount})
             </span>
           </div>
         ) : (
-          <div className="mb-2">
-            <span className="text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+          <div className="mb-2 h-[26px] flex items-center">
+            <span className="text-[13px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
               New seller
             </span>
           </div>

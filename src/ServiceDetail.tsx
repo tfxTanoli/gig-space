@@ -8,6 +8,7 @@ import {
 import LocationIcon from './LocationIcon';
 import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
+import VerifiedBadgeIcon from './VerifiedBadgeIcon';
 import { ref, get, onValue, query, orderByChild, equalTo, update, increment } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
@@ -116,6 +117,7 @@ const ServiceDetail = () => {
   const [activeImg, setActiveImg] = useState(0);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [sellerVerified, setSellerVerified] = useState(false);
 
   const isOwnService = !!(user && post && user.uid === post.sellerId);
   const viewTrackedRef = useRef(false);
@@ -152,6 +154,13 @@ const ServiceDetail = () => {
   }, [postId]);
 
   useEffect(() => { setActiveImg(0); }, [post?.id]);
+
+  useEffect(() => {
+    if (!post?.sellerId) return;
+    get(ref(database, `users/${post.sellerId}/emailVerified`))
+      .then((snap) => setSellerVerified(snap.val() === true))
+      .catch(() => {});
+  }, [post?.sellerId]);
 
   useEffect(() => {
     if (!post || isOwnService || viewTrackedRef.current) return;
@@ -404,10 +413,11 @@ const ServiceDetail = () => {
           {/* Seller row */}
           <div className="flex items-center gap-2 mb-4">
             <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
-            <div>
+            <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-sm text-white font-medium">{post.sellerName}</span>
+              {sellerVerified && <VerifiedBadgeIcon />}
               {post.sellerUsername && (
-                <span className="text-slate-500 text-xs ml-1.5">@{post.sellerUsername}</span>
+                <span className="text-slate-500 text-xs">@{post.sellerUsername}</span>
               )}
             </div>
           </div>
