@@ -875,7 +875,7 @@ const BuyerSearch = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/signin" className="text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                <Link to="/signin" className="text-sm font-medium text-white hover:text-slate-300 transition-colors">
                   Log in
                 </Link>
                 <Link to="/signup" className="flex items-center text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
