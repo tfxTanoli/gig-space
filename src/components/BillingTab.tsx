@@ -4,6 +4,42 @@ import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
 
 import { ShieldCheck, CreditCard, Clock, CheckCircle, XCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+
+function CardBrandIcon({ brand }: { brand: string }) {
+  switch (brand.toLowerCase()) {
+    case 'visa':
+      return (
+        <svg viewBox="0 0 48 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-auto">
+          <text x="0" y="13" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="16" fill="#1A1F71" letterSpacing="-0.5">VISA</text>
+        </svg>
+      );
+    case 'mastercard':
+      return (
+        <svg viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-auto">
+          <circle cx="14" cy="12" r="10" fill="#EB001B" />
+          <circle cx="24" cy="12" r="10" fill="#F79E1B" />
+          <path d="M19 4.8a10 10 0 0 1 0 14.4A10 10 0 0 1 19 4.8z" fill="#FF5F00" />
+        </svg>
+      );
+    case 'amex':
+      return (
+        <svg viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-auto">
+          <rect width="48" height="30" rx="4" fill="#2557D6" />
+          <text x="5" y="21" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="11" fill="white">AMEX</text>
+        </svg>
+      );
+    case 'discover':
+      return (
+        <svg viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-auto">
+          <rect width="48" height="30" rx="4" fill="#F76F21" />
+          <text x="4" y="20" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="9" fill="white">DISC</text>
+          <circle cx="35" cy="15" r="9" fill="#F9A12E" />
+        </svg>
+      );
+    default:
+      return <CreditCard className="w-4 h-4 text-slate-400" />;
+  }
+}
 import type { Payment, SavedPaymentMethod } from '../stripe/types';
 import { listPaymentMethods, removePaymentMethod } from '../stripe/paymentHelpers';
 import AddPaymentMethodModal from './AddPaymentMethodModal';
@@ -183,8 +219,8 @@ export default function BillingTab() {
           <div className="divide-y divide-slate-800">
             {savedMethods.map((pm) => (
               <div key={pm.id} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="w-8 h-8 rounded-lg bg-[#0E1422] border border-slate-800 flex items-center justify-center shrink-0">
-                  <CreditCard className="w-4 h-4 text-slate-400" />
+                <div className="w-10 h-8 rounded-lg bg-[#0E1422] border border-slate-800 flex items-center justify-center shrink-0 overflow-hidden px-1">
+                  <CardBrandIcon brand={pm.brand} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium">

@@ -57,7 +57,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
           fonts: STRIPE_FONTS,
         });
         elementsRef.current = elements;
-        const paymentElement = elements.create('payment', { layout: 'tabs' });
+        const paymentElement = elements.create('payment', { layout: 'tabs', wallets: { link: 'never' } });
         paymentElement.mount('#add-payment-element');
         setLoading(false);
       } catch (err) {

@@ -544,6 +544,7 @@ const PostService = () => {
       if (mediaItems.length === 0 && !hasVideo) { setStepError('Please upload at least one image or video.'); return false; }
     }
     if (step === 5 && !primaryLocation.trim()) { setStepError('Please enter a primary location.'); return false; }
+    if (step === 7 && languages.length === 0) { setStepError('Please add at least one language.'); return false; }
     return true;
   };
 
@@ -879,16 +880,24 @@ const PostService = () => {
             <div>
               <h2 className="text-white font-semibold mb-2">Images &amp; Video</h2>
               <p className="text-slate-400 text-sm mb-4">
-                Upload up to 12 assets total (images + 1 video) that showcase your services.
+                Attract customer attention with 12 assets (11 images + 1 video) that showcase your services.
               </p>
               <div className="space-y-2 mb-4">
                 <div className="flex items-start gap-2 text-slate-400 text-sm">
                   <span className="text-primary mt-0.5">•</span>
-                  <span>Images: ideal 4:3 ratio · Min 500×500 px · Max 100 MB each</span>
+                  <span>Ideal aspect ratio is 4:3</span>
                 </div>
                 <div className="flex items-start gap-2 text-slate-400 text-sm">
                   <span className="text-primary mt-0.5">•</span>
-                  <span>Video: max 1 file · max 50 MB</span>
+                  <span>Minimum 500 x 500 px</span>
+                </div>
+                <div className="flex items-start gap-2 text-slate-400 text-sm">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Video length less than 60 seconds</span>
+                </div>
+                <div className="flex items-start gap-2 text-slate-400 text-sm">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Max file size 100MB</span>
                 </div>
               </div>
 
