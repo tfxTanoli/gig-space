@@ -101,7 +101,7 @@ export default function StripeConnectCard() {
           <button
             onClick={handleConnect}
             disabled={connecting}
-            className="flex items-center justify-center gap-2 w-auto bg-[#635bff] hover:bg-[#5147e6] disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            className="flex items-center justify-center gap-2 w-auto bg-[#635bff] hover:bg-[#5147e6] disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
           >
             {connecting ? (
               <>
@@ -137,7 +137,7 @@ export default function StripeConnectCard() {
             <button
               onClick={handleConnect}
               disabled={connecting}
-              className="flex items-center justify-center gap-2 w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 disabled:opacity-60 text-yellow-300 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="flex items-center justify-center gap-2 w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 disabled:opacity-60 text-yellow-300 text-sm font-semibold py-2.5 rounded-lg transition-colors"
             >
               {connecting ? (
                 <>

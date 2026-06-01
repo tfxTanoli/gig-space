@@ -139,7 +139,7 @@ export default function WalletTab() {
         <button
           onClick={() => setShowWithdraw(true)}
           disabled={available < MIN_WITHDRAWAL}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
         >
           <ArrowUpRight className="w-4 h-4" />
           Withdraw funds
@@ -202,10 +202,10 @@ interface BalanceCardProps {
 }
 
 const accentMap: Record<string, string> = {
-  emerald: 'bg-emerald-950 border-emerald-900',
-  amber:   'bg-amber-950   border-amber-900',
-  blue:    'bg-blue-950    border-blue-900',
-  indigo:  'bg-indigo-950  border-indigo-900',
+  emerald: 'border-emerald-500/25',
+  amber:   'border-amber-500/25',
+  blue:    'border-blue-500/25',
+  indigo:  'border-indigo-500/25',
 };
 
 function BalanceCard({ label, value, icon, accent, tooltip }: BalanceCardProps) {

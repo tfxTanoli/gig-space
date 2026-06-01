@@ -170,3 +170,7 @@ export async function createListingSubscription(payload: {
     payload as unknown as Record<string, unknown>,
   );
 }
+
+export async function cancelListingSubscription(subscriptionId: string): Promise<void> {
+  return apiFetch<void>('/api/subscriptions/cancel-listing-subscription', { subscriptionId });
+}

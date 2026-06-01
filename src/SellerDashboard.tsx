@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   LogOut,
   BadgeDollarSign,
+  MapPin,
 } from 'lucide-react';
 
 const PostsIcon = ({ className }: { className?: string }) => (
@@ -40,12 +41,14 @@ const PayoutsIcon = ({ className }: { className?: string }) => (
     <path d="M10 11.6668C10.9205 11.6668 11.6667 10.9206 11.6667 10.0002C11.6667 9.07969 10.9205 8.3335 10 8.3335C9.07952 8.3335 8.33333 9.07969 8.33333 10.0002C8.33333 10.9206 9.07952 11.6668 10 11.6668Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-import LocationIcon from './LocationIcon';
 import Logo from './Logo';
+import { sanitizeHtml } from './utils/sanitize';
+import { useCategories } from './CategoriesContext';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import NotificationBell from './notifications/NotificationBell';
 import { ref, query, orderByChild, equalTo, onValue, remove } from 'firebase/database';
+import { cancelListingSubscription } from './stripe/paymentHelpers';
 import { database } from './firebase';
 import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
@@ -70,29 +73,10 @@ interface ServicePost {
   createdAt: number;
   views?: number;
   clicks?: number;
+  extraLocations?: string[];
+  subscriptionId?: string | null;
 }
 
-const categoryLabels: Record<string, string> = {
-  digital: 'Digital Work',
-  home: 'Home Services',
-};
-
-const subcategoryLabels: Record<string, string> = {
-  web_dev: 'Web Development',
-  mobile_dev: 'Mobile App Development',
-  graphic_design: 'Graphic Design',
-  video: 'Video & Animation',
-  writing: 'Content Writing',
-  seo: 'SEO & Marketing',
-  data: 'Data & Analytics',
-  cleaning: 'Cleaning',
-  plumbing: 'Plumbing',
-  electrical: 'Electrical',
-  painting: 'Painting',
-  moving: 'Moving & Delivery',
-  landscaping: 'Landscaping',
-  handyman: 'Handyman',
-};
 
 const sellerNavItems = [
   { name: 'Home', icon: Home },
@@ -147,19 +131,10 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect, onDelete }:
         }`}>
           {post.status === 'active' ? 'Active' : 'Draft'}
         </span>
-        {post.status === 'draft' && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(post); }}
-            className="absolute top-2 right-10 w-7 h-7 bg-black/60 hover:bg-red-600/80 rounded-full flex items-center justify-center transition-colors"
-            title="Delete draft"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-white" />
-          </button>
-        )}
         <Link
           to={`/post-service?id=${post.id}`}
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-2 right-2 w-7 h-7 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition-colors"
+          className="absolute top-2 right-2 w-7 h-7 bg-slate-900 hover:bg-slate-700 border border-slate-700 rounded-full flex items-center justify-center transition-colors"
           title="Edit post"
         >
           <PostsIcon className="w-3.5 h-3.5 text-white" />
@@ -175,7 +150,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect, onDelete }:
         </h3>
         {location && (
           <div className="flex items-center text-slate-400 text-xs mb-3">
-            <LocationIcon className="w-3 h-3 mr-1.5 shrink-0" />
+            <MapPin className="w-3 h-3 mr-1.5 shrink-0" />
             {location}
           </div>
         )}
@@ -284,6 +259,7 @@ interface PostModalProps {
 const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
   const [imgIdx, setImgIdx] = useState(0);
   const images = post.images?.length ? post.images : [];
+  const { getCategoryLabel, getSubcategoryLabel } = useCategories();
 
   const formatPrice = () => {
     const suffix = post.priceType === 'per_hour' ? '/hr' : '/project';
@@ -393,31 +369,53 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
         <div className="p-5 space-y-4">
           {/* Category breadcrumb */}
           <p className="text-slate-500 text-xs">
-            {categoryLabels[post.category] ?? post.category}
+            {getCategoryLabel(post.category) || post.category}
             {post.subcategory && (
-              <span> / {subcategoryLabels[post.subcategory] ?? post.subcategory}</span>
+              <span> / {getSubcategoryLabel(post.category, post.subcategory) || post.subcategory}</span>
             )}
           </p>
 
           {/* Title */}
           <h2 className="text-lg font-bold text-white leading-snug">{post.title}</h2>
 
-          {/* Price + location row */}
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="text-xl font-bold text-white">{formatPrice()}</span>
-            {(post.primaryLocation || post.offeredRemotely) && (
-              <span className="flex items-center gap-1 text-slate-400 text-sm">
-                <LocationIcon className="w-3.5 h-3.5" />
-                {post.offeredRemotely ? 'Remote / Online' : post.primaryLocation}
-              </span>
-            )}
-          </div>
+          {/* Price row */}
+          <span className="text-xl font-bold text-white">{formatPrice()}</span>
+
+          {/* Locations */}
+          {(post.primaryLocation || post.offeredRemotely || (post.extraLocations && post.extraLocations.length > 0)) && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Locations</p>
+              {post.primaryLocation && (
+                <div className="flex items-center gap-1.5 text-slate-300 text-sm">
+                  <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  {post.primaryLocation}
+                  <span className="text-xs text-slate-500">(primary)</span>
+                </div>
+              )}
+              {post.extraLocations?.map((loc) => (
+                <div key={loc} className="flex items-center gap-1.5 text-slate-300 text-sm">
+                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                  {loc}
+                  <span className="text-xs text-primary">+$5/mo</span>
+                </div>
+              ))}
+              {post.offeredRemotely && (
+                <div className="flex items-center gap-1.5 text-primary text-sm">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  Remote / Online
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Description */}
           {post.description && (
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Description</p>
-              <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{post.description}</p>
+              <div
+                className="text-slate-300 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.description) }}
+              />
             </div>
           )}
 
@@ -434,20 +432,11 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
             >
               Edit post
             </Link>
-            {post.status === 'draft' && (
-              <button
-                onClick={() => onDelete(post)}
-                className="w-10 flex items-center justify-center bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white rounded-xl transition-colors"
-                title="Delete draft"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
             <button
-              onClick={onClose}
-              className="flex-1 text-center bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              onClick={() => onDelete(post)}
+              className="flex-1 text-center bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
             >
-              Close
+              Delete
             </button>
           </div>
         </div>
@@ -456,14 +445,14 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
   );
 };
 
-/* ── Draft delete confirmation modal ── */
-interface DraftDeleteModalProps {
+/* ── Delete post confirmation modal ── */
+interface DeletePostModalProps {
   post: ServicePost;
   onClose: () => void;
   onSuccess: (id: string) => void;
 }
 
-const DraftDeleteModal = ({ post, onClose, onSuccess }: DraftDeleteModalProps) => {
+const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -484,12 +473,15 @@ const DraftDeleteModal = ({ post, onClose, onSuccess }: DraftDeleteModalProps) =
     setError(null);
     setDeleting(true);
     try {
+      if (post.subscriptionId) {
+        try { await cancelListingSubscription(post.subscriptionId); } catch { /* non-fatal */ }
+      }
       await remove(ref(database, `services/${post.id}`));
       await remove(ref(database, `users/${user.uid}/posts/${post.id}`));
       onSuccess(post.id);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete draft');
+      setError(err instanceof Error ? err.message : 'Failed to delete post');
     } finally {
       setDeleting(false);
     }
@@ -500,7 +492,7 @@ const DraftDeleteModal = ({ post, onClose, onSuccess }: DraftDeleteModalProps) =
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-white">Delete Draft</h2>
+          <h2 className="text-sm font-semibold text-white">Delete Post</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -509,14 +501,15 @@ const DraftDeleteModal = ({ post, onClose, onSuccess }: DraftDeleteModalProps) =
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 mx-auto mb-4">
             <Trash2 className="w-5 h-5 text-red-400" />
           </div>
-          <p className="text-center text-white font-semibold mb-1">Delete this draft?</p>
+          <p className="text-center text-white font-semibold mb-1">Delete this post?</p>
           <p className="text-center text-slate-500 text-sm mb-5">
-            This draft will be permanently deleted and cannot be recovered.
+            This post will be permanently deleted and cannot be recovered.
+            {post.subscriptionId && ' Any active location subscription will be cancelled.'}
           </p>
           {post.title && (
             <div className="bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-700/50 mb-4">
               <p className="text-sm text-white font-medium truncate">{post.title}</p>
-              <p className="text-xs text-slate-500 mt-0.5 capitalize">{post.category || 'Draft'}</p>
+              <p className="text-xs text-slate-500 mt-0.5 capitalize">{post.status}</p>
             </div>
           )}
           {error && (
@@ -538,7 +531,7 @@ const DraftDeleteModal = ({ post, onClose, onSuccess }: DraftDeleteModalProps) =
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deleting…' : 'Delete Draft'}
+            {deleting ? 'Deleting…' : 'Delete Post'}
           </button>
         </div>
       </div>
@@ -652,7 +645,7 @@ const SellerDashboard = () => {
   }, [user]);
 
 const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post), []);
-  const handleDeleteDraft = useCallback((post: ServicePost) => setDeletingPost(post), []);
+  const handleDeletePost = useCallback((post: ServicePost) => setDeletingPost(post), []);
   const handleDeleteSuccess = useCallback((id: string) => {
     setPosts(prev => prev.filter(p => p.id !== id));
     setSelectedPost(prev => prev?.id === id ? null : prev);
@@ -663,12 +656,12 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
 
       {/* Post detail modal */}
       {selectedPost && (
-        <PostModal post={selectedPost} onClose={() => setSelectedPost(null)} onDelete={handleDeleteDraft} />
+        <PostModal post={selectedPost} onClose={() => setSelectedPost(null)} onDelete={handleDeletePost} />
       )}
 
       {/* Draft delete confirmation */}
       {deletingPost && (
-        <DraftDeleteModal
+        <DeletePostModal
           post={deletingPost}
           onClose={() => setDeletingPost(null)}
           onSuccess={handleDeleteSuccess}
@@ -853,6 +846,8 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                 </div>
               </div>
 
+              <AnalyticsChart data={dailyStats} />
+
               {/* Recent posts or empty state */}
               {postsLoading ? (
                 <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
@@ -874,7 +869,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeleteDraft} />)}
+                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeletePost} />)}
                   </div>
                 </div>
               )}
@@ -897,8 +892,6 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                 </Link>
               </div>
 
-              <AnalyticsChart data={dailyStats} />
-
               {postsLoading ? (
                 <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
                   <p className="text-slate-500 text-sm">Loading posts...</p>
@@ -912,7 +905,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {posts.map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeleteDraft} />)}
+                  {posts.map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} onDelete={handleDeletePost} />)}
                 </div>
               )}
             </div>

@@ -139,7 +139,9 @@ export default function ChatMessages({
 
     const flush = () => {
       setConversations(
-        Object.values(convMap).sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
+        Object.values(convMap)
+          .filter((c) => mode === 'seller' ? c.sellerId === user.uid : c.buyerId === user.uid)
+          .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
       );
       setConvLoading(false);
     };

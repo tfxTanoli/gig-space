@@ -1280,6 +1280,28 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/subscriptions/cancel-listing-subscription
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/subscriptions/cancel-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { subscriptionId } = req.body as { subscriptionId: string };
+    if (!subscriptionId) {
+      res.status(400).json({ error: 'subscriptionId is required' }); return;
+    }
+    try {
+      await stripe.subscriptions.cancel(subscriptionId);
+    } catch {
+      // Non-fatal: subscription may already be cancelled
+    }
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/subscriptions/cancel-listing-subscription error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);
 
