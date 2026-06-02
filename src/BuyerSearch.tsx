@@ -802,16 +802,18 @@ const BuyerSearch = () => {
           </div>
 
           <div className="flex items-center gap-3 md:gap-4 ml-auto shrink-0">
-            <span className="text-slate-600 hidden md:block" aria-hidden="true">
-              <MessageCircle className="w-5 h-5" />
-            </span>
-            <span className="text-slate-600 hidden md:block" aria-hidden="true" title="Notifications coming soon">
-              <Bell className="w-5 h-5" />
-            </span>
             {user && (
-              <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden lg:block">
-                Create New Post
-              </Link>
+              <>
+                <span className="text-slate-600 hidden md:block" aria-hidden="true">
+                  <MessageCircle className="w-5 h-5" />
+                </span>
+                <span className="text-slate-600 hidden md:block" aria-hidden="true" title="Notifications coming soon">
+                  <Bell className="w-5 h-5" />
+                </span>
+                <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden lg:block">
+                  Create New Post
+                </Link>
+              </>
             )}
             {user ? (
               <div ref={menuRef} className="relative">
@@ -877,7 +879,7 @@ const BuyerSearch = () => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-6">
                 <Link to="/signin" className="text-sm font-medium text-white hover:text-slate-300 transition-colors">
                   Log in
                 </Link>
