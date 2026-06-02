@@ -63,6 +63,11 @@ const AdminRoute = ({ children }: { children: ReactNode }) => {
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
+    // Disable browser's native scroll restoration so our handler always wins,
+    // including on back/forward navigation.
+    window.history.scrollRestoration = 'manual';
+  }, []);
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
