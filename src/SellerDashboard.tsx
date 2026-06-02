@@ -106,7 +106,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
   const { prefix, price, suffix } = formatPostPrice(post);
   return (
     <div className="group">
-      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-[#1A2035] relative">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
         <button
           onClick={() => onSelect(post)}
           className="block w-full h-full text-left"
@@ -142,9 +142,9 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
       <button onClick={() => onSelect(post)} className="w-full text-left">
         <div className="flex items-center gap-2 mb-2">
           <UserAvatar photoURL={sellerPhotoURL} name={sellerName} size="sm" />
-          <span className="text-sm font-medium text-slate-300 truncate">{sellerName}</span>
+          <span className="text-sm font-medium truncate">{sellerName}</span>
         </div>
-        <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline text-sm">
+        <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
           {post.title}
         </h3>
         {location && (
@@ -216,30 +216,44 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
         </div>
       </div>
 
-      <div className="relative">
-        <svg viewBox="0 0 100 40" className="w-full h-24" preserveAspectRatio="none">
-          <line x1="0" y1={yOf(maxVal * 0.25)} x2="100" y2={yOf(maxVal * 0.25)} stroke="#1e293b" strokeWidth="0.5" />
-          <line x1="0" y1={yOf(maxVal * 0.5)} x2="100" y2={yOf(maxVal * 0.5)} stroke="#1e293b" strokeWidth="0.5" />
-          <line x1="0" y1={yOf(maxVal * 0.75)} x2="100" y2={yOf(maxVal * 0.75)} stroke="#1e293b" strokeWidth="0.5" />
-          {hasData ? (
-            <>
-              <path d={areaPath('views')} fill="rgba(59,130,246,0.08)" />
-              <path d={areaPath('clicks')} fill="rgba(245,158,11,0.06)" />
-              <path d={linePath('views')} fill="none" stroke="#3B82F6" strokeWidth="0.7" strokeLinejoin="round" />
-              <path d={linePath('clicks')} fill="none" stroke="#F59E0B" strokeWidth="0.7" strokeLinejoin="round" />
-            </>
-          ) : (
-            <path d="M0,20 L100,20" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
-          )}
-        </svg>
-        {!hasData && (
-          <div className="absolute inset-0 flex items-center justify-center px-4">
-            <p className="text-xs text-slate-600 text-center">No data yet — views and clicks appear after buyers visit your posts</p>
+      {(() => {
+        const fmtY = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
+        return (
+          <div className="flex gap-2">
+            {/* Y-axis labels */}
+            <div className="flex flex-col justify-between text-[9px] text-slate-600 shrink-0 w-6 text-right pt-[3px] pb-[3px]">
+              <span>{fmtY(maxVal)}</span>
+              <span>{fmtY(Math.round(maxVal / 2))}</span>
+              <span>0</span>
+            </div>
+            {/* Chart */}
+            <div className="flex-1 relative">
+              <svg viewBox="0 0 100 40" className="w-full h-24" preserveAspectRatio="none">
+                <line x1="0" y1={yOf(maxVal * 0.25)} x2="100" y2={yOf(maxVal * 0.25)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1={yOf(maxVal * 0.5)}  x2="100" y2={yOf(maxVal * 0.5)}  stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1={yOf(maxVal * 0.75)} x2="100" y2={yOf(maxVal * 0.75)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                {hasData ? (
+                  <>
+                    <path d={areaPath('views')} fill="rgba(59,130,246,0.08)" />
+                    <path d={areaPath('clicks')} fill="rgba(245,158,11,0.06)" />
+                    <path d={linePath('views')} fill="none" stroke="#3B82F6" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                    <path d={linePath('clicks')} fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                  </>
+                ) : (
+                  <path d="M0,20 L100,20" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" vectorEffect="non-scaling-stroke" />
+                )}
+              </svg>
+              {!hasData && (
+                <div className="absolute inset-0 flex items-center justify-center px-4">
+                  <p className="text-xs text-slate-600 text-center">No data yet — views and clicks appear after buyers visit your posts</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
 
-      <div className="flex justify-between text-[10px] text-slate-600 mt-1.5">
+      <div className="flex justify-between text-[10px] text-slate-600 mt-1.5 pl-8">
         {[0, 7, 14, 21, 29].map((i) => (
           <span key={i}>{filled[i]?.date.slice(5)}</span>
         ))}
