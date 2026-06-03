@@ -18,7 +18,6 @@ import {
   MapPin,
 } from 'lucide-react';
 import Logo from './Logo';
-import NotificationBell from './notifications/NotificationBell';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
 import LocationSearch from './LocationSearch';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
@@ -324,9 +323,7 @@ const PaginationBar = ({
 
 const BuyerSearch = () => {
   const { user, userProfile, logout } = useAuth();
-  const storedMode = localStorage.getItem('gs_active_mode');
-  const isSeller = storedMode === 'seller' || (!storedMode && userProfile?.accountType === 'seller');
-  const isBuyer  = storedMode === 'buyer'  || (!storedMode && userProfile?.accountType === 'buyer');
+  const isSeller = userProfile?.accountType === 'seller';
   const dashboardPath = isSeller ? '/seller-dashboard' : '/buyer-dashboard';
   const messagesPath = isSeller ? '/seller-dashboard?tab=Messages' : '/buyer-dashboard?tab=Messages';
   const settingsPath = isSeller ? '/seller-dashboard?tab=Settings' : '/buyer-dashboard?tab=Settings';
@@ -335,11 +332,7 @@ const BuyerSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const handleNotifNavigate = useCallback((tab: string) => {
-    navigate(`${dashboardPath}?tab=${tab}`);
-  }, [navigate, dashboardPath]);
-
-  const [posts, setPosts] = useState<ServicePost[]>([]);
+const [posts, setPosts] = useState<ServicePost[]>([]);
   const [sellerMeta, setSellerMeta] = useState<Record<string, SellerMeta>>({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -809,20 +802,6 @@ const BuyerSearch = () => {
           <div className="flex items-center gap-4 md:gap-6 ml-auto shrink-0">
             {user && (
               <>
-                {(isSeller || isBuyer) && (
-                  <>
-                    <Link
-                      to={messagesPath}
-                      className="hidden md:flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                      aria-label="Messages"
-                    >
-                      <MessagesIcon className="w-5 h-5" />
-                    </Link>
-                    <div className="hidden md:block">
-                      <NotificationBell onNavigate={handleNotifNavigate} />
-                    </div>
-                  </>
-                )}
                 <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden lg:block">
                   Create New Post
                 </Link>

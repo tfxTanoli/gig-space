@@ -601,8 +601,6 @@ const SellerDashboard = () => {
 
   const handleLogout = useCallback(() => logout(), [logout]);
 
-  useEffect(() => { localStorage.setItem('gs_active_mode', 'seller'); }, []);
-
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {

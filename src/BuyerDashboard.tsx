@@ -58,8 +58,6 @@ const BuyerDashboard = () => {
   // Active orders count (pending + in_progress)
   const [activeOrderCount, setActiveOrderCount] = useState(0);
 
-  useEffect(() => { localStorage.setItem('gs_active_mode', 'buyer'); }, []);
-
   useEffect(() => {
     if (!user) return;
     const q = query(ref(database, 'orders'), orderByChild('buyerId'), equalTo(user.uid));
