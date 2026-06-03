@@ -1078,13 +1078,13 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                 <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg px-3 h-10">
                   <span className="text-slate-500 text-sm">$</span>
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="numeric"
                     value={budgetInput}
-                    onChange={(e) => setBudgetInput(e.target.value)}
+                    onChange={(e) => setBudgetInput(e.target.value.replace(/\D/g, ''))}
                     onKeyDown={(e) => e.key === 'Enter' && applyBudget()}
                     placeholder="Any"
-                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-500 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-500"
                   />
                 </div>
                 <div className="flex items-center justify-between mt-4">
