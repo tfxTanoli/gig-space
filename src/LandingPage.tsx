@@ -68,9 +68,7 @@ const LandingPage = () => {
 
       {/* Header */}
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
-        <div className="flex items-center">
-          <Logo className="h-6" />
-        </div>
+        <Logo className="h-6 shrink-0" />
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
