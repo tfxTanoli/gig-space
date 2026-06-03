@@ -68,7 +68,7 @@ const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Search…', 
           <div className="absolute right-0 top-11 w-44 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-slate-300 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
             >
               <LogOut className="w-4 h-4 flex-shrink-0" />
               Sign Out

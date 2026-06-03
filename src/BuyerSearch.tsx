@@ -2,8 +2,6 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo, type ReactNode
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
-  MessageCircle,
-  Bell,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -20,6 +18,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import Logo from './Logo';
+import NotificationBell from './notifications/NotificationBell';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
 import LocationSearch from './LocationSearch';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
@@ -325,7 +324,9 @@ const PaginationBar = ({
 
 const BuyerSearch = () => {
   const { user, userProfile, logout } = useAuth();
-  const isSeller = userProfile?.accountType === 'seller';
+  const storedMode = localStorage.getItem('gs_active_mode');
+  const isSeller = storedMode === 'seller' || (!storedMode && userProfile?.accountType === 'seller');
+  const isBuyer  = storedMode === 'buyer'  || (!storedMode && userProfile?.accountType === 'buyer');
   const dashboardPath = isSeller ? '/seller-dashboard' : '/buyer-dashboard';
   const messagesPath = isSeller ? '/seller-dashboard?tab=Messages' : '/buyer-dashboard?tab=Messages';
   const settingsPath = isSeller ? '/seller-dashboard?tab=Settings' : '/buyer-dashboard?tab=Settings';
@@ -333,6 +334,10 @@ const BuyerSearch = () => {
   const { isSaved, toggleSave } = useSavedServices();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const handleNotifNavigate = useCallback((tab: string) => {
+    navigate(`${dashboardPath}?tab=${tab}`);
+  }, [navigate, dashboardPath]);
 
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [sellerMeta, setSellerMeta] = useState<Record<string, SellerMeta>>({});
@@ -804,12 +809,20 @@ const BuyerSearch = () => {
           <div className="flex items-center gap-4 md:gap-6 ml-auto shrink-0">
             {user && (
               <>
-                <span className="text-slate-600 hidden md:block" aria-hidden="true">
-                  <MessageCircle className="w-5 h-5" />
-                </span>
-                <span className="text-slate-600 hidden md:block" aria-hidden="true" title="Notifications coming soon">
-                  <Bell className="w-5 h-5" />
-                </span>
+                {(isSeller || isBuyer) && (
+                  <>
+                    <Link
+                      to={messagesPath}
+                      className="hidden md:flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                      aria-label="Messages"
+                    >
+                      <MessagesIcon className="w-5 h-5" />
+                    </Link>
+                    <div className="hidden md:block">
+                      <NotificationBell onNavigate={handleNotifNavigate} />
+                    </div>
+                  </>
+                )}
                 <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden lg:block">
                   Create New Post
                 </Link>
@@ -869,7 +882,7 @@ const BuyerSearch = () => {
                     <div className="border-t border-slate-800 py-1">
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-600 hover:bg-slate-800/80 transition-colors cursor-pointer"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-500 hover:bg-slate-800/80 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-4 h-4 shrink-0" />
                         Sign Out
@@ -1092,7 +1105,7 @@ const BuyerSearch = () => {
                     onChange={(e) => setBudgetInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && applyBudget()}
                     placeholder="Any"
-                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-500"
+                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-500 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                 </div>
                 <div className="flex items-center justify-between mt-4">

@@ -58,6 +58,8 @@ const BuyerDashboard = () => {
   // Active orders count (pending + in_progress)
   const [activeOrderCount, setActiveOrderCount] = useState(0);
 
+  useEffect(() => { localStorage.setItem('gs_active_mode', 'buyer'); }, []);
+
   useEffect(() => {
     if (!user) return;
     const q = query(ref(database, 'orders'), orderByChild('buyerId'), equalTo(user.uid));
@@ -290,7 +292,7 @@ const BuyerDashboard = () => {
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-red-400 transition-colors"
+            className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-400 hover:text-red-500 transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -376,7 +378,7 @@ const BuyerDashboard = () => {
                   <div className="border-t border-slate-800 py-1">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-slate-800/80 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-500 hover:bg-slate-800/80 transition-colors"
                     >
                       <LogOut className="w-4 h-4 shrink-0" />
                       Sign Out

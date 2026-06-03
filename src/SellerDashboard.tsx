@@ -102,11 +102,19 @@ interface PostCardProps {
 }
 
 const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardProps) => {
-  const location = post.offeredRemotely ? 'Remote / Online' : post.primaryLocation;
+  const allLocations = [
+    ...(post.primaryLocation ? [post.primaryLocation] : []),
+    ...(post.extraLocations ?? []),
+  ];
+  const locationPrimary = allLocations[0] ?? '';
+  const extraCount = Math.max(0, allLocations.length - 1);
+  const extraLocationNames = allLocations.slice(1);
   const { prefix, price, suffix } = formatPostPrice(post);
+  const hasStats = (post.views ?? 0) > 0 || (post.clicks ?? 0) > 0;
+
   return (
-    <div className="group">
-      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+    <div className="group block">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-[#1A2035] relative">
         <button
           onClick={() => onSelect(post)}
           className="block w-full h-full text-left"
@@ -140,30 +148,55 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
         </Link>
       </div>
       <button onClick={() => onSelect(post)} className="w-full text-left">
-        <div className="flex items-center gap-2 mb-2">
+        {/* Avatar & Name */}
+        <div className="flex items-center gap-2 mb-2.5">
           <UserAvatar photoURL={sellerPhotoURL} name={sellerName} size="sm" />
-          <span className="text-sm font-medium truncate">{sellerName}</span>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <span className="text-sm text-slate-300 truncate min-w-0">{sellerName}</span>
+          </div>
         </div>
-        <h3 className="font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
+
+        {/* Title */}
+        <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:underline">
           {post.title}
         </h3>
-        {location && (
-          <div className="flex items-center text-slate-400 text-xs mb-3">
-            <MapPin className="w-3 h-3 mr-1.5 shrink-0" />
-            {location}
+
+        {/* Location */}
+        {locationPrimary && (
+          <div className="relative flex items-center text-slate-400 text-[13px] mb-2 group/loc">
+            <MapPin className="w-3.5 h-3.5 mr-1.5 shrink-0 text-slate-400" />
+            <span className="truncate">
+              {locationPrimary}
+              {extraCount > 0 && (
+                <> <span className="underline underline-offset-2">+{extraCount} more</span></>
+              )}
+            </span>
+            {extraCount > 0 && (
+              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max">
+                {extraLocationNames.map((loc) => (
+                  <p key={loc} className="text-[13px] text-slate-300 py-0.5">{loc}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        <div className="text-sm">
-          {prefix && <span className="text-slate-400">{prefix} </span>}
-          <span className="font-bold text-lg">{price}</span>
-          <span className="text-slate-400 text-xs ml-1">{suffix}</span>
+
+        {/* Stats row — fixed height mirrors the reviews/badge row in ServiceCard */}
+        <div className="mb-2 h-[26px] flex items-center gap-3 text-[13px] text-slate-500">
+          {hasStats && (
+            <>
+              {(post.views ?? 0) > 0 && <span>{post.views!.toLocaleString()} views</span>}
+              {(post.clicks ?? 0) > 0 && <span>{post.clicks!.toLocaleString()} clicks</span>}
+            </>
+          )}
         </div>
-        {((post.views ?? 0) > 0 || (post.clicks ?? 0) > 0) && (
-          <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
-            {(post.views ?? 0) > 0 && <span>{post.views!.toLocaleString()} views</span>}
-            {(post.clicks ?? 0) > 0 && <span>{post.clicks!.toLocaleString()} clicks</span>}
-          </div>
-        )}
+
+        {/* Price */}
+        <div className="flex items-baseline gap-1">
+          {prefix && <span className="text-xs text-slate-400">{prefix}</span>}
+          <span className="font-bold text-white">{price}</span>
+          <span className="text-xs text-slate-400">{suffix}</span>
+        </div>
       </button>
     </div>
   );
@@ -382,9 +415,9 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
         <div className="p-5 space-y-4">
           {/* Category breadcrumb */}
           <p className="text-slate-500 text-xs">
-            {getCategoryLabel(post.category) || post.category}
+            {(getCategoryLabel(post.category) || post.category).replace(/^\w/, c => c.toUpperCase())}
             {post.subcategory && (
-              <span> / {getSubcategoryLabel(post.category, post.subcategory) || post.subcategory}</span>
+              <span> / {(getSubcategoryLabel(post.category, post.subcategory) || post.subcategory).replace(/^\w/, c => c.toUpperCase())}</span>
             )}
           </p>
 
@@ -395,29 +428,22 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
           <span className="text-xl font-bold text-white">{formatPrice()}</span>
 
           {/* Locations */}
-          {(post.primaryLocation || post.offeredRemotely || (post.extraLocations && post.extraLocations.length > 0)) && (
-            <div className="space-y-1">
+          {(post.primaryLocation || (post.extraLocations && post.extraLocations.length > 0)) && (
+            <div className="space-y-1 mt-2">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Locations</p>
               {post.primaryLocation && (
                 <div className="flex items-center gap-1.5 text-slate-300 text-sm">
                   <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   {post.primaryLocation}
-                  <span className="text-xs text-slate-500">(primary)</span>
                 </div>
               )}
               {post.extraLocations?.map((loc) => (
                 <div key={loc} className="flex items-center gap-1.5 text-slate-300 text-sm">
                   <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
                   {loc}
-                  <span className="text-xs text-primary">+$5/mo</span>
+                  {post.primaryLocation && <span className="text-xs text-primary">+$5/mo</span>}
                 </div>
               ))}
-              {post.offeredRemotely && (
-                <div className="flex items-center gap-1.5 text-primary text-sm">
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  Remote / Online
-                </div>
-              )}
             </div>
           )}
 
@@ -441,13 +467,13 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
           <div className="flex gap-3 pt-1">
             <Link
               to={`/post-service?id=${post.id}`}
-              className="flex-1 text-center bg-primary hover:bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="flex-1 text-center bg-primary hover:bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-[6px] transition-colors"
             >
               Edit post
             </Link>
             <button
               onClick={() => onDelete(post)}
-              className="flex-1 text-center bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="flex-1 text-center bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white text-sm font-semibold py-2.5 rounded-[6px] transition-colors"
             >
               Delete
             </button>
@@ -569,10 +595,13 @@ const SellerDashboard = () => {
   const [lifetimeEarnings, setLifetimeEarnings] = useState<number | null>(null);
   const [dailyStats, setDailyStats] = useState<Array<{ date: string; views: number; clicks: number }>>([]);
   const unreadMessages = useUnreadMessages('seller');
+  const mainRef = useRef<HTMLElement>(null);
 
   const navItems = sellerNavItems;
 
   const handleLogout = useCallback(() => logout(), [logout]);
+
+  useEffect(() => { localStorage.setItem('gs_active_mode', 'seller'); }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -657,7 +686,12 @@ const SellerDashboard = () => {
     return () => unsub();
   }, [user]);
 
-const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post), []);
+const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    mainRef.current?.scrollTo({ top: 0 });
+  }, []);
+
+  const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post), []);
   const handleDeletePost = useCallback((post: ServicePost) => setDeletingPost(post), []);
   const handleDeleteSuccess = useCallback((id: string) => {
     setPosts(prev => prev.filter(p => p.id !== id));
@@ -694,7 +728,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
             return (
               <button
                 key={item.name}
-                onClick={() => setActiveTab(item.name)}
+                onClick={() => handleTabChange(item.name)}
                 className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-blue-600/10 text-primary'
@@ -730,7 +764,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+            className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-400 hover:text-red-500 transition-colors cursor-pointer"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -760,7 +794,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
             />
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <NotificationBell onNavigate={setActiveTab} />
+            <NotificationBell onNavigate={handleTabChange} />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
             <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">
               <Plus className="w-4 h-4" /> <span className="hidden md:inline">New Post</span>
@@ -784,21 +818,21 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
 
                   <div className="py-1">
                     <button
-                      onClick={() => { setActiveTab('Home'); setShowUserMenu(false); }}
+                      onClick={() => { handleTabChange('Home'); setShowUserMenu(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
                       <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
                       Dashboard
                     </button>
                     <button
-                      onClick={() => { setActiveTab('Messages'); setShowUserMenu(false); }}
+                      onClick={() => { handleTabChange('Messages'); setShowUserMenu(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
                       <MessagesIcon className="w-4 h-4 shrink-0 text-slate-500" />
                       Messages
                     </button>
                     <button
-                      onClick={() => { setActiveTab('Settings'); setShowUserMenu(false); }}
+                      onClick={() => { handleTabChange('Settings'); setShowUserMenu(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
                       <Settings className="w-4 h-4 shrink-0 text-slate-500" />
@@ -817,7 +851,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                   <div className="border-t border-slate-800 py-1">
                     <button
                       onClick={() => { setShowUserMenu(false); handleLogout(); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-600 hover:bg-slate-800/80 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-500 hover:bg-slate-800/80 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 shrink-0" />
                       Sign Out
@@ -829,7 +863,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
           </div>
         </header>
 
-        <main className={`flex-1 flex flex-col overflow-x-hidden ${activeTab === 'Messages' ? 'min-h-0 overflow-hidden' : 'p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'}`}>
+        <main ref={mainRef} className={`flex-1 flex flex-col overflow-x-hidden ${activeTab === 'Messages' ? 'min-h-0 overflow-hidden' : 'p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'}`}>
 
           {/* HOME TAB */}
           {activeTab === 'Home' && (
@@ -877,12 +911,12 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-white">Recent Posts</h3>
-                    <button onClick={() => setActiveTab('Posts')} className="text-xs text-primary hover:text-blue-400 transition-colors">
+                    <button onClick={() => handleTabChange('Posts')} className="text-xs text-primary hover:text-blue-400 transition-colors">
                       View all →
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} />)}
+                    {posts.slice(0, 4).map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={userProfile?.photoURL ?? ''} onSelect={handleSelectPost} />)}
                   </div>
                 </div>
               )}
@@ -918,7 +952,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {posts.map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={user?.photoURL ?? ''} onSelect={handleSelectPost} />)}
+                  {posts.map(post => <PostCard key={post.id} post={post} sellerName={userProfile?.name ?? ''} sellerPhotoURL={userProfile?.photoURL ?? ''} onSelect={handleSelectPost} />)}
                 </div>
               )}
             </div>
@@ -958,7 +992,7 @@ const handleSelectPost = useCallback((post: ServicePost) => setSelectedPost(post
           return (
             <button
               key={item.name}
-              onClick={() => setActiveTab(item.name)}
+              onClick={() => handleTabChange(item.name)}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 relative transition-colors ${
                 isActive ? 'text-primary' : 'text-slate-500'
               }`}
