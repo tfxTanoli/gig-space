@@ -525,6 +525,7 @@ const PostService = () => {
   const validate = (): boolean => {
     setStepError('');
     if (step === 1 && !category) { setStepError('Please select a category.'); return false; }
+    if (step === 1 && category && !subcategory) { setStepError('Please select a subcategory.'); return false; }
     if (step === 2) {
       if (title.trim().length < 20) { setStepError('Title must be at least 20 characters.'); return false; }
       const descText = descriptionRef.current?.textContent?.trim() ?? description.replace(/<[^>]*>/g, '').trim();
