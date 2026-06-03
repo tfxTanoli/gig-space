@@ -801,7 +801,7 @@ const BuyerSearch = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 md:gap-4 ml-auto shrink-0">
+          <div className="flex items-center gap-4 md:gap-6 ml-auto shrink-0">
             {user && (
               <>
                 <span className="text-slate-600 hidden md:block" aria-hidden="true">
