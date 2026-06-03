@@ -18,7 +18,7 @@ import {
   Eye,
   Pencil,
 } from 'lucide-react';
-import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
@@ -42,19 +42,6 @@ type MediaItem =
   | { kind: 'existing'; url: string }
   | { kind: 'new'; file: File; previewUrl: string };
 
-// ── Stripe card input section rendered inside <Elements> ──────────────────────
-const CARD_STYLE = {
-  style: {
-    base: {
-      color: '#e2e8f0',
-      fontSize: '14px',
-      fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
-      '::placeholder': { color: '#475569', fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" },
-    },
-    invalid: { color: '#f87171' },
-  },
-};
-
 interface Step8PaymentSectionProps {
   extraLocationCount: number;
   serviceId: string;
@@ -65,12 +52,8 @@ interface Step8PaymentSectionProps {
 function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess }: Step8PaymentSectionProps) {
   const stripe = useStripe();
   const elements = useElements();
-  const [cardName, setCardName] = useState('');
   const [processing, setProcessing] = useState(false);
   const [payError, setPayError] = useState('');
-  const [cardComplete, setCardComplete] = useState({ number: false, expiry: false, cvc: false });
-  const [cardFocus, setCardFocus] = useState({ number: false, expiry: false, cvc: false });
-  const [cardBrand, setCardBrand] = useState('unknown');
 
   const total = extraLocationCount * 5;
 
@@ -79,17 +62,17 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
     setProcessing(true);
     setPayError('');
     try {
-      const { clientSecret, subscriptionId } = await createListingSubscription({
-        extraLocationCount,
-        serviceId,
-      });
-      const cardNumberElement = elements.getElement(CardNumberElement);
-      if (!cardNumberElement) throw new Error('Card element missing.');
-      const { error } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardNumberElement,
-          billing_details: { name: cardName },
-        },
+      // Validate Payment Element fields first
+      const { error: submitError } = await elements.submit();
+      if (submitError) { setPayError(submitError.message ?? 'Please check your card details.'); return; }
+      // Create subscription → get PaymentIntent client secret
+      const { clientSecret, subscriptionId } = await createListingSubscription({ extraLocationCount, serviceId });
+      // Confirm payment
+      const { error } = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: { return_url: window.location.href },
+        redirect: 'if_required',
       });
       if (error) { setPayError(error.message ?? 'Payment failed.'); return; }
       await onSuccess(subscriptionId);
@@ -99,11 +82,6 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
       setProcessing(false);
     }
   };
-
-  const fieldClass = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-sm text-white';
-  const stripeWrapClass = (field: 'number' | 'expiry' | 'cvc') =>
-    `bg-slate-800 border rounded-lg px-4 py-3.5 transition-colors ${cardFocus[field] ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-700'}`;
-  const canPublish = !processing && !!stripe && cardName.trim().length > 0 && cardComplete.number && cardComplete.expiry && cardComplete.cvc;
 
   return (
     <>
@@ -119,86 +97,13 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           </p>
         </div>
 
-        <div>
-          <label className="text-white text-sm font-medium block mb-2">Name on card</label>
-          <input
-            type="text"
-            value={cardName}
-            onChange={(e) => setCardName(e.target.value)}
-            placeholder=""
-            className={fieldClass}
-          />
-        </div>
-
-        <div>
-          <label className="text-white text-sm font-medium block mb-2">Card number</label>
-          <div className={`${stripeWrapClass('number')} flex items-center gap-3`}>
-            <div className="flex-1 min-w-0">
-              <CardNumberElement
-                options={CARD_STYLE}
-                onChange={e => { setCardComplete(p => ({ ...p, number: e.complete })); setCardBrand(e.brand); }}
-                onFocus={() => setCardFocus(p => ({ ...p, number: true }))}
-                onBlur={() => setCardFocus(p => ({ ...p, number: false }))}
-              />
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              {/* Visa */}
-              <span className={`transition-opacity ${cardBrand === 'unknown' || cardBrand === 'visa' ? 'opacity-100' : 'opacity-25'}`}>
-                <svg viewBox="0 0 50 16" width="38" height="12" xmlns="http://www.w3.org/2000/svg">
-                  <text x="0" y="13" fontFamily="Arial,sans-serif" fontWeight="bold" fontSize="16" fill="#1A1F71">VISA</text>
-                </svg>
-              </span>
-              {/* Mastercard */}
-              <span className={`transition-opacity ${cardBrand === 'unknown' || cardBrand === 'mastercard' ? 'opacity-100' : 'opacity-25'}`}>
-                <svg viewBox="0 0 30 20" width="30" height="20" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="11" cy="10" r="9" fill="#EB001B" />
-                  <circle cx="19" cy="10" r="9" fill="#F79E1B" />
-                  <path d="M15 3.8a9 9 0 0 1 0 12.4A9 9 0 0 1 15 3.8z" fill="#FF5F00" />
-                </svg>
-              </span>
-              {/* Amex */}
-              <span className={`transition-opacity ${cardBrand === 'unknown' || cardBrand === 'amex' ? 'opacity-100' : 'opacity-25'}`}>
-                <svg viewBox="0 0 40 26" width="34" height="22" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="40" height="26" rx="4" fill="#2557D6" />
-                  <text x="4" y="18" fontFamily="Arial,sans-serif" fontWeight="bold" fontSize="10" fill="white">AMEX</text>
-                </svg>
-              </span>
-              {/* Discover */}
-              <span className={`transition-opacity ${cardBrand === 'unknown' || cardBrand === 'discover' ? 'opacity-100' : 'opacity-25'}`}>
-                <svg viewBox="0 0 50 32" width="40" height="25" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="50" height="32" rx="4" fill="#231F20" />
-                  <circle cx="34" cy="16" r="11" fill="#F76F21" />
-                  <text x="5" y="20" fontFamily="Arial,sans-serif" fontWeight="bold" fontSize="9" fill="white">DISC</text>
-                </svg>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-white text-sm font-medium block mb-2">Expiration date</label>
-            <div className={stripeWrapClass('expiry')}>
-              <CardExpiryElement
-                options={CARD_STYLE}
-                onChange={e => setCardComplete(p => ({ ...p, expiry: e.complete }))}
-                onFocus={() => setCardFocus(p => ({ ...p, expiry: true }))}
-                onBlur={() => setCardFocus(p => ({ ...p, expiry: false }))}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-white text-sm font-medium block mb-2">CVC</label>
-            <div className={stripeWrapClass('cvc')}>
-              <CardCvcElement
-                options={CARD_STYLE}
-                onChange={e => setCardComplete(p => ({ ...p, cvc: e.complete }))}
-                onFocus={() => setCardFocus(p => ({ ...p, cvc: true }))}
-                onBlur={() => setCardFocus(p => ({ ...p, cvc: false }))}
-              />
-            </div>
-          </div>
-        </div>
+        <PaymentElement
+          options={{
+            layout: 'tabs',
+            wallets: { link: 'never', applePay: 'never', googlePay: 'never' },
+            paymentMethodOrder: ['card'],
+          }}
+        />
 
         {payError && (
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-400 text-sm">
@@ -219,7 +124,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           <button
             type="button"
             onClick={handlePublish}
-            disabled={!canPublish}
+            disabled={processing || !stripe}
             className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors text-sm"
           >
             {processing ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</> : 'Publish'}
@@ -1308,6 +1213,9 @@ const PostService = () => {
               <Elements
                 stripe={stripePromise}
                 options={{
+                  mode: 'payment',
+                  amount: extraLocations.length * 500,
+                  currency: 'usd',
                   appearance: { theme: 'night', variables: { colorPrimary: '#3b82f6' } },
                   fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap' }],
                 }}
