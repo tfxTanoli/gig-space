@@ -181,14 +181,9 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           </div>
         )}
 
-        {/* Stats row — fixed height mirrors the reviews/badge row in ServiceCard */}
-        <div className="mb-2 h-[26px] flex items-center gap-3 text-[13px] text-slate-500">
-          {hasStats && (
-            <>
-              {(post.views ?? 0) > 0 && <span>{post.views!.toLocaleString()} views</span>}
-              {(post.clicks ?? 0) > 0 && <span>{post.clicks!.toLocaleString()} clicks</span>}
-            </>
-          )}
+        {/* Reviews row — fixed height keeps price aligned across all cards */}
+        <div className="mb-2 h-[26px] flex items-center">
+          <span className="text-[13px] text-slate-500">No reviews</span>
         </div>
 
         {/* Price */}
@@ -197,6 +192,14 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           <span className="font-bold text-white">{price}</span>
           <span className="text-xs text-slate-400">{suffix}</span>
         </div>
+
+        {/* Views / clicks below price */}
+        {hasStats && (
+          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+            {(post.views ?? 0) > 0 && <span>{post.views!.toLocaleString()} views</span>}
+            {(post.clicks ?? 0) > 0 && <span>{post.clicks!.toLocaleString()} clicks</span>}
+          </div>
+        )}
       </button>
     </div>
   );
