@@ -1260,7 +1260,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       customer: customerId,
       items: [{ price: priceId, quantity: extraLocationCount }],
       payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
+      payment_settings: { save_default_payment_method: 'on_subscription', payment_method_types: ['card', 'us_bank_account'] },
       expand: ['latest_invoice.payment_intent'],
     });
 

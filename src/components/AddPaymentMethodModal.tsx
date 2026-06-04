@@ -15,7 +15,7 @@ const APPEARANCE = {
   theme: 'night' as const,
   variables: {
     colorPrimary: '#3b82f6',
-    colorBackground: '#111827',
+    colorBackground: '#1e293b',
     colorText: '#f1f5f9',
     colorTextSecondary: '#94a3b8',
     borderRadius: '8px',
@@ -23,10 +23,12 @@ const APPEARANCE = {
     fontSizeBase: '14px',
   },
   rules: {
-    '.Input': { border: '1px solid #334155', backgroundColor: '#0f172a' },
-    '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none' },
+    '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b' },
+    '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
     '.Label': { color: '#94a3b8', fontSize: '12px' },
-    '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif' },
+    '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155' },
+    '.Tab--selected': { backgroundColor: '#1e293b', border: '1px solid #3b82f6', boxShadow: 'none' },
+    '.Tab:focus': { boxShadow: 'none' },
   },
 };
 
