@@ -592,14 +592,9 @@ export default function ChatMessages({
 
   const formatMsgTimestamp = (ts: number) => {
     const d = new Date(ts);
-    const now = new Date();
-    const sameDay =
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate();
+    const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
     const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    if (sameDay) return time;
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + time;
+    return `${date}, ${time}`;
   };
 
   const formatLastSeen = (online: boolean, lastSeen: number | null): string => {
