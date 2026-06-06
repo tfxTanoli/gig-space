@@ -1152,7 +1152,7 @@ export default function ChatMessages({
                           )}
                           {msg.text && (
                             <div
-                              className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words max-w-[80%] ${
+                              className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words w-fit max-w-[80%] ${
                                 isMe ? 'bg-blue-600 text-white' : 'bg-[#1A2035] text-slate-200'
                               }`}
                             >
