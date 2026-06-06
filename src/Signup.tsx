@@ -67,11 +67,11 @@ const Signup = () => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       // Send a verification email so the account can earn its "Verified" badge.
-      // Non-fatal if it fails â€” the user can resend later.
+      // Non-fatal if it fails — the user can resend later.
       try {
         await sendEmailVerification(cred.user);
       } catch {
-        // ignore â€” account is created regardless
+        // ignore — account is created regardless
       }
       // useEffect above handles navigation once onAuthStateChanged fires
     } catch (err: any) {
@@ -89,7 +89,7 @@ const Signup = () => {
       // useEffect above handles navigation
     } catch (err: any) {
       if (err.code === 'auth/popup-blocked') {
-        // Popup blocked â€” fall back to redirect
+        // Popup blocked — fall back to redirect
         try {
           await signInWithRedirect(auth, provider);
         } catch (redirectErr: any) {

@@ -59,7 +59,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               <p className="text-white font-semibold">Withdrawal initiated!</p>
               <p className="text-slate-400 text-sm text-center">
                 ${parsed.toFixed(2)} is on its way to your Stripe account.
-                It may take 1â€“3 business days.
+                It may take 1–3 business days.
               </p>
             </div>
           ) : (
@@ -140,15 +140,15 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processingâ€¦
+                    Processing…
                   </>
                 ) : (
-                  `Withdraw $${isValid ? parsed.toFixed(2) : 'â€”'}`
+                  `Withdraw $${isValid ? parsed.toFixed(2) : '—'}`
                 )}
               </button>
 
               <p className="text-slate-600 text-xs text-center">
-                Funds will be transferred to your connected Stripe account within 1â€“3 business days.
+                Funds will be transferred to your connected Stripe account within 1–3 business days.
               </p>
             </>
           )}

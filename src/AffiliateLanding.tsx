@@ -169,7 +169,7 @@ const AffiliateLanding = () => {
             </div>
             <h3 className="text-white font-bold mb-3">2. Share Your Link</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              Promote Gigspace anywhere â€” social media, your audience, or direct outreach. Every click and referral is tracked automatically.
+              Promote Gigspace anywhere — social media, your audience, or direct outreach. Every click and referral is tracked automatically.
             </p>
             <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
               Get your referral link <ArrowRight className="w-4 h-4 ml-1" />
@@ -261,7 +261,7 @@ const AffiliateLanding = () => {
                   {faq.question}
                 </span>
                 <span className="text-slate-400 text-xl flex-shrink-0 leading-none select-none">
-                  {openFaqIndex === index ? 'âˆ’' : '+'}
+                  {openFaqIndex === index ? '−' : '+'}
                 </span>
               </button>
               <div
@@ -283,7 +283,7 @@ const AffiliateLanding = () => {
             <h2 className="text-3xl font-bold text-white mb-6">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
-                At Gigspace, our mission is to connect talented professionals with the people and businesses who need themâ€”whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
+                At Gigspace, our mission is to connect talented professionals with the people and businesses who need them—whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
               </p>
               <p>
                 By combining the flexibility of digital freelance platforms with the reach of local service marketplaces, we make hiring faster, safer, and more efficient for everyone. Our platform is built to remove unnecessary fees, streamline communication, and provide secure transactions, so professionals can focus on what they do best and buyers can get their work done with confidence.
@@ -332,7 +332,7 @@ const AffiliateLanding = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
 
     </div>

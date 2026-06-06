@@ -47,16 +47,16 @@ const AdminAffiliateViewModal = ({ affiliate, onClose }: Props) => {
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{affiliate.name || 'â€”'}</p>
+              <p className="text-sm font-medium text-white truncate">{affiliate.name || '—'}</p>
               <p className="text-xs text-slate-500 truncate">{affiliate.email}</p>
             </div>
           </div>
 
-          <Field label="Username" value={affiliate.username || 'â€”'} />
+          <Field label="Username" value={affiliate.username || '—'} />
           <Field label="Referral Code" value={
             affiliate.referralCode
               ? <span className="font-mono text-xs bg-slate-800 px-2 py-1 rounded">{affiliate.referralCode}</span>
-              : 'â€”'
+              : '—'
           } />
           <Field label="Total Referrals" value={affiliate.totalReferrals} />
           <Field label="Lifetime Earnings" value={`$${affiliate.lifetimeEarnings.toFixed(2)}`} />
@@ -66,7 +66,7 @@ const AdminAffiliateViewModal = ({ affiliate, onClose }: Props) => {
           <Field label="Pending Balance" value={
             <span className="text-yellow-400">${affiliate.pendingBalance.toFixed(2)}</span>
           } />
-          <Field label="Joined" value={affiliate.createdAt ? new Date(affiliate.createdAt).toLocaleDateString() : 'â€”'} />
+          <Field label="Joined" value={affiliate.createdAt ? new Date(affiliate.createdAt).toLocaleDateString() : '—'} />
         </div>
 
         <div className="px-6 py-4 border-t border-slate-800 flex justify-end">

@@ -85,7 +85,7 @@ export default function BillingTab() {
       const methods = await listPaymentMethods();
       setSavedMethods(methods);
     } catch {
-      // silently fail â€” show empty state
+      // silently fail — show empty state
     } finally {
       setLoadingMethods(false);
     }
@@ -132,7 +132,7 @@ export default function BillingTab() {
         setLoading(false);
       },
       (_err) => {
-        // Permission error or network issue â€” stop spinner and show empty state
+        // Permission error or network issue — stop spinner and show empty state
         setPayments([]);
         setLoading(false);
       }

@@ -46,15 +46,15 @@ const AdminOrderViewModal = ({ order, onClose }: Props) => {
 
         <div className="px-6 py-5">
           <Field label="Order ID" value={<span className="font-mono text-xs">{order.orderId}</span>} />
-          <Field label="Buyer" value={order.buyerName || 'â€”'} />
-          <Field label="Seller" value={order.sellerName || 'â€”'} />
+          <Field label="Buyer" value={order.buyerName || '—'} />
+          <Field label="Seller" value={order.sellerName || '—'} />
           <Field label="Status" value={
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[order.status] ?? 'bg-slate-700 text-slate-400'}`}>
-              {order.status?.replace(/_/g, ' ') || 'â€”'}
+              {order.status?.replace(/_/g, ' ') || '—'}
             </span>
           } />
           <Field label="Amount" value={`$${order.amount.toFixed(2)}`} />
-          <Field label="Created" value={order.createdAt ? new Date(order.createdAt).toLocaleString() : 'â€”'} />
+          <Field label="Created" value={order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'} />
         </div>
 
         <div className="px-6 py-4 border-t border-slate-800 flex justify-end">

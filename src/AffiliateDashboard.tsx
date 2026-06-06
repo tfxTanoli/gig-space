@@ -63,7 +63,7 @@ const AffiliateDashboard = () => {
   return (
     <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
 
-      {/* â”€â”€ Sidebar (desktop) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Sidebar (desktop) ─────────────────────────────────────────────── */}
       <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
 
         {/* Logo */}
@@ -114,7 +114,7 @@ const AffiliateDashboard = () => {
         </div>
       </aside>
 
-      {/* â”€â”€ Main area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Main area ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}

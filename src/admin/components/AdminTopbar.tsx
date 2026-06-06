@@ -11,7 +11,7 @@ interface Props {
   onMenuClick?: () => void;
 }
 
-const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Searchâ€¦', onMenuClick }: Props) => {
+const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Search…', onMenuClick }: Props) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);

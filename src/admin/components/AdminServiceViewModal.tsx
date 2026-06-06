@@ -14,7 +14,7 @@ const Field = ({ icon: Icon, label, value }: { icon: React.ElementType; label: s
     </div>
     <div className="min-w-0">
       <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-      <p className="text-sm text-white break-all">{value || 'â€”'}</p>
+      <p className="text-sm text-white break-all">{value || '—'}</p>
     </div>
   </div>
 );
@@ -53,7 +53,7 @@ const AdminServiceViewModal = ({ service, onClose }: Props) => {
             </div>
           )}
           <div>
-            <p className="text-white font-semibold line-clamp-2">{service.title || 'â€”'}</p>
+            <p className="text-white font-semibold line-clamp-2">{service.title || '—'}</p>
             <span
               className={`mt-1.5 inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
                 service.status === 'active'

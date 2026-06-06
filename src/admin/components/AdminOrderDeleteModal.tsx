@@ -68,13 +68,13 @@ const AdminOrderDeleteModal = ({ order, onClose, onSuccess }: Props) => {
           {/* Order preview */}
           <div className="bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-700/50 mb-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-mono">{order.orderId.slice(0, 12)}â€¦</span>
+              <span className="text-xs text-slate-500 font-mono">{order.orderId.slice(0, 12)}…</span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[order.status] ?? 'bg-slate-700 text-slate-400'}`}>
-                {order.status?.replace(/_/g, ' ') || 'â€”'}
+                {order.status?.replace(/_/g, ' ') || '—'}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">{order.buyerName} â†’ {order.sellerName}</span>
+              <span className="text-slate-400">{order.buyerName} → {order.sellerName}</span>
               <span className="text-white font-semibold">${order.amount.toFixed(2)}</span>
             </div>
             {order.serviceTitle && (
@@ -108,7 +108,7 @@ const AdminOrderDeleteModal = ({ order, onClose, onSuccess }: Props) => {
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deletingâ€¦' : 'Delete Order'}
+            {deleting ? 'Deleting…' : 'Delete Order'}
           </button>
         </div>
       </div>

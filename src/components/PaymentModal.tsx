@@ -5,7 +5,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
-// Inter must be explicitly loaded into the Stripe iframe â€” it can't inherit from the parent page.
+// Inter must be explicitly loaded into the Stripe iframe — it can't inherit from the parent page.
 const stripeFonts = [
   { cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
 ];
@@ -99,7 +99,7 @@ function CheckoutForm({ offerAmount, onSuccess, onClose }: CheckoutFormProps) {
             ) : (
               <Lock className="w-3.5 h-3.5" />
             )}
-            {paying ? 'Processingâ€¦' : `Pay $${offerAmount}`}
+            {paying ? 'Processing…' : `Pay $${offerAmount}`}
           </button>
         </div>
       )}
@@ -134,7 +134,7 @@ export default function PaymentModal({
           <div>
             <h3 className="font-semibold text-white text-base">Complete payment</h3>
             <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[280px]">
-              {serviceTitle} â€” ${offerAmount}
+              {serviceTitle} — ${offerAmount}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors ml-4 shrink-0">

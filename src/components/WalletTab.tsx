@@ -119,7 +119,7 @@ export default function WalletTab() {
             value={pending}
             icon={<Clock className="w-4 h-4 text-amber-500" />}
             accent="amber"
-            tooltip="Held in escrow â€” released when buyer approves delivery"
+            tooltip="Held in escrow — released when buyer approves delivery"
           />
           <BalanceCard
             label="Lifetime"

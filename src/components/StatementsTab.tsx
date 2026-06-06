@@ -91,7 +91,7 @@ export default function StatementsTab() {
     return unsub;
   }, [user]);
 
-  // â”€â”€ Derived data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Derived data ────────────────────────────────────────────────────────────
 
   // Monthly totals for the selected year (earnings only for the bar chart)
   const monthlyEarnings = useMemo(() => {
@@ -151,7 +151,7 @@ export default function StatementsTab() {
     });
   }, [transactions, selectedYear, selectedMonth, typeFilter]);
 
-  // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -274,7 +274,7 @@ export default function StatementsTab() {
 
         {selectedMonth !== null && (
           <p className="text-xs text-slate-500 mt-3">
-            Showing {MONTH_NAMES[selectedMonth]} {selectedYear} â€”{' '}
+            Showing {MONTH_NAMES[selectedMonth]} {selectedYear} —{' '}
             <button onClick={() => setSelectedMonth(null)} className="text-blue-400 hover:text-blue-300">
               clear filter
             </button>
@@ -373,7 +373,7 @@ export default function StatementsTab() {
   );
 }
 
-// â”€â”€ Summary card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Summary card ─────────────────────────────────────────────────────────────
 
 interface SummaryCardProps {
   label: string;

@@ -47,7 +47,7 @@ interface SellerMeta {
 
 function formatPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} â€“ $${post.priceMax}`, suffix };
+  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
   return { prefix: 'From', price: `$${post.priceMin}`, suffix };
 }
 
@@ -189,7 +189,7 @@ const BuyerSearchFiltered = () => {
         {/* Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <p className="text-slate-500 text-sm">Loading servicesâ€¦</p>
+            <p className="text-slate-500 text-sm">Loading services…</p>
           </div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -315,7 +315,7 @@ const BuyerSearchFiltered = () => {
           <button className="hover:text-white transition-colors">Terms &amp; Conditions</button>
           <button className="hover:text-white transition-colors">Privacy Policy</button>
         </div>
-        <p className="text-xs text-slate-500">Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p className="text-xs text-slate-500">© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

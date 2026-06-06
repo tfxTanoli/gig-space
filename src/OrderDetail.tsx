@@ -39,7 +39,7 @@ export interface Order {
   createdAt: number;
   deliveryMessage?: string;
   deliveryFiles?: DeliveryFile[];
-  // Stripe escrow fields (optional â€” absent on legacy orders)
+  // Stripe escrow fields (optional — absent on legacy orders)
   paymentId?: string;
   paymentStatus?: 'pending' | 'paid' | 'released' | 'refunded' | 'failed';
   conversationId?: string;
@@ -153,7 +153,7 @@ export default function OrderDetail({
   /* toast */
   const [toast, setToast] = useState<string | null>(null);
 
-  /* â”€â”€ Order messages listener â”€â”€ */
+  /* ── Order messages listener ── */
   useEffect(() => {
     isFirstLoad.current = true;
     const unsub = onValue(ref(database, `orderMessages/${order.id}`), (snap) => {
@@ -172,7 +172,7 @@ export default function OrderDetail({
     isFirstLoad.current = false;
   }, [messages]);
 
-  /* â”€â”€ Reviews listener (only for completed orders) â”€â”€ */
+  /* ── Reviews listener (only for completed orders) ── */
   useEffect(() => {
     if (order.status !== 'completed') {
       setReviewsLoaded(true);
@@ -187,7 +187,7 @@ export default function OrderDetail({
     return () => unsub();
   }, [order.id, order.status]);
 
-  /* â”€â”€ Delivery modal: body-scroll lock + Escape â”€â”€ */
+  /* ── Delivery modal: body-scroll lock + Escape ── */
   useEffect(() => {
     if (!showDeliveryModal) return;
     document.body.style.overflow = 'hidden';
@@ -202,7 +202,7 @@ export default function OrderDetail({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDeliveryModal]);
 
-  /* â”€â”€ Helpers â”€â”€ */
+  /* ── Helpers ── */
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
@@ -248,17 +248,17 @@ export default function OrderDetail({
   };
 
   // Calls the Cloud Function which atomically marks the order complete
-  // and releases escrow funds from pendingBalance â†’ availableBalance.
+  // and releases escrow funds from pendingBalance → availableBalance.
   // Falls back gracefully for legacy orders without a paymentId.
   const handleApproveDelivery = async () => {
     if (approvingDelivery) return;
     setApprovingDelivery(true);
     try {
       if (order.paymentId) {
-        // New orders â€” use the Cloud Function for atomic escrow release
+        // New orders — use the Cloud Function for atomic escrow release
         await approveDeliveryFn(order.id);
       } else {
-        // Legacy orders â€” no escrow, just update status directly
+        // Legacy orders — no escrow, just update status directly
         await update(ref(database, `orders/${order.id}`), {
           status: 'completed',
           completedAt: Date.now(),
@@ -385,7 +385,7 @@ export default function OrderDetail({
     }).catch(console.error);
   };
 
-  /* â”€â”€ Derived values â”€â”€ */
+  /* ── Derived values ── */
   const cfg = statusConfig[order.status] ?? statusConfig.pending;
   const { Icon } = cfg;
   const currentStepIdx = STEP_ORDER.indexOf(order.status);
@@ -416,7 +416,7 @@ export default function OrderDetail({
 
   return (
     <>
-      {/* â”€â”€ Success toast â”€â”€ */}
+      {/* ── Success toast ── */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl flex items-center gap-2 pointer-events-none whitespace-nowrap">
           <CheckCircle className="w-4 h-4 shrink-0" />
@@ -424,7 +424,7 @@ export default function OrderDetail({
         </div>
       )}
 
-      {/* â”€â”€ Delivery Modal â”€â”€ */}
+      {/* ── Delivery Modal ── */}
       {showDeliveryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -469,7 +469,7 @@ export default function OrderDetail({
                 <textarea
                   value={deliveryNote}
                   onChange={(e) => setDeliveryNote(e.target.value)}
-                  placeholder="Describe what you've delivered, any notes for the buyer, or next stepsâ€¦"
+                  placeholder="Describe what you've delivered, any notes for the buyer, or next steps…"
                   rows={3}
                   disabled={uploading}
                   className="w-full bg-background border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-60 leading-relaxed"
@@ -541,7 +541,7 @@ export default function OrderDetail({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-300 flex items-center gap-2">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                      Uploading filesâ€¦
+                      Uploading files…
                     </span>
                     <span className="text-blue-400 font-medium tabular-nums">{uploadProgress}%</span>
                   </div>
@@ -580,7 +580,7 @@ export default function OrderDetail({
                 {uploading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Submittingâ€¦
+                    Submitting…
                   </>
                 ) : (
                   <>
@@ -594,7 +594,7 @@ export default function OrderDetail({
         </div>
       )}
 
-      {/* â”€â”€ Review Modal â”€â”€ */}
+      {/* ── Review Modal ── */}
       <ReviewModal
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
@@ -603,7 +603,7 @@ export default function OrderDetail({
         title={mode === 'buyer' ? 'Review the seller' : 'Review the buyer'}
       />
 
-      {/* â”€â”€ Page content â”€â”€ */}
+      {/* ── Page content ── */}
       <div className="flex flex-col gap-5 min-h-0">
 
         {/* Back */}
@@ -615,7 +615,7 @@ export default function OrderDetail({
           Back to orders
         </button>
 
-        {/* â”€â”€ Order info card â”€â”€ */}
+        {/* ── Order info card ── */}
         <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden">
 
           {/* Top: image + meta */}
@@ -704,13 +704,13 @@ export default function OrderDetail({
 
             {/* Seller states */}
             {mode === 'seller' && order.status === 'delivered' && (
-              <p className="text-slate-400 text-sm italic">Waiting for buyer to accept the deliveryâ€¦</p>
+              <p className="text-slate-400 text-sm italic">Waiting for buyer to accept the delivery…</p>
             )}
             {mode === 'seller' && order.status === 'completed' && sellerWaitsForBuyerReview && (
               <div className="flex flex-wrap items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 <p className="text-emerald-400 text-sm font-medium">Order completed</p>
-                <span className="text-slate-600 text-xs">Â· Waiting for buyer's review to unlock yours</span>
+                <span className="text-slate-600 text-xs">· Waiting for buyer's review to unlock yours</span>
               </div>
             )}
             {mode === 'seller' && order.status === 'completed' && !sellerWaitsForBuyerReview && !canSellerReview && (
@@ -731,7 +731,7 @@ export default function OrderDetail({
                   {approvingDelivery ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Releasing fundsâ€¦
+                      Releasing funds…
                     </>
                   ) : (
                     <>
@@ -803,7 +803,7 @@ export default function OrderDetail({
             )}
           </div>
 
-          {/* â”€â”€ Delivery package â”€â”€ */}
+          {/* ── Delivery package ── */}
           {hasDelivery && (
             <div className="px-5 pb-5 border-t border-slate-800 pt-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -841,7 +841,7 @@ export default function OrderDetail({
             </div>
           )}
 
-          {/* â”€â”€ Reviews section â”€â”€ */}
+          {/* ── Reviews section ── */}
           {order.status === 'completed' && reviewsLoaded && (buyerReview || sellerReview) && (
             <div className="px-5 pb-5 border-t border-slate-800 pt-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -900,7 +900,7 @@ export default function OrderDetail({
           )}
         </div>
 
-        {/* â”€â”€ Payment info (only for orders with Stripe payment) â”€â”€ */}
+        {/* ── Payment info (only for orders with Stripe payment) ── */}
         {order.paymentId && (
           <PaymentInfoCard
             price={order.price}
@@ -908,7 +908,7 @@ export default function OrderDetail({
           />
         )}
 
-        {/* â”€â”€ Order chat â”€â”€ */}
+        {/* ── Order chat ── */}
         <div className="bg-surface border border-slate-800 rounded-xl flex flex-col overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-800 shrink-0">
             <h3 className="text-white text-sm font-semibold">Order chat</h3>
@@ -952,7 +952,7 @@ export default function OrderDetail({
 
           {!isCancelled && (
             <div className="border-t border-slate-800 shrink-0">
-              {/* Deliver Now banner â€” replaces inline form */}
+              {/* Deliver Now banner — replaces inline form */}
               {mode === 'seller' && (order.status === 'in_progress' || order.status === 'pending') && (
                 <div className="px-3 py-2.5 border-b border-slate-800 bg-background flex items-center justify-between gap-3">
                   <p className="text-slate-400 text-xs">Ready to submit your work?</p>
@@ -980,7 +980,7 @@ export default function OrderDetail({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
                   }}
-                  placeholder="Message about this orderâ€¦"
+                  placeholder="Message about this order…"
                   rows={1}
                   className="flex-1 bg-background border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   style={{ minHeight: '40px' }}
@@ -1001,7 +1001,7 @@ export default function OrderDetail({
   );
 }
 
-// â”€â”€ Payment info card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Payment info card ────────────────────────────────────────────────────────
 const PLATFORM_FEE_PERCENT = 5;
 
 function PaymentInfoCard({

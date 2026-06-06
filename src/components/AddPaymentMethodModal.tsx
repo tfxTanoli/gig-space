@@ -6,7 +6,7 @@ import { createSetupIntent } from '../stripe/paymentHelpers';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
-// Inter must be explicitly passed into stripe.elements() â€” the iframe can't inherit from the parent page.
+// Inter must be explicitly passed into stripe.elements() — the iframe can't inherit from the parent page.
 const STRIPE_FONTS = [
   { cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
 ];
@@ -136,7 +136,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
               className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {saving ? 'Savingâ€¦' : 'Save payment method'}
+              {saving ? 'Saving…' : 'Save payment method'}
             </button>
           </div>
         )}

@@ -106,7 +106,7 @@ export default function StripeConnectCard() {
             {connecting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Connectingâ€¦
+                Connecting…
               </>
             ) : (
               <>
@@ -142,7 +142,7 @@ export default function StripeConnectCard() {
               {connecting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Loadingâ€¦
+                  Loading…
                 </>
               ) : (
                 <>

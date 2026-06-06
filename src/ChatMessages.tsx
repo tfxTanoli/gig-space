@@ -19,7 +19,7 @@ import { startElementsCheckout, verifyPaymentIntent } from './stripe/paymentHelp
 import PaymentModal from './components/PaymentModal';
 import { sendNotification } from './notifications/notificationHelpers';
 
-/* â”€â”€ Types â”€â”€ */
+/* ── Types ── */
 
 interface Conversation {
   id: string;
@@ -131,7 +131,7 @@ export default function ChatMessages({
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const isFirstMsgLoad = useRef(true);
 
-  // â”€â”€ Real-time conversation list â”€â”€
+  // ── Real-time conversation list ──
   useEffect(() => {
     if (!user) return;
 
@@ -198,7 +198,7 @@ export default function ChatMessages({
     };
   }, [user]);
 
-  // â”€â”€ Open or create conversation when startChatWithUserId is provided â”€â”€
+  // ── Open or create conversation when startChatWithUserId is provided ──
   useEffect(() => {
     if (!startChatWithUserId || !user || !userProfile) return;
     if (startChatWithUserId === user.uid) {
@@ -241,7 +241,7 @@ export default function ChatMessages({
     open();
   }, [startChatWithUserId, user, userProfile, mode, onStartChatHandled]);
 
-  // â”€â”€ Real-time messages for selected conversation â”€â”€
+  // ── Real-time messages for selected conversation ──
   useEffect(() => {
     if (!selectedConvId || !user) {
       setMessages([]);
@@ -263,7 +263,7 @@ export default function ChatMessages({
     return () => unsub();
   }, [selectedConvId, user, mode]);
 
-  // â”€â”€ Other user real-time info (username, lastSeen) â”€â”€
+  // ── Other user real-time info (username, lastSeen) ──
   useEffect(() => {
     const conv = conversations.find((c) => c.id === selectedConvId) ?? null;
     if (!conv) { setOtherUserInfo(null); return; }
@@ -280,7 +280,7 @@ export default function ChatMessages({
     return () => unsub();
   }, [selectedConvId, conversations, mode]);
 
-  // â”€â”€ Auto-scroll â”€â”€
+  // ── Auto-scroll ──
   useEffect(() => {
     if (!messagesEndRef.current) return;
     messagesEndRef.current.scrollIntoView({ behavior: isFirstMsgLoad.current ? 'auto' : 'smooth' });
@@ -292,7 +292,7 @@ export default function ChatMessages({
     el.style.height = `${el.scrollHeight}px`;
   };
 
-  /* â”€â”€ Image helpers â”€â”€ */
+  /* ── Image helpers ── */
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -307,7 +307,7 @@ export default function ChatMessages({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  /* â”€â”€ Send regular message â”€â”€ */
+  /* ── Send regular message ── */
   const sendMessage = async () => {
     if (!user || !userProfile || !selectedConvId) return;
     if (!inputText.trim() && !imageFile) return;
@@ -359,7 +359,7 @@ export default function ChatMessages({
         [`conversations/${selectedConvId}/${otherUnreadField}`]: increment(1),
       });
 
-      // Notify the other participant (fire-and-forget â€” non-critical)
+      // Notify the other participant (fire-and-forget — non-critical)
       if (recipientId) {
         sendNotification(recipientId, {
           type: 'message',
@@ -393,7 +393,7 @@ export default function ChatMessages({
     }
   };
 
-  /* â”€â”€ Offer modal helpers â”€â”€ */
+  /* ── Offer modal helpers ── */
   const openOfferModal = () => {
     if (!user) return;
     setShowOfferModal(true);
@@ -490,7 +490,7 @@ export default function ChatMessages({
     }
   };
 
-  /* â”€â”€ Accept offer (buyer) â€” opens embedded Stripe checkout modal â”€â”€ */
+  /* ── Accept offer (buyer) — opens embedded Stripe checkout modal ── */
   const acceptOffer = async (msg: Message) => {
     if (!user || !userProfile || !selectedConvId || !msg.offer) return;
     const conv = conversations.find((c) => c.id === selectedConvId);
@@ -512,7 +512,7 @@ export default function ChatMessages({
         })
       );
     } catch {
-      // sessionStorage unavailable â€” skip seller notification
+      // sessionStorage unavailable — skip seller notification
     }
 
     setAcceptingOfferId(msg.id);
@@ -623,7 +623,7 @@ export default function ChatMessages({
 
   return (
     <>
-      {/* â”€â”€ Payment modal (buyer) â”€â”€ */}
+      {/* ── Payment modal (buyer) ── */}
       {paymentClientSecret && paymentOffer && (
         <PaymentModal
           clientSecret={paymentClientSecret}
@@ -634,7 +634,7 @@ export default function ChatMessages({
         />
       )}
 
-      {/* â”€â”€ Offer modal (seller only) â”€â”€ */}
+      {/* ── Offer modal (seller only) ── */}
       {showOfferModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeOfferModal} />
@@ -663,12 +663,12 @@ export default function ChatMessages({
               </button>
             </div>
 
-            {/* Step 1 â€” service list */}
+            {/* Step 1 — service list */}
             {offerStep === 1 && (
               <div className="flex-1 overflow-y-auto p-5">
                 {servicesLoading ? (
                   <div className="flex items-center justify-center h-48">
-                    <p className="text-slate-500 text-sm">Loading your servicesâ€¦</p>
+                    <p className="text-slate-500 text-sm">Loading your services…</p>
                   </div>
                 ) : sellerServices.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
@@ -714,7 +714,7 @@ export default function ChatMessages({
               </div>
             )}
 
-            {/* Step 2 â€” offer details */}
+            {/* Step 2 — offer details */}
             {offerStep === 2 && selectedService && (
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {/* Selected service preview */}
@@ -746,7 +746,7 @@ export default function ChatMessages({
                   <textarea
                     value={offerDescription}
                     onChange={(e) => setOfferDescription(e.target.value)}
-                    placeholder="Describe what's included in this offerâ€¦"
+                    placeholder="Describe what's included in this offer…"
                     rows={3}
                     className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-3 rounded-xl focus:outline-none focus:border-primary transition-colors placeholder-slate-600 resize-none"
                   />
@@ -788,7 +788,7 @@ export default function ChatMessages({
                   disabled={sendingOffer || !offerPrice || parseFloat(offerPrice) <= 0}
                   className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
                 >
-                  {sendingOffer ? 'Sendingâ€¦' : 'Send offer'}
+                  {sendingOffer ? 'Sending…' : 'Send offer'}
                 </button>
               </div>
             )}
@@ -796,7 +796,7 @@ export default function ChatMessages({
         </div>
       )}
 
-      {/* â”€â”€ Main chat layout â”€â”€ */}
+      {/* ── Main chat layout ── */}
       <div className="flex rounded-xl border border-slate-800 overflow-hidden flex-1 min-h-0 h-full">
         {/* Left: Conversation list */}
         <div
@@ -810,7 +810,7 @@ export default function ChatMessages({
 
           {convLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-slate-500 text-sm">Loadingâ€¦</p>
+              <p className="text-slate-500 text-sm">Loading…</p>
             </div>
           ) : conversations.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
@@ -938,13 +938,13 @@ export default function ChatMessages({
               <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-3">
                 {messages.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center">
-                    <p className="text-slate-600 text-sm">No messages yet â€” say hello!</p>
+                    <p className="text-slate-600 text-sm">No messages yet — say hello!</p>
                   </div>
                 ) : (
                   messages.map((msg) => {
                     const isMe = msg.senderId === user?.uid;
 
-                    /* â”€â”€ Offer card â”€â”€ */
+                    /* ── Offer card ── */
                     if (msg.type === 'offer' && msg.offer) {
                       const isAccepted = msg.offerStatus === 'accepted';
                       return (
@@ -1023,7 +1023,7 @@ export default function ChatMessages({
                                     {acceptingOfferId === msg.id ? (
                                       <>
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        Loading paymentâ€¦
+                                        Loading payment…
                                       </>
                                     ) : (
                                       `Accept & Pay $${msg.offer.price}`
@@ -1032,7 +1032,7 @@ export default function ChatMessages({
                                 ) : (
                                   <p className="text-slate-500 text-xs mt-3 italic">
                                     {isMe
-                                      ? 'Waiting for buyer to respondâ€¦'
+                                      ? 'Waiting for buyer to respond…'
                                       : 'Offer from buyer'}
                                   </p>
                                 )}
@@ -1044,7 +1044,7 @@ export default function ChatMessages({
                       );
                     }
 
-                    /* â”€â”€ Service inquiry message â”€â”€ */
+                    /* ── Service inquiry message ── */
                     if (msg.type === 'service_inquiry' && msg.serviceContext) {
                       return (
                         <div
@@ -1108,7 +1108,7 @@ export default function ChatMessages({
                       );
                     }
 
-                    /* â”€â”€ Regular message â”€â”€ */
+                    /* ── Regular message ── */
                     return (
                       <div
                         key={msg.id}
@@ -1229,7 +1229,7 @@ export default function ChatMessages({
                   <ImagePlus className="w-5 h-5" />
                 </button>
 
-                {/* Create Offer button â€” seller only, when a conversation is open */}
+                {/* Create Offer button — seller only, when a conversation is open */}
                 {mode === 'seller' && (
                   <button
                     type="button"
@@ -1246,7 +1246,7 @@ export default function ChatMessages({
                   value={inputText}
                   onChange={(e) => { setInputText(e.target.value); autoResizeInput(e.target); }}
                   onKeyDown={handleKeyDown}
-                  placeholder={imageFile ? 'Add a captionâ€¦' : 'Type a messageâ€¦'}
+                  placeholder={imageFile ? 'Add a caption…' : 'Type a message…'}
                   className="flex-1 bg-background border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   rows={1}
                   style={{ minHeight: '40px' }}

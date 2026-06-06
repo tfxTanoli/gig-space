@@ -115,7 +115,7 @@ export default function AdminAffiliateEditModal({ affiliate, onClose, onSuccess 
             disabled={saving}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
           >
-            {saving ? 'Savingâ€¦' : 'Save Changes'}
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>

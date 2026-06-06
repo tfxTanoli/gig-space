@@ -19,7 +19,7 @@ async function fanOutUserProfile(
 ) {
   const patches: Promise<void>[] = [];
 
-  // â”€â”€ Services (sellerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Services (sellerId index exists) ─────────────────────────────────────
   const svcQ = query(dbRef(database, 'services'), orderByChild('sellerId'), equalTo(uid));
   const svcSnap = await get(svcQ);
   svcSnap.forEach((child) => {
@@ -32,7 +32,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // â”€â”€ Orders as buyer (buyerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Orders as buyer (buyerId index exists) ────────────────────────────────
   const buyerOrdersQ = query(dbRef(database, 'orders'), orderByChild('buyerId'), equalTo(uid));
   const buyerSnap = await get(buyerOrdersQ);
   buyerSnap.forEach((child) => {
@@ -44,7 +44,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // â”€â”€ Orders as seller (sellerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Orders as seller (sellerId index exists) ──────────────────────────────
   const sellerOrdersQ = query(dbRef(database, 'orders'), orderByChild('sellerId'), equalTo(uid));
   const sellerOrdersSnap = await get(sellerOrdersQ);
   sellerOrdersSnap.forEach((child) => {
@@ -56,7 +56,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // â”€â”€ Conversations as buyer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Conversations as buyer ────────────────────────────────────────────────
   const buyerConvsQ = query(dbRef(database, 'conversations'), orderByChild('buyerId'), equalTo(uid));
   const buyerConvsSnap = await get(buyerConvsQ);
   buyerConvsSnap.forEach((child) => {
@@ -68,7 +68,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // â”€â”€ Conversations as seller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Conversations as seller ───────────────────────────────────────────────
   const sellerConvsQ = query(dbRef(database, 'conversations'), orderByChild('sellerId'), equalTo(uid));
   const sellerConvsSnap = await get(sellerConvsQ);
   sellerConvsSnap.forEach((child) => {
@@ -258,7 +258,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
             disabled={saving}
             className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {saving ? 'Savingâ€¦' : 'Save Changes'}
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>

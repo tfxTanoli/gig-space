@@ -323,7 +323,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
         throw new Error(errMsg);
       }
 
-      // Auth user is now deleted on the server â€” sign out locally and go home
+      // Auth user is now deleted on the server — sign out locally and go home
       await logout();
       navigate('/');
     } catch (err: unknown) {
@@ -364,7 +364,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
         ))}
       </div>
 
-      {/* â”€â”€ Profile â”€â”€ */}
+      {/* ── Profile ── */}
       {section === 'profile' && (
         <div className="bg-surface border border-slate-800 rounded-xl p-6 space-y-5">
           {/* Avatar row */}
@@ -390,7 +390,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
             <div>
               <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <Camera className="w-4 h-4" />
-                {photoUploading ? 'Uploadingâ€¦' : (mode === 'seller' ? 'Change logo' : 'Change photo')}
+                {photoUploading ? 'Uploading…' : (mode === 'seller' ? 'Change logo' : 'Change photo')}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -400,11 +400,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   disabled={photoUploading}
                 />
               </label>
-              <p className="text-slate-500 text-xs mt-1.5">JPG or PNG Â· max 1 MB</p>
+              <p className="text-slate-500 text-xs mt-1.5">JPG or PNG · max 1 MB</p>
             </div>
           </div>
 
-          {/* Name â€” max-w keeps field comfortable but card fills full width */}
+          {/* Name — max-w keeps field comfortable but card fills full width */}
           <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Display name
@@ -519,12 +519,12 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
             disabled={profileSaving}
             className="bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
           >
-            {profileSaving ? 'Savingâ€¦' : 'Save changes'}
+            {profileSaving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       )}
 
-      {/* â”€â”€ Security â”€â”€ */}
+      {/* ── Security ── */}
       {section === 'security' && (
         <>
         <div className="bg-surface border border-slate-800 rounded-xl p-6 space-y-5">
@@ -537,7 +537,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
               <p className="text-slate-400 text-xs mt-0.5">
                 {isEmailProvider
                   ? 'Update your account password. Minimum 6 characters.'
-                  : 'Your account is connected via Google â€” password management is handled there.'}
+                  : 'Your account is connected via Google — password management is handled there.'}
               </p>
             </div>
           </div>
@@ -627,7 +627,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                 }
                 className="bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
               >
-                {passwordSaving ? 'Updatingâ€¦' : 'Update password'}
+                {passwordSaving ? 'Updating…' : 'Update password'}
               </button>
             </>
           ) : (
@@ -641,7 +641,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
           )}
         </div>
 
-        {/* â”€â”€ Delete Account â”€â”€ */}
+        {/* ── Delete Account ── */}
         <div className="bg-surface border border-red-900/40 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
@@ -679,10 +679,10 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                 <p className="text-red-300 text-xs leading-relaxed">
                   {mode === 'affiliate'
-                    ? 'All your data will be permanently deleted â€” including your profile and affiliate link. Any unpaid commissions will be forfeited upon deletion.'
+                    ? 'All your data will be permanently deleted — including your profile and affiliate link. Any unpaid commissions will be forfeited upon deletion.'
                     : mode === 'seller'
-                    ? 'All your data will be permanently deleted â€” profile, active posts, and wallet history. Active orders must be completed before deletion.'
-                    : 'All your data will be permanently deleted â€” profile, order history, and saved items. Active orders must be completed before deletion.'}
+                    ? 'All your data will be permanently deleted — profile, active posts, and wallet history. Active orders must be completed before deletion.'
+                    : 'All your data will be permanently deleted — profile, order history, and saved items. Active orders must be completed before deletion.'}
                 </p>
               </div>
 
@@ -737,7 +737,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
                 >
                   {deleteLoading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Deletingâ€¦</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>
                   ) : (
                     <><Trash2 className="w-4 h-4" /> Permanently delete account</>
                   )}

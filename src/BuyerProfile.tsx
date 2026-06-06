@@ -196,7 +196,7 @@ const BuyerProfile = () => {
             onClick={() => navigate('/account-type')}
             className="text-slate-400 hover:text-white text-sm transition-colors"
           >
-            â† Switch account type
+            ← Switch account type
           </button>
           <button
             onClick={handleContinue}

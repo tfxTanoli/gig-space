@@ -220,7 +220,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
               <FieldLabel>Category</FieldLabel>
               <div className="relative">
                 <Select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}>
-                  <option value="">Selectâ€¦</option>
+                  <option value="">Select…</option>
                   {categoryOptions.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
@@ -232,7 +232,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
               <FieldLabel>Subcategory</FieldLabel>
               <div className="relative">
                 <Select value={subcategory} onChange={(e) => setSubcategory(e.target.value)} disabled={!category}>
-                  <option value="">Selectâ€¦</option>
+                  <option value="">Select…</option>
                   {subcategoryOptions.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
@@ -245,13 +245,13 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
           {/* Title */}
           <div>
             <FieldLabel>Title</FieldLabel>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post titleâ€¦" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post title…" />
           </div>
 
           {/* Description */}
           <div>
             <FieldLabel>Description</FieldLabel>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the serviceâ€¦" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the service…" />
           </div>
 
           {/* Pricing */}
@@ -324,7 +324,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
           {/* Primary Location */}
           <div>
             <FieldLabel>Primary Location</FieldLabel>
-            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full addressâ€¦" />
+            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full address…" />
           </div>
 
           {/* Extra Locations */}
@@ -335,7 +335,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
                 value={locationInput}
                 onChange={(e) => setLocationInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addLocation()}
-                placeholder="Add a locationâ€¦"
+                placeholder="Add a location…"
               />
               <button
                 onClick={addLocation}
@@ -381,7 +381,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
                 value={languageInput}
                 onChange={(e) => setLanguageInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addLanguage()}
-                placeholder="e.g. English, Spanishâ€¦"
+                placeholder="e.g. English, Spanish…"
               />
               <button
                 onClick={addLanguage}
@@ -419,7 +419,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
             disabled={saving}
             className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Savingâ€¦</> : 'Save Changes'}
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save Changes'}
           </button>
         </div>
       </div>

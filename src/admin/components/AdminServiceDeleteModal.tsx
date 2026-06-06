@@ -78,8 +78,8 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-sm text-white font-medium truncate">{service.title || 'â€”'}</p>
-                <p className="text-xs text-slate-500 truncate">{service.sellerName} Â· ${service.price.toFixed(2)}</p>
+                <p className="text-sm text-white font-medium truncate">{service.title || '—'}</p>
+                <p className="text-xs text-slate-500 truncate">{service.sellerName} · ${service.price.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deletingâ€¦' : 'Delete Listing'}
+            {deleting ? 'Deleting…' : 'Delete Listing'}
           </button>
         </div>
       </div>

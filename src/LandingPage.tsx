@@ -19,7 +19,7 @@ const features = [
   {
     icon: Search,
     title: 'Instant search results.',
-    description: 'Find local or remote pros in seconds â€” no scrolling through irrelevant listings.'
+    description: 'Find local or remote pros in seconds — no scrolling through irrelevant listings.'
   },
   {
     icon: MessageSquare,
@@ -44,7 +44,7 @@ const features = [
   {
     icon: Percent,
     title: '0% buyer fees.',
-    description: 'Skip the added fees other platforms sneak in â€” your budget should go to the work, not the platform.'
+    description: 'Skip the added fees other platforms sneak in — your budget should go to the work, not the platform.'
   }
 ];
 
@@ -195,7 +195,7 @@ const LandingPage = () => {
             Hire the right pro for any project
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl">
-            Find trusted professionals for any project â€” home repairs, digital tasks, and everything in between.
+            Find trusted professionals for any project — home repairs, digital tasks, and everything in between.
           </p>
         </div>
 
@@ -241,7 +241,7 @@ const LandingPage = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

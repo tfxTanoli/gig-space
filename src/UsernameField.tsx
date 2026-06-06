@@ -5,7 +5,7 @@ import type { UsernameStatus } from './useUsernameAvailability';
 interface UsernameFieldProps {
   value: string;
   onChange: (value: string) => void;
-  /** Live availability status â€” usually from useUsernameAvailability(). */
+  /** Live availability status — usually from useUsernameAvailability(). */
   status: UsernameStatus;
   /** Error text shown under the field for taken/invalid states. */
   message: string;

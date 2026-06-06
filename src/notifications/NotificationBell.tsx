@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useNotifications, type AppNotification } from './useNotifications';
 
-/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Helpers ──────────────────────────────────────────────────────────────── */
 
 function relativeTime(ts: number): string {
   const diff = Date.now() - ts;
@@ -57,7 +57,7 @@ function navTabForType(type: string): string {
   }
 }
 
-/* â”€â”€ Notification item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Notification item ───────────────────────────────────────────────────── */
 
 function NotifItem({
   notif,
@@ -111,7 +111,7 @@ function NotifItem({
         <span className="absolute right-3 top-3.5 w-2 h-2 rounded-full bg-blue-500 group-hover:hidden" />
       )}
 
-      {/* Delete button â€” visible on hover */}
+      {/* Delete button — visible on hover */}
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(notif); }}
         disabled={disabled}
@@ -124,7 +124,7 @@ function NotifItem({
   );
 }
 
-/* â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Main component ──────────────────────────────────────────────────────── */
 
 interface NotificationBellProps {
   /** Switches the active tab in the parent dashboard */
@@ -222,7 +222,7 @@ export default function NotificationBell({ onNavigate, filterTypes, emptyStateTe
                   {marking ? (
                     <>
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      Markingâ€¦
+                      Marking…
                     </>
                   ) : (
                     'Mark all read'
@@ -240,7 +240,7 @@ export default function NotificationBell({ onNavigate, filterTypes, emptyStateTe
             </div>
           </div>
 
-          {/* Scrollable list â€” flex-col ensures items stack vertically, never overlap */}
+          {/* Scrollable list — flex-col ensures items stack vertically, never overlap */}
           <div
             className="overflow-y-auto max-h-[400px]"
             style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}

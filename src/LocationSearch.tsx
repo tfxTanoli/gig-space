@@ -12,7 +12,7 @@ const MAX_DISPLAY_CHARS = 22;
 
 function truncateLabel(label: string): string {
   if (label.length <= MAX_DISPLAY_CHARS) return label;
-  return label.slice(0, MAX_DISPLAY_CHARS - 1) + 'â€¦';
+  return label.slice(0, MAX_DISPLAY_CHARS - 1) + '…';
 }
 
 const LocationSearch = ({

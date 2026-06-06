@@ -85,8 +85,8 @@ const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDel
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="text-white font-medium text-sm truncate">{u.name || 'â€”'}</p>
-                          <p className="text-slate-500 text-xs truncate">{u.email || 'â€”'}</p>
+                          <p className="text-white font-medium text-sm truncate">{u.name || '—'}</p>
+                          <p className="text-slate-500 text-xs truncate">{u.email || '—'}</p>
                         </div>
                       </div>
                     </td>
@@ -111,7 +111,7 @@ const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDel
                     <td className="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
                       {u.createdAt
                         ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
-                        : 'â€”'}
+                        : '—'}
                     </td>
 
                     {/* Actions */}

@@ -201,7 +201,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
               <FieldLabel>Category</FieldLabel>
               <div className="relative">
                 <Select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}>
-                  <option value="">Selectâ€¦</option>
+                  <option value="">Select…</option>
                   {categoryOptions.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
@@ -213,7 +213,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
               <FieldLabel>Subcategory</FieldLabel>
               <div className="relative">
                 <Select value={subcategory} onChange={(e) => setSubcategory(e.target.value)} disabled={!category}>
-                  <option value="">Selectâ€¦</option>
+                  <option value="">Select…</option>
                   {subcategoryOptions.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
@@ -226,13 +226,13 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           {/* Title */}
           <div>
             <FieldLabel>Title</FieldLabel>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post titleâ€¦" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post title…" />
           </div>
 
           {/* Description */}
           <div>
             <FieldLabel>Description</FieldLabel>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the serviceâ€¦" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the service…" />
           </div>
 
           {/* Pricing */}
@@ -278,14 +278,14 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           {/* Primary Location */}
           <div>
             <FieldLabel>Primary Location</FieldLabel>
-            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full addressâ€¦" />
+            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full address…" />
           </div>
 
           {/* Extra Locations */}
           <div>
             <FieldLabel>Additional Locations</FieldLabel>
             <div className="flex gap-2 mb-2">
-              <Input value={locationInput} onChange={(e) => setLocationInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLocation()} placeholder="Add a locationâ€¦" />
+              <Input value={locationInput} onChange={(e) => setLocationInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLocation()} placeholder="Add a location…" />
               <button onClick={addLocation} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors flex-shrink-0">
                 <Plus className="w-4 h-4" />
               </button>
@@ -321,7 +321,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           <div>
             <FieldLabel>Languages</FieldLabel>
             <div className="flex gap-2 mb-2">
-              <Input value={languageInput} onChange={(e) => setLanguageInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLanguage()} placeholder="e.g. English, Spanishâ€¦" />
+              <Input value={languageInput} onChange={(e) => setLanguageInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLanguage()} placeholder="e.g. English, Spanish…" />
               <button onClick={addLanguage} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors flex-shrink-0">
                 <Plus className="w-4 h-4" />
               </button>
@@ -345,7 +345,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Creatingâ€¦</> : 'Create Post'}
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : 'Create Post'}
           </button>
         </div>
       </div>

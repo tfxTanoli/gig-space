@@ -90,7 +90,7 @@ const sellerNavItems = [
 
 function formatPostPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} â€“ $${post.priceMax}`, suffix };
+  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
   return { prefix: 'From', price: `$${post.priceMin}`, suffix };
 }
 
@@ -181,7 +181,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           </div>
         )}
 
-        {/* Reviews row â€” fixed height keeps price aligned across all cards */}
+        {/* Reviews row — fixed height keeps price aligned across all cards */}
         <div className="mb-2 h-[26px] flex items-center">
           <span className="text-[13px] text-slate-500">No reviews</span>
         </div>
@@ -205,7 +205,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
   );
 });
 
-/* â”€â”€ Analytics Chart â”€â”€ */
+/* ── Analytics Chart ── */
 const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; clicks: number }> }) => {
   const today = new Date();
   const days = Array.from({ length: 30 }, (_, i) => {
@@ -281,7 +281,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
               </svg>
               {!hasData && (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
-                  <p className="text-xs text-slate-600 text-center">No data yet â€” views and clicks appear after buyers visit your posts</p>
+                  <p className="text-xs text-slate-600 text-center">No data yet — views and clicks appear after buyers visit your posts</p>
                 </div>
               )}
             </div>
@@ -298,7 +298,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
   );
 };
 
-/* â”€â”€ Post detail modal â”€â”€ */
+/* ── Post detail modal ── */
 interface PostModalProps {
   post: ServicePost;
   onClose: () => void;
@@ -312,7 +312,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
 
   const formatPrice = () => {
     const suffix = post.priceType === 'per_hour' ? '/hr' : '/project';
-    if (post.priceMax) return `$${post.priceMin} â€“ $${post.priceMax}${suffix}`;
+    if (post.priceMax) return `$${post.priceMin} – $${post.priceMax}${suffix}`;
     return `$${post.priceMin}${suffix}`;
   };
 
@@ -487,7 +487,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
   );
 };
 
-/* â”€â”€ Delete post confirmation modal â”€â”€ */
+/* ── Delete post confirmation modal ── */
 interface DeletePostModalProps {
   post: ServicePost;
   onClose: () => void;
@@ -573,7 +573,7 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deletingâ€¦' : 'Delete Post'}
+            {deleting ? 'Deleting…' : 'Delete Post'}
           </button>
         </div>
       </div>
@@ -716,7 +716,7 @@ const handleTabChange = useCallback((tab: string) => {
         />
       )}
 
-      {/* Sidebar â€” desktop only */}
+      {/* Sidebar — desktop only */}
       <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
           <Logo className="h-6" />
@@ -880,16 +880,16 @@ const handleTabChange = useCallback((tab: string) => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="bg-surface border border-slate-800 rounded-xl p-4">
                   <p className="text-slate-400 text-xs mb-1">Total Posts</p>
-                  <p className="text-2xl font-bold text-white">{postsLoading ? 'â€”' : posts.length}</p>
+                  <p className="text-2xl font-bold text-white">{postsLoading ? '—' : posts.length}</p>
                 </div>
                 <div className="bg-surface border border-slate-800 rounded-xl p-4">
                   <p className="text-slate-400 text-xs mb-1">Orders</p>
-                  <p className="text-2xl font-bold text-white">{orderCount === null ? 'â€”' : orderCount}</p>
+                  <p className="text-2xl font-bold text-white">{orderCount === null ? '—' : orderCount}</p>
                 </div>
                 <div className="bg-surface border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
                   <p className="text-slate-400 text-xs mb-1">Earnings</p>
                   <p className="text-2xl font-bold text-white">
-                    {lifetimeEarnings === null ? 'â€”' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
+                    {lifetimeEarnings === null ? '—' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
                   </p>
                 </div>
               </div>
@@ -913,7 +913,7 @@ const handleTabChange = useCallback((tab: string) => {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-white">Recent Posts</h3>
                     <button onClick={() => handleTabChange('Posts')} className="text-xs text-primary hover:text-blue-400 transition-colors">
-                      View all â†’
+                      View all →
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -979,7 +979,7 @@ const handleTabChange = useCallback((tab: string) => {
           {/* OTHER TABS (coming soon) */}
           {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Payouts' && activeTab !== 'Statements' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-background flex items-center justify-center min-h-[400px]">
-              <p className="text-slate-500 text-sm">{activeTab} â€” coming soon</p>
+              <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
             </div>
           )}
         </main>

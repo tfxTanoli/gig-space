@@ -14,7 +14,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
 
-/* â”€â”€â”€ Types â”€â”€â”€ */
+/* ─── Types ─── */
 
 interface ReviewItem {
   orderId: string;
@@ -70,7 +70,7 @@ const subcategoryLabels: Record<string, string> = {
   handyman: 'Handyman',
 };
 
-/* â”€â”€â”€ Sub-components â”€â”€â”€ */
+/* ─── Sub-components ─── */
 
 const FilledStars = ({ count, size = 14 }: { count: number; size?: number }) => (
   <div className="flex items-center gap-0.5">
@@ -102,7 +102,7 @@ const SocialBtn = ({ color, children }: { color: string; children: ReactNode }) 
   </button>
 );
 
-/* â”€â”€â”€ Main component â”€â”€â”€ */
+/* ─── Main component ─── */
 
 const ServiceDetail = () => {
   const [searchParams] = useSearchParams();
@@ -200,7 +200,7 @@ const ServiceDetail = () => {
     const description = post.description
       ? post.description.slice(0, 160).replace(/\s+/g, ' ').trim()
       : `${post.sellerName} offers this service on GigSpace.`;
-    const priceLabel = `$${post.priceMin}${post.priceMax ? `â€“$${post.priceMax}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
+    const priceLabel = `$${post.priceMin}${post.priceMax ? `–$${post.priceMax}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
 
     document.title = `${post.title} | GigSpace`;
 
@@ -208,12 +208,12 @@ const ServiceDetail = () => {
     setMeta('og:site_name', 'GigSpace');
     setMeta('og:url', pageUrl);
     setMeta('og:title', post.title);
-    setMeta('og:description', `${priceLabel} Â· ${description}`);
+    setMeta('og:description', `${priceLabel} · ${description}`);
     if (image) setMeta('og:image', image);
 
     setNameMeta('twitter:card', 'summary_large_image');
     setNameMeta('twitter:title', post.title);
-    setNameMeta('twitter:description', `${priceLabel} Â· ${description}`);
+    setNameMeta('twitter:description', `${priceLabel} · ${description}`);
     if (image) setNameMeta('twitter:image', image);
 
     return () => {
@@ -221,7 +221,7 @@ const ServiceDetail = () => {
     };
   }, [post]);
 
-  // Real-time reviews listener â€” primary path: serviceReviews/{serviceId}
+  // Real-time reviews listener — primary path: serviceReviews/{serviceId}
   // Fallback: scan completed orders for this service and read buyerReview entries
   useEffect(() => {
     if (!post?.id) return;
@@ -282,12 +282,12 @@ const ServiceDetail = () => {
   const formatPrice = () => {
     if (!post) return '';
     const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-    if (post.priceMax) return { from: `$${post.priceMin}`, range: `$${post.priceMin} â€“ $${post.priceMax}`, suffix };
+    if (post.priceMax) return { from: `$${post.priceMin}`, range: `$${post.priceMin} – $${post.priceMax}`, suffix };
     return { from: `$${post.priceMin}`, range: `$${post.priceMin}`, suffix };
   };
   const price = formatPrice() as { from: string; range: string; suffix: string } | '';
 
-  /* â”€â”€ Loading â”€â”€ */
+  /* ── Loading ── */
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -296,7 +296,7 @@ const ServiceDetail = () => {
     );
   }
 
-  /* â”€â”€ Not found â”€â”€ */
+  /* ── Not found ── */
   if (notFound || !post) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
@@ -309,7 +309,7 @@ const ServiceDetail = () => {
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* ── Header ── */}
       <header className="bg-background border-b border-slate-800/70 px-4 md:px-6 lg:px-12 h-16 flex items-center justify-between">
         <Logo className="h-6" />
         <div className="flex items-center gap-3 md:gap-5">
@@ -326,10 +326,10 @@ const ServiceDetail = () => {
         </div>
       </header>
 
-      {/* â”€â”€ Main two-column content â”€â”€ */}
+      {/* ── Main two-column content ── */}
       <main className="max-w-6xl mx-auto w-full px-4 md:px-6 lg:px-10 py-6 md:py-8 flex flex-col lg:grid lg:grid-cols-[1fr_380px] gap-8 md:gap-10">
 
-        {/* â•â•â• LEFT COLUMN â€” images + description (shown after CTA on mobile) â•â•â• */}
+        {/* ═══ LEFT COLUMN — images + description (shown after CTA on mobile) ═══ */}
         <div className="order-2 lg:order-1">
           {/* Main image / placeholder */}
           {images.length > 0 ? (
@@ -390,7 +390,7 @@ const ServiceDetail = () => {
           </div>
         </div>
 
-        {/* â•â•â• RIGHT COLUMN â€” price/CTA (shown first on mobile) â•â•â• */}
+        {/* ═══ RIGHT COLUMN — price/CTA (shown first on mobile) ═══ */}
         <div className="order-1 lg:order-2">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
@@ -428,7 +428,7 @@ const ServiceDetail = () => {
               <span className="text-slate-400 text-sm">From </span>
               <span className="text-white text-2xl font-bold">{price.from}</span>
               {post.priceMax && (
-                <span className="text-slate-400 text-lg font-semibold"> â€“ ${post.priceMax}</span>
+                <span className="text-slate-400 text-lg font-semibold"> – ${post.priceMax}</span>
               )}
               <span className="text-slate-400 text-sm"> {price.suffix}</span>
             </div>
@@ -490,7 +490,7 @@ const ServiceDetail = () => {
                 </div>
                 <div className="absolute top-2 left-2 flex flex-col gap-px">
                   <button className="w-6 h-6 bg-white text-gray-700 rounded-t flex items-center justify-center text-sm font-bold shadow">+</button>
-                  <button className="w-6 h-6 bg-white text-gray-700 rounded-b flex items-center justify-center text-sm font-bold shadow">âˆ’</button>
+                  <button className="w-6 h-6 bg-white text-gray-700 rounded-b flex items-center justify-center text-sm font-bold shadow">−</button>
                 </div>
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                   <div className="w-14 h-14 rounded-full border-4 border-blue-500 bg-blue-300/25 flex items-center justify-center">
@@ -547,12 +547,12 @@ const ServiceDetail = () => {
         </div>
       </main>
 
-      {/* â”€â”€ Customer Reviews â”€â”€ */}
+      {/* ── Customer Reviews ── */}
       <section className="border-t border-slate-800/60 px-4 md:px-6 lg:px-10 py-8 md:py-10 max-w-6xl mx-auto w-full">
         <h2 className="text-xl font-bold text-white mb-6">Customer Reviews</h2>
 
         {reviewsLoading ? (
-          <p className="text-slate-500 text-sm">Loading reviewsâ€¦</p>
+          <p className="text-slate-500 text-sm">Loading reviews…</p>
         ) : reviews.length === 0 ? (
           <div className="flex items-center gap-2">
             <FilledStars count={0} size={16} />
@@ -605,7 +605,7 @@ const ServiceDetail = () => {
         )}
       </section>
 
-      {/* â”€â”€ Footer â”€â”€ */}
+      {/* ── Footer ── */}
       <footer className="border-t border-slate-800 py-10 px-6 text-center text-sm text-slate-500">
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-6">
           <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
@@ -615,7 +615,7 @@ const ServiceDetail = () => {
           <Link to="#" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
           <Link to="#" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
         </div>
-        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
 
     </div>

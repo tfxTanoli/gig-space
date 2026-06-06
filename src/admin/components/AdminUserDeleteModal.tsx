@@ -86,7 +86,7 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-sm text-white font-medium truncate">{user.name || 'â€”'}</p>
+                <p className="text-sm text-white font-medium truncate">{user.name || '—'}</p>
                 <p className="text-xs text-slate-500 truncate">{user.email}</p>
               </div>
             </div>
@@ -95,7 +95,7 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
           <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2.5 border border-amber-500/20 mb-2">
             <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <span>
-              The user's Firebase Auth account is <strong>not</strong> removed by this action â€” they may still be able to sign in until the auth account is revoked from the Firebase console or a backend script using the Admin SDK.
+              The user's Firebase Auth account is <strong>not</strong> removed by this action — they may still be able to sign in until the auth account is revoked from the Firebase console or a backend script using the Admin SDK.
             </span>
           </div>
 
@@ -125,7 +125,7 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Disablingâ€¦' : 'Disable User'}
+            {deleting ? 'Disabling…' : 'Disable User'}
           </button>
         </div>
       </div>

@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { CategoriesProvider } from './CategoriesContext';
 import { ErrorBoundary } from './ErrorBoundary';
 
-// Route-based code splitting â€” each page is its own chunk
+// Route-based code splitting — each page is its own chunk
 const Signup              = lazy(() => import('./Signup'));
 const Signin              = lazy(() => import('./Signin'));
 const ResetPassword       = lazy(() => import('./ResetPassword'));

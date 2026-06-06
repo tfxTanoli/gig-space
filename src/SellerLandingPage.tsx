@@ -180,7 +180,7 @@ const SellerLandingPage = () => {
             <h2 className="text-3xl font-bold text-white mb-6">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
-                At Gigspace, our mission is to connect independent professionals with the people and businesses who need themâ€”whether it's parents on home projects, entrepreneurs, or small businesses, we empower sellers to work independently, securely, and freely. Because when local experts thrive, so do their communities.
+                At Gigspace, our mission is to connect independent professionals with the people and businesses who need them—whether it's parents on home projects, entrepreneurs, or small businesses, we empower sellers to work independently, securely, and freely. Because when local experts thrive, so do their communities.
               </p>
               <p>
                 Current platforms suffer from high fees, limited support, and a lack of local reach. Gigspace aims to fix that. We're building a marketplace that works for freelancers, completely removing platform fees locally so that professionals can focus on what they do best and buyers can get their work done with confidence.
@@ -288,7 +288,7 @@ const SellerLandingPage = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );
