@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, type ReactNode, useEffect } from 'react';
+import { lazy, Suspense, type ReactNode, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner'; // toast notifications
 import { AuthProvider, useAuth } from './AuthContext';

@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
 import { auth, database } from './firebase';

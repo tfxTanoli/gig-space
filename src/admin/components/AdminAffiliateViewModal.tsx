@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { X, Link2 } from 'lucide-react';
 import { type AdminAffiliate } from './AdminAffiliatesTable';
 

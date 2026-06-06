@@ -1,4 +1,4 @@
-﻿import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { normalizeUsername } from './username';
 import type { UsernameStatus } from './useUsernameAvailability';
 

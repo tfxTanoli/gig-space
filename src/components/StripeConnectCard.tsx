@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ExternalLink, CheckCircle, AlertCircle, Loader2, Link } from 'lucide-react';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../firebase';

@@ -1,4 +1,4 @@
-﻿import Logo from './Logo';
+import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
 
 const VerifyEmail = () => {

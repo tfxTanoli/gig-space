@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, AlertTriangle, Trash2, Tag } from 'lucide-react';
 import { ref as dbRef, get, remove } from 'firebase/database';
 import { database } from '../../firebase';

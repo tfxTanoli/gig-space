@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link2, Users, Clock, DollarSign, Copy, Check, TrendingUp } from 'lucide-react';
 import { ref as dbRef, onValue, set } from 'firebase/database';
 import { database } from '../firebase';

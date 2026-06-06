@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';

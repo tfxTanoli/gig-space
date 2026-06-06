@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import Logo from './Logo';
 

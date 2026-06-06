@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { X, Mail, User, Calendar, Hash, Shield, Briefcase } from 'lucide-react';
 import { type AdminUser } from './AdminUsersTable';
 

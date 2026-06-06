@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, X, Loader2, CheckCircle } from 'lucide-react';
 
 interface ReviewModalProps {

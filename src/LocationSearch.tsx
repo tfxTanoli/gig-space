@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, Search, Loader2, MapPin } from 'lucide-react';
 import { searchLocations, type LocationResult } from './photon';
 

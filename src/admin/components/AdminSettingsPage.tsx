@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Globe, DollarSign, UserPlus, Save,
   CheckCircle2, AlertTriangle, Loader2,

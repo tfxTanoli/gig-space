@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { ref as dbRef, get, update, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../../firebase';

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { ref as dbRef, update } from 'firebase/database';
 import { database } from '../../firebase';

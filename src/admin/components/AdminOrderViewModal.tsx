@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { X, Package } from 'lucide-react';
 import { type AdminOrder } from './AdminOrdersTable';
 

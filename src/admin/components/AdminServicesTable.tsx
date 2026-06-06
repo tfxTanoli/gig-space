@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, Pencil, Plus } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 

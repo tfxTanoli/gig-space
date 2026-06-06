@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircle2, Menu, X } from 'lucide-react';
 import Logo from './Logo';
 import { Link } from 'react-router-dom';

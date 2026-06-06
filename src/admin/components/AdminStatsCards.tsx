@@ -1,4 +1,4 @@
-﻿import type { ComponentType } from 'react';
+import type { ComponentType } from 'react';
 import { ShoppingCart, DollarSign, TrendingUp, Users, Store, CreditCard } from 'lucide-react';
 
 const PostsIcon = ({ className }: { className?: string }) => (

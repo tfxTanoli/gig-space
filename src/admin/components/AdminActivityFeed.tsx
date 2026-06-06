@@ -1,4 +1,4 @@
-﻿import type { AdminUser } from './AdminUsersTable';
+import type { AdminUser } from './AdminUsersTable';
 import type { AdminService } from './AdminServicesTable';
 import type { AdminOrder } from './AdminOrdersTable';
 

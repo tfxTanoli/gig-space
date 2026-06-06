@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DollarSign, Clock, ArrowDownLeft, ArrowUpRight, X, Loader2,
   FileText, BanknoteArrowDown, ExternalLink, AlertCircle, CheckCircle,

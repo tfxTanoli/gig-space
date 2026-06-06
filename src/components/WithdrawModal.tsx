@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { X, DollarSign, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { requestWithdrawal } from '../stripe/paymentHelpers';
 

@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { X, Tag, User, DollarSign, Calendar, Hash, FileText, Layers } from 'lucide-react';
 import { type AdminService } from './AdminServicesTable';
 
