@@ -618,8 +618,12 @@ export default function ChatMessages({
   const handleDeleteConversation = async () => {
     if (!user || !selectedConvId) return;
     if (!window.confirm('Remove this conversation from your inbox?')) return;
-    await remove(ref(database, `userConversations/${user.uid}/${selectedConvId}`));
+    const convIdToDelete = selectedConvId;
+    // Optimistic update: wipe both sides of the UI instantly
     setSelectedConvId(null);
+    setConversations(prev => prev.filter(c => c.id !== convIdToDelete));
+    // Persist to Firebase in the background
+    remove(ref(database, `userConversations/${user.uid}/${convIdToDelete}`)).catch(console.error);
   };
 
   return (
