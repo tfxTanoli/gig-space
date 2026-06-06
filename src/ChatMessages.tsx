@@ -885,7 +885,7 @@ export default function ChatMessages({
           ) : (
             <>
               {/* Chat header */}
-              <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800 bg-[#111827] shrink-0 min-h-[56px]">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-800 bg-[#111827] shrink-0 min-h-[64px]">
                 <button
                   onClick={() => setSelectedConvId(null)}
                   className="md:hidden text-slate-400 hover:text-white transition-colors mr-1 shrink-0"
@@ -909,9 +909,9 @@ export default function ChatMessages({
                           />
                         </div>
                         {/* Name, username, last seen */}
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 flex flex-col gap-1">
                           <div className="flex items-baseline gap-1.5 flex-wrap">
-                            <p className="text-sm font-semibold text-white leading-tight">
+                            <p className="text-sm font-semibold text-white">
                               {name || 'Unknown'}
                             </p>
                             {otherUserInfo?.username && (
@@ -921,7 +921,7 @@ export default function ChatMessages({
                             )}
                           </div>
                           {lastSeenText && (
-                            <p className={`text-[11px] leading-tight ${online ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            <p className={`text-[11px] ${online ? 'text-emerald-400' : 'text-slate-500'}`}>
                               {lastSeenText}
                             </p>
                           )}
@@ -955,7 +955,7 @@ export default function ChatMessages({
                       return (
                         <div
                           key={msg.id}
-                          className="flex gap-2 items-start flex-row"
+                          className="flex gap-2 items-start"
                         >
                           <div className="relative shrink-0">
                             <UserAvatar
@@ -964,10 +964,15 @@ export default function ChatMessages({
                               size="sm"
                             />
                           </div>
-                          <div className="flex flex-col gap-1 max-w-[80%] items-start">
-                            <span className="text-xs font-medium text-slate-400 px-1">
-                              {isMe ? 'Me' : (msg.senderName || 'Unknown')}
-                            </span>
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="text-xs font-medium text-slate-400">
+                                {isMe ? 'Me' : (msg.senderName || 'Unknown')}
+                              </span>
+                              <span className="text-[11px] text-slate-500 shrink-0">
+                                {formatMsgTimestamp(msg.timestamp)}
+                              </span>
+                            </div>
                             <div className="bg-[#111827] border border-slate-700 rounded-2xl overflow-hidden w-72 shadow-lg">
                               {/* Service image */}
                               {msg.offer.serviceImage && (
@@ -1039,9 +1044,6 @@ export default function ChatMessages({
                               </div>
                             </div>
 
-                            <span className="text-[11px] text-slate-500 px-1 self-end">
-                              {formatMsgTimestamp(msg.timestamp)}
-                            </span>
                           </div>
                         </div>
                       );
@@ -1052,7 +1054,7 @@ export default function ChatMessages({
                       return (
                         <div
                           key={msg.id}
-                          className="flex gap-2 items-start flex-row"
+                          className="flex gap-2 items-start"
                         >
                           <div className="relative shrink-0">
                             <UserAvatar
@@ -1061,10 +1063,15 @@ export default function ChatMessages({
                               size="sm"
                             />
                           </div>
-                          <div className="flex flex-col gap-1 max-w-[72%] items-start">
-                            <span className="text-xs font-medium text-slate-400 px-1">
-                              {isMe ? 'Me' : (msg.senderName || 'Unknown')}
-                            </span>
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="text-xs font-medium text-slate-400">
+                                {isMe ? 'Me' : (msg.senderName || 'Unknown')}
+                              </span>
+                              <span className="text-[11px] text-slate-500 shrink-0">
+                                {formatMsgTimestamp(msg.timestamp)}
+                              </span>
+                            </div>
                             {/* Service card */}
                             <div
                               className={`rounded-2xl overflow-hidden border w-64 rounded-bl-md ${
@@ -1101,9 +1108,6 @@ export default function ChatMessages({
                                 </div>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-500 px-1 self-end">
-                              {formatMsgTimestamp(msg.timestamp)}
-                            </span>
                           </div>
                         </div>
                       );
@@ -1113,7 +1117,7 @@ export default function ChatMessages({
                     return (
                       <div
                         key={msg.id}
-                        className="flex gap-2 items-start flex-row"
+                        className="flex gap-2 items-start"
                       >
                         <div className="relative shrink-0">
                           <UserAvatar
@@ -1122,10 +1126,16 @@ export default function ChatMessages({
                             size="sm"
                           />
                         </div>
-                        <div className="flex flex-col gap-1 max-w-[65%] items-start">
-                          <span className="text-xs font-medium text-slate-400 px-1">
-                            {isMe ? 'Me' : (msg.senderName || 'Unknown')}
-                          </span>
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          {/* Name + timestamp on same row */}
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-xs font-medium text-slate-400">
+                              {isMe ? 'Me' : (msg.senderName || 'Unknown')}
+                            </span>
+                            <span className="text-[11px] text-slate-500 shrink-0">
+                              {formatMsgTimestamp(msg.timestamp)}
+                            </span>
+                          </div>
                           {msg.imageURL && (
                             <a
                               href={msg.imageURL}
@@ -1142,16 +1152,13 @@ export default function ChatMessages({
                           )}
                           {msg.text && (
                             <div
-                              className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words ${
+                              className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words max-w-[80%] ${
                                 isMe ? 'bg-blue-600 text-white' : 'bg-[#1A2035] text-slate-200'
                               }`}
                             >
                               {msg.text}
                             </div>
                           )}
-                          <span className="text-[11px] text-slate-500 px-1 self-end">
-                            {formatMsgTimestamp(msg.timestamp)}
-                          </span>
                         </div>
                       </div>
                     );
