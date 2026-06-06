@@ -885,7 +885,7 @@ export default function ChatMessages({
           ) : (
             <>
               {/* Chat header */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-800 bg-[#111827] shrink-0 min-h-[64px]">
+              <div className="flex items-center gap-5 px-4 py-3 border-b border-slate-800 bg-[#111827] shrink-0 min-h-[64px]">
                 <button
                   onClick={() => setSelectedConvId(null)}
                   className="md:hidden text-slate-400 hover:text-white transition-colors mr-1 shrink-0"
