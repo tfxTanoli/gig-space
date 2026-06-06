@@ -1,11 +1,11 @@
-import { lazy, Suspense, type ReactNode, useEffect } from 'react';
+﻿import { lazy, Suspense, type ReactNode, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner'; // toast notifications
 import { AuthProvider, useAuth } from './AuthContext';
 import { CategoriesProvider } from './CategoriesContext';
 import { ErrorBoundary } from './ErrorBoundary';
 
-// Route-based code splitting — each page is its own chunk
+// Route-based code splitting â€” each page is its own chunk
 const Signup              = lazy(() => import('./Signup'));
 const Signin              = lazy(() => import('./Signin'));
 const ResetPassword       = lazy(() => import('./ResetPassword'));
@@ -34,7 +34,7 @@ const TermsAndConditions  = lazy(() => import('./TermsAndConditions'));
 const PrivacyPolicy       = lazy(() => import('./PrivacyPolicy'));
 
 const PageLoader = () => (
-  <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
+  <div className="min-h-screen bg-background flex items-center justify-center">
     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
   </div>
 );

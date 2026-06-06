@@ -1,4 +1,4 @@
-import {
+﻿import {
   useState,
   useEffect,
   useRef,
@@ -65,7 +65,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
       // Validate Payment Element fields first
       const { error: submitError } = await elements.submit();
       if (submitError) { setPayError(submitError.message ?? 'Please check your card details.'); return; }
-      // Create subscription → get PaymentIntent client secret
+      // Create subscription â†’ get PaymentIntent client secret
       const { clientSecret, subscriptionId } = await createListingSubscription({ extraLocationCount, serviceId });
       // Confirm payment
       const { error } = await stripe.confirmPayment({
@@ -127,7 +127,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
             disabled={processing || !stripe}
             className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors text-sm"
           >
-            {processing ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</> : 'Publish'}
+            {processing ? <><Loader2 className="w-4 h-4 animate-spin" />Processingâ€¦</> : 'Publish'}
           </button>
         </div>
       </div>
@@ -136,7 +136,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
 }
 
 
-// ── Main PostService component ────────────────────────────────────────────────
+// â”€â”€ Main PostService component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PostService = () => {
   const { user, userProfile } = useAuth();
   const { categoryOptions, subcategoryMap } = useCategories();
@@ -154,7 +154,7 @@ const PostService = () => {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Step 1 — Category
+  // Step 1 â€” Category
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -162,19 +162,19 @@ const PostService = () => {
   const categoryRef = useRef<HTMLDivElement>(null);
   const subcategoryRef = useRef<HTMLDivElement>(null);
 
-  // Step 2 — Title & Description (description stored as HTML)
+  // Step 2 â€” Title & Description (description stored as HTML)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [descriptionLength, setDescriptionLength] = useState(0);
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
   const descriptionRef = useRef<HTMLDivElement>(null);
 
-  // Step 3 — Pricing
+  // Step 3 â€” Pricing
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [priceType, setPriceType] = useState<'per_project' | 'per_hour'>('per_project');
 
-  // Step 4 — Media
+  // Step 4 â€” Media
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewURL, setVideoPreviewURL] = useState('');
@@ -183,7 +183,7 @@ const PostService = () => {
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const dragIndexRef = useRef<number | null>(null);
 
-  // Step 5 — Primary Location (moved from old step 7)
+  // Step 5 â€” Primary Location (moved from old step 7)
   const [primaryLocation, setPrimaryLocation] = useState('');
   const [primaryLocationInput, setPrimaryLocationInput] = useState('');
   const [primaryLocationSuggestions, setPrimaryLocationSuggestions] = useState<LocationResult[]>([]);
@@ -193,7 +193,7 @@ const PostService = () => {
   const [offeredRemotely, setOfferedRemotely] = useState(false);
   const [primaryLocationIsCountry, setPrimaryLocationIsCountry] = useState(false);
 
-  // Step 6 — Extra Locations
+  // Step 6 â€” Extra Locations
   const [extraLocations, setExtraLocations] = useState<string[]>([]);
   const [extraLocationInput, setExtraLocationInput] = useState('');
   const [extraLocationSuggestions, setExtraLocationSuggestions] = useState<LocationResult[]>([]);
@@ -201,13 +201,13 @@ const PostService = () => {
   const [extraLocationDropdownOpen, setExtraLocationDropdownOpen] = useState(false);
   const extraLocationContainerRef = useRef<HTMLDivElement>(null);
 
-  // Step 7 — Languages (moved from old step 5)
+  // Step 7 â€” Languages (moved from old step 5)
   const [languages, setLanguages] = useState<string[]>([]);
   const [languageInput, setLanguageInput] = useState('');
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const languageContainerRef = useRef<HTMLDivElement>(null);
 
-  // ── Close dropdowns on outside click ──────────────────────────────────────
+  // â”€â”€ Close dropdowns on outside click â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) setCategoryOpen(false);
@@ -220,7 +220,7 @@ const PostService = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // ── Sync description contenteditable on step enter ─────────────────────────
+  // â”€â”€ Sync description contenteditable on step enter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (step !== 2 || !descriptionRef.current) return;
     descriptionRef.current.innerHTML = description;
@@ -228,7 +228,7 @@ const PostService = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  // ── Primary location Photon autocomplete ───────────────────────────────────
+  // â”€â”€ Primary location Photon autocomplete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const q = primaryLocationInput.trim();
     if (q.length < 2) { setPrimaryLocationSuggestions([]); setPrimaryLocationLoading(false); return; }
@@ -241,7 +241,7 @@ const PostService = () => {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [primaryLocationInput]);
 
-  // ── Extra location Photon autocomplete ─────────────────────────────────────
+  // â”€â”€ Extra location Photon autocomplete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const q = extraLocationInput.trim();
     if (q.length < 2) { setExtraLocationSuggestions([]); setExtraLocationLoading(false); return; }
@@ -254,7 +254,7 @@ const PostService = () => {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [extraLocationInput]);
 
-  // ── Load existing post (edit mode) ─────────────────────────────────────────
+  // â”€â”€ Load existing post (edit mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const id = searchParams.get('id');
     if (!id || !user) return;
@@ -304,7 +304,7 @@ const PostService = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Media handlers ─────────────────────────────────────────────────────────
+  // â”€â”€ Media handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleMediaSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const hasExistingVideo = !!(videoPreviewURL || existingVideoURL);
@@ -370,7 +370,7 @@ const PostService = () => {
     dragIndexRef.current = null;
   };
 
-  // ── Language handlers ──────────────────────────────────────────────────────
+  // â”€â”€ Language handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filteredLanguages = languageInput.trim()
     ? LANGUAGES.filter((l) => l.toLowerCase().includes(languageInput.toLowerCase()) && !languages.includes(l))
     : [];
@@ -389,7 +389,7 @@ const PostService = () => {
     if (e.key === 'Escape') setLanguageDropdownOpen(false);
   };
 
-  // ── Primary location handlers ──────────────────────────────────────────────
+  // â”€â”€ Primary location handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const addPrimaryLocation = (label: string, isCountry = false) => {
     setPrimaryLocation(label);
     setPrimaryLocationIsCountry(isCountry);
@@ -409,7 +409,7 @@ const PostService = () => {
     if (e.key === 'Escape') setPrimaryLocationDropdownOpen(false);
   };
 
-  // ── Extra location handlers ────────────────────────────────────────────────
+  // â”€â”€ Extra location handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const addExtraLocation = (label: string) => {
     if (!extraLocations.includes(label)) setExtraLocations((prev) => [...prev, label]);
     setExtraLocationInput('');
@@ -424,7 +424,7 @@ const PostService = () => {
     }
   };
 
-  // ── WYSIWYG helpers ────────────────────────────────────────────────────────
+  // â”€â”€ WYSIWYG helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const updateFormats = () => {
     const s = new Set<string>();
     ['bold', 'italic', 'underline', 'insertUnorderedList'].forEach((cmd) => {
@@ -439,7 +439,7 @@ const PostService = () => {
     updateFormats();
   };
 
-  // ── Upload all media ───────────────────────────────────────────────────────
+  // â”€â”€ Upload all media â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const uploadAllMedia = async (): Promise<{ imageUrls: string[]; videoUrl: string | null }> => {
     const imageUrls: string[] = [];
     for (const item of mediaItems) {
@@ -460,7 +460,7 @@ const PostService = () => {
     return { imageUrls, videoUrl };
   };
 
-  // ── Validation ─────────────────────────────────────────────────────────────
+  // â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const validate = (): boolean => {
     setStepError('');
     if (step === 1 && !category) { setStepError('Please select a category.'); return false; }
@@ -488,7 +488,7 @@ const PostService = () => {
     return true;
   };
 
-  // ── Build payload ──────────────────────────────────────────────────────────
+  // â”€â”€ Build payload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buildPayload = async (status: 'draft' | 'active', subscriptionId?: string) => {
     let currentDescription = description;
     if (descriptionRef.current) {
@@ -537,7 +537,7 @@ const PostService = () => {
     };
   };
 
-  // ── Save step (draft) ──────────────────────────────────────────────────────
+  // â”€â”€ Save step (draft) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const saveStep = async (andExit = false) => {
     if (!validate()) return;
     if (!user || !userProfile) return;
@@ -577,7 +577,7 @@ const PostService = () => {
     if (step > 1) setStep((s) => s - 1);
   };
 
-  // ── Publish (called from step 8 — no extra locations, or after Stripe success) ──
+  // â”€â”€ Publish (called from step 8 â€” no extra locations, or after Stripe success) â”€â”€
   const doPublish = async (subscriptionId?: string) => {
     if (!user || !userProfile) return;
     setPublishing(true);
@@ -600,10 +600,10 @@ const PostService = () => {
     }
   };
 
-  // ── Render steps ───────────────────────────────────────────────────────────
+  // â”€â”€ Render steps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderStep = () => {
     switch (step) {
-      // ── STEP 1: Category ──────────────────────────────────────────────────
+      // â”€â”€ STEP 1: Category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 1: {
         const selectedCatLabel = categoryOptions.find((o) => o.value === category)?.label;
         const selectedSubLabel = (subcategoryMap[category] ?? []).find((o) => o.value === subcategory)?.label;
@@ -675,7 +675,7 @@ const PostService = () => {
         );
       }
 
-      // ── STEP 2: Title & Description ───────────────────────────────────────
+      // â”€â”€ STEP 2: Title & Description â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 2:
         return (
           <div className="space-y-8">
@@ -743,7 +743,7 @@ const PostService = () => {
           </div>
         );
 
-      // ── STEP 3: Pricing ───────────────────────────────────────────────────
+      // â”€â”€ STEP 3: Pricing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 3:
         return (
           <div className="space-y-6">
@@ -808,7 +808,7 @@ const PostService = () => {
           </div>
         );
 
-      // ── STEP 4: Media ─────────────────────────────────────────────────────
+      // â”€â”€ STEP 4: Media â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 4: {
         const hasVideo = !!(videoPreviewURL || existingVideoURL);
         const videoSrc = videoPreviewURL || existingVideoURL;
@@ -824,26 +824,26 @@ const PostService = () => {
               </p>
               <div className="space-y-2 mb-4">
                 <div className="flex items-start gap-2 text-slate-400 text-sm">
-                  <span className="text-primary mt-0.5">•</span>
+                  <span className="text-primary mt-0.5">â€¢</span>
                   <span>Ideal aspect ratio is 4:3</span>
                 </div>
                 <div className="flex items-start gap-2 text-slate-400 text-sm">
-                  <span className="text-primary mt-0.5">•</span>
+                  <span className="text-primary mt-0.5">â€¢</span>
                   <span>Minimum 500 x 500 px</span>
                 </div>
                 <div className="flex items-start gap-2 text-slate-400 text-sm">
-                  <span className="text-primary mt-0.5">•</span>
+                  <span className="text-primary mt-0.5">â€¢</span>
                   <span>Video length less than 60 seconds</span>
                 </div>
                 <div className="flex items-start gap-2 text-slate-400 text-sm">
-                  <span className="text-primary mt-0.5">•</span>
+                  <span className="text-primary mt-0.5">â€¢</span>
                   <span>Max file size 100MB</span>
                 </div>
               </div>
 
               <input ref={mediaInputRef} type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleMediaSelect} />
 
-              {/* Upload area — shown while slots remain */}
+              {/* Upload area â€” shown while slots remain */}
               {canAdd && (
                 <div className="mb-6">
                   <button
@@ -884,7 +884,7 @@ const PostService = () => {
               {/* Media grid */}
               {(hasVideo || mediaItems.length > 0) && (
                 <div className="grid grid-cols-3 gap-3">
-                  {/* Video tile — cover position (first) when videoIsCover */}
+                  {/* Video tile â€” cover position (first) when videoIsCover */}
                   {hasVideo && videoIsCover && (
                     <div className="group relative aspect-square rounded-lg overflow-hidden bg-black col-span-1">
                       <video src={videoSrc} className="w-full h-full object-cover" muted />
@@ -911,7 +911,7 @@ const PostService = () => {
                     </div>
                   )}
 
-                  {/* Image tiles — draggable, with set-as-cover */}
+                  {/* Image tiles â€” draggable, with set-as-cover */}
                   {mediaItems.map((item, i) => {
                     const src = item.kind === 'existing' ? item.url : item.previewUrl;
                     const isCover = (!hasVideo || !videoIsCover) && i === 0;
@@ -955,7 +955,7 @@ const PostService = () => {
                     );
                   })}
 
-                  {/* Video tile — non-cover position (last) when !videoIsCover */}
+                  {/* Video tile â€” non-cover position (last) when !videoIsCover */}
                   {hasVideo && !videoIsCover && (
                     <div className="group relative aspect-square rounded-lg overflow-hidden bg-black col-span-1">
                       <video src={videoSrc} className="w-full h-full object-cover" muted />
@@ -985,7 +985,7 @@ const PostService = () => {
         );
       }
 
-      // ── STEP 5: Primary Location (was step 7) ─────────────────────────────
+      // â”€â”€ STEP 5: Primary Location (was step 7) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 5:
         return (
           <div className="space-y-8">
@@ -995,7 +995,7 @@ const PostService = () => {
                 Add your primary location. Select a country to enable the Remote service toggle.
               </p>
 
-              {/* Search input — shown when no location selected */}
+              {/* Search input â€” shown when no location selected */}
               {!primaryLocation && (
                 <div ref={primaryLocationContainerRef} className="relative mb-4">
                   <div className="relative">
@@ -1007,7 +1007,7 @@ const PostService = () => {
                       onChange={(e) => { setPrimaryLocationInput(e.target.value); setPrimaryLocationDropdownOpen(true); }}
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
-                      placeholder="Search for a city or country…"
+                      placeholder="Search for a city or countryâ€¦"
                       className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm text-white"
                     />
                   </div>
@@ -1029,7 +1029,7 @@ const PostService = () => {
                 </div>
               )}
 
-              {/* Selected location badge — shown below search when set */}
+              {/* Selected location badge â€” shown below search when set */}
               {primaryLocation && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/30 px-3 py-1 rounded-full text-sm">
@@ -1041,7 +1041,7 @@ const PostService = () => {
                 </div>
               )}
 
-              {/* Remote toggle — only enabled when a country is selected */}
+              {/* Remote toggle â€” only enabled when a country is selected */}
               <div className={`flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
                 <div>
                   <p className={`text-sm font-medium ${!primaryLocationIsCountry ? 'text-slate-500' : 'text-white'}`}>Remote service</p>
@@ -1064,13 +1064,13 @@ const PostService = () => {
           </div>
         );
 
-      // ── STEP 6: Extra Locations ───────────────────────────────────────────
+      // â”€â”€ STEP 6: Extra Locations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 6:
         return (
           <div className="space-y-8">
             <div>
               <h2 className="text-white font-semibold mb-2">Extra Locations (optional)</h2>
-              <p className="text-slate-400 text-sm mb-4">Reach more buyers by adding extra locations — $5/month each.</p>
+              <p className="text-slate-400 text-sm mb-4">Reach more buyers by adding extra locations â€” $5/month each.</p>
               <div ref={extraLocationContainerRef} className="relative mb-4">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -1114,7 +1114,7 @@ const PostService = () => {
           </div>
         );
 
-      // ── STEP 7: Languages (was step 5) ────────────────────────────────────
+      // â”€â”€ STEP 7: Languages (was step 5) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 7:
         return (
           <div className="space-y-8">
@@ -1165,7 +1165,7 @@ const PostService = () => {
           </div>
         );
 
-      // ── STEP 8: Publish Post ──────────────────────────────────────────────
+      // â”€â”€ STEP 8: Publish Post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 8: {
         const hasExtraLocations = extraLocations.length > 0;
 
@@ -1208,7 +1208,7 @@ const PostService = () => {
               </div>
             </div>
 
-            {/* Payment section — only shown when extra locations were added */}
+            {/* Payment section â€” only shown when extra locations were added */}
             {hasExtraLocations && (
               <Elements
                 stripe={stripePromise}
@@ -1252,7 +1252,7 @@ const PostService = () => {
         );
       }
 
-      // ── STEP 9: Success ───────────────────────────────────────────────────
+      // â”€â”€ STEP 9: Success â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       case 9: {
         const serviceId = editId ?? draftId;
         const shareUrl = serviceId ? `${window.location.origin}/share?id=${serviceId}` : window.location.origin;
@@ -1268,8 +1268,8 @@ const PostService = () => {
         return (
           <div className="space-y-8">
             <div>
-              <div className="w-16 h-16 bg-[#0C4A26] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Check className="w-8 h-8 text-[#2EEA60]" strokeWidth={3} />
+              <div className="w-16 h-16 bg-brand-green-bg rounded-full flex items-center justify-center mx-auto mb-6">
+                <Check className="w-8 h-8 text-brand-green" strokeWidth={3} />
               </div>
               <h2 className="text-white font-semibold text-center mb-2">
                 {editId ? 'Post updated!' : 'Your post is live!'}
@@ -1277,7 +1277,7 @@ const PostService = () => {
               <p className="text-slate-400 text-sm mb-6 text-center">
                 {editId
                   ? 'Your changes have been saved. Buyers can now see the updated listing.'
-                  : 'Sellers who share their posts on social media get up to 3× more views. Share yours now!'}
+                  : 'Sellers who share their posts on social media get up to 3Ã— more views. Share yours now!'}
               </p>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
@@ -1313,10 +1313,10 @@ const PostService = () => {
 
   if (loadingEdit) {
     return (
-      <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-7 h-7 text-primary animate-spin" />
-          <p className="text-slate-500 text-sm">Loading post…</p>
+          <p className="text-slate-500 text-sm">Loading postâ€¦</p>
         </div>
       </div>
     );
@@ -1325,7 +1325,7 @@ const PostService = () => {
   const isStep8WithPayment = step === 8 && extraLocations.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col items-center">
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center mb-8">
         <Logo className="h-6" />
         <HeaderUserMenu />
@@ -1351,7 +1351,7 @@ const PostService = () => {
           </div>
         )}
 
-        {/* Footer nav — hidden on step 8 with payment (Step8PaymentSection has its own Back/Publish) and step 9 */}
+        {/* Footer nav â€” hidden on step 8 with payment (Step8PaymentSection has its own Back/Publish) and step 9 */}
         {step < 9 && !isStep8WithPayment && (
           <>
             <div className="w-full h-px bg-slate-800 my-8" />
@@ -1384,10 +1384,10 @@ const PostService = () => {
                 >
                   {step === 8 ? (
                     publishing
-                      ? (editId ? 'Saving…' : 'Publishing…')
+                      ? (editId ? 'Savingâ€¦' : 'Publishingâ€¦')
                       : (editId ? 'Save changes' : 'Publish')
                   ) : saving ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
+                    <><Loader2 className="w-4 h-4 animate-spin" />Savingâ€¦</>
                   ) : (
                     'Save and continue'
                   )}
@@ -1407,7 +1407,7 @@ const PostService = () => {
             <div className="w-full h-px bg-slate-800 my-8" />
             <div className="flex justify-end items-center">
               <button onClick={() => navigate('/seller-dashboard')} className="text-slate-400 text-sm font-medium hover:text-white transition-colors">
-                Go to dashboard →
+                Go to dashboard â†’
               </button>
             </div>
           </>

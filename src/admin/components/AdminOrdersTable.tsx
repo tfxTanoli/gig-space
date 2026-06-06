@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Eye, Pencil } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
@@ -52,7 +52,7 @@ const AdminOrdersTable = ({ orders, loading, pageSize = 100, onView, onEdit }: P
   const headers    = ['Order ID', 'Buyer', 'Seller', 'Service', 'Status', 'Amount', ...(hasActions ? ['Actions'] : [])];
 
   return (
-    <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden">
+    <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">Orders</h3>
         {!loading && <span className="text-xs text-slate-500">{orders.length.toLocaleString()} total</span>}
@@ -82,16 +82,16 @@ const AdminOrdersTable = ({ orders, loading, pageSize = 100, onView, onEdit }: P
                       <span className="break-all">{o.orderId}</span>
                     </td>
 
-                    <td className="px-5 py-3 text-white whitespace-nowrap">{o.buyerName || '—'}</td>
-                    <td className="px-5 py-3 text-slate-400 whitespace-nowrap">{o.sellerName || '—'}</td>
+                    <td className="px-5 py-3 text-white whitespace-nowrap">{o.buyerName || 'â€”'}</td>
+                    <td className="px-5 py-3 text-slate-400 whitespace-nowrap">{o.sellerName || 'â€”'}</td>
 
                     {/* Service title */}
-                    <td className="px-5 py-3 text-slate-400 max-w-[160px] truncate">{o.serviceTitle || '—'}</td>
+                    <td className="px-5 py-3 text-slate-400 max-w-[160px] truncate">{o.serviceTitle || 'â€”'}</td>
 
                     {/* Status */}
                     <td className="px-5 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[o.status] ?? 'bg-slate-700 text-slate-400'}`}>
-                        {o.status?.replace(/_/g, ' ') || '—'}
+                        {o.status?.replace(/_/g, ' ') || 'â€”'}
                       </span>
                     </td>
 

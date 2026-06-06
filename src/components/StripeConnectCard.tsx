@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ExternalLink, CheckCircle, AlertCircle, Loader2, Link } from 'lucide-react';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../firebase';
@@ -48,7 +48,7 @@ export default function StripeConnectCard() {
 
   if (loading) {
     return (
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 flex items-center justify-center min-h-[100px]">
+      <div className="bg-surface border border-slate-800 rounded-2xl p-5 flex items-center justify-center min-h-[100px]">
         <Loader2 className="w-5 h-5 text-slate-500 animate-spin" />
       </div>
     );
@@ -57,10 +57,10 @@ export default function StripeConnectCard() {
   const isFullyEnabled = status?.payoutsEnabled && status?.chargesEnabled;
 
   return (
-    <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 space-y-4">
+    <div className="bg-surface border border-slate-800 rounded-2xl p-5 space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#635bff]/10 border border-[#635bff]/20 flex items-center justify-center shrink-0">
-          <Link className="w-5 h-5 text-[#635bff]" />
+        <div className="w-10 h-10 rounded-xl bg-stripe/10 border border-stripe/20 flex items-center justify-center shrink-0">
+          <Link className="w-5 h-5 text-stripe" />
         </div>
         <div>
           <h3 className="text-white font-semibold text-sm">Stripe Payout Account</h3>
@@ -101,12 +101,12 @@ export default function StripeConnectCard() {
           <button
             onClick={handleConnect}
             disabled={connecting}
-            className="flex items-center justify-center gap-2 w-auto bg-[#635bff] hover:bg-[#5147e6] disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+            className="flex items-center justify-center gap-2 w-auto bg-stripe hover:bg-stripe-hover disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
           >
             {connecting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Connecting…
+                Connectingâ€¦
               </>
             ) : (
               <>
@@ -142,7 +142,7 @@ export default function StripeConnectCard() {
               {connecting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading…
+                  Loadingâ€¦
                 </>
               ) : (
                 <>

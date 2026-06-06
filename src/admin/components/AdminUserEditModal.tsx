@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { ref as dbRef, get, update, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../../firebase';
@@ -19,7 +19,7 @@ async function fanOutUserProfile(
 ) {
   const patches: Promise<void>[] = [];
 
-  // ── Services (sellerId index exists) ─────────────────────────────────────
+  // â”€â”€ Services (sellerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const svcQ = query(dbRef(database, 'services'), orderByChild('sellerId'), equalTo(uid));
   const svcSnap = await get(svcQ);
   svcSnap.forEach((child) => {
@@ -32,7 +32,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Orders as buyer (buyerId index exists) ────────────────────────────────
+  // â”€â”€ Orders as buyer (buyerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buyerOrdersQ = query(dbRef(database, 'orders'), orderByChild('buyerId'), equalTo(uid));
   const buyerSnap = await get(buyerOrdersQ);
   buyerSnap.forEach((child) => {
@@ -44,7 +44,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Orders as seller (sellerId index exists) ──────────────────────────────
+  // â”€â”€ Orders as seller (sellerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sellerOrdersQ = query(dbRef(database, 'orders'), orderByChild('sellerId'), equalTo(uid));
   const sellerOrdersSnap = await get(sellerOrdersQ);
   sellerOrdersSnap.forEach((child) => {
@@ -56,7 +56,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Conversations as buyer ────────────────────────────────────────────────
+  // â”€â”€ Conversations as buyer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buyerConvsQ = query(dbRef(database, 'conversations'), orderByChild('buyerId'), equalTo(uid));
   const buyerConvsSnap = await get(buyerConvsQ);
   buyerConvsSnap.forEach((child) => {
@@ -68,7 +68,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Conversations as seller ───────────────────────────────────────────────
+  // â”€â”€ Conversations as seller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sellerConvsQ = query(dbRef(database, 'conversations'), orderByChild('sellerId'), equalTo(uid));
   const sellerConvsSnap = await get(sellerConvsQ);
   sellerConvsSnap.forEach((child) => {
@@ -167,7 +167,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
+      <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <div>
@@ -194,7 +194,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
+              className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
             />
           </div>
 
@@ -204,7 +204,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
+              className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
             />
           </div>
 
@@ -213,7 +213,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
             <select
               value={accountType}
               onChange={(e) => setAccountType(e.target.value)}
-              className="w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
+              className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
             >
               <option value="buyer">Buyer</option>
               <option value="seller">Seller</option>
@@ -227,7 +227,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
               value={role}
               onChange={(e) => setRole(e.target.value)}
               disabled={isSelf}
-              className="w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -258,7 +258,7 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
             disabled={saving}
             className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save Changes'}
+            {saving ? 'Savingâ€¦' : 'Save Changes'}
           </button>
         </div>
       </div>

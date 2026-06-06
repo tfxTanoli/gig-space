@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Camera, Shield, Eye, EyeOff, Loader2, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import {
@@ -323,7 +323,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
         throw new Error(errMsg);
       }
 
-      // Auth user is now deleted on the server — sign out locally and go home
+      // Auth user is now deleted on the server â€” sign out locally and go home
       await logout();
       navigate('/');
     } catch (err: unknown) {
@@ -350,7 +350,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
       </div>
 
       {/* Section switcher */}
-      <div className="flex gap-1 bg-[#111827] border border-slate-800 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-surface border border-slate-800 rounded-xl p-1 w-fit">
         {(['profile', 'security'] as Section[]).map((s) => (
           <button
             key={s}
@@ -364,9 +364,9 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
         ))}
       </div>
 
-      {/* ── Profile ── */}
+      {/* â”€â”€ Profile â”€â”€ */}
       {section === 'profile' && (
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-6 space-y-5">
+        <div className="bg-surface border border-slate-800 rounded-xl p-6 space-y-5">
           {/* Avatar row */}
           <div className="flex items-center gap-5">
             <div className="relative shrink-0">
@@ -390,7 +390,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
             <div>
               <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <Camera className="w-4 h-4" />
-                {photoUploading ? 'Uploading…' : (mode === 'seller' ? 'Change logo' : 'Change photo')}
+                {photoUploading ? 'Uploadingâ€¦' : (mode === 'seller' ? 'Change logo' : 'Change photo')}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -400,11 +400,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   disabled={photoUploading}
                 />
               </label>
-              <p className="text-slate-500 text-xs mt-1.5">JPG or PNG · max 1 MB</p>
+              <p className="text-slate-500 text-xs mt-1.5">JPG or PNG Â· max 1 MB</p>
             </div>
           </div>
 
-          {/* Name — max-w keeps field comfortable but card fills full width */}
+          {/* Name â€” max-w keeps field comfortable but card fills full width */}
           <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Display name
@@ -413,7 +413,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+              className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
               placeholder="Your name"
             />
           </div>
@@ -422,7 +422,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
           <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
             <div className="flex items-center">
-              <span className="bg-[#0E1422] border border-r-0 border-slate-700 text-slate-500 text-sm px-3 py-2.5 rounded-l-lg select-none">
+              <span className="bg-background border border-r-0 border-slate-700 text-slate-500 text-sm px-3 py-2.5 rounded-l-lg select-none">
                 @
               </span>
               <div className="relative flex-1">
@@ -430,7 +430,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(normalizeUsername(e.target.value))}
-                  className={`w-full bg-[#0E1422] border text-white text-sm px-4 py-2.5 pr-10 rounded-r-lg focus:outline-none transition-colors placeholder-slate-600 ${
+                  className={`w-full bg-background border text-white text-sm px-4 py-2.5 pr-10 rounded-r-lg focus:outline-none transition-colors placeholder-slate-600 ${
                     usernameChanged && usernameStatus === 'available'
                       ? 'border-green-500/60'
                       : usernameChanged && (usernameStatus === 'taken' || usernameStatus === 'invalid')
@@ -465,7 +465,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+                  className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                   placeholder="your@email.com"
                 />
                 {emailChanged && (
@@ -479,7 +479,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                         value={emailConfirmPassword}
                         onChange={(e) => setEmailConfirmPassword(e.target.value)}
                         autoComplete="current-password"
-                        className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+                        className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                         placeholder="Enter current password"
                       />
                       <button
@@ -502,7 +502,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="email"
                   value={userProfile?.email ?? user?.email ?? ''}
                   disabled
-                  className="w-full bg-[#0E1422] border border-slate-700 text-slate-500 text-sm px-4 py-2.5 rounded-lg cursor-not-allowed"
+                  className="w-full bg-background border border-slate-700 text-slate-500 text-sm px-4 py-2.5 rounded-lg cursor-not-allowed"
                 />
                 <p className="text-slate-600 text-xs mt-1">Email is managed by your Google account</p>
               </>
@@ -519,15 +519,15 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
             disabled={profileSaving}
             className="bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
           >
-            {profileSaving ? 'Saving…' : 'Save changes'}
+            {profileSaving ? 'Savingâ€¦' : 'Save changes'}
           </button>
         </div>
       )}
 
-      {/* ── Security ── */}
+      {/* â”€â”€ Security â”€â”€ */}
       {section === 'security' && (
         <>
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-6 space-y-5">
+        <div className="bg-surface border border-slate-800 rounded-xl p-6 space-y-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Shield className="w-4.5 h-4.5 text-primary" />
@@ -537,7 +537,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
               <p className="text-slate-400 text-xs mt-0.5">
                 {isEmailProvider
                   ? 'Update your account password. Minimum 6 characters.'
-                  : 'Your account is connected via Google — password management is handled there.'}
+                  : 'Your account is connected via Google â€” password management is handled there.'}
               </p>
             </div>
           </div>
@@ -555,7 +555,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     autoComplete="current-password"
-                    className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+                    className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                     placeholder="Enter current password"
                   />
                   <button
@@ -579,7 +579,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
-                    className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+                    className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                     placeholder="Enter new password"
                   />
                   <button
@@ -603,7 +603,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
-                    className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
+                    className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-600"
                     placeholder="Confirm new password"
                   />
                   <button
@@ -627,11 +627,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                 }
                 className="bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
               >
-                {passwordSaving ? 'Updating…' : 'Update password'}
+                {passwordSaving ? 'Updatingâ€¦' : 'Update password'}
               </button>
             </>
           ) : (
-            <div className="max-w-lg bg-[#0E1422] border border-slate-700 rounded-lg p-4">
+            <div className="max-w-lg bg-background border border-slate-700 rounded-lg p-4">
               <p className="text-slate-400 text-sm">
                 To manage your password, visit your{' '}
                 <span className="text-white font-medium">Google Account</span> settings at
@@ -641,8 +641,8 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
           )}
         </div>
 
-        {/* ── Delete Account ── */}
-        <div className="bg-[#111827] border border-red-900/40 rounded-xl p-6 space-y-4">
+        {/* â”€â”€ Delete Account â”€â”€ */}
+        <div className="bg-surface border border-red-900/40 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
               <Trash2 className="w-4 h-4 text-red-400" />
@@ -679,10 +679,10 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                 <p className="text-red-300 text-xs leading-relaxed">
                   {mode === 'affiliate'
-                    ? 'All your data will be permanently deleted — including your profile and affiliate link. Any unpaid commissions will be forfeited upon deletion.'
+                    ? 'All your data will be permanently deleted â€” including your profile and affiliate link. Any unpaid commissions will be forfeited upon deletion.'
                     : mode === 'seller'
-                    ? 'All your data will be permanently deleted — profile, active posts, and wallet history. Active orders must be completed before deletion.'
-                    : 'All your data will be permanently deleted — profile, order history, and saved items. Active orders must be completed before deletion.'}
+                    ? 'All your data will be permanently deleted â€” profile, active posts, and wallet history. Active orders must be completed before deletion.'
+                    : 'All your data will be permanently deleted â€” profile, order history, and saved items. Active orders must be completed before deletion.'}
                 </p>
               </div>
 
@@ -698,7 +698,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                       value={deletePassword}
                       onChange={(e) => setDeletePassword(e.target.value)}
                       autoComplete="current-password"
-                      className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
+                      className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 pr-11 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
                       placeholder="Enter your password"
                     />
                     <button
@@ -721,7 +721,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  className="w-full bg-[#0E1422] border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
+                  className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-2.5 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-600"
                   placeholder="DELETE"
                 />
               </div>
@@ -737,7 +737,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
                 >
                   {deleteLoading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Deletingâ€¦</>
                   ) : (
                     <><Trash2 className="w-4 h-4" /> Permanently delete account</>
                   )}

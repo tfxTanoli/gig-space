@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { X, Tag, User, DollarSign, Calendar, Hash, FileText, Layers } from 'lucide-react';
 import { type AdminService } from './AdminServicesTable';
 
@@ -14,7 +14,7 @@ const Field = ({ icon: Icon, label, value }: { icon: React.ElementType; label: s
     </div>
     <div className="min-w-0">
       <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-      <p className="text-sm text-white break-all">{value || '—'}</p>
+      <p className="text-sm text-white break-all">{value || 'â€”'}</p>
     </div>
   </div>
 );
@@ -30,7 +30,7 @@ const AdminServiceViewModal = ({ service, onClose }: Props) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
+      <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-white">Service Details</h2>
@@ -53,7 +53,7 @@ const AdminServiceViewModal = ({ service, onClose }: Props) => {
             </div>
           )}
           <div>
-            <p className="text-white font-semibold line-clamp-2">{service.title || '—'}</p>
+            <p className="text-white font-semibold line-clamp-2">{service.title || 'â€”'}</p>
             <span
               className={`mt-1.5 inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
                 service.status === 'active'

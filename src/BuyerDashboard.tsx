@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -231,7 +231,7 @@ const BuyerDashboard = () => {
   const isMessagesTab = activeTab === 'Messages';
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0E1422] flex text-white font-sans">
+    <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
 
       {/* Payment success toast */}
       {paymentSuccessToast && (
@@ -241,8 +241,8 @@ const BuyerDashboard = () => {
         </div>
       )}
 
-      {/* Sidebar — desktop only */}
-      <aside className="w-72 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
+      {/* Sidebar â€” desktop only */}
+      <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
           <Logo className="h-6" />
         </div>
@@ -302,7 +302,7 @@ const BuyerDashboard = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800 shrink-0">
+        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800 shrink-0">
           {/* Mobile: logo */}
           <span className="md:hidden mr-3">
             <Logo className="h-6" />
@@ -324,7 +324,7 @@ const BuyerDashboard = () => {
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
                   <div className="px-4 py-3 border-b border-slate-800">
                     <p className="text-white text-sm font-semibold truncate">
                       {userProfile?.name ?? 'User'}
@@ -404,7 +404,7 @@ const BuyerDashboard = () => {
                 </h2>
                 <p className="text-slate-400 text-sm mt-1">Browse services and manage your orders here.</p>
               </div>
-              <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex flex-col items-center justify-center min-h-[300px] gap-4">
+              <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
                 <p className="text-slate-500 text-sm">No orders yet.</p>
                 <Link to="/search" className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
                   Browse services
@@ -433,15 +433,15 @@ const BuyerDashboard = () => {
           {activeTab === 'Billing' && <BillingTab />}
 
           {activeTab !== 'Home' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Saved' && activeTab !== 'Billing' && (
-            <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
-              <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
+            <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-background flex items-center justify-center min-h-[400px]">
+              <p className="text-slate-500 text-sm">{activeTab} â€” coming soon</p>
             </div>
           )}
         </main>
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-[#111827] border-t border-slate-800 flex items-center z-40">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface border-t border-slate-800 flex items-center z-40">
         {buyerNavItems.map((item) => {
           const isActive = activeTab === item.name;
           const Icon = item.icon;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -90,7 +90,7 @@ const sellerNavItems = [
 
 function formatPostPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
+  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} â€“ $${post.priceMax}`, suffix };
   return { prefix: 'From', price: `$${post.priceMin}`, suffix };
 }
 
@@ -114,7 +114,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
 
   return (
     <div className="group block">
-      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-[#1A2035] relative">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative">
         <button
           onClick={() => onSelect(post)}
           className="block w-full h-full text-left"
@@ -172,7 +172,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
               )}
             </span>
             {extraCount > 0 && (
-              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max">
+              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-surface border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max">
                 {extraLocationNames.map((loc) => (
                   <p key={loc} className="text-[13px] text-slate-300 py-0.5">{loc}</p>
                 ))}
@@ -181,7 +181,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           </div>
         )}
 
-        {/* Reviews row — fixed height keeps price aligned across all cards */}
+        {/* Reviews row â€” fixed height keeps price aligned across all cards */}
         <div className="mb-2 h-[26px] flex items-center">
           <span className="text-[13px] text-slate-500">No reviews</span>
         </div>
@@ -205,7 +205,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
   );
 });
 
-/* ── Analytics Chart ── */
+/* â”€â”€ Analytics Chart â”€â”€ */
 const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; clicks: number }> }) => {
   const today = new Date();
   const days = Array.from({ length: 30 }, (_, i) => {
@@ -234,7 +234,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
     `${linePath(key)} L100,40 L0,40 Z`;
 
   return (
-    <div className="bg-[#111827] border border-slate-800 rounded-xl p-5">
+    <div className="bg-surface border border-slate-800 rounded-xl p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="text-sm font-semibold text-white">Post Analytics</h3>
@@ -281,7 +281,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
               </svg>
               {!hasData && (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
-                  <p className="text-xs text-slate-600 text-center">No data yet — views and clicks appear after buyers visit your posts</p>
+                  <p className="text-xs text-slate-600 text-center">No data yet â€” views and clicks appear after buyers visit your posts</p>
                 </div>
               )}
             </div>
@@ -298,7 +298,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
   );
 };
 
-/* ── Post detail modal ── */
+/* â”€â”€ Post detail modal â”€â”€ */
 interface PostModalProps {
   post: ServicePost;
   onClose: () => void;
@@ -312,7 +312,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
 
   const formatPrice = () => {
     const suffix = post.priceType === 'per_hour' ? '/hr' : '/project';
-    if (post.priceMax) return `$${post.priceMin} – $${post.priceMax}${suffix}`;
+    if (post.priceMax) return `$${post.priceMin} â€“ $${post.priceMax}${suffix}`;
     return `$${post.priceMin}${suffix}`;
   };
 
@@ -339,7 +339,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
 
       {/* Card */}
       <div
-        className="relative z-10 bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="relative z-10 bg-surface border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Close button */}
@@ -351,7 +351,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
         </button>
 
         {/* Image carousel */}
-        <div className="relative w-full bg-[#0E1422] rounded-t-2xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+        <div className="relative w-full bg-background rounded-t-2xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
           {images.length > 0 ? (
             <>
               <img
@@ -487,7 +487,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
   );
 };
 
-/* ── Delete post confirmation modal ── */
+/* â”€â”€ Delete post confirmation modal â”€â”€ */
 interface DeletePostModalProps {
   post: ServicePost;
   onClose: () => void;
@@ -532,7 +532,7 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
+      <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-white">Delete Post</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
@@ -573,7 +573,7 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deleting…' : 'Delete Post'}
+            {deleting ? 'Deletingâ€¦' : 'Delete Post'}
           </button>
         </div>
       </div>
@@ -700,7 +700,7 @@ const handleTabChange = useCallback((tab: string) => {
   }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0E1422] flex text-white font-sans">
+    <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
 
       {/* Post detail modal */}
       {selectedPost && (
@@ -716,8 +716,8 @@ const handleTabChange = useCallback((tab: string) => {
         />
       )}
 
-      {/* Sidebar — desktop only */}
-      <aside className="w-72 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
+      {/* Sidebar â€” desktop only */}
+      <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
           <Logo className="h-6" />
         </div>
@@ -777,7 +777,7 @@ const handleTabChange = useCallback((tab: string) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-[#0E1422] border-b border-slate-800">
+        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800">
           {/* Mobile: logo */}
           <span className="md:hidden mr-3">
             <Logo className="h-6" />
@@ -811,7 +811,7 @@ const handleTabChange = useCallback((tab: string) => {
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
                   <div className="px-4 py-3 border-b border-slate-800">
                     <p className="text-white text-sm font-semibold truncate">{userProfile?.name ?? 'User'}</p>
                     <p className="text-slate-500 text-xs truncate mt-0.5">{user?.email ?? ''}</p>
@@ -878,18 +878,18 @@ const handleTabChange = useCallback((tab: string) => {
 
               {/* Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
+                <div className="bg-surface border border-slate-800 rounded-xl p-4">
                   <p className="text-slate-400 text-xs mb-1">Total Posts</p>
-                  <p className="text-2xl font-bold text-white">{postsLoading ? '—' : posts.length}</p>
+                  <p className="text-2xl font-bold text-white">{postsLoading ? 'â€”' : posts.length}</p>
                 </div>
-                <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
+                <div className="bg-surface border border-slate-800 rounded-xl p-4">
                   <p className="text-slate-400 text-xs mb-1">Orders</p>
-                  <p className="text-2xl font-bold text-white">{orderCount === null ? '—' : orderCount}</p>
+                  <p className="text-2xl font-bold text-white">{orderCount === null ? 'â€”' : orderCount}</p>
                 </div>
-                <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
+                <div className="bg-surface border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
                   <p className="text-slate-400 text-xs mb-1">Earnings</p>
                   <p className="text-2xl font-bold text-white">
-                    {lifetimeEarnings === null ? '—' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
+                    {lifetimeEarnings === null ? 'â€”' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
                   </p>
                 </div>
               </div>
@@ -902,7 +902,7 @@ const handleTabChange = useCallback((tab: string) => {
                   <p className="text-slate-500 text-sm">Loading posts...</p>
                 </div>
               ) : posts.length === 0 ? (
-                <div className="border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex flex-col items-center justify-center min-h-[240px] gap-4">
+                <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[240px] gap-4">
                   <p className="text-slate-500 text-sm">You have no posts yet.</p>
                   <Link to="/post-service" className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
                     Create your first post
@@ -913,7 +913,7 @@ const handleTabChange = useCallback((tab: string) => {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-white">Recent Posts</h3>
                     <button onClick={() => handleTabChange('Posts')} className="text-xs text-primary hover:text-blue-400 transition-colors">
-                      View all →
+                      View all â†’
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -978,15 +978,15 @@ const handleTabChange = useCallback((tab: string) => {
 
           {/* OTHER TABS (coming soon) */}
           {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Payouts' && activeTab !== 'Statements' && (
-            <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex items-center justify-center min-h-[400px]">
-              <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
+            <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-background flex items-center justify-center min-h-[400px]">
+              <p className="text-slate-500 text-sm">{activeTab} â€” coming soon</p>
             </div>
           )}
         </main>
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-[#111827] border-t border-slate-800 flex items-center z-40">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface border-t border-slate-800 flex items-center z-40">
         {navItems.map((item) => {
           const isActive = activeTab === item.name;
           const Icon = item.icon;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
@@ -91,7 +91,7 @@ export default function StatementsTab() {
     return unsub;
   }, [user]);
 
-  // ── Derived data ────────────────────────────────────────────────────────────
+  // â”€â”€ Derived data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Monthly totals for the selected year (earnings only for the bar chart)
   const monthlyEarnings = useMemo(() => {
@@ -151,7 +151,7 @@ export default function StatementsTab() {
     });
   }, [transactions, selectedYear, selectedMonth, typeFilter]);
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -215,7 +215,7 @@ export default function StatementsTab() {
       </div>
 
       {/* Monthly bar chart */}
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
+      <div className="bg-surface border border-slate-800 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
           <p className="text-white text-sm font-semibold">Monthly Earnings</p>
           <div className="flex items-center gap-1">
@@ -274,7 +274,7 @@ export default function StatementsTab() {
 
         {selectedMonth !== null && (
           <p className="text-xs text-slate-500 mt-3">
-            Showing {MONTH_NAMES[selectedMonth]} {selectedYear} —{' '}
+            Showing {MONTH_NAMES[selectedMonth]} {selectedYear} â€”{' '}
             <button onClick={() => setSelectedMonth(null)} className="text-blue-400 hover:text-blue-300">
               clear filter
             </button>
@@ -302,7 +302,7 @@ export default function StatementsTab() {
       </div>
 
       {/* Transaction table */}
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-slate-800 rounded-2xl overflow-hidden">
         {/* Table header */}
         <div className="hidden sm:grid grid-cols-[1fr_2fr_auto_auto] gap-4 px-5 py-3 border-b border-slate-800">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Date</p>
@@ -334,7 +334,7 @@ export default function StatementsTab() {
               return (
                 <div key={tx.id} className="grid grid-cols-[auto_1fr] sm:grid-cols-[1fr_2fr_auto_auto] gap-3 sm:gap-4 items-center px-5 py-3.5 hover:bg-slate-800/30 transition-colors">
                   {/* Icon (mobile) */}
-                  <div className="sm:hidden w-8 h-8 rounded-lg bg-[#0E1422] border border-slate-800 flex items-center justify-center shrink-0">
+                  <div className="sm:hidden w-8 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0">
                     {txIcon(tx.type)}
                   </div>
 
@@ -373,7 +373,7 @@ export default function StatementsTab() {
   );
 }
 
-// ── Summary card ─────────────────────────────────────────────────────────────
+// â”€â”€ Summary card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface SummaryCardProps {
   label: string;
@@ -391,7 +391,7 @@ const accentMap: Record<string, string> = {
 
 function SummaryCard({ label, value, sub, accent, icon }: SummaryCardProps) {
   return (
-    <div className={`bg-[#111827] border rounded-xl p-4 ${accentMap[accent]}`}>
+    <div className={`bg-surface border rounded-xl p-4 ${accentMap[accent]}`}>
       <div className="flex items-center gap-1.5 mb-2">
         {icon}
         <p className="text-slate-400 text-xs font-medium truncate">{label}</p>

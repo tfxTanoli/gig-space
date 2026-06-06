@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Eye, Pencil, UserX, UserCheck, Plus } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
@@ -28,7 +28,7 @@ interface Props {
 }
 
 const fmtDate = (ts: number) =>
-  ts ? new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—';
+  ts ? new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'â€”';
 
 const fmtUSD = (n: number) =>
   `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -67,7 +67,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
   const hasActions = onView || onEdit || onDeactivate;
 
   return (
-    <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+    <div className="bg-surface border border-slate-800 rounded-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold text-white">Affiliates</h3>
@@ -87,7 +87,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[820px]">
           <thead>
-            <tr className="text-slate-500 text-xs border-b border-slate-800 bg-[#0E1422]/60">
+            <tr className="text-slate-500 text-xs border-b border-slate-800 bg-background/60">
               <th className="text-left px-5 py-3.5 font-medium">Affiliate</th>
               <th className="text-left px-5 py-3.5 font-medium">Referral Code</th>
               <th className="text-left px-5 py-3.5 font-medium">Referrals</th>
@@ -113,7 +113,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-white font-medium text-sm truncate">{a.name || '—'}</p>
+                      <p className="text-white font-medium text-sm truncate">{a.name || 'â€”'}</p>
                       <p className="text-slate-500 text-xs truncate">{a.email}</p>
                     </div>
                   </div>
@@ -123,7 +123,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                   {a.referralCode ? (
                     <span className="text-slate-300 font-mono text-xs bg-slate-800 px-2 py-1 rounded">{a.referralCode}</span>
                   ) : (
-                    <span className="text-slate-600 text-xs">—</span>
+                    <span className="text-slate-600 text-xs">â€”</span>
                   )}
                 </td>
 

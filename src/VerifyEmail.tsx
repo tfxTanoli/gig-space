@@ -1,4 +1,4 @@
-import Logo from './Logo';
+﻿import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
 
 const VerifyEmail = () => {
@@ -30,7 +30,7 @@ const VerifyEmail = () => {
                   maxLength={1}
                   value={digit}
                   readOnly
-                  className={`w-12 h-14 text-center text-xl font-semibold bg-[#1A2035] rounded-md text-white focus:outline-none transition-colors ${
+                  className={`w-12 h-14 text-center text-xl font-semibold bg-surface-raised rounded-md text-white focus:outline-none transition-colors ${
                     digit ? 'border border-primary/50 ring-1 ring-primary/20' : 'border border-slate-700/50'
                   }`}
                 />

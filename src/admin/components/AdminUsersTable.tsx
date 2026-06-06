@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Eye, Pencil, UserX, UserCheck } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
@@ -48,7 +48,7 @@ const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDel
   const visible   = nonAdmins.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
-    <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden">
+    <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">Users</h3>
         {!loading && <span className="text-xs text-slate-500">{nonAdmins.length.toLocaleString()} total</span>}
@@ -85,8 +85,8 @@ const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDel
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="text-white font-medium text-sm truncate">{u.name || '—'}</p>
-                          <p className="text-slate-500 text-xs truncate">{u.email || '—'}</p>
+                          <p className="text-white font-medium text-sm truncate">{u.name || 'â€”'}</p>
+                          <p className="text-slate-500 text-xs truncate">{u.email || 'â€”'}</p>
                         </div>
                       </div>
                     </td>
@@ -111,7 +111,7 @@ const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDel
                     <td className="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
                       {u.createdAt
                         ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
-                        : '—'}
+                        : 'â€”'}
                     </td>
 
                     {/* Actions */}

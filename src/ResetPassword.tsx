@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+﻿import { useState, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link } from 'react-router-dom';
 import { sendPasswordResetEmail } from 'firebase/auth';
@@ -64,7 +64,7 @@ const ResetPassword = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 bg-[#1A2035] border border-slate-700/50 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 bg-surface-raised border border-slate-700/50 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                 />
               </div>
 

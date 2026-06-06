@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, ChevronRight } from 'lucide-react';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
@@ -108,10 +108,10 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
 
       {loading ? (
         <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
-          <p className="text-slate-500 text-sm">Loading orders…</p>
+          <p className="text-slate-500 text-sm">Loading ordersâ€¦</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex flex-col items-center justify-center min-h-[300px] gap-4">
+        <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
           <Package className="w-10 h-10 text-slate-600" />
           <div className="text-center">
             <p className="text-slate-300 font-medium text-sm">
@@ -149,10 +149,10 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
               <button
                 key={order.id}
                 onClick={() => setSelectedOrderId(order.id)}
-                className="w-full bg-[#111827] border border-slate-800 hover:border-slate-600 rounded-xl p-5 flex flex-col sm:flex-row gap-4 transition-colors text-left group"
+                className="w-full bg-surface border border-slate-800 hover:border-slate-600 rounded-xl p-5 flex flex-col sm:flex-row gap-4 transition-colors text-left group"
               >
                 {/* Thumbnail */}
-                <div className="w-full sm:w-20 shrink-0 h-20 rounded-lg bg-[#0E1422] overflow-hidden">
+                <div className="w-full sm:w-20 shrink-0 h-20 rounded-lg bg-background overflow-hidden">
                   {order.serviceImage ? (
                     <img
                       src={order.serviceImage}

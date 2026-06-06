@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
 import { ref as dbRef, push, set } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -24,21 +24,21 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
-    className={`w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors ${props.className ?? ''}`}
+    className={`w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors ${props.className ?? ''}`}
   />
 );
 
 const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select
     {...props}
-    className={`w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors appearance-none ${props.className ?? ''}`}
+    className={`w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors appearance-none ${props.className ?? ''}`}
   />
 );
 
 const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <textarea
     {...props}
-    className={`w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors resize-none ${props.className ?? ''}`}
+    className={`w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors resize-none ${props.className ?? ''}`}
   />
 );
 
@@ -103,7 +103,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
     if (!title.trim()) { setError('Title is required.'); return; }
     if (!category)     { setError('Category is required.'); return; }
     if (isNaN(parsedMin) || parsedMin < 0) { setError('Price Min must be a valid non-negative number.'); return; }
-    if (parsedMax !== null && parsedMax < parsedMin) { setError('Price Max must be ≥ Price Min.'); return; }
+    if (parsedMax !== null && parsedMax < parsedMin) { setError('Price Max must be â‰¥ Price Min.'); return; }
 
     setError(null);
     setSaving(true);
@@ -174,7 +174,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={onClose} />
 
-      <div className="fixed right-0 top-0 h-screen w-full max-w-xl bg-[#111827] border-l border-slate-700 z-50 flex flex-col shadow-2xl">
+      <div className="fixed right-0 top-0 h-screen w-full max-w-xl bg-surface border-l border-slate-700 z-50 flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 flex-shrink-0">
           <div>
@@ -201,7 +201,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
               <FieldLabel>Category</FieldLabel>
               <div className="relative">
                 <Select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}>
-                  <option value="">Select…</option>
+                  <option value="">Selectâ€¦</option>
                   {categoryOptions.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
@@ -213,7 +213,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
               <FieldLabel>Subcategory</FieldLabel>
               <div className="relative">
                 <Select value={subcategory} onChange={(e) => setSubcategory(e.target.value)} disabled={!category}>
-                  <option value="">Select…</option>
+                  <option value="">Selectâ€¦</option>
                   {subcategoryOptions.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
@@ -226,13 +226,13 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           {/* Title */}
           <div>
             <FieldLabel>Title</FieldLabel>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post title…" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post titleâ€¦" />
           </div>
 
           {/* Description */}
           <div>
             <FieldLabel>Description</FieldLabel>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the service…" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the serviceâ€¦" />
           </div>
 
           {/* Pricing */}
@@ -278,14 +278,14 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           {/* Primary Location */}
           <div>
             <FieldLabel>Primary Location</FieldLabel>
-            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full address…" />
+            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full addressâ€¦" />
           </div>
 
           {/* Extra Locations */}
           <div>
             <FieldLabel>Additional Locations</FieldLabel>
             <div className="flex gap-2 mb-2">
-              <Input value={locationInput} onChange={(e) => setLocationInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLocation()} placeholder="Add a location…" />
+              <Input value={locationInput} onChange={(e) => setLocationInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLocation()} placeholder="Add a locationâ€¦" />
               <button onClick={addLocation} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors flex-shrink-0">
                 <Plus className="w-4 h-4" />
               </button>
@@ -321,7 +321,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           <div>
             <FieldLabel>Languages</FieldLabel>
             <div className="flex gap-2 mb-2">
-              <Input value={languageInput} onChange={(e) => setLanguageInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLanguage()} placeholder="e.g. English, Spanish…" />
+              <Input value={languageInput} onChange={(e) => setLanguageInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addLanguage()} placeholder="e.g. English, Spanishâ€¦" />
               <button onClick={addLanguage} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors flex-shrink-0">
                 <Plus className="w-4 h-4" />
               </button>
@@ -340,12 +340,12 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
         </div>
 
         {/* Sticky footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-800 bg-[#111827] flex-shrink-0">
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-800 bg-surface flex-shrink-0">
           <button onClick={onClose} disabled={saving} className="flex-1 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors disabled:opacity-50">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : 'Create Post'}
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Creatingâ€¦</> : 'Create Post'}
           </button>
         </div>
       </div>

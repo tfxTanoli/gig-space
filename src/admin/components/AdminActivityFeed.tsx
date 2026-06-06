@@ -1,4 +1,4 @@
-import type { AdminUser } from './AdminUsersTable';
+﻿import type { AdminUser } from './AdminUsersTable';
 import type { AdminService } from './AdminServicesTable';
 import type { AdminOrder } from './AdminOrdersTable';
 
@@ -40,7 +40,7 @@ const timeAgo = (ts: number) => {
 export default function AdminActivityFeed({ users, services, orders, loading }: Props) {
   if (loading) {
     return (
-      <div className="bg-[#111827] rounded-xl border border-slate-800 p-5">
+      <div className="bg-surface rounded-xl border border-slate-800 p-5">
         <div className="h-4 w-32 bg-slate-800 rounded animate-pulse mb-5" />
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex items-start gap-3 mb-4">
@@ -70,9 +70,9 @@ export default function AdminActivityFeed({ users, services, orders, loading }: 
   ].sort((a, b) => b.ts - a.ts);
 
   return (
-    <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden">
+    <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Activity — Last 24 Hours</h3>
+        <h3 className="text-sm font-semibold text-white">Activity â€” Last 24 Hours</h3>
         <span className="text-xs text-slate-500">{items.length} event{items.length !== 1 ? 's' : ''}</span>
       </div>
 
@@ -94,12 +94,12 @@ export default function AdminActivityFeed({ users, services, orders, loading }: 
                 )}
                 {item.kind === 'post' && (
                   <p className="text-sm text-white truncate">
-                    <span className="text-slate-400">{item.seller} · </span>{item.title}
+                    <span className="text-slate-400">{item.seller} Â· </span>{item.title}
                   </p>
                 )}
                 {item.kind === 'order' && (
                   <p className="text-sm text-white truncate">
-                    {item.buyer} → {item.seller}
+                    {item.buyer} â†’ {item.seller}
                     <span className="text-emerald-400 ml-1.5 font-semibold">
                       ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>

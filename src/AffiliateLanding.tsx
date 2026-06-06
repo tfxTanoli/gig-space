@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ArrowRight, UserPlus, Share2, DollarSign, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
@@ -33,10 +33,10 @@ const faqs = [
 ];
 
 const earningsCards = [
-  { label: 'Small Job', service: '$100 local repair job', commission: '+ $5 commission', emoji: '🔥' },
-  { label: 'Medium Job', service: '$1,000 home service project', commission: '+ $50 commission', emoji: '⚡' },
-  { label: 'High-Ticket Job', service: '$10,000 renovation project', commission: '+ $500 commission', emoji: '🌟' },
-  { label: 'Large Project (top-end example)', service: '$100,000 service contract', commission: '+ $5,000 commission', emoji: '💰' },
+  { label: 'Small Job', service: '$100 local repair job', commission: '+ $5 commission', emoji: 'ðŸ”¥' },
+  { label: 'Medium Job', service: '$1,000 home service project', commission: '+ $50 commission', emoji: 'âš¡' },
+  { label: 'High-Ticket Job', service: '$10,000 renovation project', commission: '+ $500 commission', emoji: 'ðŸŒŸ' },
+  { label: 'Large Project (top-end example)', service: '$100,000 service contract', commission: '+ $5,000 commission', emoji: 'ðŸ’°' },
 ];
 
 const categories = [
@@ -61,7 +61,7 @@ const AffiliateLanding = () => {
   const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
 
   return (
-    <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* Header */}
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
@@ -99,7 +99,7 @@ const AffiliateLanding = () => {
 
         {/* Mobile dropdown */}
         {menuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
             {!loading && (
               user ? (
                 <HeaderUserMenu />
@@ -169,7 +169,7 @@ const AffiliateLanding = () => {
             </div>
             <h3 className="text-white font-bold mb-3">2. Share Your Link</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              Promote Gigspace anywhere — social media, your audience, or direct outreach. Every click and referral is tracked automatically.
+              Promote Gigspace anywhere â€” social media, your audience, or direct outreach. Every click and referral is tracked automatically.
             </p>
             <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
               Get your referral link <ArrowRight className="w-4 h-4 ml-1" />
@@ -205,7 +205,7 @@ const AffiliateLanding = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {earningsCards.map((card, i) => (
-            <div key={i} className="bg-[#1A2035] rounded-xl p-6 border border-slate-700/40">
+            <div key={i} className="bg-surface-raised rounded-xl p-6 border border-slate-700/40">
               <div className="bg-primary/20 p-2.5 rounded-lg border border-primary/30 w-fit mb-5">
                 <DollarSign className="text-primary w-5 h-5" />
               </div>
@@ -236,7 +236,7 @@ const AffiliateLanding = () => {
         <div className="flex items-start gap-10 overflow-x-auto pb-2">
           {categories.map(({ name, Icon }, i) => (
             <div key={i} className="flex flex-col items-center gap-3 flex-shrink-0 cursor-pointer group">
-              <div className="w-16 h-16 rounded-full bg-[#1A2035] border border-slate-700/60 flex items-center justify-center group-hover:border-primary/50 transition-colors">
+              <div className="w-16 h-16 rounded-full bg-surface-raised border border-slate-700/60 flex items-center justify-center group-hover:border-primary/50 transition-colors">
                 <Icon className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
               </div>
               <span className="text-slate-400 text-xs text-center group-hover:text-white transition-colors whitespace-nowrap">
@@ -261,7 +261,7 @@ const AffiliateLanding = () => {
                   {faq.question}
                 </span>
                 <span className="text-slate-400 text-xl flex-shrink-0 leading-none select-none">
-                  {openFaqIndex === index ? '−' : '+'}
+                  {openFaqIndex === index ? 'âˆ’' : '+'}
                 </span>
               </button>
               <div
@@ -283,7 +283,7 @@ const AffiliateLanding = () => {
             <h2 className="text-3xl font-bold text-white mb-6">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
-                At Gigspace, our mission is to connect talented professionals with the people and businesses who need them—whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
+                At Gigspace, our mission is to connect talented professionals with the people and businesses who need themâ€”whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
               </p>
               <p>
                 By combining the flexibility of digital freelance platforms with the reach of local service marketplaces, we make hiring faster, safer, and more efficient for everyone. Our platform is built to remove unnecessary fees, streamline communication, and provide secure transactions, so professionals can focus on what they do best and buyers can get their work done with confidence.
@@ -312,7 +312,7 @@ const AffiliateLanding = () => {
       <section className="py-24 px-6 text-center border-t border-slate-800/80">
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 leading-tight">
           Join hundreds of affiliates earning big<br />
-          💰 with Gigspace
+          ðŸ’° with Gigspace
         </h2>
         <Link
           to={ctaHref}
@@ -332,7 +332,7 @@ const AffiliateLanding = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
 
     </div>

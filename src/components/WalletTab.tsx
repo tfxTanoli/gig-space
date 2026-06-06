@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
@@ -119,7 +119,7 @@ export default function WalletTab() {
             value={pending}
             icon={<Clock className="w-4 h-4 text-amber-500" />}
             accent="amber"
-            tooltip="Held in escrow — released when buyer approves delivery"
+            tooltip="Held in escrow â€” released when buyer approves delivery"
           />
           <BalanceCard
             label="Lifetime"
@@ -152,7 +152,7 @@ export default function WalletTab() {
         <StripeConnectCard />
 
         {/* Transaction history */}
-        <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+        <div className="bg-surface border border-slate-800 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-800">
             <h3 className="text-white font-semibold text-sm">Transaction history</h3>
           </div>
@@ -167,7 +167,7 @@ export default function WalletTab() {
             <div className="divide-y divide-slate-800">
               {transactions.map((tx) => (
                 <div key={tx.id} className="flex items-center gap-4 px-5 py-3.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#0E1422] border border-slate-800 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0">
                     {txIcon(tx.type)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -211,7 +211,7 @@ const accentMap: Record<string, string> = {
 function BalanceCard({ label, value, icon, accent, tooltip }: BalanceCardProps) {
   return (
     <div
-      className={`bg-[#111827] border rounded-xl p-4 ${accentMap[accent]}`}
+      className={`bg-surface border rounded-xl p-4 ${accentMap[accent]}`}
       title={tooltip}
     >
       <div className="flex items-center gap-1.5 mb-2">

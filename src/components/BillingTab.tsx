@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
@@ -85,7 +85,7 @@ export default function BillingTab() {
       const methods = await listPaymentMethods();
       setSavedMethods(methods);
     } catch {
-      // silently fail — show empty state
+      // silently fail â€” show empty state
     } finally {
       setLoadingMethods(false);
     }
@@ -132,7 +132,7 @@ export default function BillingTab() {
         setLoading(false);
       },
       (_err) => {
-        // Permission error or network issue — stop spinner and show empty state
+        // Permission error or network issue â€” stop spinner and show empty state
         setPayments([]);
         setLoading(false);
       }
@@ -160,17 +160,17 @@ export default function BillingTab() {
 
       {/* Summary card */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
+        <div className="bg-surface border border-slate-800 rounded-xl p-4">
           <p className="text-slate-400 text-xs mb-1">Total spent</p>
           <p className="text-white text-xl font-bold">${totalSpent.toFixed(2)}</p>
         </div>
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
+        <div className="bg-surface border border-slate-800 rounded-xl p-4">
           <p className="text-slate-400 text-xs mb-1">Active orders</p>
           <p className="text-blue-400 text-xl font-bold">
             {payments.filter((p) => p.status === 'paid').length}
           </p>
         </div>
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
+        <div className="bg-surface border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
           <p className="text-slate-400 text-xs mb-1">Completed</p>
           <p className="text-emerald-400 text-xl font-bold">
             {payments.filter((p) => p.status === 'released').length}
@@ -191,7 +191,7 @@ export default function BillingTab() {
       </div>
 
       {/* Saved payment methods */}
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-slate-800 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <h3 className="text-white font-semibold text-sm">Saved payment methods</h3>
           <button
@@ -219,7 +219,7 @@ export default function BillingTab() {
           <div className="divide-y divide-slate-800">
             {savedMethods.map((pm) => (
               <div key={pm.id} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="w-10 h-8 rounded-lg bg-[#0E1422] border border-slate-800 flex items-center justify-center shrink-0 overflow-hidden px-1">
+                <div className="w-10 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0 overflow-hidden px-1">
                   <CardBrandIcon brand={pm.brand} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -255,7 +255,7 @@ export default function BillingTab() {
       )}
 
       {/* Payment history */}
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-slate-800 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800">
           <h3 className="text-white font-semibold text-sm">Payment history</h3>
         </div>
@@ -270,7 +270,7 @@ export default function BillingTab() {
           <div className="divide-y divide-slate-800">
             {payments.map((payment) => (
               <div key={payment.id} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="w-8 h-8 rounded-lg bg-[#0E1422] border border-slate-800 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0">
                   {statusIcon(payment.status)}
                 </div>
                 <div className="flex-1 min-w-0">

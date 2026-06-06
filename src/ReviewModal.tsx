@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Star, X, Loader2, CheckCircle } from 'lucide-react';
 
 interface ReviewModalProps {
@@ -79,7 +79,7 @@ export default function ReviewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={handleClose} />
       <div
-        className="relative z-10 bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
+        className="relative z-10 bg-surface border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -169,10 +169,10 @@ export default function ReviewModal({
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
-                  placeholder="Share details about your experience…"
+                  placeholder="Share details about your experienceâ€¦"
                   rows={4}
                   disabled={submitting}
-                  className="w-full bg-[#0E1422] border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-50 leading-relaxed"
+                  className="w-full bg-background border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-50 leading-relaxed"
                 />
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function ReviewModal({
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Submitting…
+                  Submittingâ€¦
                 </>
               ) : (
                 'Submit review'

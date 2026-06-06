@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Home, Package,
@@ -74,11 +74,11 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const SEARCH_PLACEHOLDERS: Partial<Record<TabName, string>> = {
-  Home:       'Search users, services, orders…',
-  Users:      'Search users by name, email, username…',
-  Posts:      'Search posts by title, seller, category…',
-  Orders:     'Search orders by ID, buyer, seller…',
-  Affiliates: 'Search affiliates by name, email, code…',
+  Home:       'Search users, services, ordersâ€¦',
+  Users:      'Search users by name, email, usernameâ€¦',
+  Posts:      'Search posts by title, seller, categoryâ€¦',
+  Orders:     'Search orders by ID, buyer, sellerâ€¦',
+  Affiliates: 'Search affiliates by name, email, codeâ€¦',
 };
 
 const ComingSoon = ({ tab, subtitle }: { tab: string; subtitle: string }) => (
@@ -87,7 +87,7 @@ const ComingSoon = ({ tab, subtitle }: { tab: string; subtitle: string }) => (
       <Construction className="w-7 h-7 text-slate-500" />
     </div>
     <p className="text-white font-semibold text-base">{tab}</p>
-    <p className="text-slate-500 text-sm mt-1.5">{subtitle} — coming soon.</p>
+    <p className="text-slate-500 text-sm mt-1.5">{subtitle} â€” coming soon.</p>
   </div>
 );
 
@@ -98,7 +98,7 @@ const PageHeader = ({ title, subtitle }: { title: string; subtitle: string }) =>
   </div>
 );
 
-// ── Parsers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Parsers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const parseUsers = (raw: Record<string, Record<string, unknown>>): AdminUser[] =>
   Object.entries(raw)
     .map(([uid, u]) => ({
@@ -174,7 +174,7 @@ const AdminDashboard = () => {
   const [search,      setSearch]      = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ── Data state ───────────────────────────────────────────────────────────────
+  // â”€â”€ Data state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [users,      setUsers]      = useState<AdminUser[]      | null>(null);
   const [services,   setServices]   = useState<AdminService[]   | null>(null);
   const [orders,     setOrders]     = useState<AdminOrder[]     | null>(null);
@@ -189,7 +189,7 @@ const AdminDashboard = () => {
   const [accessDenied,  setAccessDenied]  = useState(false);
   const [fetchError,    setFetchError]    = useState<string | null>(null);
 
-  // ── Modals / Drawers ─────────────────────────────────────────────────────────
+  // â”€â”€ Modals / Drawers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [viewUser,   setViewUser]   = useState<AdminUser | null>(null);
   const [editUser,   setEditUser]   = useState<AdminUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
@@ -204,7 +204,7 @@ const AdminDashboard = () => {
   const [viewAffiliate,  setViewAffiliate]  = useState<AdminAffiliate | null>(null);
   const [editAffiliate,  setEditAffiliate]  = useState<AdminAffiliate | null>(null);
 
-  // ── Local-state updaters ──────────────────────────────────────────────────────
+  // â”€â”€ Local-state updaters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleEditSuccess   = (updated: AdminUser)   => setUsers((prev) => prev?.map((u) => u.uid === updated.uid ? updated : u) ?? null);
   const handleDeleteSuccess = (uid: string) =>
     setUsers((prev) => prev?.map((u) => u.uid === uid ? { ...u, disabled: !u.disabled } : u) ?? null);
@@ -228,7 +228,7 @@ const AdminDashboard = () => {
     } catch { /* non-fatal */ }
   };
 
-  // ── Admin role check ──────────────────────────────────────────────────────────
+  // â”€â”€ Admin role check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!user) { setAccessChecked(false); setAccessDenied(false); setUsers(null); setServices(null); setOrders(null); setAffiliates(null); return; }
     let cancelled = false;
@@ -248,7 +248,7 @@ const AdminDashboard = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // ── Lazy loaders ──────────────────────────────────────────────────────────────
+  // â”€â”€ Lazy loaders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadUsers = useCallback(async () => {
     if (users !== null || usersLoading) return;
     setUsersLoading(true);
@@ -311,7 +311,7 @@ const AdminDashboard = () => {
     finally  { setAffiliatesLoading(false); }
   }, [affiliates, affiliatesLoading]);
 
-  // ── Fetch by active tab ───────────────────────────────────────────────────────
+  // â”€â”€ Fetch by active tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!user || !accessChecked || accessDenied) return;
     switch (activeTab) {
@@ -326,10 +326,10 @@ const AdminDashboard = () => {
     }
   }, [user, accessChecked, accessDenied, activeTab, loadUsers, loadServices, loadOrders, loadAffiliates]);
 
-  // ── Reset search on tab change ────────────────────────────────────────────────
+  // â”€â”€ Reset search on tab change â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => { setSearch(''); setSidebarOpen(false); }, [activeTab]);
 
-  // ── Stats (all 8 fields) ──────────────────────────────────────────────────────
+  // â”€â”€ Stats (all 8 fields) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const stats: AdminStats | null = useMemo(() => {
     if (users === null || services === null || orders === null) return null;
     return {
@@ -346,7 +346,7 @@ const AdminDashboard = () => {
 
   const statsLoading = stats === null && (usersLoading || servicesLoading || ordersLoading || users === null);
 
-  // ── Filtered data ─────────────────────────────────────────────────────────────
+  // â”€â”€ Filtered data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const q = search.trim().toLowerCase();
 
   const filteredUsers = useMemo(() => {
@@ -384,14 +384,14 @@ const AdminDashboard = () => {
     );
   }, [affiliates, q]);
 
-  // ── Access denied ─────────────────────────────────────────────────────────────
+  // â”€â”€ Access denied â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (accessDenied) {
     return (
-      <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-3">
           <p className="text-red-400 text-lg font-semibold">Access Denied</p>
           <p className="text-slate-500 text-sm">You don't have admin privileges.</p>
-          <Link to="/" className="text-blue-400 hover:text-blue-300 text-sm inline-block transition-colors">← Go Home</Link>
+          <Link to="/" className="text-blue-400 hover:text-blue-300 text-sm inline-block transition-colors">â† Go Home</Link>
         </div>
       </div>
     );
@@ -477,7 +477,7 @@ const AdminDashboard = () => {
               onView={setViewAffiliate}
               onEdit={setEditAffiliate}
               onDeactivate={handleAffiliateDeactivate}
-              onNew={() => alert('To add an affiliate, go to Users → find the user → set their account type to Affiliate. Full invite flow coming soon.')}
+              onNew={() => alert('To add an affiliate, go to Users â†’ find the user â†’ set their account type to Affiliate. Full invite flow coming soon.')}
             />
           </>
         );
@@ -490,9 +490,9 @@ const AdminDashboard = () => {
     }
   };
 
-  // ── Shell ──────────────────────────────────────────────────────────────────────
+  // â”€â”€ Shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
-    <div className="min-h-screen bg-[#0E1422] flex text-white font-sans">
+    <div className="min-h-screen bg-background flex text-white font-sans">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -500,7 +500,7 @@ const AdminDashboard = () => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-30 w-64 bg-[#111827] flex flex-col shrink-0
+        fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface flex flex-col shrink-0
         border-r border-slate-800 min-h-screen transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
       `}>
@@ -560,7 +560,7 @@ const AdminDashboard = () => {
         <AdminTopbar
           search={search}
           onSearchChange={setSearch}
-          searchPlaceholder={SEARCH_PLACEHOLDERS[activeTab] ?? 'Search…'}
+          searchPlaceholder={SEARCH_PLACEHOLDERS[activeTab] ?? 'Searchâ€¦'}
           onMenuClick={() => setSidebarOpen(true)}
         />
 
@@ -579,7 +579,7 @@ const AdminDashboard = () => {
         </main>
       </div>
 
-      {/* ── Modals ── */}
+      {/* â”€â”€ Modals â”€â”€ */}
       {viewUser   && <AdminUserViewModal   user={viewUser}     onClose={() => setViewUser(null)} />}
       {editUser   && <AdminUserEditModal   user={editUser}     onClose={() => setEditUser(null)}   onSuccess={handleEditSuccess} />}
       {deleteUser && <AdminUserDeleteModal user={deleteUser}   onClose={() => setDeleteUser(null)} onSuccess={handleDeleteSuccess} />}

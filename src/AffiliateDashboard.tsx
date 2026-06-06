@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Home, Settings, RefreshCw, FileText, Menu, X } from 'lucide-react';
 
@@ -61,10 +61,10 @@ const AffiliateDashboard = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0E1422] flex text-white font-sans">
+    <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
 
-      {/* ── Sidebar (desktop) ─────────────────────────────────────────────── */}
-      <aside className="w-72 bg-[#111827] flex-col shrink-0 border-r border-slate-800 hidden md:flex">
+      {/* â”€â”€ Sidebar (desktop) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
 
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-slate-800/60">
@@ -114,11 +114,11 @@ const AffiliateDashboard = () => {
         </div>
       </aside>
 
-      {/* ── Main area ─────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Main area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
-        <header className="h-16 flex items-center justify-between px-6 bg-[#0E1422] border-b border-slate-800 shrink-0">
+        <header className="h-16 flex items-center justify-between px-6 bg-background border-b border-slate-800 shrink-0">
           <button
             className="md:hidden text-slate-400 hover:text-white mr-3"
             onClick={() => setMobileOpen(v => !v)}
@@ -149,7 +149,7 @@ const AffiliateDashboard = () => {
 
         {/* Mobile nav drawer */}
         {mobileOpen && (
-          <div className="md:hidden bg-[#111827] border-b border-slate-800 px-4 py-3 space-y-1 shrink-0">
+          <div className="md:hidden bg-surface border-b border-slate-800 px-4 py-3 space-y-1 shrink-0">
             {TABS.map(({ name, Icon }) => (
               <button
                 key={name}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
 import { ref as dbRef, get, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -31,21 +31,21 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
-    className={`w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors ${props.className ?? ''}`}
+    className={`w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors ${props.className ?? ''}`}
   />
 );
 
 const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select
     {...props}
-    className={`w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors appearance-none ${props.className ?? ''}`}
+    className={`w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors appearance-none ${props.className ?? ''}`}
   />
 );
 
 const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <textarea
     {...props}
-    className={`w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors resize-none ${props.className ?? ''}`}
+    className={`w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors resize-none ${props.className ?? ''}`}
   />
 );
 
@@ -192,7 +192,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
       {/* Drawer */}
       <div
         ref={drawerRef}
-        className="fixed right-0 top-0 h-screen w-full max-w-xl bg-[#111827] border-l border-slate-700 z-50 flex flex-col shadow-2xl"
+        className="fixed right-0 top-0 h-screen w-full max-w-xl bg-surface border-l border-slate-700 z-50 flex flex-col shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 flex-shrink-0">
@@ -220,7 +220,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
               <FieldLabel>Category</FieldLabel>
               <div className="relative">
                 <Select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}>
-                  <option value="">Select…</option>
+                  <option value="">Selectâ€¦</option>
                   {categoryOptions.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
@@ -232,7 +232,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
               <FieldLabel>Subcategory</FieldLabel>
               <div className="relative">
                 <Select value={subcategory} onChange={(e) => setSubcategory(e.target.value)} disabled={!category}>
-                  <option value="">Select…</option>
+                  <option value="">Selectâ€¦</option>
                   {subcategoryOptions.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
@@ -245,13 +245,13 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
           {/* Title */}
           <div>
             <FieldLabel>Title</FieldLabel>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post title…" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post titleâ€¦" />
           </div>
 
           {/* Description */}
           <div>
             <FieldLabel>Description</FieldLabel>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the service…" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the serviceâ€¦" />
           </div>
 
           {/* Pricing */}
@@ -324,7 +324,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
           {/* Primary Location */}
           <div>
             <FieldLabel>Primary Location</FieldLabel>
-            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full address…" />
+            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full addressâ€¦" />
           </div>
 
           {/* Extra Locations */}
@@ -335,7 +335,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
                 value={locationInput}
                 onChange={(e) => setLocationInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addLocation()}
-                placeholder="Add a location…"
+                placeholder="Add a locationâ€¦"
               />
               <button
                 onClick={addLocation}
@@ -381,7 +381,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
                 value={languageInput}
                 onChange={(e) => setLanguageInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addLanguage()}
-                placeholder="e.g. English, Spanish…"
+                placeholder="e.g. English, Spanishâ€¦"
               />
               <button
                 onClick={addLanguage}
@@ -406,7 +406,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
         </div>
 
         {/* Sticky footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-800 bg-[#111827] flex-shrink-0">
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-800 bg-surface flex-shrink-0">
           <button
             onClick={onClose}
             disabled={saving}
@@ -419,7 +419,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
             disabled={saving}
             className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save Changes'}
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Savingâ€¦</> : 'Save Changes'}
           </button>
         </div>
       </div>

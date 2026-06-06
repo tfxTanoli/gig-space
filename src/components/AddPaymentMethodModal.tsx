@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import type { Stripe, StripeElements } from '@stripe/stripe-js';
@@ -6,7 +6,7 @@ import { createSetupIntent } from '../stripe/paymentHelpers';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
-// Inter must be explicitly passed into stripe.elements() — the iframe can't inherit from the parent page.
+// Inter must be explicitly passed into stripe.elements() â€” the iframe can't inherit from the parent page.
 const STRIPE_FONTS = [
   { cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
 ];
@@ -100,7 +100,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative z-10 bg-[#111827] border border-slate-700 sm:rounded-2xl rounded-t-2xl w-full sm:max-w-md shadow-2xl flex flex-col"
+        className="relative z-10 bg-surface border border-slate-700 sm:rounded-2xl rounded-t-2xl w-full sm:max-w-md shadow-2xl flex flex-col"
         style={{ maxHeight: 'calc(100dvh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -136,7 +136,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
               className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {saving ? 'Saving…' : 'Save payment method'}
+              {saving ? 'Savingâ€¦' : 'Save payment method'}
             </button>
           </div>
         )}

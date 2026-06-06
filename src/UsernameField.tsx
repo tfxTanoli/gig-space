@@ -1,11 +1,11 @@
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+﻿import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { normalizeUsername } from './username';
 import type { UsernameStatus } from './useUsernameAvailability';
 
 interface UsernameFieldProps {
   value: string;
   onChange: (value: string) => void;
-  /** Live availability status — usually from useUsernameAvailability(). */
+  /** Live availability status â€” usually from useUsernameAvailability(). */
   status: UsernameStatus;
   /** Error text shown under the field for taken/invalid states. */
   message: string;
@@ -30,7 +30,7 @@ const UsernameField = ({ value, onChange, status, message, label = 'Username' }:
           value={value}
           onChange={(e) => onChange(normalizeUsername(e.target.value))}
           autoComplete="off"
-          className={`w-full bg-[#1A2035] border ${borderColor} rounded-lg px-4 py-3 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors`}
+          className={`w-full bg-surface-raised border ${borderColor} rounded-lg px-4 py-3 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors`}
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2">
           {status === 'checking' && <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />}

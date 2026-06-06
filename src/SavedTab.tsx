@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, Package } from 'lucide-react';
 import { ref, onValue } from 'firebase/database';
@@ -23,7 +23,7 @@ interface SavedService {
 
 function formatPrice(svc: SavedService) {
   const suffix = svc.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (svc.priceMax) return { prefix: '', price: `$${svc.priceMin} – $${svc.priceMax}`, suffix };
+  if (svc.priceMax) return { prefix: '', price: `$${svc.priceMin} â€“ $${svc.priceMax}`, suffix };
   return { prefix: 'From', price: `$${svc.priceMin}`, suffix };
 }
 
@@ -102,10 +102,10 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
 
       {loading ? (
         <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
-          <p className="text-slate-500 text-sm">Loading saved services…</p>
+          <p className="text-slate-500 text-sm">Loading saved servicesâ€¦</p>
         </div>
       ) : displayed.length === 0 ? (
-        <div className="border border-dashed border-slate-800 rounded-xl bg-[#0E1422] flex flex-col items-center justify-center min-h-[300px] gap-4">
+        <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
           <Bookmark className="w-10 h-10 text-slate-600" />
           <div className="text-center">
             <p className="text-slate-300 font-medium text-sm">
@@ -134,7 +134,7 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
             return (
               <div key={svc.id} className="group block">
                 {/* Image */}
-                <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-[#1A2035] relative">
+                <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-surface-raised relative">
                   <Link to={`/service-detail?id=${svc.id}`} className="block w-full h-full">
                     {svc.images?.[0] ? (
                       <img

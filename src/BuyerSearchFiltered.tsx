@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search,
@@ -47,7 +47,7 @@ interface SellerMeta {
 
 function formatPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
+  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} â€“ $${post.priceMax}`, suffix };
   return { prefix: 'From', price: `$${post.priceMin}`, suffix };
 }
 
@@ -108,7 +108,7 @@ const BuyerSearchFiltered = () => {
   const pageTitle = categoryParam || 'All Services';
 
   return (
-    <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
       {/* Top Main Navigation */}
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center flex-1">
@@ -116,8 +116,8 @@ const BuyerSearchFiltered = () => {
             <Logo className="h-6" />
           </span>
 
-          <div className="hidden md:flex items-center bg-[#0E1422] border border-slate-700 rounded-lg overflow-hidden h-10 w-full max-w-xl">
-            <div className="px-4 border-r border-slate-700 flex items-center shrink-0 cursor-pointer text-slate-300 text-sm h-full bg-[#1A2035]">
+          <div className="hidden md:flex items-center bg-background border border-slate-700 rounded-lg overflow-hidden h-10 w-full max-w-xl">
+            <div className="px-4 border-r border-slate-700 flex items-center shrink-0 cursor-pointer text-slate-300 text-sm h-full bg-surface-raised">
               All locations
               <ChevronDown className="w-4 h-4 ml-2 text-slate-500" />
             </div>
@@ -189,7 +189,7 @@ const BuyerSearchFiltered = () => {
         {/* Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <p className="text-slate-500 text-sm">Loading services…</p>
+            <p className="text-slate-500 text-sm">Loading servicesâ€¦</p>
           </div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -227,7 +227,7 @@ const BuyerSearchFiltered = () => {
                   <div key={post.id} className="group block">
                     {/* Image */}
                     <Link to={`/service-detail?id=${post.id}`} className="block">
-                      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-[#1A2035]">
+                      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised">
                         {post.images?.[0] ? (
                           <img
                             src={post.images[0]}
@@ -261,7 +261,7 @@ const BuyerSearchFiltered = () => {
                           <MapPin className="w-3 h-3 mr-1.5 shrink-0 text-slate-400" />
                           <span className="truncate">{locationLabel}</span>
                           {extraLocationNames.length > 0 && (
-                            <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max max-w-[200px]">
+                            <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-surface border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max max-w-[200px]">
                               {extraLocationNames.map((loc) => (
                                 <p key={loc} className="text-xs text-slate-300 py-0.5">{loc}</p>
                               ))}
@@ -315,7 +315,7 @@ const BuyerSearchFiltered = () => {
           <button className="hover:text-white transition-colors">Terms &amp; Conditions</button>
           <button className="hover:text-white transition-colors">Privacy Policy</button>
         </div>
-        <p className="text-xs text-slate-500">© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p className="text-xs text-slate-500">Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

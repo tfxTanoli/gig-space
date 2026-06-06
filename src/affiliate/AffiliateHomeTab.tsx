@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link2, Users, Clock, DollarSign, Copy, Check, TrendingUp } from 'lucide-react';
 import { ref as dbRef, onValue, set } from 'firebase/database';
 import { database } from '../firebase';
@@ -21,7 +21,7 @@ function MonthlyEarningsChart({ commissions }: { commissions: AffiliateCommissio
   const maxEarning = Math.max(...earnings, 1);
 
   return (
-    <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
+    <div className="bg-surface border border-slate-800 rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-5">
         <TrendingUp className="w-4 h-4 text-primary" />
         <h3 className="text-white font-semibold text-sm">Monthly Earnings</h3>
@@ -94,14 +94,14 @@ export default function AffiliateHomeTab() {
   const [commissionsLoading, setCommissionsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // ── Read affiliate stats directly from Firebase RTDB (real-time, no server needed) ──
+  // â”€â”€ Read affiliate stats directly from Firebase RTDB (real-time, no server needed) â”€â”€
   useEffect(() => {
     if (!user) return;
 
     const affiliateRef = dbRef(database, `affiliates/${user.uid}`);
     const unsub = onValue(affiliateRef, async (snap) => {
       if (!snap.exists()) {
-        // First-time / existing user — auto-init their affiliate record
+        // First-time / existing user â€” auto-init their affiliate record
         try { await initAffiliateRecord(user.uid); } catch { /* ignore */ }
         return;
       }
@@ -122,7 +122,7 @@ export default function AffiliateHomeTab() {
     return () => unsub();
   }, [user]);
 
-  // ── Commissions via API (needs server) ────────────────────────────────────────
+  // â”€â”€ Commissions via API (needs server) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     fetchAffiliateCommissions()
       .then(c => setCommissions(c.commissions))
@@ -173,7 +173,7 @@ export default function AffiliateHomeTab() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map(({ label, value, Icon, color, bg }) => (
-          <div key={label} className="bg-[#111827] border border-slate-800 rounded-2xl p-4">
+          <div key={label} className="bg-surface border border-slate-800 rounded-2xl p-4">
             <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center mb-3`}>
               <Icon className={`w-4 h-4 ${color}`} />
             </div>
@@ -184,7 +184,7 @@ export default function AffiliateHomeTab() {
       </div>
 
       {/* Referral Link */}
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
+      <div className="bg-surface border border-slate-800 rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-1.5">
           <Link2 className="w-4 h-4 text-primary" />
           <h3 className="text-white font-semibold text-sm">Your Referral Link</h3>
@@ -193,8 +193,8 @@ export default function AffiliateHomeTab() {
           Share this link to earn 50% of every platform fee from referred orders
         </p>
         <div className="flex items-center gap-2">
-          <div className="flex-1 bg-[#0E1422] border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-300 font-mono truncate min-w-0">
-            {referralLink || (statsLoading ? 'Generating your link…' : 'Link unavailable')}
+          <div className="flex-1 bg-background border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-300 font-mono truncate min-w-0">
+            {referralLink || (statsLoading ? 'Generating your linkâ€¦' : 'Link unavailable')}
           </div>
           <button
             onClick={copyLink}
@@ -211,7 +211,7 @@ export default function AffiliateHomeTab() {
       <MonthlyEarningsChart commissions={commissions} />
 
       {/* Recent Commissions */}
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
+      <div className="bg-surface border border-slate-800 rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <DollarSign className="w-4 h-4 text-primary" />
           <h3 className="text-white font-semibold text-sm">Recent Commissions</h3>
@@ -235,7 +235,7 @@ export default function AffiliateHomeTab() {
                 <span className="text-slate-400">
                   {new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
-                <span className="text-slate-400 font-mono text-xs truncate">{c.orderId.substring(0, 8)}…</span>
+                <span className="text-slate-400 font-mono text-xs truncate">{c.orderId.substring(0, 8)}â€¦</span>
                 <span className="text-white font-medium">${c.commissionAmount.toFixed(2)}</span>
                 <StatusBadge status={c.status} />
               </div>

@@ -1,4 +1,4 @@
-import { Component, type ReactNode, type ErrorInfo } from 'react';
+﻿import { Component, type ReactNode, type ErrorInfo } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return this.props.fallback ?? (
-        <div className="min-h-screen bg-[#0E1422] flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-6 text-center">
           <p className="text-white font-semibold text-lg">Something went wrong</p>
           <p className="text-slate-400 text-sm">An unexpected error occurred. Please try refreshing the page.</p>
           <a

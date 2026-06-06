@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+﻿import { useRef, useState, useEffect } from 'react';
 import {
   Bell,
   MessageSquare,
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useNotifications, type AppNotification } from './useNotifications';
 
-/* ── Helpers ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function relativeTime(ts: number): string {
   const diff = Date.now() - ts;
@@ -57,7 +57,7 @@ function navTabForType(type: string): string {
   }
 }
 
-/* ── Notification item ───────────────────────────────────────────────────── */
+/* â”€â”€ Notification item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function NotifItem({
   notif,
@@ -111,7 +111,7 @@ function NotifItem({
         <span className="absolute right-3 top-3.5 w-2 h-2 rounded-full bg-blue-500 group-hover:hidden" />
       )}
 
-      {/* Delete button — visible on hover */}
+      {/* Delete button â€” visible on hover */}
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(notif); }}
         disabled={disabled}
@@ -124,7 +124,7 @@ function NotifItem({
   );
 }
 
-/* ── Main component ──────────────────────────────────────────────────────── */
+/* â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface NotificationBellProps {
   /** Switches the active tab in the parent dashboard */
@@ -195,13 +195,13 @@ export default function NotificationBell({ onNavigate, filterTypes, emptyStateTe
       >
         <Bell className="w-5 h-5" />
         {displayCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0E1422] pointer-events-none" />
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background pointer-events-none" />
         )}
       </button>
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-[#111827] border border-slate-700 rounded-2xl shadow-2xl z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-slate-700 rounded-2xl shadow-2xl z-50">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
@@ -222,7 +222,7 @@ export default function NotificationBell({ onNavigate, filterTypes, emptyStateTe
                   {marking ? (
                     <>
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      Marking…
+                      Markingâ€¦
                     </>
                   ) : (
                     'Mark all read'
@@ -240,7 +240,7 @@ export default function NotificationBell({ onNavigate, filterTypes, emptyStateTe
             </div>
           </div>
 
-          {/* Scrollable list — flex-col ensures items stack vertically, never overlap */}
+          {/* Scrollable list â€” flex-col ensures items stack vertically, never overlap */}
           <div
             className="overflow-y-auto max-h-[400px]"
             style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}

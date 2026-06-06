@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { X, DollarSign, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { requestWithdrawal } from '../stripe/paymentHelpers';
 
@@ -41,7 +41,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative z-10 bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl"
+        className="relative z-10 bg-surface border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -59,13 +59,13 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               <p className="text-white font-semibold">Withdrawal initiated!</p>
               <p className="text-slate-400 text-sm text-center">
                 ${parsed.toFixed(2)} is on its way to your Stripe account.
-                It may take 1–3 business days.
+                It may take 1â€“3 business days.
               </p>
             </div>
           ) : (
             <>
               {/* Balance display */}
-              <div className="bg-[#0E1422] border border-slate-800 rounded-xl p-4">
+              <div className="bg-background border border-slate-800 rounded-xl p-4">
                 <p className="text-slate-400 text-xs mb-1">Available to withdraw</p>
                 <p className="text-2xl font-bold text-white">${availableBalance.toFixed(2)}</p>
               </div>
@@ -75,7 +75,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Amount (USD)
                 </label>
-                <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-xl overflow-hidden focus-within:border-blue-500 transition-colors">
+                <div className="flex items-center bg-background border border-slate-700 rounded-xl overflow-hidden focus-within:border-blue-500 transition-colors">
                   <DollarSign className="w-4 h-4 text-slate-500 ml-3 mr-1 shrink-0" />
                   <input
                     type="number"
@@ -140,15 +140,15 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing…
+                    Processingâ€¦
                   </>
                 ) : (
-                  `Withdraw $${isValid ? parsed.toFixed(2) : '—'}`
+                  `Withdraw $${isValid ? parsed.toFixed(2) : 'â€”'}`
                 )}
               </button>
 
               <p className="text-slate-600 text-xs text-center">
-                Funds will be transferred to your connected Stripe account within 1–3 business days.
+                Funds will be transferred to your connected Stripe account within 1â€“3 business days.
               </p>
             </>
           )}

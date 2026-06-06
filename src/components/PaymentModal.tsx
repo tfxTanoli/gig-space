@@ -1,11 +1,11 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { X, Loader2, Lock } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
-// Inter must be explicitly loaded into the Stripe iframe — it can't inherit from the parent page.
+// Inter must be explicitly loaded into the Stripe iframe â€” it can't inherit from the parent page.
 const stripeFonts = [
   { cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
 ];
@@ -99,7 +99,7 @@ function CheckoutForm({ offerAmount, onSuccess, onClose }: CheckoutFormProps) {
             ) : (
               <Lock className="w-3.5 h-3.5" />
             )}
-            {paying ? 'Processing…' : `Pay $${offerAmount}`}
+            {paying ? 'Processingâ€¦' : `Pay $${offerAmount}`}
           </button>
         </div>
       )}
@@ -126,7 +126,7 @@ export default function PaymentModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative z-10 bg-[#111827] border border-slate-700 sm:rounded-2xl rounded-t-2xl w-full sm:max-w-md shadow-2xl flex flex-col"
+        className="relative z-10 bg-surface border border-slate-700 sm:rounded-2xl rounded-t-2xl w-full sm:max-w-md shadow-2xl flex flex-col"
         style={{ maxHeight: 'calc(100dvh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -134,7 +134,7 @@ export default function PaymentModal({
           <div>
             <h3 className="font-semibold text-white text-base">Complete payment</h3>
             <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[280px]">
-              {serviceTitle} — ${offerAmount}
+              {serviceTitle} â€” ${offerAmount}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors ml-4 shrink-0">

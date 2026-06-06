@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Search, ArrowRight, ChevronLeft, ChevronRight, Car, PenTool, Home, Package, Code, Hammer, MessageSquare, UserCheck, ShieldCheck, Image, Percent, Menu, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
@@ -19,7 +19,7 @@ const features = [
   {
     icon: Search,
     title: 'Instant search results.',
-    description: 'Find local or remote pros in seconds — no scrolling through irrelevant listings.'
+    description: 'Find local or remote pros in seconds â€” no scrolling through irrelevant listings.'
   },
   {
     icon: MessageSquare,
@@ -44,7 +44,7 @@ const features = [
   {
     icon: Percent,
     title: '0% buyer fees.',
-    description: 'Skip the added fees other platforms sneak in — your budget should go to the work, not the platform.'
+    description: 'Skip the added fees other platforms sneak in â€” your budget should go to the work, not the platform.'
   }
 ];
 
@@ -64,7 +64,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* Header */}
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
@@ -97,7 +97,7 @@ const LandingPage = () => {
 
         {/* Mobile dropdown menu */}
         {menuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
             <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Sellers</Link>
             <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
             {user ? (
@@ -126,7 +126,7 @@ const LandingPage = () => {
         </p>
 
         {/* Search Bar */}
-        <div className="w-full max-w-3xl flex flex-col md:flex-row items-center bg-[#1A2035] p-2 rounded-xl border border-slate-700/50 shadow-xl">
+        <div className="w-full max-w-3xl flex flex-col md:flex-row items-center bg-surface-raised p-2 rounded-xl border border-slate-700/50 shadow-xl">
           <LocationSearch value={heroLocation} onChange={(label) => setHeroLocation(label)} variant="hero" />
 
           <div className="hidden md:block w-[1px] h-8 bg-slate-700 mx-2"></div>
@@ -155,10 +155,10 @@ const LandingPage = () => {
         <div className="flex justify-between items-center mb-6 md:mb-10 max-w-7xl mx-auto">
           <h2 className="text-base md:text-lg font-semibold text-slate-300">Popular Service Categories</h2>
           <div className="flex items-center space-x-2">
-            <button className="w-8 h-8 rounded-full bg-[#1A2035] flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            <button className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button className="w-8 h-8 rounded-full bg-[#1A2035] flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            <button className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -173,7 +173,7 @@ const LandingPage = () => {
                 to={`/search?category=${encodeURIComponent(cat.name)}`}
                 className="flex flex-col items-center group cursor-pointer"
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#1A2035] flex items-center justify-center mb-3 md:mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-[#212942]">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-surface-raised flex items-center justify-center mb-3 md:mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
                   <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary" strokeWidth={1.5} />
                 </div>
                 <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors text-center">
@@ -195,7 +195,7 @@ const LandingPage = () => {
             Hire the right pro for any project
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl">
-            Find trusted professionals for any project — home repairs, digital tasks, and everything in between.
+            Find trusted professionals for any project â€” home repairs, digital tasks, and everything in between.
           </p>
         </div>
 
@@ -226,7 +226,7 @@ const LandingPage = () => {
         <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">
           See why we're the #1 platform that helps you move from planning to done in a fraction of the time.
         </p>
-        <Link to="/signup" className="inline-flex items-center px-6 py-3 bg-white text-[#0E1422] font-semibold rounded-full hover:bg-slate-200 transition-colors">
+        <Link to="/signup" className="inline-flex items-center px-6 py-3 bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors">
           Get started for free <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </section>
@@ -241,7 +241,7 @@ const LandingPage = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

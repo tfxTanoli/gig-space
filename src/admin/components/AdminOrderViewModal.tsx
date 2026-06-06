@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { X, Package } from 'lucide-react';
 import { type AdminOrder } from './AdminOrdersTable';
 
@@ -31,7 +31,7 @@ const AdminOrderViewModal = ({ order, onClose }: Props) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
+      <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -46,15 +46,15 @@ const AdminOrderViewModal = ({ order, onClose }: Props) => {
 
         <div className="px-6 py-5">
           <Field label="Order ID" value={<span className="font-mono text-xs">{order.orderId}</span>} />
-          <Field label="Buyer" value={order.buyerName || '—'} />
-          <Field label="Seller" value={order.sellerName || '—'} />
+          <Field label="Buyer" value={order.buyerName || 'â€”'} />
+          <Field label="Seller" value={order.sellerName || 'â€”'} />
           <Field label="Status" value={
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[order.status] ?? 'bg-slate-700 text-slate-400'}`}>
-              {order.status?.replace(/_/g, ' ') || '—'}
+              {order.status?.replace(/_/g, ' ') || 'â€”'}
             </span>
           } />
           <Field label="Amount" value={`$${order.amount.toFixed(2)}`} />
-          <Field label="Created" value={order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'} />
+          <Field label="Created" value={order.createdAt ? new Date(order.createdAt).toLocaleString() : 'â€”'} />
         </div>
 
         <div className="px-6 py-4 border-t border-slate-800 flex justify-end">

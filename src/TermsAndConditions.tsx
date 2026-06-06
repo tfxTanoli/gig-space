@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react';
+﻿import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -8,7 +8,7 @@ const TermsAndConditions = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
       {/* Header */}
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
         <div className="flex items-center">
@@ -84,7 +84,7 @@ const TermsAndConditions = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

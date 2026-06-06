@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { X, AlertTriangle, Trash2, Tag } from 'lucide-react';
 import { ref as dbRef, get, remove } from 'firebase/database';
 import { database } from '../../firebase';
@@ -41,7 +41,7 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
+      <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-white">Delete Service</h2>
@@ -78,8 +78,8 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-sm text-white font-medium truncate">{service.title || '—'}</p>
-                <p className="text-xs text-slate-500 truncate">{service.sellerName} · ${service.price.toFixed(2)}</p>
+                <p className="text-sm text-white font-medium truncate">{service.title || 'â€”'}</p>
+                <p className="text-xs text-slate-500 truncate">{service.sellerName} Â· ${service.price.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deleting…' : 'Delete Listing'}
+            {deleting ? 'Deletingâ€¦' : 'Delete Listing'}
           </button>
         </div>
       </div>

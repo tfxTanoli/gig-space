@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Eye, Pencil, Plus } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
@@ -50,7 +50,7 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
   const visible = services.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
-    <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden">
+    <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold text-white">Posts</h3>
@@ -97,19 +97,19 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
                     </td>
 
                     {/* Title */}
-                    <td className="px-5 py-3 text-white font-medium max-w-[200px] truncate">{s.title || '—'}</td>
+                    <td className="px-5 py-3 text-white font-medium max-w-[200px] truncate">{s.title || 'â€”'}</td>
 
                     {/* Seller */}
-                    <td className="px-5 py-3 text-slate-400">{s.sellerName || '—'}</td>
+                    <td className="px-5 py-3 text-slate-400">{s.sellerName || 'â€”'}</td>
 
                     {/* Price */}
                     <td className="px-5 py-3 text-slate-300 whitespace-nowrap">
                       ${(s.priceMin ?? s.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      {s.priceMax ? ` – $${s.priceMax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+                      {s.priceMax ? ` â€“ $${s.priceMax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
                     </td>
 
                     {/* Category */}
-                    <td className="px-5 py-3 text-slate-500 text-xs capitalize">{s.category || '—'}</td>
+                    <td className="px-5 py-3 text-slate-500 text-xs capitalize">{s.category || 'â€”'}</td>
 
                     {/* Status */}
                     <td className="px-5 py-3">

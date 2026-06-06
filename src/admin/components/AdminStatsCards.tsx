@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+﻿import type { ComponentType } from 'react';
 import { ShoppingCart, DollarSign, TrendingUp, Users, Store, CreditCard } from 'lucide-react';
 
 const PostsIcon = ({ className }: { className?: string }) => (
@@ -117,7 +117,7 @@ const AdminStatsCards = ({ stats, loading }: Props) => (
       return (
         <div
           key={key}
-          className="bg-[#111827] rounded-xl p-4 border border-slate-800 hover:border-slate-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+          className="bg-surface rounded-xl p-4 border border-slate-800 hover:border-slate-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs text-slate-500 font-medium uppercase tracking-wide leading-tight">{label}</span>

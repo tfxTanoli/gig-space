@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ArrowRight, PenTool, MessageSquare, CreditCard, ChevronDown, CheckCircle2, Menu, X } from 'lucide-react';
 import Logo from './Logo';
 import { Link } from 'react-router-dom';
@@ -51,7 +51,7 @@ const SellerLandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
       {/* Header */}
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
         <div className="flex items-center">
@@ -85,7 +85,7 @@ const SellerLandingPage = () => {
 
         {/* Mobile dropdown menu */}
         {menuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
             <Link to="/" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Buyers</Link>
             <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
             {user ? (
@@ -104,8 +104,8 @@ const SellerLandingPage = () => {
 
       {/* Hero Section */}
       <section className="flex-1 flex flex-col items-center justify-center pt-12 md:pt-24 pb-16 md:pb-20 px-4 text-center">
-        <div className="inline-flex flex-row items-center bg-[#1A2035] text-white border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 md:mb-8 space-x-2">
-          <span>✨</span>
+        <div className="inline-flex flex-row items-center bg-surface-raised text-white border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 md:mb-8 space-x-2">
+          <span>âœ¨</span>
           <span>A global marketplace for talent</span>
         </div>
 
@@ -117,7 +117,7 @@ const SellerLandingPage = () => {
           Turn your skills into a booming business without the guesswork.
         </p>
 
-        <Link to="/signup" className="inline-flex flex-row items-center bg-white hover:bg-slate-200 text-[#0E1422] font-semibold py-3 px-6 rounded-full transition-colors">
+        <Link to="/signup" className="inline-flex flex-row items-center bg-white hover:bg-slate-200 text-background font-semibold py-3 px-6 rounded-full transition-colors">
           Become a Seller <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </section>
@@ -180,7 +180,7 @@ const SellerLandingPage = () => {
             <h2 className="text-3xl font-bold text-white mb-6">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
-                At Gigspace, our mission is to connect independent professionals with the people and businesses who need them—whether it's parents on home projects, entrepreneurs, or small businesses, we empower sellers to work independently, securely, and freely. Because when local experts thrive, so do their communities.
+                At Gigspace, our mission is to connect independent professionals with the people and businesses who need themâ€”whether it's parents on home projects, entrepreneurs, or small businesses, we empower sellers to work independently, securely, and freely. Because when local experts thrive, so do their communities.
               </p>
               <p>
                 Current platforms suffer from high fees, limited support, and a lack of local reach. Gigspace aims to fix that. We're building a marketplace that works for freelancers, completely removing platform fees locally so that professionals can focus on what they do best and buyers can get their work done with confidence.
@@ -273,7 +273,7 @@ const SellerLandingPage = () => {
           Earn more with Gigspace today.
         </h2>
         
-        <Link to="/signup" className="inline-flex items-center px-6 py-3 bg-white text-[#0E1422] font-semibold rounded-full hover:bg-slate-200 transition-colors">
+        <Link to="/signup" className="inline-flex items-center px-6 py-3 bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors">
           Get started for free <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </section>
@@ -288,7 +288,7 @@ const SellerLandingPage = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
+﻿import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
 import { auth, database } from './firebase';
@@ -12,7 +12,7 @@ export interface UserProfile {
   email: string;
   createdAt: number;
   role?: string;
-  /** Mirrors Firebase Auth's emailVerified — kept in sync on every load. */
+  /** Mirrors Firebase Auth's emailVerified â€” kept in sync on every load. */
   emailVerified?: boolean;
 }
 
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             ref(database, `users/${firebaseUser.uid}/emailVerified`),
             firebaseUser.emailVerified,
           ).catch(() => {
-            // non-fatal — will retry on the next load
+            // non-fatal â€” will retry on the next load
           });
         }
 
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (profile?.username && usernameSyncedUid !== firebaseUser.uid) {
           usernameSyncedUid = firebaseUser.uid;
           ensureUsernameIndexed(firebaseUser.uid, profile.username).catch(() => {
-            // non-fatal — will retry on the next load
+            // non-fatal â€” will retry on the next load
           });
         }
       });
@@ -152,10 +152,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={value}>
       {loading ? (
-        <div className="min-h-screen bg-[#0E1422] flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-500 text-sm">Loading…</p>
+            <p className="text-slate-500 text-sm">Loadingâ€¦</p>
           </div>
         </div>
       ) : (

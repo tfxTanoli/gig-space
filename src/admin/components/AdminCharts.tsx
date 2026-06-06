@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import type { AdminUser } from './AdminUsersTable';
 import type { AdminService } from './AdminServicesTable';
 import type { AdminOrder } from './AdminOrdersTable';
@@ -88,7 +88,7 @@ function ChartCard({ title, total, data, color, fill }: ChartCardProps) {
   const trend = prev === 0 ? null : ((last - prev) / prev) * 100;
 
   return (
-    <div className="bg-[#111827] rounded-xl border border-slate-800 p-5">
+    <div className="bg-surface rounded-xl border border-slate-800 p-5">
       <div className="flex items-start justify-between mb-1">
         <div>
           <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{title}</p>

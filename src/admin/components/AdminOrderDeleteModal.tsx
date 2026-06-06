@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
 import { ref as dbRef, remove } from 'firebase/database';
 import { database } from '../../firebase';
@@ -45,7 +45,7 @@ const AdminOrderDeleteModal = ({ order, onClose, onSuccess }: Props) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
+      <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-white">Delete Order</h2>
@@ -68,13 +68,13 @@ const AdminOrderDeleteModal = ({ order, onClose, onSuccess }: Props) => {
           {/* Order preview */}
           <div className="bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-700/50 mb-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-mono">{order.orderId.slice(0, 12)}…</span>
+              <span className="text-xs text-slate-500 font-mono">{order.orderId.slice(0, 12)}â€¦</span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[order.status] ?? 'bg-slate-700 text-slate-400'}`}>
-                {order.status?.replace(/_/g, ' ') || '—'}
+                {order.status?.replace(/_/g, ' ') || 'â€”'}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">{order.buyerName} → {order.sellerName}</span>
+              <span className="text-slate-400">{order.buyerName} â†’ {order.sellerName}</span>
               <span className="text-white font-semibold">${order.amount.toFixed(2)}</span>
             </div>
             {order.serviceTitle && (
@@ -108,7 +108,7 @@ const AdminOrderDeleteModal = ({ order, onClose, onSuccess }: Props) => {
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deleting…' : 'Delete Order'}
+            {deleting ? 'Deletingâ€¦' : 'Delete Order'}
           </button>
         </div>
       </div>

@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import Logo from './Logo';
 
 const PasswordUpdatedEmail = () => {
   return (
-    <div className="min-h-screen bg-[#0E1422] flex flex-col items-center py-16 px-4 font-sans text-slate-300">
+    <div className="min-h-screen bg-background flex flex-col items-center py-16 px-4 font-sans text-slate-300">
       
       {/* Logo Header */}
       <div className="mb-12">

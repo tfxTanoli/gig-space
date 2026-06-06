@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+﻿import { useState, useRef, type ChangeEvent } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -109,11 +109,11 @@ const AffiliateProfile = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172b] p-4">
-      <div className="bg-[#1d293d] rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
+    <div className="min-h-screen flex items-center justify-center bg-background-deep p-4">
+      <div className="bg-card rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
 
-        <div className="w-12 h-12 bg-[#0C4A26] rounded-full flex items-center justify-center mb-6">
-          <User strokeWidth={2} className="text-[#2EEA60] w-6 h-6" />
+        <div className="w-12 h-12 bg-brand-green-bg rounded-full flex items-center justify-center mb-6">
+          <User strokeWidth={2} className="text-brand-green w-6 h-6" />
         </div>
 
         <h2 className="text-lg font-bold text-white mb-8">
@@ -127,7 +127,7 @@ const AffiliateProfile = () => {
         )}
 
         <div className="w-full flex items-center gap-5 mb-7">
-          <div className="w-20 h-20 rounded-full bg-[#4B5563] flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-20 h-20 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
               <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
@@ -148,7 +148,7 @@ const AffiliateProfile = () => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-[#1e293b] hover:bg-[#263347] text-white font-medium py-2 px-5 rounded-lg border border-slate-600/60 transition-colors text-sm"
+              className="bg-card hover:bg-card-hover text-white font-medium py-2 px-5 rounded-lg border border-slate-600/60 transition-colors text-sm"
             >
               Upload profile photo
             </button>
@@ -162,7 +162,7 @@ const AffiliateProfile = () => {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-[#1A2035] border border-slate-700/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+            className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
           />
         </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, Search, Loader2, MapPin } from 'lucide-react';
 import { searchLocations, type LocationResult } from './photon';
 
@@ -12,7 +12,7 @@ const MAX_DISPLAY_CHARS = 22;
 
 function truncateLabel(label: string): string {
   if (label.length <= MAX_DISPLAY_CHARS) return label;
-  return label.slice(0, MAX_DISPLAY_CHARS - 1) + '…';
+  return label.slice(0, MAX_DISPLAY_CHARS - 1) + 'â€¦';
 }
 
 const LocationSearch = ({
@@ -85,7 +85,7 @@ const LocationSearch = ({
   const triggerClass =
     variant === 'hero'
       ? 'flex items-center w-full md:w-auto px-4 py-2 text-slate-300 hover:text-white transition-colors whitespace-nowrap'
-      : 'px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-sm h-full bg-[#1A2035] hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
+      : 'px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-sm h-full bg-surface-raised hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
 
   return (
     <div
@@ -100,10 +100,10 @@ const LocationSearch = ({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-72 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute left-0 top-full mt-2 w-72 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
           {/* Search input */}
           <div className="p-2 border-b border-slate-800">
-            <div className="flex items-center bg-[#0E1422] border border-slate-700 rounded-lg px-3 h-9">
+            <div className="flex items-center bg-background border border-slate-700 rounded-lg px-3 h-9">
               <Search className="w-4 h-4 text-slate-500 shrink-0" />
               <input
                 ref={inputRef}

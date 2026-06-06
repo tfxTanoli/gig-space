@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+﻿import { useRef, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard, BadgeDollarSign, Settings } from 'lucide-react';
 import { useAuth } from './AuthContext';
@@ -70,7 +70,7 @@ const HeaderUserMenu = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-52 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-slate-800">
             <p className="text-white text-sm font-semibold truncate">{displayName}</p>
             <p className="text-slate-500 text-xs truncate mt-0.5">{user?.email ?? ''}</p>

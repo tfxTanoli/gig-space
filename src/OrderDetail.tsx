@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft, Send, CheckCircle, Package,
   Clock, Truck, RotateCcw, X, Upload,
@@ -39,7 +39,7 @@ export interface Order {
   createdAt: number;
   deliveryMessage?: string;
   deliveryFiles?: DeliveryFile[];
-  // Stripe escrow fields (optional — absent on legacy orders)
+  // Stripe escrow fields (optional â€” absent on legacy orders)
   paymentId?: string;
   paymentStatus?: 'pending' | 'paid' | 'released' | 'refunded' | 'failed';
   conversationId?: string;
@@ -153,7 +153,7 @@ export default function OrderDetail({
   /* toast */
   const [toast, setToast] = useState<string | null>(null);
 
-  /* ── Order messages listener ── */
+  /* â”€â”€ Order messages listener â”€â”€ */
   useEffect(() => {
     isFirstLoad.current = true;
     const unsub = onValue(ref(database, `orderMessages/${order.id}`), (snap) => {
@@ -172,7 +172,7 @@ export default function OrderDetail({
     isFirstLoad.current = false;
   }, [messages]);
 
-  /* ── Reviews listener (only for completed orders) ── */
+  /* â”€â”€ Reviews listener (only for completed orders) â”€â”€ */
   useEffect(() => {
     if (order.status !== 'completed') {
       setReviewsLoaded(true);
@@ -187,7 +187,7 @@ export default function OrderDetail({
     return () => unsub();
   }, [order.id, order.status]);
 
-  /* ── Delivery modal: body-scroll lock + Escape ── */
+  /* â”€â”€ Delivery modal: body-scroll lock + Escape â”€â”€ */
   useEffect(() => {
     if (!showDeliveryModal) return;
     document.body.style.overflow = 'hidden';
@@ -202,7 +202,7 @@ export default function OrderDetail({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDeliveryModal]);
 
-  /* ── Helpers ── */
+  /* â”€â”€ Helpers â”€â”€ */
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
@@ -248,17 +248,17 @@ export default function OrderDetail({
   };
 
   // Calls the Cloud Function which atomically marks the order complete
-  // and releases escrow funds from pendingBalance → availableBalance.
+  // and releases escrow funds from pendingBalance â†’ availableBalance.
   // Falls back gracefully for legacy orders without a paymentId.
   const handleApproveDelivery = async () => {
     if (approvingDelivery) return;
     setApprovingDelivery(true);
     try {
       if (order.paymentId) {
-        // New orders — use the Cloud Function for atomic escrow release
+        // New orders â€” use the Cloud Function for atomic escrow release
         await approveDeliveryFn(order.id);
       } else {
-        // Legacy orders — no escrow, just update status directly
+        // Legacy orders â€” no escrow, just update status directly
         await update(ref(database, `orders/${order.id}`), {
           status: 'completed',
           completedAt: Date.now(),
@@ -385,7 +385,7 @@ export default function OrderDetail({
     }).catch(console.error);
   };
 
-  /* ── Derived values ── */
+  /* â”€â”€ Derived values â”€â”€ */
   const cfg = statusConfig[order.status] ?? statusConfig.pending;
   const { Icon } = cfg;
   const currentStepIdx = STEP_ORDER.indexOf(order.status);
@@ -416,7 +416,7 @@ export default function OrderDetail({
 
   return (
     <>
-      {/* ── Success toast ── */}
+      {/* â”€â”€ Success toast â”€â”€ */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl flex items-center gap-2 pointer-events-none whitespace-nowrap">
           <CheckCircle className="w-4 h-4 shrink-0" />
@@ -424,7 +424,7 @@ export default function OrderDetail({
         </div>
       )}
 
-      {/* ── Delivery Modal ── */}
+      {/* â”€â”€ Delivery Modal â”€â”€ */}
       {showDeliveryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -432,7 +432,7 @@ export default function OrderDetail({
             onClick={closeDeliveryModal}
           />
           <div
-            className="relative z-10 bg-[#111827] border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+            className="relative z-10 bg-surface border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
@@ -469,10 +469,10 @@ export default function OrderDetail({
                 <textarea
                   value={deliveryNote}
                   onChange={(e) => setDeliveryNote(e.target.value)}
-                  placeholder="Describe what you've delivered, any notes for the buyer, or next steps…"
+                  placeholder="Describe what you've delivered, any notes for the buyer, or next stepsâ€¦"
                   rows={3}
                   disabled={uploading}
-                  className="w-full bg-[#0E1422] border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-60 leading-relaxed"
+                  className="w-full bg-background border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-60 leading-relaxed"
                 />
               </div>
 
@@ -517,7 +517,7 @@ export default function OrderDetail({
                   {selectedFiles.map((file, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 bg-[#0E1422] border border-slate-800 rounded-lg px-3 py-2.5"
+                      className="flex items-center gap-3 bg-background border border-slate-800 rounded-lg px-3 py-2.5"
                     >
                       {fileIcon(file.type)}
                       <span className="flex-1 min-w-0 text-sm text-white truncate">{file.name}</span>
@@ -537,11 +537,11 @@ export default function OrderDetail({
 
               {/* Upload progress */}
               {uploading && (
-                <div className="bg-[#0E1422] border border-slate-800 rounded-xl p-3 space-y-2">
+                <div className="bg-background border border-slate-800 rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-300 flex items-center gap-2">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                      Uploading files…
+                      Uploading filesâ€¦
                     </span>
                     <span className="text-blue-400 font-medium tabular-nums">{uploadProgress}%</span>
                   </div>
@@ -580,7 +580,7 @@ export default function OrderDetail({
                 {uploading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Submitting…
+                    Submittingâ€¦
                   </>
                 ) : (
                   <>
@@ -594,7 +594,7 @@ export default function OrderDetail({
         </div>
       )}
 
-      {/* ── Review Modal ── */}
+      {/* â”€â”€ Review Modal â”€â”€ */}
       <ReviewModal
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
@@ -603,7 +603,7 @@ export default function OrderDetail({
         title={mode === 'buyer' ? 'Review the seller' : 'Review the buyer'}
       />
 
-      {/* ── Page content ── */}
+      {/* â”€â”€ Page content â”€â”€ */}
       <div className="flex flex-col gap-5 min-h-0">
 
         {/* Back */}
@@ -615,12 +615,12 @@ export default function OrderDetail({
           Back to orders
         </button>
 
-        {/* ── Order info card ── */}
-        <div className="bg-[#111827] border border-slate-800 rounded-xl overflow-hidden">
+        {/* â”€â”€ Order info card â”€â”€ */}
+        <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden">
 
           {/* Top: image + meta */}
           <div className="flex flex-col sm:flex-row gap-4 p-5">
-            <div className="w-full sm:w-28 h-24 shrink-0 rounded-lg bg-[#0E1422] overflow-hidden">
+            <div className="w-full sm:w-28 h-24 shrink-0 rounded-lg bg-background overflow-hidden">
               {order.serviceImage ? (
                 <img src={order.serviceImage} alt={order.serviceTitle} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
@@ -681,7 +681,7 @@ export default function OrderDetail({
                     <div key={step.key} className="flex items-center flex-1 min-w-0">
                       <div className="flex flex-col items-center gap-1 shrink-0">
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          done ? 'bg-primary border-primary' : 'bg-[#0E1422] border-slate-700'
+                          done ? 'bg-primary border-primary' : 'bg-background border-slate-700'
                         } ${active ? 'ring-2 ring-primary/30' : ''}`}>
                           {done && <div className="w-2 h-2 rounded-full bg-white" />}
                         </div>
@@ -704,13 +704,13 @@ export default function OrderDetail({
 
             {/* Seller states */}
             {mode === 'seller' && order.status === 'delivered' && (
-              <p className="text-slate-400 text-sm italic">Waiting for buyer to accept the delivery…</p>
+              <p className="text-slate-400 text-sm italic">Waiting for buyer to accept the deliveryâ€¦</p>
             )}
             {mode === 'seller' && order.status === 'completed' && sellerWaitsForBuyerReview && (
               <div className="flex flex-wrap items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 <p className="text-emerald-400 text-sm font-medium">Order completed</p>
-                <span className="text-slate-600 text-xs">· Waiting for buyer's review to unlock yours</span>
+                <span className="text-slate-600 text-xs">Â· Waiting for buyer's review to unlock yours</span>
               </div>
             )}
             {mode === 'seller' && order.status === 'completed' && !sellerWaitsForBuyerReview && !canSellerReview && (
@@ -731,7 +731,7 @@ export default function OrderDetail({
                   {approvingDelivery ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Releasing funds…
+                      Releasing fundsâ€¦
                     </>
                   ) : (
                     <>
@@ -803,7 +803,7 @@ export default function OrderDetail({
             )}
           </div>
 
-          {/* ── Delivery package ── */}
+          {/* â”€â”€ Delivery package â”€â”€ */}
           {hasDelivery && (
             <div className="px-5 pb-5 border-t border-slate-800 pt-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -812,7 +812,7 @@ export default function OrderDetail({
               </div>
 
               {order.deliveryMessage && (
-                <p className="text-slate-300 text-sm leading-relaxed bg-[#0E1422] rounded-xl px-4 py-3 border border-slate-800">
+                <p className="text-slate-300 text-sm leading-relaxed bg-background rounded-xl px-4 py-3 border border-slate-800">
                   {order.deliveryMessage}
                 </p>
               )}
@@ -826,7 +826,7 @@ export default function OrderDetail({
                       target="_blank"
                       rel="noopener noreferrer"
                       download={file.name}
-                      className="flex items-center gap-3 bg-[#0E1422] border border-slate-800 hover:border-slate-600 rounded-lg px-3 py-2.5 transition-colors group"
+                      className="flex items-center gap-3 bg-background border border-slate-800 hover:border-slate-600 rounded-lg px-3 py-2.5 transition-colors group"
                     >
                       {fileIcon(file.type)}
                       <span className="flex-1 min-w-0 text-sm text-white truncate group-hover:text-blue-400 transition-colors">
@@ -841,7 +841,7 @@ export default function OrderDetail({
             </div>
           )}
 
-          {/* ── Reviews section ── */}
+          {/* â”€â”€ Reviews section â”€â”€ */}
           {order.status === 'completed' && reviewsLoaded && (buyerReview || sellerReview) && (
             <div className="px-5 pb-5 border-t border-slate-800 pt-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -854,7 +854,7 @@ export default function OrderDetail({
                   <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
                     Buyer's review
                   </p>
-                  <div className="bg-[#0E1422] rounded-xl px-4 py-3 border border-slate-800 space-y-2">
+                  <div className="bg-background rounded-xl px-4 py-3 border border-slate-800 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <UserAvatar
@@ -878,7 +878,7 @@ export default function OrderDetail({
                   <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
                     Seller's review
                   </p>
-                  <div className="bg-[#0E1422] rounded-xl px-4 py-3 border border-slate-800 space-y-2">
+                  <div className="bg-background rounded-xl px-4 py-3 border border-slate-800 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <UserAvatar
@@ -900,7 +900,7 @@ export default function OrderDetail({
           )}
         </div>
 
-        {/* ── Payment info (only for orders with Stripe payment) ── */}
+        {/* â”€â”€ Payment info (only for orders with Stripe payment) â”€â”€ */}
         {order.paymentId && (
           <PaymentInfoCard
             price={order.price}
@@ -908,8 +908,8 @@ export default function OrderDetail({
           />
         )}
 
-        {/* ── Order chat ── */}
-        <div className="bg-[#111827] border border-slate-800 rounded-xl flex flex-col overflow-hidden">
+        {/* â”€â”€ Order chat â”€â”€ */}
+        <div className="bg-surface border border-slate-800 rounded-xl flex flex-col overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-800 shrink-0">
             <h3 className="text-white text-sm font-semibold">Order chat</h3>
             <p className="text-slate-500 text-xs mt-0.5">
@@ -935,7 +935,7 @@ export default function OrderDetail({
                     )}
                     <div className={`flex flex-col gap-1 max-w-[65%] ${isMe ? 'items-end' : 'items-start'}`}>
                       <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
-                        isMe ? 'bg-blue-600 text-white rounded-br-md' : 'bg-[#1A2035] text-slate-200 rounded-bl-md'
+                        isMe ? 'bg-blue-600 text-white rounded-br-md' : 'bg-surface-raised text-slate-200 rounded-bl-md'
                       }`}>
                         {msg.text}
                       </div>
@@ -952,9 +952,9 @@ export default function OrderDetail({
 
           {!isCancelled && (
             <div className="border-t border-slate-800 shrink-0">
-              {/* Deliver Now banner — replaces inline form */}
+              {/* Deliver Now banner â€” replaces inline form */}
               {mode === 'seller' && (order.status === 'in_progress' || order.status === 'pending') && (
-                <div className="px-3 py-2.5 border-b border-slate-800 bg-[#0E1422] flex items-center justify-between gap-3">
+                <div className="px-3 py-2.5 border-b border-slate-800 bg-background flex items-center justify-between gap-3">
                   <p className="text-slate-400 text-xs">Ready to submit your work?</p>
                   <button
                     onClick={() => setShowDeliveryModal(true)}
@@ -967,7 +967,7 @@ export default function OrderDetail({
               )}
 
               {/* Chat input */}
-              <div className="p-3 flex items-end gap-2 bg-[#111827]">
+              <div className="p-3 flex items-end gap-2 bg-surface">
                 <textarea
                   ref={chatInputRef}
                   value={text}
@@ -980,9 +980,9 @@ export default function OrderDetail({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
                   }}
-                  placeholder="Message about this order…"
+                  placeholder="Message about this orderâ€¦"
                   rows={1}
-                  className="flex-1 bg-[#0E1422] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
+                  className="flex-1 bg-background border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   style={{ minHeight: '40px' }}
                 />
                 <button
@@ -1001,7 +1001,7 @@ export default function OrderDetail({
   );
 }
 
-// ── Payment info card ────────────────────────────────────────────────────────
+// â”€â”€ Payment info card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PLATFORM_FEE_PERCENT = 5;
 
 function PaymentInfoCard({
@@ -1032,7 +1032,7 @@ function PaymentInfoCard({
   const st = paymentStatus ?? 'paid';
 
   return (
-    <div className="bg-[#111827] border border-slate-800 rounded-xl p-5">
+    <div className="bg-surface border border-slate-800 rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
         <ShieldCheck className="w-4 h-4 text-blue-400" />
         <h4 className="text-white text-sm font-semibold">Payment (Escrow)</h4>

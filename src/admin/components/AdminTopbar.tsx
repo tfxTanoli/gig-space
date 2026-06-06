@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { Search, Menu, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CurrentUserAvatar } from '../../UserAvatar';
@@ -11,7 +11,7 @@ interface Props {
   onMenuClick?: () => void;
 }
 
-const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Search…', onMenuClick }: Props) => {
+const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Searchâ€¦', onMenuClick }: Props) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
@@ -33,7 +33,7 @@ const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Search…', 
   };
 
   return (
-    <header className="h-16 flex items-center justify-between gap-3 px-4 sm:px-6 bg-[#0E1422] border-b border-slate-800 sticky top-0 z-10">
+    <header className="h-16 flex items-center justify-between gap-3 px-4 sm:px-6 bg-background border-b border-slate-800 sticky top-0 z-10">
       {onMenuClick && (
         <button
           onClick={onMenuClick}
@@ -44,7 +44,7 @@ const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Search…', 
         </button>
       )}
 
-      <div className="flex items-center gap-2 bg-[#1A2035] border border-slate-700/50 rounded-lg px-3 py-2 flex-1 max-w-xs sm:max-w-sm focus-within:border-slate-600 transition-colors">
+      <div className="flex items-center gap-2 bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 flex-1 max-w-xs sm:max-w-sm focus-within:border-slate-600 transition-colors">
         <Search className="w-4 h-4 text-slate-500 flex-shrink-0" />
         <input
           type="text"
@@ -65,7 +65,7 @@ const AdminTopbar = ({ search, onSearchChange, searchPlaceholder = 'Search…', 
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-11 w-44 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+          <div className="absolute right-0 top-11 w-44 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"

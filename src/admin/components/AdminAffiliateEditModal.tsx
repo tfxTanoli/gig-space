@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { X } from 'lucide-react';
 import { ref as dbRef, update } from 'firebase/database';
 import { database } from '../../firebase';
@@ -43,7 +43,7 @@ export default function AdminAffiliateEditModal({ affiliate, onClose, onSuccess 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl w-full max-w-md shadow-xl">
+      <div className="bg-surface border border-slate-800 rounded-2xl w-full max-w-md shadow-xl">
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-5 border-b border-slate-800">
           <div>
@@ -64,7 +64,7 @@ export default function AdminAffiliateEditModal({ affiliate, onClose, onSuccess 
             <input
               value={referralCode}
               onChange={(e) => setReferralCode(e.target.value)}
-              className="w-full bg-[#0E1422] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full bg-background border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono"
               placeholder="referralcode"
             />
           </div>
@@ -78,7 +78,7 @@ export default function AdminAffiliateEditModal({ affiliate, onClose, onSuccess 
                 step="0.01"
                 value={availableBalance}
                 onChange={(e) => setAvailableBalance(e.target.value)}
-                className="w-full bg-[#0E1422] border border-slate-700 rounded-lg px-3 py-2 text-emerald-400 text-sm focus:outline-none focus:border-blue-500"
+                className="w-full bg-background border border-slate-700 rounded-lg px-3 py-2 text-emerald-400 text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
             <div>
@@ -89,7 +89,7 @@ export default function AdminAffiliateEditModal({ affiliate, onClose, onSuccess 
                 step="0.01"
                 value={pendingBalance}
                 onChange={(e) => setPendingBalance(e.target.value)}
-                className="w-full bg-[#0E1422] border border-slate-700 rounded-lg px-3 py-2 text-yellow-400 text-sm focus:outline-none focus:border-blue-500"
+                className="w-full bg-background border border-slate-700 rounded-lg px-3 py-2 text-yellow-400 text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function AdminAffiliateEditModal({ affiliate, onClose, onSuccess 
             disabled={saving}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
           >
-            {saving ? 'Saving…' : 'Save Changes'}
+            {saving ? 'Savingâ€¦' : 'Save Changes'}
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ArrowRight, ShieldCheck, Zap, Globe, Scale, Heart, Users, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
@@ -24,12 +24,12 @@ const values = [
   {
     icon: Scale,
     title: 'Fairness & transparency.',
-    description: "We're honest with our pricing, our policies, and our promises — no hidden fees, no surprises."
+    description: "We're honest with our pricing, our policies, and our promises â€” no hidden fees, no surprises."
   },
   {
     icon: Heart,
     title: 'Every interaction matters.',
-    description: 'We treat every project and connection with care—because real people depend on the work done here.'
+    description: 'We treat every project and connection with careâ€”because real people depend on the work done here.'
   },
   {
     icon: Users,
@@ -43,7 +43,7 @@ const AboutUs = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#0E1422] text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-white font-sans flex flex-col">
       {/* Header */}
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
         <div className="flex items-center">
@@ -75,7 +75,7 @@ const AboutUs = () => {
 
         {/* Mobile dropdown */}
         {menuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#0E1422] border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
             {user ? (
               <HeaderUserMenu />
             ) : (
@@ -112,7 +112,7 @@ const AboutUs = () => {
             <h2 className="text-3xl font-bold text-white mb-8">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
-                At Gigspace, our mission is to connect talented professionals with the people and businesses who need them—whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
+                At Gigspace, our mission is to connect talented professionals with the people and businesses who need themâ€”whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
               </p>
               <p>
                 By combining the flexibility of digital freelance platforms with the reach of local service marketplaces, we make hiring faster, safer, and more efficient for everyone. Our platform is built to remove unnecessary fees, streamline communication, and provide secure transactions, so professionals can focus on what they do best and buyers can get their work done with confidence.
@@ -185,7 +185,7 @@ const AboutUs = () => {
           and get things done faster.
         </h2>
         
-        <Link to="/signup" className="inline-flex items-center px-6 py-3 bg-white text-[#0E1422] font-semibold rounded-full hover:bg-slate-200 transition-colors">
+        <Link to="/signup" className="inline-flex items-center px-6 py-3 bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors">
           Get started for free <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </section>
@@ -200,7 +200,7 @@ const AboutUs = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );
