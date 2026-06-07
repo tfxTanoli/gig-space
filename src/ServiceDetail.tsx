@@ -3,7 +3,7 @@ import { sanitizeHtml } from './utils/sanitize';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, Bell, ChevronLeft, ChevronRight,
-  Bookmark, Star,
+  Bookmark, Star, Play,
 } from 'lucide-react';
 import LocationIcon from './LocationIcon';
 import Logo from './Logo';
@@ -13,6 +13,10 @@ import { ref, get, onValue, query, orderByChild, equalTo, update, increment } fr
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
+import { useCategories } from './CategoriesContext';
+import { geocodeLocation } from './photon';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
 
 /* ─── Types ─── */
 
@@ -40,34 +44,120 @@ interface ServicePost {
   priceMax: number | null;
   priceType: 'per_project' | 'per_hour';
   images: string[];
+  video?: string;
+  videoIsCover?: boolean;
   languages: string[];
   primaryLocation: string;
+  primaryLocationLat?: number;
+  primaryLocationLng?: number;
   extraLocations: string[];
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
 }
 
-const categoryLabels: Record<string, string> = {
-  digital: 'Digital Work',
-  home: 'Home Services',
-};
+/* ─── Map helpers ─── */
 
-const subcategoryLabels: Record<string, string> = {
-  web_dev: 'Web Development',
-  mobile_dev: 'Mobile App Development',
-  graphic_design: 'Graphic Design',
-  video: 'Video & Animation',
-  writing: 'Content Writing',
-  seo: 'SEO & Marketing',
-  data: 'Data & Analytics',
-  cleaning: 'Cleaning',
-  plumbing: 'Plumbing',
-  electrical: 'Electrical',
-  painting: 'Painting',
-  moving: 'Moving & Delivery',
-  landscaping: 'Landscaping',
-  handyman: 'Handyman',
+const PIN_ICON = L.divIcon({
+  className: '',
+  html: `<svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14 0C6.268 0 0 6.268 0 14c0 9.333 14 22 14 22S28 23.333 28 14C28 6.268 21.732 0 14 0z" fill="#3B82F6"/>
+    <circle cx="14" cy="14" r="5.5" fill="white"/>
+  </svg>`,
+  iconSize: [28, 36],
+  iconAnchor: [14, 36],
+  popupAnchor: [0, -36],
+});
+
+interface MapPin {
+  lat: number;
+  lng: number;
+  label: string;
+}
+
+function FitBounds({ pins }: { pins: MapPin[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (pins.length === 0) return;
+    if (pins.length === 1) {
+      map.setView([pins[0].lat, pins[0].lng], 11);
+    } else {
+      const bounds = L.latLngBounds(pins.map((p) => [p.lat, p.lng]));
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }, [map, pins]);
+  return null;
+}
+
+interface ServiceMapProps {
+  primaryLocation: string;
+  primaryLat?: number;
+  primaryLng?: number;
+  extraLocations: string[];
+}
+
+const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }: ServiceMapProps) => {
+  const [pins, setPins] = useState<MapPin[]>([]);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const build = async () => {
+      const result: MapPin[] = [];
+
+      // Primary location — use saved lat/lng if available, otherwise geocode
+      if (primaryLat != null && primaryLng != null) {
+        result.push({ lat: primaryLat, lng: primaryLng, label: primaryLocation });
+      } else if (primaryLocation) {
+        const geo = await geocodeLocation(primaryLocation);
+        if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: primaryLocation });
+      }
+
+      // Extra locations — always geocode (no saved coords)
+      for (const loc of extraLocations) {
+        const geo = await geocodeLocation(loc);
+        if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: loc });
+      }
+
+      if (!cancelled) {
+        setPins(result);
+        setReady(result.length > 0);
+      }
+    };
+
+    build();
+    return () => { cancelled = true; };
+  }, [primaryLocation, primaryLat, primaryLng, extraLocations]);
+
+  if (!ready || pins.length === 0) {
+    return (
+      <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40 bg-slate-800 flex items-center justify-center" style={{ height: 210 }}>
+        <p className="text-slate-500 text-xs">Loading map…</p>
+      </div>
+    );
+  }
+
+  const center: [number, number] = [pins[0].lat, pins[0].lng];
+
+  return (
+    <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40" style={{ height: 210 }}>
+      <MapContainer
+        center={center}
+        zoom={11}
+        scrollWheelZoom={false}
+        zoomControl={true}
+        style={{ width: '100%', height: '100%' }}
+        attributionControl={false}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <FitBounds pins={pins} />
+        {pins.map((pin, i) => (
+          <Marker key={i} position={[pin.lat, pin.lng]} icon={PIN_ICON} />
+        ))}
+      </MapContainer>
+    </div>
+  );
 };
 
 /* ─── Sub-components ─── */
@@ -102,6 +192,16 @@ const SocialBtn = ({ color, children }: { color: string; children: ReactNode }) 
   </button>
 );
 
+/* ─── Media item type for the gallery ─── */
+type MediaItem =
+  | { kind: 'image'; url: string }
+  | { kind: 'video'; url: string };
+
+/* ─── Helper: readable subcategory label ─── */
+function humanize(slug: string) {
+  return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 /* ─── Main component ─── */
 
 const ServiceDetail = () => {
@@ -109,18 +209,34 @@ const ServiceDetail = () => {
   const postId = searchParams.get('id');
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { getCategoryLabel, getSubcategoryLabel } = useCategories();
 
   const { isSaved, toggleSave } = useSavedServices();
   const [post, setPost] = useState<ServicePost | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [activeImg, setActiveImg] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [sellerVerified, setSellerVerified] = useState(false);
 
   const isOwnService = !!(user && post && user.uid === post.sellerId);
   const viewTrackedRef = useRef(false);
+
+  // Build ordered media list (images + optional video)
+  const mediaItems: MediaItem[] = (() => {
+    if (!post) return [];
+    const imgs: MediaItem[] = (post.images ?? []).map((u) => ({ kind: 'image', url: u }));
+    if (!post.video) return imgs;
+    const vid: MediaItem = { kind: 'video', url: post.video };
+    if (post.videoIsCover) return [vid, ...imgs];
+    return [...imgs, vid];
+  })();
+
+  const activeMedia = mediaItems[activeIdx] ?? null;
+
+  const prev = () => setActiveIdx((p) => (p === 0 ? mediaItems.length - 1 : p - 1));
+  const next = () => setActiveIdx((p) => (p === mediaItems.length - 1 ? 0 : p + 1));
 
   const handleContactSeller = () => {
     if (!post) return;
@@ -153,7 +269,7 @@ const ServiceDetail = () => {
     return () => unsub();
   }, [postId]);
 
-  useEffect(() => { setActiveImg(0); }, [post?.id]);
+  useEffect(() => { setActiveIdx(0); }, [post?.id]);
 
   useEffect(() => {
     if (!post?.sellerId) return;
@@ -221,13 +337,11 @@ const ServiceDetail = () => {
     };
   }, [post]);
 
-  // Real-time reviews listener — primary path: serviceReviews/{serviceId}
-  // Fallback: scan completed orders for this service and read buyerReview entries
+  // Reviews listener
   useEffect(() => {
     if (!post?.id) return;
     setReviewsLoading(true);
 
-    // Primary: listen to the denormalized serviceReviews collection
     const unsub = onValue(
       ref(database, `serviceReviews/${post.id}`),
       (snap) => {
@@ -238,7 +352,6 @@ const ServiceDetail = () => {
           setReviews(list.sort((a, b) => b.timestamp - a.timestamp));
           setReviewsLoading(false);
         } else {
-          // Fallback: query completed orders for this service and load their reviews
           const ordersQ = query(
             ref(database, 'orders'),
             orderByChild('serviceId'),
@@ -275,10 +388,6 @@ const ServiceDetail = () => {
     return () => unsub();
   }, [post?.id, post?.title]);
 
-  const images = post?.images?.length ? post.images : [];
-  const prev = () => setActiveImg((p) => (p === 0 ? images.length - 1 : p - 1));
-  const next = () => setActiveImg((p) => (p === images.length - 1 ? 0 : p + 1));
-
   const formatPrice = () => {
     if (!post) return '';
     const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
@@ -306,12 +415,21 @@ const ServiceDetail = () => {
     );
   }
 
+  /* ── Breadcrumb labels ── */
+  // getCategoryLabel returns the raw slug when no match found — detect that and humanize instead
+  const rawCatLabel = getCategoryLabel(post.category);
+  const categoryLabel = rawCatLabel !== post.category ? rawCatLabel : humanize(post.category);
+  const rawSubLabel = post.subcategory ? getSubcategoryLabel(post.category, post.subcategory) : null;
+  const subcategoryLabel = rawSubLabel != null
+    ? (rawSubLabel !== post.subcategory ? rawSubLabel : humanize(post.subcategory))
+    : null;
+
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* ── Header ── */}
       <header className="bg-background border-b border-slate-800/70 px-4 md:px-6 lg:px-12 h-16 flex items-center justify-between">
-        <Logo className="h-6" />
+        <Logo className="h-6 shrink-0" />
         <div className="flex items-center gap-3 md:gap-5">
           <button className="text-slate-400 hover:text-white transition-colors hidden md:block">
             <MessageCircle className="w-5 h-5" />
@@ -329,47 +447,89 @@ const ServiceDetail = () => {
       {/* ── Main two-column content ── */}
       <main className="max-w-6xl mx-auto w-full px-4 md:px-6 lg:px-10 py-6 md:py-8 flex flex-col lg:grid lg:grid-cols-[1fr_380px] gap-8 md:gap-10">
 
-        {/* ═══ LEFT COLUMN — images + description (shown after CTA on mobile) ═══ */}
+        {/* ═══ LEFT COLUMN — gallery + description ═══ */}
         <div className="order-2 lg:order-1">
-          {/* Main image / placeholder */}
-          {images.length > 0 ? (
-            <>
-              <div className="relative rounded-xl overflow-hidden bg-slate-800 mb-2" style={{ aspectRatio: '4/3' }}>
-                <img src={images[activeImg]} alt={post.title} decoding="async" className="w-full h-full object-contain" />
-                {images.length > 1 && (
+
+          {/* ── Media gallery ── */}
+          {mediaItems.length > 0 ? (
+            <div className="mb-8">
+              {/* Main viewer — 4:3 aspect ratio, 592px wide on desktop */}
+              <div
+                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full"
+                style={{ aspectRatio: '4/3' }}
+              >
+                {activeMedia?.kind === 'video' ? (
+                  <video
+                    key={activeMedia.url}
+                    src={activeMedia.url}
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                ) : activeMedia?.kind === 'image' ? (
+                  <img
+                    src={activeMedia.url}
+                    alt={post.title}
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                ) : null}
+
+                {/* Prev / Next arrows */}
+                {mediaItems.length > 1 && (
                   <>
                     <button
                       onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
                     >
                       <ChevronLeft className="w-5 h-5 text-white" />
                     </button>
                     <button
                       onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
                     >
                       <ChevronRight className="w-5 h-5 text-white" />
                     </button>
+                    {/* Dot indicators */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {mediaItems.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveIdx(i)}
+                          className={`w-1.5 h-1.5 rounded-full transition-colors ${i === activeIdx ? 'bg-white' : 'bg-white/40'}`}
+                        />
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
-              {images.length > 1 && (
-                <div className="grid grid-cols-4 gap-2 mb-8">
-                  {images.map((img, i) => (
+
+              {/* Thumbnail strip */}
+              {mediaItems.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {mediaItems.map((item, i) => (
                     <button
                       key={i}
-                      onClick={() => setActiveImg(i)}
-                      className={`rounded-lg overflow-hidden border-2 transition-colors ${
-                        activeImg === i ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'
+                      onClick={() => setActiveIdx(i)}
+                      className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                        i === activeIdx ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-80'
                       }`}
-                      style={{ aspectRatio: '4/3' }}
+                      style={{ width: 72, height: 54 }}
                     >
-                      <img src={img} alt={`Thumbnail ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-contain" />
+                      {item.kind === 'video' ? (
+                        <>
+                          <video src={item.url} className="w-full h-full object-cover" muted />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <Play className="w-4 h-4 text-white fill-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img src={item.url} alt={`Thumbnail ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                      )}
                     </button>
                   ))}
                 </div>
               )}
-            </>
+            </div>
           ) : (
             <div className="rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8" style={{ aspectRatio: '4/3' }}>
               <p className="text-slate-500 text-sm">No images uploaded</p>
@@ -390,19 +550,18 @@ const ServiceDetail = () => {
           </div>
         </div>
 
-        {/* ═══ RIGHT COLUMN — price/CTA (shown first on mobile) ═══ */}
+        {/* ═══ RIGHT COLUMN — price/CTA/details ═══ */}
         <div className="order-1 lg:order-2">
+
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
             <Link to="/search" className="hover:text-white transition-colors">All Services</Link>
             <span className="text-slate-600">/</span>
-            <span className="hover:text-white cursor-pointer transition-colors">
-              {categoryLabels[post.category] ?? post.category}
-            </span>
-            {post.subcategory && (
+            <span className="hover:text-white cursor-pointer transition-colors">{categoryLabel}</span>
+            {subcategoryLabel && (
               <>
                 <span className="text-slate-600">/</span>
-                <span className="text-white">{subcategoryLabels[post.subcategory] ?? post.subcategory}</span>
+                <span className="text-white">{subcategoryLabel}</span>
               </>
             )}
           </nav>
@@ -461,7 +620,7 @@ const ServiceDetail = () => {
 
           {/* Locations */}
           {(post.primaryLocation || post.offeredRemotely || post.extraLocations?.length > 0) && (
-            <div className="mb-5">
+            <div className="mb-4">
               <h3 className="text-sm font-bold text-white mb-2">Locations Served</h3>
               <div className="text-slate-400 text-sm space-y-1">
                 {post.primaryLocation && <p>{post.primaryLocation}</p>}
@@ -471,44 +630,25 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          {/* Map placeholder */}
-          {(post.primaryLocation || post.offeredRemotely) && (
-            <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40" style={{ height: 210 }}>
-              <div
-                className="w-full h-full relative"
-                style={{
-                  background: 'linear-gradient(160deg, #c8d8a8 0%, #b8cca0 15%, #aec4a0 30%, #b0cce0 55%, #9fbcd8 75%, #b8cca8 100%)',
-                }}
-              >
-                <div className="absolute inset-0 opacity-25">
-                  {[18, 32, 46, 60, 74, 88].map((t) => (
-                    <div key={t} className="absolute w-full bg-white/80" style={{ top: `${t}%`, height: 2 }} />
-                  ))}
-                  {[12, 25, 38, 52, 65, 78, 91].map((l) => (
-                    <div key={l} className="absolute h-full bg-white/80" style={{ left: `${l}%`, width: 2 }} />
-                  ))}
-                </div>
-                <div className="absolute top-2 left-2 flex flex-col gap-px">
-                  <button className="w-6 h-6 bg-white text-gray-700 rounded-t flex items-center justify-center text-sm font-bold shadow">+</button>
-                  <button className="w-6 h-6 bg-white text-gray-700 rounded-b flex items-center justify-center text-sm font-bold shadow">−</button>
-                </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                  <div className="w-14 h-14 rounded-full border-4 border-blue-500 bg-blue-300/25 flex items-center justify-center">
-                    <LocationIcon className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs text-gray-700 font-medium bg-white/70 px-2 py-0.5 rounded">
-                    {post.offeredRemotely ? 'Remote' : post.primaryLocation}
-                  </span>
-                </div>
-              </div>
-            </div>
+          {/* Real map — only when there is a geocodable location */}
+          {(post.primaryLocation || (post.extraLocations?.length > 0)) && (
+            <ServiceMap
+              primaryLocation={post.primaryLocation}
+              primaryLat={post.primaryLocationLat}
+              primaryLng={post.primaryLocationLng}
+              extraLocations={post.extraLocations ?? []}
+            />
           )}
 
-          {/* Languages */}
+          {/* Languages — one per line */}
           {post.languages?.length > 0 && (
             <div className="mb-4">
               <h3 className="text-sm font-bold text-white mb-1">Languages Spoken</h3>
-              <p className="text-slate-400 text-sm">{post.languages.join(', ')}</p>
+              <div className="text-slate-400 text-sm space-y-0.5">
+                {post.languages.map((lang) => (
+                  <p key={lang}>{lang}</p>
+                ))}
+              </div>
             </div>
           )}
 

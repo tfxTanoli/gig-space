@@ -69,4 +69,26 @@
   .no-tap-highlight {
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Hide scrollbar while preserving scroll behaviour */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── Leaflet overrides for dark theme ── */
+.leaflet-container {
+  font-family: inherit;
+}
+.leaflet-control-zoom a {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+.leaflet-control-zoom a:hover {
+  background-color: #263347 !important;
 }
