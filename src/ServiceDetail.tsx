@@ -5,7 +5,6 @@ import {
   MessageCircle, Bell, ChevronLeft, ChevronRight,
   Bookmark, Star, Play,
 } from 'lucide-react';
-import LocationIcon from './LocationIcon';
 import Logo from './Logo';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
