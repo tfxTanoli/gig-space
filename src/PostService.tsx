@@ -620,7 +620,7 @@ const PostService = () => {
                   <button
                     type="button"
                     onClick={() => setCategoryOpen((v) => !v)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors"
                   >
                     <span className={selectedCatLabel ? 'text-slate-200' : (categoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedCatLabel ?? 'Category'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${categoryOpen ? 'rotate-180' : ''}`} />
@@ -647,7 +647,7 @@ const PostService = () => {
                     type="button"
                     disabled={!category}
                     onClick={() => setSubcategoryOpen((v) => !v)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-3 flex items-center justify-between focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className={selectedSubLabel ? 'text-slate-200' : (subcategoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedSubLabel ?? 'Subcategory'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${subcategoryOpen ? 'rotate-180' : ''}`} />
@@ -686,7 +686,7 @@ const PostService = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
               />
               <div className="text-right text-slate-500 text-xs mt-1">{title.length}/80 max</div>
             </div>
@@ -763,29 +763,29 @@ const PostService = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
-                  <label className="text-white text-sm font-medium mb-2 block">Min</label>
+                  <label className="text-slate-300 text-sm font-medium mb-2 block">Min</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={priceMin}
-                      onChange={(e) => setPriceMin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-3 focus:outline-none focus:border-primary transition-colors text-sm"
+                      value={priceMin ? parseInt(priceMin).toLocaleString() : ''}
+                      onChange={(e) => setPriceMin(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
                 </div>
                 <div>
-                  <label className="text-white text-sm font-medium mb-2 block">Max (optional)</label>
+                  <label className="text-slate-300 text-sm font-medium mb-2 block">Max (optional)</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={priceMax}
-                      onChange={(e) => setPriceMax(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-3 focus:outline-none focus:border-primary transition-colors text-sm"
+                      value={priceMax ? parseInt(priceMax).toLocaleString() : ''}
+                      onChange={(e) => setPriceMax(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -1008,7 +1008,7 @@ const PostService = () => {
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
                       placeholder="Search for a city or country…"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm text-white"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
@@ -1082,7 +1082,7 @@ const PostService = () => {
                     onKeyDown={handleAddExtraLocation}
                     onFocus={() => setExtraLocationDropdownOpen(true)}
                     placeholder="Type a location and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {extraLocationDropdownOpen && extraLocationSuggestions.length > 0 && (
@@ -1132,7 +1132,7 @@ const PostService = () => {
                     onKeyDown={handleLanguageKeyDown}
                     onFocus={() => setLanguageDropdownOpen(true)}
                     placeholder="Type a language and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {languageDropdownOpen && filteredLanguages.length > 0 && (
@@ -1229,7 +1229,7 @@ const PostService = () => {
                       fontSizeBase: '14px',
                     },
                     rules: {
-                      '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b' },
+                      '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 12px' },
                       '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
                       '.Label': { color: '#94a3b8', fontSize: '12px' },
                       '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155' },
