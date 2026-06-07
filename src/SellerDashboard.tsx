@@ -113,8 +113,9 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
   const hasStats = (post.views ?? 0) > 0 || (post.clicks ?? 0) > 0;
 
   return (
-    <div className="group block">
-      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative">
+    <div className="group block flex flex-col">
+      {/* Image */}
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative flex-none">
         <button
           onClick={() => onSelect(post)}
           className="block w-full h-full text-left"
@@ -147,7 +148,9 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           <PostsIcon className="w-3.5 h-3.5 text-white" />
         </Link>
       </div>
-      <button onClick={() => onSelect(post)} className="w-full text-left">
+
+      {/* Info — flex-col so price is always pinned to the same row across cards */}
+      <button onClick={() => onSelect(post)} className="flex-1 w-full text-left flex flex-col">
         {/* Avatar & Name */}
         <div className="flex items-center gap-2 mb-2.5">
           <UserAvatar photoURL={sellerPhotoURL} name={sellerName} size="sm" />
@@ -180,6 +183,9 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
             )}
           </div>
         )}
+
+        {/* Spacer — pushes reviews + price to the bottom */}
+        <div className="flex-1" />
 
         {/* Reviews row — fixed height keeps price aligned across all cards */}
         <div className="mb-2 h-[26px] flex items-center">
