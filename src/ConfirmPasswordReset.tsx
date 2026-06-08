@@ -99,7 +99,7 @@ const ConfirmPasswordReset = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full px-4 py-3 bg-surface-raised border border-slate-700/50 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  className="w-full px-4 py-2 bg-surface-raised border border-slate-700/50 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                 />
               </div>
 
@@ -114,7 +114,7 @@ const ConfirmPasswordReset = () => {
                   onChange={(e) => setConfirm(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full px-4 py-3 bg-surface-raised border border-slate-700/50 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  className="w-full px-4 py-2 bg-surface-raised border border-slate-700/50 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                 />
               </div>
 

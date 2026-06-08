@@ -30,7 +30,7 @@ const UsernameField = ({ value, onChange, status, message, label = 'Username' }:
           value={value}
           onChange={(e) => onChange(normalizeUsername(e.target.value))}
           autoComplete="off"
-          className={`w-full bg-surface-raised border ${borderColor} rounded-lg px-4 py-3 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors`}
+          className={`w-full bg-surface-raised border ${borderColor} rounded-lg px-4 py-2 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors`}
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2">
           {status === 'checking' && <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />}

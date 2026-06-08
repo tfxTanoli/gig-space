@@ -25,7 +25,7 @@ const APPEARANCE = {
   rules: {
     '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 12px' },
     '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
-    '.Label': { color: '#94a3b8', fontSize: '12px' },
+    '.Label': { color: '#cbd5e1', fontSize: '12px' },
     '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155' },
     '.Tab--selected': { backgroundColor: '#1e293b', border: '1px solid #3b82f6', boxShadow: 'none' },
     '.Tab:focus': { boxShadow: 'none' },

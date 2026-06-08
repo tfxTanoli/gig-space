@@ -179,7 +179,7 @@ function WithdrawModal({
             min="10"
             max={available}
             step="0.01"
-            className="w-full bg-background border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
+            className="w-full bg-background border border-slate-700 rounded-xl pl-8 pr-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
           />
         </div>
 
