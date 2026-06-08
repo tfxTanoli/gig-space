@@ -61,7 +61,7 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
         {onNew && (
           <button
             onClick={onNew}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             New Post

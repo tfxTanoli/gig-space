@@ -123,7 +123,7 @@ const SettingCard = ({ icon: Icon, iconColor, title, description, children, stat
       </div>
       <button
         onClick={onSave} disabled={status.saving}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
       >
         {status.saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Save</>}
       </button>
@@ -262,7 +262,7 @@ function CmsTab() {
             <input value={faqQ} onChange={(e) => setFaqQ(e.target.value)} placeholder="Question…" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors" />
             <textarea value={faqA} onChange={(e) => setFaqA(e.target.value)} placeholder="Answer…" rows={3} className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
             <div className="flex gap-2">
-              <button onClick={saveFaq} disabled={faqSaving} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
+              <button onClick={saveFaq} disabled={faqSaving} className="flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
                 {faqSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 {editingFaq ? 'Update' : 'Add'}
               </button>
@@ -291,7 +291,7 @@ function CmsTab() {
         </div>
         <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
           {termsSaved ? <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Saved</span> : <span />}
-          <button onClick={() => saveText('terms', terms, setTermsSaving, setTermsSaved)} disabled={termsSaving} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
+          <button onClick={() => saveText('terms', terms, setTermsSaving, setTermsSaved)} disabled={termsSaving} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
             {termsSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Save</>}
           </button>
         </div>
@@ -313,7 +313,7 @@ function CmsTab() {
         </div>
         <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
           {privSaved ? <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Saved</span> : <span />}
-          <button onClick={() => saveText('privacy', privacy, setPrivSaving, setPrivSaved)} disabled={privSaving} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
+          <button onClick={() => saveText('privacy', privacy, setPrivSaving, setPrivSaved)} disabled={privSaving} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
             {privSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Save</>}
           </button>
         </div>
@@ -419,7 +419,7 @@ const AdminSettingsPage = () => {
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-primary text-white shadow-sm'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
