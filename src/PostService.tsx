@@ -30,6 +30,7 @@ import { useAuth } from './AuthContext';
 import { useCategories } from './CategoriesContext';
 import { geocodeLocation, searchLocations, type LocationResult } from './photon';
 import { createListingSubscription } from './stripe/paymentHelpers';
+import { STRIPE_APPEARANCE, STRIPE_FONTS } from './stripe/stripeAppearance';
 import { LANGUAGES } from './data/languages';
 import { sanitizeHtml } from './utils/sanitize';
 
@@ -1217,27 +1218,8 @@ const PostService = () => {
                   amount: extraLocations.length * 500,
                   currency: 'usd',
                   paymentMethodTypes: ['card', 'us_bank_account'],
-                  appearance: {
-                    theme: 'night' as const,
-                    variables: {
-                      colorPrimary: '#3b82f6',
-                      colorBackground: '#1e293b',
-                      colorText: '#f1f5f9',
-                      colorTextSecondary: '#94a3b8',
-                      borderRadius: '8px',
-                      fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
-                      fontSizeBase: '14px',
-                    },
-                    rules: {
-                      '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 12px' },
-                      '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
-                      '.Label': { color: '#94a3b8', fontSize: '12px' },
-                      '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155' },
-                      '.Tab--selected': { backgroundColor: '#1e293b', border: '1px solid #3b82f6', boxShadow: 'none' },
-                      '.Tab:focus': { boxShadow: 'none' },
-                    },
-                  },
-                  fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap' }],
+                  appearance: STRIPE_APPEARANCE,
+                  fonts: STRIPE_FONTS,
                 }}
               >
                 <Step8PaymentSection
