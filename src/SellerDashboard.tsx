@@ -160,7 +160,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:underline">
+        <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
           {post.title}
         </h3>
 
