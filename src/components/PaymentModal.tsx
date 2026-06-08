@@ -50,7 +50,11 @@ function CheckoutForm({ offerAmount, onSuccess, onClose }: CheckoutFormProps) {
         )}
         <PaymentElement
           onReady={() => setReady(true)}
-          options={{ layout: 'tabs' }}
+          options={{
+            layout: 'tabs',
+            wallets: { link: 'never', applePay: 'never', googlePay: 'never' },
+            paymentMethodOrder: ['card', 'us_bank_account'],
+          }}
         />
         {error && (
           <p className="mt-3 text-red-400 text-sm">{error}</p>
