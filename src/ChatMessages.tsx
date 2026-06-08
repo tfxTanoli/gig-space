@@ -5,7 +5,7 @@ import { database, storage } from './firebase';
 import { useAuth } from './AuthContext';
 import { UserAvatar } from './UserAvatar';
 import {
-  Send, ImagePlus, ArrowLeft, X,
+  Send, Paperclip, ArrowLeft, X,
   Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Trash2,
 } from 'lucide-react';
 
@@ -935,7 +935,7 @@ export default function ChatMessages({
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-3">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-5">
                 {messages.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center">
                     <p className="text-slate-600 text-sm">No messages yet — say hello!</p>
@@ -1224,9 +1224,9 @@ export default function ChatMessages({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0"
-                  title="Attach image"
+                  title="Attach file"
                 >
-                  <ImagePlus className="w-5 h-5" />
+                  <Paperclip className="w-5 h-5" />
                 </button>
 
                 {/* Create Offer button — seller only, when a conversation is open */}
@@ -1255,7 +1255,7 @@ export default function ChatMessages({
                   type="button"
                   onClick={sendMessage}
                   disabled={sending || (!inputText.trim() && !imageFile)}
-                  className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0"
+                  className="h-10 px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0 flex items-center justify-center"
                   title="Send"
                 >
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
