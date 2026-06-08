@@ -102,7 +102,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           options={{
             layout: 'tabs',
             wallets: { link: 'never', applePay: 'never', googlePay: 'never' },
-            paymentMethodOrder: ['card'],
+            paymentMethodOrder: ['card', 'us_bank_account'],
           }}
         />
 
