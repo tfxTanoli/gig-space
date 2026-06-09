@@ -2,11 +2,12 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { sanitizeHtml } from './utils/sanitize';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  MessageCircle, Bell, ChevronLeft, ChevronRight,
-  Bookmark, Star, Play,
+  ChevronLeft, ChevronRight,
+  Bookmark, Star, Play, ArrowRight,
 } from 'lucide-react';
 import Logo from './Logo';
-import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
+import HeaderUserMenu from './HeaderUserMenu';
+import { UserAvatar } from './UserAvatar';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
 import { ref, get, onValue, query, orderByChild, equalTo, update, increment } from 'firebase/database';
 import { database } from './firebase';
@@ -105,7 +106,6 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
     const build = async () => {
       const result: MapPin[] = [];
 
-      // Primary location — use saved lat/lng if available, otherwise geocode
       if (primaryLat != null && primaryLng != null) {
         result.push({ lat: primaryLat, lng: primaryLng, label: primaryLocation });
       } else if (primaryLocation) {
@@ -113,7 +113,6 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
         if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: primaryLocation });
       }
 
-      // Extra locations — always geocode (no saved coords)
       for (const loc of extraLocations) {
         const geo = await geocodeLocation(loc);
         if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: loc });
@@ -182,15 +181,39 @@ const FilledStars = ({ count, size = 14 }: { count: number; size?: number }) => 
   </div>
 );
 
-const SocialBtn = ({ href, children }: { href: string; children: ReactNode }) => (
-  <button
-    onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
-    className="flex items-center justify-center hover:opacity-70 transition-opacity flex-shrink-0"
-    title="Share"
-  >
-    {children}
-  </button>
-);
+/* Brand colors for social share hover */
+const socialBrandColors: Record<string, string> = {
+  facebook:  '#1877F2',
+  twitter:   '#E7E9EA',
+  linkedin:  '#0A66C2',
+  messenger: '#0099FF',
+  reddit:    '#FF4500',
+  pinterest: '#E60023',
+};
+
+const SocialBtn = ({
+  href,
+  brand,
+  children,
+}: {
+  href: string;
+  brand: keyof typeof socialBrandColors;
+  children: ReactNode;
+}) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ color: hovered ? socialBrandColors[brand] : '#62748E' }}
+      className="flex items-center justify-center transition-colors flex-shrink-0"
+      title="Share"
+    >
+      {children}
+    </button>
+  );
+};
 
 /* ─── Media item type for the gallery ─── */
 type MediaItem =
@@ -200,6 +223,11 @@ type MediaItem =
 /* ─── Helper: readable subcategory label ─── */
 function humanize(slug: string) {
   return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/* ─── Helper: format price with commas ─── */
+function fmtPrice(n: number) {
+  return n.toLocaleString('en-US');
 }
 
 /* ─── Main component ─── */
@@ -222,6 +250,11 @@ const ServiceDetail = () => {
 
   const isOwnService = !!(user && post && user.uid === post.sellerId);
   const viewTrackedRef = useRef(false);
+
+  const isNewSeller = !reviewsLoading && reviews.length === 0;
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+    : 0;
 
   // Build ordered media list (images + optional video)
   const mediaItems: MediaItem[] = (() => {
@@ -388,14 +421,6 @@ const ServiceDetail = () => {
     return () => unsub();
   }, [post?.id, post?.title]);
 
-  const formatPrice = () => {
-    if (!post) return '';
-    const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-    if (post.priceMax) return { from: `$${post.priceMin}`, range: `$${post.priceMin} – $${post.priceMax}`, suffix };
-    return { from: `$${post.priceMin}`, range: `$${post.priceMin}`, suffix };
-  };
-  const price = formatPrice() as { from: string; range: string; suffix: string } | '';
-
   /* ── Loading ── */
   if (loading) {
     return (
@@ -416,7 +441,6 @@ const ServiceDetail = () => {
   }
 
   /* ── Breadcrumb labels ── */
-  // getCategoryLabel returns the raw slug when no match found — detect that and humanize instead
   const rawCatLabel = getCategoryLabel(post.category);
   const categoryLabel = rawCatLabel !== post.category ? rawCatLabel : humanize(post.category);
   const rawSubLabel = post.subcategory ? getSubcategoryLabel(post.category, post.subcategory) : null;
@@ -424,41 +448,60 @@ const ServiceDetail = () => {
     ? (rawSubLabel !== post.subcategory ? rawSubLabel : humanize(post.subcategory))
     : null;
 
+  const pageUrl = window.location.href;
+  const enc = encodeURIComponent;
+  const shareTitle = post.title;
+  const shareImage = post.images?.[0] ?? '';
+
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* ── Header ── */}
-      <header className="bg-background border-b border-slate-800/70 h-16 flex items-center">
-        <div className="max-w-6xl mx-auto w-full px-4 md:px-6 lg:px-10 flex items-center justify-between">
-          <Logo className="h-6 shrink-0" />
-          <div className="flex items-center gap-3 md:gap-5">
-            <button className="text-slate-400 hover:text-white transition-colors hidden md:block">
-              <MessageCircle className="w-5 h-5" />
-            </button>
-            <button className="text-slate-400 hover:text-white transition-colors hidden md:block">
-              <Bell className="w-5 h-5" />
-            </button>
-            <Link to="/post-service" className="text-white text-sm font-medium hover:text-slate-300 transition-colors hidden md:block">
-              Create New Post
-            </Link>
-            <CurrentUserAvatar size="sm" />
-          </div>
+      <header className="bg-background border-b border-slate-800/70 h-16 flex items-center justify-between px-4 md:px-6 lg:px-12">
+        <Logo className="h-6 shrink-0" />
+        <div className="flex items-center gap-3 md:gap-5">
+          {user ? (
+            <>
+              <Link
+                to="/post-service"
+                className="text-white text-sm font-medium hover:text-slate-300 transition-colors hidden md:block"
+              >
+                Create New Post
+              </Link>
+              <HeaderUserMenu />
+            </>
+          ) : (
+            <>
+              <Link
+                to="/signin"
+                className="text-white text-sm font-medium hover:text-slate-300 transition-colors hidden md:block"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/signup"
+                className="hidden md:flex items-center text-white text-sm px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors"
+              >
+                Sign up <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
       {/* ── Main two-column content ── */}
       <main className="max-w-6xl mx-auto w-full px-4 md:px-6 lg:px-10 py-6 md:py-8 flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,380px)] gap-8 md:gap-10">
 
-        {/* ═══ LEFT COLUMN — gallery + description ═══ */}
+        {/* ═══ LEFT COLUMN — gallery + description + reviews ═══ */}
         <div className="order-2 lg:order-1 min-w-0">
 
           {/* ── Media gallery ── */}
           {mediaItems.length > 0 ? (
             <div className="mb-8">
-              {/* Main viewer — 16:9 aspect ratio */}
+              {/* Main viewer — 4:3 aspect ratio */}
               <div
                 className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full"
-                style={{ aspectRatio: '16/9' }}
+                style={{ aspectRatio: '4/3' }}
               >
                 {activeMedia?.kind === 'video' ? (
                   <video
@@ -538,9 +581,9 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          {/* Description */}
-          <div>
-            <h2 className="text-base font-bold text-white mb-4">Description</h2>
+          {/* ── Description ── */}
+          <div className="mb-8">
+            <h2 className="text-base font-medium text-white mb-4">Description</h2>
             {post.description ? (
               <div
                 className="text-slate-300 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
@@ -548,6 +591,66 @@ const ServiceDetail = () => {
               />
             ) : (
               <span className="text-slate-500 text-sm">No description provided.</span>
+            )}
+          </div>
+
+          {/* ── Customer Reviews ── */}
+          <div className="border-t border-slate-800/60 pt-8">
+            <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
+
+            {reviewsLoading ? (
+              <p className="text-slate-500 text-sm">Loading reviews…</p>
+            ) : reviews.length === 0 ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full">
+                  <span className="text-amber-400 text-xs font-semibold">New seller</span>
+                </div>
+                <span className="text-slate-500 text-sm">No reviews yet</span>
+              </div>
+            ) : (
+              <>
+                {/* Summary row */}
+                {(() => {
+                  const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+                  return (
+                    <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800/60">
+                      <span className="text-5xl font-bold text-white leading-none">{avg.toFixed(1)}</span>
+                      <div>
+                        <FilledStars count={avg} size={20} />
+                        <p className="text-slate-400 text-sm mt-1">
+                          {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Individual reviews */}
+                <div className="space-y-6">
+                  {reviews.map((review) => (
+                    <div
+                      key={review.orderId}
+                      className="flex gap-4 pb-6 border-b border-slate-800/50 last:border-0 last:pb-0"
+                    >
+                      <UserAvatar photoURL={review.reviewerPhoto} name={review.reviewerName} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1.5">
+                          <p className="text-white text-sm font-semibold">{review.reviewerName}</p>
+                          <span className="text-slate-600 text-xs shrink-0">
+                            {new Date(review.timestamp).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        <FilledStars count={review.rating} size={13} />
+                        {review.text && (
+                          <p className="text-slate-300 text-sm leading-relaxed mt-2">{review.text}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -572,7 +675,7 @@ const ServiceDetail = () => {
           <h1 className="text-3xl font-bold text-white mb-4 leading-snug">{post.title}</h1>
 
           {/* Seller row */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-3">
             <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
@@ -585,15 +688,45 @@ const ServiceDetail = () => {
             </div>
           </div>
 
-          {/* Price */}
-          {price && (
-            <div className="mb-5">
-              <span className="text-slate-400 text-sm">From </span>
-              <span className="text-white text-2xl font-bold">{price.from}</span>
-              {post.priceMax && (
-                <span className="text-slate-400 text-lg font-semibold"> – ${post.priceMax}</span>
+          {/* Rating / New seller badge (between seller and price) */}
+          {!reviewsLoading && (
+            <div className="mb-4">
+              {isNewSeller ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full">
+                  <span className="text-amber-400 text-xs font-semibold">New seller</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <FilledStars count={avgRating} size={14} />
+                  <span className="text-white text-sm font-semibold">{avgRating.toFixed(1)}</span>
+                  <span className="text-slate-500 text-xs">
+                    ({reviews.length} review{reviews.length !== 1 ? 's' : ''})
+                  </span>
+                </div>
               )}
-              <span className="text-slate-400 text-sm"> {price.suffix}</span>
+            </div>
+          )}
+
+          {/* Price */}
+          {post.priceMin != null && (
+            <div className="mb-5">
+              {post.priceMax ? (
+                /* Range: From $X – $Y per project */
+                <>
+                  <span className="text-slate-400 text-sm">From </span>
+                  <span className="text-white text-2xl font-bold">
+                    ${fmtPrice(post.priceMin)} – ${fmtPrice(post.priceMax)}
+                  </span>
+                  <span className="text-slate-400 text-sm"> {post.priceType === 'per_hour' ? 'per hour' : 'per project'}</span>
+                </>
+              ) : (
+                /* Single: From $X per project */
+                <>
+                  <span className="text-slate-400 text-sm">From </span>
+                  <span className="text-white text-2xl font-bold">${fmtPrice(post.priceMin)}</span>
+                  <span className="text-slate-400 text-sm"> {post.priceType === 'per_hour' ? 'per hour' : 'per project'}</span>
+                </>
+              )}
             </div>
           )}
 
@@ -625,12 +758,12 @@ const ServiceDetail = () => {
           {/* Locations */}
           {(post.primaryLocation || post.offeredRemotely || post.extraLocations?.length > 0) && (
             <div className="mb-4">
-              <h3 className="text-sm font-bold text-white mb-2">Locations Served</h3>
+              <h3 className="text-sm font-medium text-white mb-2">Locations Served</h3>
               <div className="text-slate-400 text-sm space-y-1">
                 {post.primaryLocation && <p>{post.primaryLocation}</p>}
                 {post.extraLocations?.map((loc) => <p key={loc}>{loc}</p>)}
                 {post.offeredRemotely && (
-                  <p className="text-primary">
+                  <p className="text-slate-400">
                     {post.primaryLocation ? `Remote (${post.primaryLocation})` : 'Remote'}
                   </p>
                 )}
@@ -638,7 +771,7 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          {/* Real map — only when there is a geocodable location */}
+          {/* Real map */}
           {(post.primaryLocation || (post.extraLocations?.length > 0)) && (
             <ServiceMap
               primaryLocation={post.primaryLocation}
@@ -648,10 +781,10 @@ const ServiceDetail = () => {
             />
           )}
 
-          {/* Languages — one per line */}
+          {/* Languages */}
           {post.languages?.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-sm font-bold text-white mb-1">Languages Spoken</h3>
+              <h3 className="text-sm font-medium text-white mb-1">Languages Spoken</h3>
               <div className="text-slate-400 text-sm space-y-0.5">
                 {post.languages.map((lang) => (
                   <p key={lang}>{lang}</p>
@@ -662,134 +795,66 @@ const ServiceDetail = () => {
 
           {/* Offered Remotely */}
           <div className="mb-4">
-            <h3 className="text-sm font-bold text-white mb-1">Offered Remotely</h3>
+            <h3 className="text-sm font-medium text-white mb-1">Offered Remotely</h3>
             <p className="text-slate-400 text-sm">{post.offeredRemotely ? 'Yes' : 'No'}</p>
           </div>
 
           <hr className="border-slate-800 mb-5" />
 
           {/* Share */}
-          {(() => {
-            const pageUrl = window.location.href;
-            const enc = encodeURIComponent;
-            const title = post.title;
-            const image = post.images?.[0] ?? '';
-            return (
-              <div>
-                <h3 className="text-sm font-bold text-white mb-3">Share</h3>
-                <div className="flex items-center gap-3">
-                  {/* Facebook */}
-                  <SocialBtn href={`https://www.facebook.com/sharer/sharer.php?u=${enc(pageUrl)}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <g clipPath="url(#fb-clip)">
-                        <path d="M12 2C6.4772 2 2 6.4772 2 12C2 16.6896 5.2288 20.6248 9.5844 21.7056V15.056H7.5224V12H9.5844V10.6832C9.5844 7.2796 11.1248 5.702 14.4664 5.702C15.1 5.702 16.1932 5.8264 16.6404 5.9504V8.7204C16.4044 8.6956 15.9944 8.6832 15.4852 8.6832C13.8456 8.6832 13.212 9.3044 13.212 10.9192V12H16.4784L15.9172 15.056H13.212V21.9268C18.1636 21.3288 22.0004 17.1128 22.0004 12C22 6.4772 17.5228 2 12 2Z" fill="#62748E"/>
-                      </g>
-                      <defs>
-                        <clipPath id="fb-clip"><rect width="20" height="20" fill="white" transform="translate(2 2)"/></clipPath>
-                      </defs>
-                    </svg>
-                  </SocialBtn>
-                  {/* X / Twitter */}
-                  <SocialBtn href={`https://twitter.com/intent/tweet?url=${enc(pageUrl)}&text=${enc(title)}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M17.2718 3.58667H20.0831L13.9414 10.6062L21.1666 20.1583H15.5093L11.0783 14.365L6.00821 20.1583H3.19528L9.76445 12.6501L2.83325 3.58667H8.63418L12.6394 8.88195L17.2718 3.58667ZM16.2852 18.4757H17.8429L7.78775 5.18095H6.11614L16.2852 18.4757Z" fill="#62748E"/>
-                    </svg>
-                  </SocialBtn>
-                  {/* LinkedIn */}
-                  <SocialBtn href={`https://www.linkedin.com/sharing/share-offsite/?url=${enc(pageUrl)}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <g clipPath="url(#li-clip)">
-                        <path d="M20.5195 2H3.47656C2.66016 2 2 2.64453 2 3.44141V20.5547C2 21.3516 2.66016 22 3.47656 22H20.5195C21.3359 22 22 21.3516 22 20.5586V3.44141C22 2.64453 21.3359 2 20.5195 2ZM7.93359 19.043H4.96484V9.49609H7.93359V19.043ZM6.44922 8.19531C5.49609 8.19531 4.72656 7.42578 4.72656 6.47656C4.72656 5.52734 5.49609 4.75781 6.44922 4.75781C7.39844 4.75781 8.16797 5.52734 8.16797 6.47656C8.16797 7.42188 7.39844 8.19531 6.44922 8.19531ZM19.043 19.043H16.0781V14.4023C16.0781 13.2969 16.0586 11.8711 14.5352 11.8711C12.9922 11.8711 12.7578 13.0781 12.7578 14.3242V19.043H9.79688V9.49609H12.6406V10.8008H12.6797C13.0742 10.0508 14.043 9.25781 15.4844 9.25781C18.4883 9.25781 19.043 11.2344 19.043 13.8047V19.043Z" fill="#62748E"/>
-                      </g>
-                      <defs>
-                        <clipPath id="li-clip"><rect width="20" height="20" fill="white" transform="translate(2 2)"/></clipPath>
-                      </defs>
-                    </svg>
-                  </SocialBtn>
-                  {/* Messenger */}
-                  <SocialBtn href={`fb-messenger://share?link=${enc(pageUrl)}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2.03979C6.3892 2.03979 2.03979 6.14964 2.03979 11.7009C2.03979 14.6048 3.22983 17.1135 5.16768 18.8469C5.33063 18.9923 5.42864 19.1967 5.43541 19.4146L5.4896 21.1867C5.50673 21.7516 6.09079 22.1193 6.60752 21.891L8.58442 21.0182C8.75215 20.9445 8.9398 20.9305 9.11629 20.9795C10.0251 21.2293 10.9916 21.3624 11.9996 21.3624C17.6103 21.3624 21.9597 17.2525 21.9597 11.7013C21.9597 6.15004 17.6107 2.03979 12 2.03979ZM18.1721 9.12287L14.7043 14.4821C14.5282 14.7542 14.1653 14.8319 13.8932 14.6558L10.6808 12.5774C10.5565 12.4969 10.3956 12.4993 10.2737 12.5833L6.65294 15.0805C6.12466 15.4446 5.47884 14.8179 5.82744 14.2793L9.29557 8.92008C9.47167 8.64798 9.83462 8.57029 10.1063 8.74638L13.3195 10.8252C13.4438 10.9057 13.6047 10.9033 13.7266 10.8192L17.3466 8.32249C17.8749 7.95796 18.5207 8.58503 18.1721 9.12366V9.12287Z" fill="#62748E"/>
-                    </svg>
-                  </SocialBtn>
-                  {/* Reddit */}
-                  <SocialBtn href={`https://www.reddit.com/submit?url=${enc(pageUrl)}&title=${enc(title)}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14.4412 5.65873C14.6493 6.54092 15.4415 7.19811 16.3874 7.19811C17.4918 7.19811 18.3871 6.30279 18.3871 5.19842C18.3871 4.09404 17.4918 3.19873 16.3874 3.19873C15.4218 3.19873 14.6165 3.88311 14.429 4.79342C12.8118 4.96686 11.549 6.33842 11.549 8.00061C11.549 8.00436 11.549 8.00717 11.549 8.01092C9.79023 8.08498 8.18429 8.58561 6.90929 9.37592C6.43585 9.00936 5.84147 8.79092 5.19647 8.79092C3.64866 8.79092 2.39429 10.0453 2.39429 11.5931C2.39429 12.7162 3.05429 13.6837 4.00772 14.1309C4.10054 17.384 7.64523 20.0006 12.0055 20.0006C16.3659 20.0006 19.9152 17.3812 20.0033 14.1253C20.9493 13.6753 21.6037 12.7106 21.6037 11.594C21.6037 10.0462 20.3493 8.79186 18.8015 8.79186C18.1593 8.79186 17.5677 9.00842 17.0952 9.37217C15.809 8.57623 14.1852 8.07561 12.4087 8.00904C12.4087 8.00623 12.4087 8.00436 12.4087 8.00154C12.4087 6.81092 13.2937 5.82279 14.4412 5.66061V5.65873ZM6.79679 13.3715C6.84366 12.3553 7.51866 11.5753 8.30335 11.5753C9.08804 11.5753 9.68804 12.3994 9.64116 13.4156C9.59429 14.4319 9.00835 14.8012 8.22272 14.8012C7.4371 14.8012 6.74991 14.3878 6.79679 13.3715ZM15.7087 11.5753C16.4943 11.5753 17.1693 12.3553 17.2152 13.3715C17.2621 14.3878 16.574 14.8012 15.7893 14.8012C15.0046 14.8012 14.4177 14.4328 14.3708 13.4156C14.324 12.3994 14.923 11.5753 15.7087 11.5753ZM14.7749 15.7228C14.9221 15.7378 15.0158 15.8906 14.9587 16.0275C14.4758 17.1815 13.3358 17.9925 12.0055 17.9925C10.6752 17.9925 9.53616 17.1815 9.05241 16.0275C8.99522 15.8906 9.08897 15.7378 9.23616 15.7228C10.0987 15.6356 11.0315 15.5878 12.0055 15.5878C12.9796 15.5878 13.9115 15.6356 14.7749 15.7228Z" fill="#62748E"/>
-                    </svg>
-                  </SocialBtn>
-                  {/* Pinterest */}
-                  <SocialBtn href={`https://pinterest.com/pin/create/button/?url=${enc(pageUrl)}&media=${enc(image)}&description=${enc(title)}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.236 2.636 7.855 6.356 9.312-.088-.791-.167-2.005.035-2.868.181-.78 1.172-4.97 1.172-4.97s-.299-.598-.299-1.482c0-1.388.806-2.428 1.808-2.428.852 0 1.266.64 1.266 1.408 0 .858-.546 2.14-.828 3.33-.236.995.499 1.806 1.476 1.806 1.772 0 3.136-1.866 3.136-4.561 0-2.385-1.715-4.052-4.163-4.052-2.834 0-4.498 2.126-4.498 4.323 0 .856.33 1.772.742 2.272a.3.3 0 0 1 .069.286c-.076.309-.244.995-.277 1.134-.044.183-.145.222-.334.134-1.249-.581-2.03-2.407-2.03-3.874 0-3.154 2.292-6.052 6.608-6.052 3.469 0 6.165 2.473 6.165 5.776 0 3.447-2.173 6.22-5.19 6.22-1.013 0-1.966-.527-2.292-1.148l-.623 2.378c-.226.869-.835 1.958-1.244 2.621.937.29 1.931.446 2.962.446 5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="#62748E"/>
-                    </svg>
-                  </SocialBtn>
-                </div>
-              </div>
-            );
-          })()}
+          <div>
+            <h3 className="text-sm font-medium text-white mb-3">Share</h3>
+            <div className="flex items-center gap-3">
+              {/* Facebook */}
+              <SocialBtn href={`https://www.facebook.com/sharer/sharer.php?u=${enc(pageUrl)}`} brand="facebook">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g clipPath="url(#fb-clip)">
+                    <path d="M12 2C6.4772 2 2 6.4772 2 12C2 16.6896 5.2288 20.6248 9.5844 21.7056V15.056H7.5224V12H9.5844V10.6832C9.5844 7.2796 11.1248 5.702 14.4664 5.702C15.1 5.702 16.1932 5.8264 16.6404 5.9504V8.7204C16.4044 8.6956 15.9944 8.6832 15.4852 8.6832C13.8456 8.6832 13.212 9.3044 13.212 10.9192V12H16.4784L15.9172 15.056H13.212V21.9268C18.1636 21.3288 22.0004 17.1128 22.0004 12C22 6.4772 17.5228 2 12 2Z" fill="currentColor"/>
+                  </g>
+                  <defs>
+                    <clipPath id="fb-clip"><rect width="20" height="20" fill="white" transform="translate(2 2)"/></clipPath>
+                  </defs>
+                </svg>
+              </SocialBtn>
+              {/* X / Twitter */}
+              <SocialBtn href={`https://twitter.com/intent/tweet?url=${enc(pageUrl)}&text=${enc(shareTitle)}`} brand="twitter">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.2718 3.58667H20.0831L13.9414 10.6062L21.1666 20.1583H15.5093L11.0783 14.365L6.00821 20.1583H3.19528L9.76445 12.6501L2.83325 3.58667H8.63418L12.6394 8.88195L17.2718 3.58667ZM16.2852 18.4757H17.8429L7.78775 5.18095H6.11614L16.2852 18.4757Z" fill="currentColor"/>
+                </svg>
+              </SocialBtn>
+              {/* LinkedIn */}
+              <SocialBtn href={`https://www.linkedin.com/sharing/share-offsite/?url=${enc(pageUrl)}`} brand="linkedin">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g clipPath="url(#li-clip)">
+                    <path d="M20.5195 2H3.47656C2.66016 2 2 2.64453 2 3.44141V20.5547C2 21.3516 2.66016 22 3.47656 22H20.5195C21.3359 22 22 21.3516 22 20.5586V3.44141C22 2.64453 21.3359 2 20.5195 2ZM7.93359 19.043H4.96484V9.49609H7.93359V19.043ZM6.44922 8.19531C5.49609 8.19531 4.72656 7.42578 4.72656 6.47656C4.72656 5.52734 5.49609 4.75781 6.44922 4.75781C7.39844 4.75781 8.16797 5.52734 8.16797 6.47656C8.16797 7.42188 7.39844 8.19531 6.44922 8.19531ZM19.043 19.043H16.0781V14.4023C16.0781 13.2969 16.0586 11.8711 14.5352 11.8711C12.9922 11.8711 12.7578 13.0781 12.7578 14.3242V19.043H9.79688V9.49609H12.6406V10.8008H12.6797C13.0742 10.0508 14.043 9.25781 15.4844 9.25781C18.4883 9.25781 19.043 11.2344 19.043 13.8047V19.043Z" fill="currentColor"/>
+                  </g>
+                  <defs>
+                    <clipPath id="li-clip"><rect width="20" height="20" fill="white" transform="translate(2 2)"/></clipPath>
+                  </defs>
+                </svg>
+              </SocialBtn>
+              {/* Messenger */}
+              <SocialBtn href={`fb-messenger://share?link=${enc(pageUrl)}`} brand="messenger">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2.03979C6.3892 2.03979 2.03979 6.14964 2.03979 11.7009C2.03979 14.6048 3.22983 17.1135 5.16768 18.8469C5.33063 18.9923 5.42864 19.1967 5.43541 19.4146L5.4896 21.1867C5.50673 21.7516 6.09079 22.1193 6.60752 21.891L8.58442 21.0182C8.75215 20.9445 8.9398 20.9305 9.11629 20.9795C10.0251 21.2293 10.9916 21.3624 11.9996 21.3624C17.6103 21.3624 21.9597 17.2525 21.9597 11.7013C21.9597 6.15004 17.6107 2.03979 12 2.03979ZM18.1721 9.12287L14.7043 14.4821C14.5282 14.7542 14.1653 14.8319 13.8932 14.6558L10.6808 12.5774C10.5565 12.4969 10.3956 12.4993 10.2737 12.5833L6.65294 15.0805C6.12466 15.4446 5.47884 14.8179 5.82744 14.2793L9.29557 8.92008C9.47167 8.64798 9.83462 8.57029 10.1063 8.74638L13.3195 10.8252C13.4438 10.9057 13.6047 10.9033 13.7266 10.8192L17.3466 8.32249C17.8749 7.95796 18.5207 8.58503 18.1721 9.12366V9.12287Z" fill="currentColor"/>
+                </svg>
+              </SocialBtn>
+              {/* Reddit */}
+              <SocialBtn href={`https://www.reddit.com/submit?url=${enc(pageUrl)}&title=${enc(shareTitle)}`} brand="reddit">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14.4412 5.65873C14.6493 6.54092 15.4415 7.19811 16.3874 7.19811C17.4918 7.19811 18.3871 6.30279 18.3871 5.19842C18.3871 4.09404 17.4918 3.19873 16.3874 3.19873C15.4218 3.19873 14.6165 3.88311 14.429 4.79342C12.8118 4.96686 11.549 6.33842 11.549 8.00061C11.549 8.00436 11.549 8.00717 11.549 8.01092C9.79023 8.08498 8.18429 8.58561 6.90929 9.37592C6.43585 9.00936 5.84147 8.79092 5.19647 8.79092C3.64866 8.79092 2.39429 10.0453 2.39429 11.5931C2.39429 12.7162 3.05429 13.6837 4.00772 14.1309C4.10054 17.384 7.64523 20.0006 12.0055 20.0006C16.3659 20.0006 19.9152 17.3812 20.0033 14.1253C20.9493 13.6753 21.6037 12.7106 21.6037 11.594C21.6037 10.0462 20.3493 8.79186 18.8015 8.79186C18.1593 8.79186 17.5677 9.00842 17.0952 9.37217C15.809 8.57623 14.1852 8.07561 12.4087 8.00904C12.4087 8.00623 12.4087 8.00436 12.4087 8.00154C12.4087 6.81092 13.2937 5.82279 14.4412 5.66061V5.65873ZM6.79679 13.3715C6.84366 12.3553 7.51866 11.5753 8.30335 11.5753C9.08804 11.5753 9.68804 12.3994 9.64116 13.4156C9.59429 14.4319 9.00835 14.8012 8.22272 14.8012C7.4371 14.8012 6.74991 14.3878 6.79679 13.3715ZM15.7087 11.5753C16.4943 11.5753 17.1693 12.3553 17.2152 13.3715C17.2621 14.3878 16.574 14.8012 15.7893 14.8012C15.0046 14.8012 14.4177 14.4328 14.3708 13.4156C14.324 12.3994 14.923 11.5753 15.7087 11.5753ZM14.7749 15.7228C14.9221 15.7378 15.0158 15.8906 14.9587 16.0275C14.4758 17.1815 13.3358 17.9925 12.0055 17.9925C10.6752 17.9925 9.53616 17.1815 9.05241 16.0275C8.99522 15.8906 9.08897 15.7378 9.23616 15.7228C10.0987 15.6356 11.0315 15.5878 12.0055 15.5878C12.9796 15.5878 13.9115 15.6356 14.7749 15.7228Z" fill="currentColor"/>
+                </svg>
+              </SocialBtn>
+              {/* Pinterest */}
+              <SocialBtn href={`https://pinterest.com/pin/create/button/?url=${enc(pageUrl)}&media=${enc(shareImage)}&description=${enc(shareTitle)}`} brand="pinterest">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C6.477 2 2 6.477 2 12c0 4.236 2.636 7.855 6.356 9.312-.088-.791-.167-2.005.035-2.868.181-.78 1.172-4.97 1.172-4.97s-.299-.598-.299-1.482c0-1.388.806-2.428 1.808-2.428.852 0 1.266.64 1.266 1.408 0 .858-.546 2.14-.828 3.33-.236.995.499 1.806 1.476 1.806 1.772 0 3.136-1.866 3.136-4.561 0-2.385-1.715-4.052-4.163-4.052-2.834 0-4.498 2.126-4.498 4.323 0 .856.33 1.772.742 2.272a.3.3 0 0 1 .069.286c-.076.309-.244.995-.277 1.134-.044.183-.145.222-.334.134-1.249-.581-2.03-2.407-2.03-3.874 0-3.154 2.292-6.052 6.608-6.052 3.469 0 6.165 2.473 6.165 5.776 0 3.447-2.173 6.22-5.19 6.22-1.013 0-1.966-.527-2.292-1.148l-.623 2.378c-.226.869-.835 1.958-1.244 2.621.937.29 1.931.446 2.962.446 5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="currentColor"/>
+                </svg>
+              </SocialBtn>
+            </div>
+          </div>
         </div>
       </main>
-
-      {/* ── Customer Reviews ── */}
-      <section className="border-t border-slate-800/60 px-4 md:px-6 lg:px-10 py-8 md:py-10 max-w-6xl mx-auto w-full">
-        <h2 className="text-xl font-bold text-white mb-6">Customer Reviews</h2>
-
-        {reviewsLoading ? (
-          <p className="text-slate-500 text-sm">Loading reviews…</p>
-        ) : reviews.length === 0 ? (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full">
-              <span className="text-amber-400 text-xs font-semibold">New seller</span>
-            </div>
-            <span className="text-slate-500 text-sm">No reviews yet</span>
-          </div>
-        ) : (
-          <>
-            {/* Summary row */}
-            {(() => {
-              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-              return (
-                <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800/60">
-                  <span className="text-5xl font-bold text-white leading-none">{avg.toFixed(1)}</span>
-                  <div>
-                    <FilledStars count={avg} size={20} />
-                    <p className="text-slate-400 text-sm mt-1">
-                      {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Individual reviews */}
-            <div className="space-y-6">
-              {reviews.map((review) => (
-                <div
-                  key={review.orderId}
-                  className="flex gap-4 pb-6 border-b border-slate-800/50 last:border-0 last:pb-0"
-                >
-                  <UserAvatar photoURL={review.reviewerPhoto} name={review.reviewerName} size="md" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-start justify-between gap-2 mb-1.5">
-                      <p className="text-white text-sm font-semibold">{review.reviewerName}</p>
-                      <span className="text-slate-600 text-xs shrink-0">
-                        {new Date(review.timestamp).toLocaleDateString('en-US', {
-                          month: 'short', day: 'numeric', year: 'numeric',
-                        })}
-                      </span>
-                    </div>
-                    <FilledStars count={review.rating} size={13} />
-                    {review.text && (
-                      <p className="text-slate-300 text-sm leading-relaxed mt-2">{review.text}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </section>
 
       {/* ── Footer ── */}
       <footer className="border-t border-slate-800 py-10 px-6 text-center text-sm text-slate-500">
