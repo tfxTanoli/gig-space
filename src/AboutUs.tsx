@@ -68,75 +68,80 @@ const AboutUs = () => {
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
-      {/* Header */}
-      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
-        <div className="flex items-center">
-          <Logo className="h-6" />
-        </div>
 
-        {/* Desktop nav */}
-        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
-          {user ? (
-            <HeaderUserMenu />
-          ) : (
-            <>
-              <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
-              <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
-                Sign up <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-            </>
-          )}
-        </nav>
+      {/* Shared starry background wrapper: header + hero */}
+      <div className="relative flex flex-col">
+        <StarryBackground />
 
-        {/* Mobile hamburger */}
-        <button
-          className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
-          onClick={() => setMenuOpen(prev => !prev)}
-          aria-label="Toggle menu"
-        >
-          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Header */}
+        <header className="relative z-10 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+          <div className="flex items-center">
+            <Logo className="h-6" />
+          </div>
 
-        {/* Mobile dropdown */}
-        {menuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             {user ? (
               <HeaderUserMenu />
             ) : (
               <>
-                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
-                <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                <Link to="/signin" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
+                <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
                   Sign up <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </>
             )}
-          </div>
-        )}
-      </header>
+          </nav>
 
-      {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-24 px-4 text-center relative overflow-hidden w-full">
-        <StarryBackground />
-        <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto">
-          <div className="inline-block border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold text-slate-300 mb-6 md:mb-8 tracking-wide">
-            About Us
-          </div>
+          {/* Mobile hamburger */}
+          <button
+            className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
+            onClick={() => setMenuOpen(prev => !prev)}
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
 
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-100 mb-4 md:mb-6 leading-tight tracking-tight">
-            Changing the way people<br />work together
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            From home services to digital work, Gigspace brings people together to collaborate, create, and accomplish any project big or small.
-          </p>
-        </div>
-      </section>
+          {/* Mobile dropdown */}
+          {menuOpen && (
+            <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+              {user ? (
+                <HeaderUserMenu />
+              ) : (
+                <>
+                  <Link to="/signin" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
+                  <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                    Sign up <ArrowRight className="ml-2 w-4 h-4" />
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
+        </header>
+
+        {/* Hero Section */}
+        <section className="flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-24 px-4 text-center relative w-full">
+          <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto">
+            <div className="inline-block border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold text-slate-300 mb-6 md:mb-8 tracking-wide">
+              About Us
+            </div>
+
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-heading mb-4 md:mb-6 leading-tight tracking-tight">
+              Changing the way people<br />work together
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+              From home services to digital work, Gigspace brings people together to collaborate, create, and accomplish any project big or small.
+            </p>
+          </div>
+        </section>
+      </div>
 
       {/* Mission & Stats Section */}
       <section className="px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Mission */}
           <div>
-            <h2 className="text-3xl font-bold text-white mb-8">Our mission</h2>
+            <h2 className="text-3xl font-bold gradient-heading mb-8">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
                 At Gigspace, our mission is to connect talented professionals with the people and businesses who need them—whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
@@ -181,7 +186,7 @@ const AboutUs = () => {
       {/* About Us Values */}
       <section className="px-6 lg:px-12 py-16 max-w-7xl mx-auto w-full border-b border-slate-800/80 mb-8">
         <div className="mb-16 max-w-2xl">
-          <h2 className="text-3xl font-bold text-white mb-4">About Us</h2>
+          <h2 className="text-3xl font-bold gradient-heading mb-4">About Us</h2>
           <p className="text-slate-400 text-lg leading-relaxed">
             Every feature, design, and interaction on Gigspace is built to accomplish one thing: help people succeed.
           </p>
@@ -196,7 +201,7 @@ const AboutUs = () => {
                   <VIcon />
                 </div>
                 <div className="ml-4">
-                  <p className="text-slate-300 text-sm leading-relaxed">
+                  <p className="text-slate-300 text-base leading-relaxed">
                     <span className="font-bold text-white mr-1">{value.title}</span>
                     {value.description}
                   </p>
@@ -209,13 +214,13 @@ const AboutUs = () => {
 
       {/* CTA Section */}
       <section className="py-24 px-6 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 leading-tight">
+        <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
           Gigspace makes it easier to hire, sell,<br />
           and get things done faster.
         </h2>
 
         <Link to="/signup" className="inline-flex items-center px-5 py-2 text-sm bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors">
-          Get started for free <ArrowRight className="w-4 h-4 ml-2" />
+          Get started for free <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
         </Link>
       </section>
 

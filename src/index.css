@@ -69,6 +69,13 @@
 }
 
 @layer utilities {
+  .gradient-heading {
+    background: linear-gradient(to right, #ffffff, #94A3B8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   /* GPU-composited transforms — apply to elements with group-hover:scale or transitions */
   .will-change-transform {
     will-change: transform;

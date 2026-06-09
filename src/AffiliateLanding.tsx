@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight, Menu, X, Camera, Leaf, Zap, Scissors, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -9,8 +9,10 @@ import StarryBackground from './StarryBackground';
 const AffStepIcon1 = () => (
   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="40" height="40" rx="8" fill="#2B7FFF"/>
-    <path d="M19.0174 10.8125C19.0603 10.5831 19.182 10.3759 19.3615 10.2268C19.5411 10.0777 19.7671 9.99609 20.0004 9.99609C20.2338 9.99609 20.4598 10.0777 20.6393 10.2268C20.8189 10.3759 20.9406 10.5831 20.9834 10.8125L22.0344 16.3705C22.1091 16.7656 22.3011 17.1291 22.5855 17.4135C22.8698 17.6978 23.2333 17.8898 23.6284 17.9645L29.1864 19.0155C29.4158 19.0583 29.623 19.1801 29.7721 19.3596C29.9212 19.5391 30.0028 19.7651 30.0028 19.9985C30.0028 20.2319 29.9212 20.4579 29.7721 20.6374C29.623 20.8169 29.4158 20.9386 29.1864 20.9815L23.6284 22.0325C23.2333 22.1071 22.8698 22.2992 22.5855 22.5835C22.3011 22.8679 22.1091 23.2313 22.0344 23.6265L20.9834 29.1845C20.9406 29.4139 20.8189 29.6211 20.6393 29.7702C20.4598 29.9193 20.2338 30.0009 20.0004 30.0009C19.7671 30.0009 19.5411 29.9193 19.3615 29.7702C19.182 29.6211 19.0603 29.4139 19.0174 29.1845L17.9664 23.6265C17.8918 23.2313 17.6997 22.8679 17.4154 22.5835C17.131 22.2992 16.7676 22.1071 16.3724 22.0325L10.8144 20.9815C10.585 20.9386 10.3778 20.8169 10.2287 20.6374C10.0796 20.4579 9.99805 20.2319 9.99805 19.9985C9.99805 19.7651 10.0796 19.5391 10.2287 19.3596C10.3778 19.1801 10.585 19.0583 10.8144 19.0155L16.3724 17.9645C16.7676 17.8898 17.131 17.6978 17.4154 17.4135C17.6997 17.1291 17.8918 16.7656 17.9664 16.3705L19.0174 10.8125Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M26.25 10L26.875 12.5L29.375 12.5L27.5 14.0625L28.125 16.5625L26.25 15L24.375 16.5625L25 14.0625L23.125 12.5L25.625 12.5L26.25 10Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M19.0174 10.8125C19.0603 10.5831 19.182 10.3759 19.3615 10.2268C19.5411 10.0777 19.7671 9.99609 20.0004 9.99609C20.2338 9.99609 20.4598 10.0777 20.6393 10.2268C20.8189 10.3759 20.9406 10.5831 20.9834 10.8125L22.0344 16.3705C22.1091 16.7656 22.3011 17.1291 22.5855 17.4135C22.8698 17.6978 23.2333 17.8898 23.6284 17.9645L29.1864 19.0155C29.4158 19.0583 29.623 19.1801 29.7721 19.3596C29.9212 19.5391 30.0028 19.7651 30.0028 19.9985C30.0028 20.2319 29.9212 20.4579 29.7721 20.6374C29.623 20.8169 29.4158 20.9386 29.1864 20.9815L23.6284 22.0325C23.2333 22.1071 22.8698 22.2992 22.5855 22.5835C22.3011 22.8679 22.1091 23.2313 22.0344 23.6265L20.9834 29.1845C20.9406 29.4139 20.8189 29.6211 20.6393 29.7702C20.4598 29.9193 20.2338 30.0009 20.0004 30.0009C19.7671 30.0009 19.5411 29.9193 19.3615 29.7702C19.182 29.6211 19.0603 29.4139 19.0174 29.1845L17.9664 23.6265C17.8918 23.2313 17.6998 22.8679 17.4154 22.5835C17.1311 22.2992 16.7676 22.1071 16.3724 22.0325L10.8144 20.9815C10.585 20.9386 10.3779 20.8169 10.2288 20.6374C10.0797 20.4579 9.99805 20.2319 9.99805 19.9985C9.99805 19.7651 10.0797 19.5391 10.2288 19.3596C10.3779 19.1801 10.585 19.0583 10.8144 19.0155L16.3724 17.9645C16.7676 17.8898 17.1311 17.6978 17.4154 17.4135C17.6998 17.1291 17.8918 16.7656 17.9664 16.3705L19.0174 10.8125Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M28 10V14" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M30 12H26" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 30C13.1046 30 14 29.1046 14 28C14 26.8954 13.1046 26 12 26C10.8954 26 10 26.8954 10 28C10 29.1046 10.8954 30 12 30Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -117,16 +119,25 @@ const categories = [
   { name: 'Labor & Moving', Icon: Package },
   { name: 'Programming & Tech', Icon: Code2 },
   { name: 'Skilled Trade', Icon: Wrench },
+  { name: 'Photography', Icon: Camera },
+  { name: 'Landscaping', Icon: Leaf },
+  { name: 'Electrical', Icon: Zap },
+  { name: 'Beauty & Wellness', Icon: Scissors },
+  { name: 'Delivery', Icon: Truck },
 ];
 
 const AffiliateLanding = () => {
   const { user, loading } = useAuth();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const catScrollRef = useRef<HTMLDivElement>(null);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
+
+  const scrollCats = (dir: 'left' | 'right') =>
+    catScrollRef.current?.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' });
 
   const ctaHref = user ? '/affiliate-dashboard' : '/signup?next=/affiliate-dashboard';
   const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
@@ -134,90 +145,94 @@ const AffiliateLanding = () => {
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
-      {/* Header */}
-      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
-        <Logo className="h-6" />
+      {/* Shared starry background wrapper: header + hero */}
+      <div className="relative flex flex-col">
+        <StarryBackground />
 
-        {/* Desktop nav */}
-        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
-          {!loading && (
-            user ? (
-              <HeaderUserMenu />
-            ) : (
-              <>
-                <Link to="/signin?next=/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors">
-                  Affiliate Log In
-                </Link>
-                <Link
-                  to="/signup?next=/affiliate-dashboard"
-                  className="flex items-center text-white px-4 py-2 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
-                >
-                  Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
-              </>
-            )
-          )}
-        </nav>
+        {/* Header */}
+        <header className="relative z-10 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+          <Logo className="h-6" />
 
-        {/* Mobile hamburger */}
-        <button
-          className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
-          onClick={() => setMenuOpen(prev => !prev)}
-          aria-label="Toggle menu"
-        >
-          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-
-        {/* Mobile dropdown */}
-        {menuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             {!loading && (
               user ? (
                 <HeaderUserMenu />
               ) : (
                 <>
-                  <Link to="/signin?next=/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
+                  <Link to="/signin?next=/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors">
                     Affiliate Log In
                   </Link>
                   <Link
                     to="/signup?next=/affiliate-dashboard"
-                    className="flex items-center justify-center text-white px-4 py-3 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
-                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center text-white px-4 py-2 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
                   >
                     Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
                   </Link>
                 </>
               )
             )}
-          </div>
-        )}
-      </header>
+          </nav>
 
-      {/* Hero */}
-      <section className="flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-28 px-4 text-center relative overflow-hidden">
-        <StarryBackground />
-        <div className="relative z-10 flex flex-col items-center">
-          <p className="text-slate-400 text-sm mb-6 md:mb-8">The Gigspace affiliate program is now live!</p>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-100 mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
-            Earn Big Commissions for<br />Every Job Booked
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed">
-            Get paid every time someone hires a service through your link.
-            Earn 50% of our platform fee on every completed job.
-          </p>
-          <Link
-            to={ctaHref}
-            className="inline-flex items-center px-5 py-2 text-sm border border-slate-500 text-white font-semibold rounded-full hover:bg-slate-800 transition-colors"
+          {/* Mobile hamburger */}
+          <button
+            className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
+            onClick={() => setMenuOpen(prev => !prev)}
+            aria-label="Toggle menu"
           >
-            {ctaLabel} <ArrowRight className="w-4 h-4 ml-2" />
-          </Link>
-        </div>
-      </section>
+            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+
+          {/* Mobile dropdown */}
+          {menuOpen && (
+            <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+              {!loading && (
+                user ? (
+                  <HeaderUserMenu />
+                ) : (
+                  <>
+                    <Link to="/signin?next=/affiliate-dashboard" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>
+                      Affiliate Log In
+                    </Link>
+                    <Link
+                      to="/signup?next=/affiliate-dashboard"
+                      className="flex items-center justify-center text-white px-4 py-3 border border-slate-600 rounded-full hover:bg-slate-800 transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Become an Affiliate <ArrowRight className="ml-2 w-4 h-4" />
+                    </Link>
+                  </>
+                )
+              )}
+            </div>
+          )}
+        </header>
+
+        {/* Hero */}
+        <section className="flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-28 px-4 text-center relative">
+          <div className="relative z-10 flex flex-col items-center">
+            <p className="text-slate-400 text-sm mb-6 md:mb-8">The Gigspace affiliate program is now live!</p>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
+              Earn Big Commissions for<br />Every Job Booked
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed">
+              Get paid every time someone hires a service through your link.<br />
+              Earn 50% of our platform fee on every completed job.
+            </p>
+            <Link
+              to={ctaHref}
+              className="inline-flex items-center px-5 py-2 text-sm bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors"
+            >
+              {ctaLabel} <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
+            </Link>
+          </div>
+        </section>
+      </div>
 
       {/* How It Works */}
       <section className="px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
         <div className="mb-16 max-w-2xl">
-          <h2 className="text-3xl font-bold text-white mb-4">How it works</h2>
+          <h2 className="text-3xl font-bold gradient-heading mb-4">How it works</h2>
           <p className="text-slate-400 leading-relaxed">
             Sign up in minutes, share your link, and earn commissions every time someone books a service through Gigspace.
           </p>
@@ -226,7 +241,7 @@ const AffiliateLanding = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="flex flex-col items-start">
             <div className="mb-6"><AffStepIcon1 /></div>
-            <h3 className="text-white font-bold mb-3">1. Sign Up as an Affiliate</h3>
+            <h3 className="gradient-heading font-bold mb-3">1. Sign Up as an Affiliate</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Create your free affiliate account in minutes and get instant access to your unique referral link and tracking dashboard.
             </p>
@@ -237,7 +252,7 @@ const AffiliateLanding = () => {
 
           <div className="flex flex-col items-start">
             <div className="mb-6"><AffStepIcon2 /></div>
-            <h3 className="text-white font-bold mb-3">2. Share Your Link</h3>
+            <h3 className="gradient-heading font-bold mb-3">2. Share Your Link</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Promote Gigspace anywhere — social media, your audience, or direct outreach. Every click and referral is tracked automatically.
             </p>
@@ -248,7 +263,7 @@ const AffiliateLanding = () => {
 
           <div className="flex flex-col items-start">
             <div className="p-3 bg-[#2B7FFF] rounded-lg w-fit mb-6"><WalletIcon /></div>
-            <h3 className="text-white font-bold mb-3">3. Get paid</h3>
+            <h3 className="gradient-heading font-bold mb-3">3. Get paid</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               When someone books a service through your link, you earn 50% of our platform fee once the job is completed.
             </p>
@@ -265,7 +280,7 @@ const AffiliateLanding = () => {
           <span className="inline-block text-primary text-xs font-bold tracking-widest border border-primary/30 bg-primary/10 rounded-full px-4 py-1.5 mb-6">
             Earnings that scale
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">See What You Can Earn</h2>
+          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-4">See What You Can Earn</h2>
           <p className="text-slate-400 max-w-2xl mx-auto leading-relaxed">
             From small local services to high-ticket contracts, your earnings scale with every referral. Get paid when any service is completed.
           </p>
@@ -288,38 +303,46 @@ const AffiliateLanding = () => {
       {/* Popular Service Categories */}
       <section className="px-4 md:px-6 lg:px-12 py-20 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-xl font-bold text-white">Popular Service Categories</h2>
+          <h2 className="text-xl font-bold gradient-heading">Popular Service Categories</h2>
           <div className="flex items-center gap-2">
-            <button className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors">
+            <button
+              onClick={() => scrollCats('left')}
+              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors"
+            >
               <ChevronLeft className="w-4 h-4 text-slate-400" />
             </button>
-            <button className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors">
+            <button
+              onClick={() => scrollCats('right')}
+              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors"
+            >
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 md:gap-8">
+        <div ref={catScrollRef} className="overflow-x-auto scrollbar-hide">
+          <div className="flex flex-nowrap gap-6 md:gap-10 pb-2">
           {categories.map(({ name, Icon }, i) => (
             <Link
               key={i}
               to={`/search?category=${encodeURIComponent(name)}`}
-              className="flex flex-col items-center group cursor-pointer"
+              className="flex flex-col items-center group cursor-pointer flex-shrink-0 w-24 md:w-28"
             >
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 md:mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
                 <Icon className="w-8 h-8 md:w-10 md:h-10 text-primary" strokeWidth={1.5} />
               </div>
-              <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors text-center">
+              <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors text-center w-full">
                 {name}
               </span>
             </Link>
           ))}
+          </div>
         </div>
       </section>
 
       {/* FAQ */}
       <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-4xl mx-auto w-full">
-        <h2 className="text-2xl font-bold text-white mb-10">Frequently asked questions</h2>
+        <h2 className="text-2xl font-bold gradient-heading mb-10">Frequently asked questions</h2>
         <div>
           {faqs.map((faq, index) => (
             <div key={index} className="border-b border-slate-800/80 overflow-hidden">
@@ -347,10 +370,10 @@ const AffiliateLanding = () => {
       </section>
 
       {/* Mission */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80">
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-6">Our mission</h2>
+            <h2 className="text-3xl font-bold gradient-heading mb-6">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
                 At Gigspace, our mission is to connect independent professionals with the people and businesses who need them—whether it's parents on home projects, entrepreneurs, or small businesses, we empower sellers to work independently, securely, and freely. Because when local experts thrive, so do their communities.
@@ -380,15 +403,15 @@ const AffiliateLanding = () => {
 
       {/* CTA */}
       <section className="py-24 px-6 text-center border-t border-slate-800/80">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 leading-tight">
+        <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
           Join hundreds of affiliates earning big<br />
           {'💰'} with Gigspace
         </h2>
         <Link
           to={ctaHref}
-          className="inline-flex items-center px-5 py-2 text-sm border border-slate-500 text-white font-semibold rounded-full hover:bg-slate-800 transition-colors"
+          className="inline-flex items-center px-5 py-2 text-sm bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors"
         >
-          {ctaLabel} <ArrowRight className="w-4 h-4 ml-2" />
+          {ctaLabel} <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
         </Link>
       </section>
 

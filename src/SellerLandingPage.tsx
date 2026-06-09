@@ -30,10 +30,13 @@ const WalletIcon = () => (
   </svg>
 );
 
-const IconSearch = () => (
+const IconScreen = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M17.5 17.5L13.8833 13.8833" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V12.5C2.5 13.4205 3.24619 14.1667 4.16667 14.1667H15.8333C16.7538 14.1667 17.5 13.4205 17.5 12.5V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3.33333 17.5H4.16667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M7.5 17.5H8.33333" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M11.6667 17.5H12.5" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15.8333 17.5H16.6667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -44,16 +47,6 @@ const IconBadgeCheck = () => (
       <path d="M7.5 10L9.16667 11.6667L12.5 8.33333" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </g>
     <defs><clipPath id="bc1s"><rect width="20" height="20" fill="white"/></clipPath></defs>
-  </svg>
-);
-
-const IconScreen = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V12.5C2.5 13.4205 3.24619 14.1667 4.16667 14.1667H15.8333C16.7538 14.1667 17.5 13.4205 17.5 12.5V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3.33333 17.5H4.16667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M7.5 17.5H8.33333" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M11.6667 17.5H12.5" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M15.8333 17.5H16.6667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -85,32 +78,42 @@ const IconBadgePercent = () => (
   </svg>
 );
 
-const featureIcons = [IconSearch, IconBadgeCheck, IconScreen, IconChat, IconShieldCheck, IconBadgePercent];
+const IconBarChart = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2.5 14.1667V10.8333" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6.66667 14.1667V5.83333" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10.8333 14.1667V8.33333" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15 14.1667V2.5" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M1.66667 16.6667H16.6667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const featureIcons = [IconScreen, IconBadgeCheck, IconChat, IconShieldCheck, IconBadgePercent, IconBarChart];
 
 const features = [
   {
-    title: 'Post in 5 minutes or less.',
-    description: 'Create a free front page profile. Showcase photos, add a video, and list your prices.'
+    title: 'Photo & video portfolios.',
+    description: 'Show off your best work with clean portfolios that help build trust with buyers.'
   },
   {
     title: 'Custom pricing.',
-    description: "Set multiple package levels or a basic hourly rate so there's an option for everyone's budget."
+    description: "Send tailored quotes for each customer's project and charge exactly what your work is worth."
   },
   {
     title: 'Real-time messaging.',
-    description: 'Chat instantly and exchange files right from your inbox before accepting new jobs.'
+    description: 'Chat instantly with customers to answer questions, confirm details, and close deals without delays.'
   },
   {
     title: 'Secure escrow payments.',
-    description: 'Stop chasing down clients for your hard-earned cash. We guarantee payment upfront so you are protected.'
+    description: 'Transact with confidence knowing funds are locked in and released when the job is approved.'
   },
   {
-    title: 'No phantom booking.',
-    description: "We don't take a percentage from sellers like other platforms. The full price you set is what you earn."
+    title: 'Fair, low seller fees.',
+    description: "Keep more of what you earn with a simple fee structure that's lower than every other marketplace."
   },
   {
     title: 'Performance insights.',
-    description: 'Track views, clicks, and earnings inside your seller dashboard to see how to boost your growth.'
+    description: 'Track views, messages, orders, and earnings to see what\'s working and optimize your growth.'
   }
 ];
 
@@ -134,83 +137,87 @@ const SellerLandingPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
-      {/* Header */}
-      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center relative">
-        <div className="flex items-center">
-          <Logo className="h-6" />
-        </div>
 
-        {/* Desktop nav */}
-        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
-          <Link to="/" className="text-white hover:text-slate-300 transition-colors">For Buyers</Link>
-          <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
-          {user ? (
-            <HeaderUserMenu />
-          ) : (
-            <>
-              <Link to="/signin?next=/seller-dashboard" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
-              <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
-                Sign up <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-            </>
-          )}
-        </nav>
+      {/* Shared starry background wrapper: header + hero */}
+      <div className="relative flex flex-col">
+        <StarryBackground />
 
-        {/* Mobile hamburger */}
-        <button
-          className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
-          onClick={() => setMenuOpen(prev => !prev)}
-          aria-label="Toggle menu"
-        >
-          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Header */}
+        <header className="relative z-10 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+          <div className="flex items-center">
+            <Logo className="h-6" />
+          </div>
 
-        {/* Mobile dropdown menu */}
-        {menuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
-            <Link to="/" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Buyers</Link>
-            <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
+            <Link to="/" className="text-white hover:text-slate-300 transition-colors">For Buyers</Link>
+            <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
             {user ? (
               <HeaderUserMenu />
             ) : (
               <>
-                <Link to="/signin?next=/seller-dashboard" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
-                <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                <Link to="/signin?next=/seller-dashboard" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
+                <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
                   Sign up <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </>
             )}
+          </nav>
+
+          {/* Mobile hamburger */}
+          <button
+            className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
+            onClick={() => setMenuOpen(prev => !prev)}
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+
+          {/* Mobile dropdown menu */}
+          {menuOpen && (
+            <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
+              <Link to="/" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Buyers</Link>
+              <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
+              {user ? (
+                <HeaderUserMenu />
+              ) : (
+                <>
+                  <Link to="/signin?next=/seller-dashboard" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
+                  <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                    Sign up <ArrowRight className="ml-2 w-4 h-4" />
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
+        </header>
+
+        {/* Hero Section */}
+        <section className="flex-1 flex flex-col items-center justify-center pt-12 md:pt-24 pb-16 md:pb-20 px-4 text-center relative">
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="inline-flex flex-row items-center bg-surface-raised text-white border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 md:mb-8 space-x-2">
+              <span>Stripe integration is now live 💸</span>
+            </div>
+
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
+              Get Discovered. Get Hired.<br/>Get Paid.
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed">
+              From home repairs to digital work and everything in between.<br />
+              Turn any skill into income and earn doing what you do best.
+            </p>
+
+            <Link to="/signup" className="inline-flex flex-row items-center bg-white hover:bg-slate-200 text-background font-semibold py-2 px-5 text-sm rounded-full transition-colors">
+              Become a Seller <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
+            </Link>
           </div>
-        )}
-      </header>
-
-      {/* Hero Section */}
-      <section className="flex-1 flex flex-col items-center justify-center pt-12 md:pt-24 pb-16 md:pb-20 px-4 text-center relative overflow-hidden">
-        <StarryBackground />
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="inline-flex flex-row items-center bg-surface-raised text-white border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 md:mb-8 space-x-2">
-            <span>{'💸'}</span>
-            <span>Stripe integration is now live!</span>
-          </div>
-
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-100 mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
-            Get Discovered. Get Hired.<br/>Get Paid.
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed">
-            Reach thousands of buyers searching for local and remote gigs.
-            Turn your skills into a booming business without the guesswork.
-          </p>
-
-          <Link to="/signup" className="inline-flex flex-row items-center bg-white hover:bg-slate-200 text-background font-semibold py-2 px-5 text-sm rounded-full transition-colors">
-            Become a Seller <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
-          </Link>
-        </div>
-      </section>
+        </section>
+      </div>
 
       {/* How it works */}
       <section className="px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
         <div className="mb-16 max-w-2xl">
-          <h2 className="text-3xl font-bold text-white mb-4">How it works</h2>
+          <h2 className="text-3xl font-bold gradient-heading mb-4">How it works</h2>
           <p className="text-slate-400 leading-relaxed">
             Gigspace makes selling your services easy. With simple tools for posting, messaging, and payments, you can scale your business faster than ever.
           </p>
@@ -221,7 +228,7 @@ const SellerLandingPage = () => {
             <div className="mb-6">
               <StepIconCreate />
             </div>
-            <h3 className="text-white font-bold mb-3">1. Create a post</h3>
+            <h3 className="gradient-heading font-bold mb-3">1. Create a post</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Sign up for free, create your first post, and start showcasing your skills to a growing audience.
             </p>
@@ -234,7 +241,7 @@ const SellerLandingPage = () => {
             <div className="mb-6">
               <StepIconDeliver />
             </div>
-            <h3 className="text-white font-bold mb-3">2. Deliver excellent work</h3>
+            <h3 className="gradient-heading font-bold mb-3">2. Deliver excellent work</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Get order notifications, chat with customers, and track everything via your dashboard.
             </p>
@@ -247,7 +254,7 @@ const SellerLandingPage = () => {
             <div className="p-3 bg-[#2B7FFF] rounded-lg w-fit mb-6">
               <WalletIcon />
             </div>
-            <h3 className="text-white font-bold mb-3">3. Get paid</h3>
+            <h3 className="gradient-heading font-bold mb-3">3. Get paid</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Accept payments directly through Stripe and funds remit to your bank account.
             </p>
@@ -259,10 +266,10 @@ const SellerLandingPage = () => {
       </section>
 
       {/* Our Mission */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80">
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-6">Our mission</h2>
+            <h2 className="text-3xl font-bold gradient-heading mb-6">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
                 At Gigspace, our mission is to connect independent professionals with the people and businesses who need them—whether it's parents on home projects, entrepreneurs, or small businesses, we empower sellers to work independently, securely, and freely. Because when local experts thrive, so do their communities.
@@ -296,7 +303,7 @@ const SellerLandingPage = () => {
           <span className="text-primary text-xs font-bold tracking-widest uppercase block mb-3">
             Finally, a marketplace built for sellers
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
             A better way to sell your services
           </h2>
           <p className="text-slate-400 text-lg leading-relaxed">
@@ -313,7 +320,7 @@ const SellerLandingPage = () => {
                   <FeatureIcon />
                 </div>
                 <div className="ml-4">
-                  <p className="text-slate-300 text-sm leading-relaxed">
+                  <p className="text-slate-300 text-base leading-relaxed">
                     <span className="font-bold text-white mr-1">{feature.title}</span>
                     {feature.description}
                   </p>
@@ -326,7 +333,7 @@ const SellerLandingPage = () => {
 
       {/* FAQ */}
       <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-4xl mx-auto w-full">
-        <h2 className="text-2xl font-bold text-white mb-10 text-center md:text-left">
+        <h2 className="text-2xl font-bold gradient-heading mb-10 text-center md:text-left">
           Frequently asked questions
         </h2>
 
@@ -358,13 +365,13 @@ const SellerLandingPage = () => {
 
       {/* CTA Section */}
       <section className="py-24 px-6 text-center border-t border-slate-800/80">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 leading-tight">
+        <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
           Work smarter, not harder.<br />
           Earn more with Gigspace today.
         </h2>
 
         <Link to="/signup" className="inline-flex items-center px-5 py-2 text-sm bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors">
-          Get started for free <ArrowRight className="w-4 h-4 ml-2" />
+          Get started for free <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
         </Link>
       </section>
 

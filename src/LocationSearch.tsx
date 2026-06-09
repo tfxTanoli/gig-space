@@ -84,7 +84,7 @@ const LocationSearch = ({
 
   const triggerClass =
     variant === 'hero'
-      ? 'flex items-center w-full md:w-auto px-4 py-2 text-slate-300 hover:text-white transition-colors whitespace-nowrap'
+      ? 'flex items-center justify-between w-full px-4 py-2 text-slate-300 hover:text-white transition-colors whitespace-nowrap'
       : 'px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-sm h-full bg-surface-raised hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
 
   return (
@@ -96,7 +96,7 @@ const LocationSearch = ({
         <span className={`${variant === 'hero' ? 'text-sm mr-2' : 'mr-2'} max-w-[120px] truncate`}>
           {displayLabel}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-500 shrink-0 ${variant === 'hero' ? '' : 'ml-auto'}`} />
+        <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-auto" />
       </button>
 
       {open && (
