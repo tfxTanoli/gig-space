@@ -214,8 +214,42 @@ const SellerLandingPage = () => {
         </section>
       </div>
 
+      {/* Features */}
+      <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
+        <div className="mb-16 max-w-2xl">
+          <span className="text-primary text-xs font-bold tracking-widest uppercase block mb-3">
+            Finally, a marketplace built for sellers
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
+            A better way to sell your services
+          </h2>
+          <p className="text-slate-400 text-lg leading-relaxed">
+            We remove the limits of traditional freelance platforms by giving you control and flexibility to scale your business on your terms.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
+          {features.map((feature, i) => {
+            const FeatureIcon = featureIcons[i];
+            return (
+              <div key={i} className="flex items-start">
+                <div className="mt-1 flex-shrink-0">
+                  <FeatureIcon />
+                </div>
+                <div className="ml-4">
+                  <p className="text-slate-300 text-base leading-relaxed">
+                    <span className="font-bold text-white mr-1">{feature.title}</span>
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* How it works */}
-      <section className="px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
+      <section className="px-6 lg:px-12 py-20 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
         <div className="mb-16 max-w-2xl">
           <h2 className="text-3xl font-bold gradient-heading mb-4">How it works</h2>
           <p className="text-slate-400 leading-relaxed">
@@ -228,7 +262,7 @@ const SellerLandingPage = () => {
             <div className="mb-6">
               <StepIconCreate />
             </div>
-            <h3 className="gradient-heading font-bold mb-3">1. Create a post</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">1. Create a post</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Sign up for free, create your first post, and start showcasing your skills to a growing audience.
             </p>
@@ -241,7 +275,7 @@ const SellerLandingPage = () => {
             <div className="mb-6">
               <StepIconDeliver />
             </div>
-            <h3 className="gradient-heading font-bold mb-3">2. Deliver excellent work</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">2. Deliver excellent work</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Get order notifications, chat with customers, and track everything via your dashboard.
             </p>
@@ -254,7 +288,7 @@ const SellerLandingPage = () => {
             <div className="p-3 bg-[#2B7FFF] rounded-lg w-fit mb-6">
               <WalletIcon />
             </div>
-            <h3 className="gradient-heading font-bold mb-3">3. Get paid</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">3. Get paid</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Accept payments directly through Stripe and funds remit to your bank account.
             </p>
@@ -294,40 +328,6 @@ const SellerLandingPage = () => {
               <div className="text-slate-500 text-sm">Price range sellers can earn</div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
-        <div className="mb-16 max-w-2xl">
-          <span className="text-primary text-xs font-bold tracking-widest uppercase block mb-3">
-            Finally, a marketplace built for sellers
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
-            A better way to sell your services
-          </h2>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            We remove the limits of traditional freelance platforms by giving you control and flexibility to scale your business on your terms.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-          {features.map((feature, i) => {
-            const FeatureIcon = featureIcons[i];
-            return (
-              <div key={i} className="flex items-start">
-                <div className="mt-1 flex-shrink-0">
-                  <FeatureIcon />
-                </div>
-                <div className="ml-4">
-                  <p className="text-slate-300 text-base leading-relaxed">
-                    <span className="font-bold text-white mr-1">{feature.title}</span>
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </section>
 

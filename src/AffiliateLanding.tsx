@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, ChevronLeft, ChevronRight, Menu, X, Camera, Leaf, Zap, Scissors, Truck } from 'lucide-react';
+import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -119,11 +119,11 @@ const categories = [
   { name: 'Labor & Moving', Icon: Package },
   { name: 'Programming & Tech', Icon: Code2 },
   { name: 'Skilled Trade', Icon: Wrench },
-  { name: 'Photography', Icon: Camera },
-  { name: 'Landscaping', Icon: Leaf },
-  { name: 'Electrical', Icon: Zap },
-  { name: 'Beauty & Wellness', Icon: Scissors },
-  { name: 'Delivery', Icon: Truck },
+  { name: 'Business', Icon: Briefcase },
+  { name: 'Lessons', Icon: Music },
+  { name: 'Marketing', Icon: Megaphone },
+  { name: 'Legal', Icon: Scale },
+  { name: 'Real Estate', Icon: MapPinHouse },
 ];
 
 const AffiliateLanding = () => {
@@ -241,7 +241,7 @@ const AffiliateLanding = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="flex flex-col items-start">
             <div className="mb-6"><AffStepIcon1 /></div>
-            <h3 className="gradient-heading font-bold mb-3">1. Sign Up as an Affiliate</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">1. Sign Up as an Affiliate</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Create your free affiliate account in minutes and get instant access to your unique referral link and tracking dashboard.
             </p>
@@ -252,7 +252,7 @@ const AffiliateLanding = () => {
 
           <div className="flex flex-col items-start">
             <div className="mb-6"><AffStepIcon2 /></div>
-            <h3 className="gradient-heading font-bold mb-3">2. Share Your Link</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">2. Share Your Link</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               Promote Gigspace anywhere — social media, your audience, or direct outreach. Every click and referral is tracked automatically.
             </p>
@@ -263,7 +263,7 @@ const AffiliateLanding = () => {
 
           <div className="flex flex-col items-start">
             <div className="p-3 bg-[#2B7FFF] rounded-lg w-fit mb-6"><WalletIcon /></div>
-            <h3 className="gradient-heading font-bold mb-3">3. Get paid</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">3. Get paid</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
               When someone books a service through your link, you earn 50% of our platform fee once the job is completed.
             </p>
@@ -326,12 +326,12 @@ const AffiliateLanding = () => {
             <Link
               key={i}
               to={`/search?category=${encodeURIComponent(name)}`}
-              className="flex flex-col items-center group cursor-pointer flex-shrink-0 w-24 md:w-28"
+              className="flex flex-col items-center group cursor-pointer flex-shrink-0 px-2"
             >
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 md:mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
                 <Icon className="w-8 h-8 md:w-10 md:h-10 text-primary" strokeWidth={1.5} />
               </div>
-              <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors text-center w-full">
+              <span className="text-base font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
                 {name}
               </span>
             </Link>
@@ -404,8 +404,8 @@ const AffiliateLanding = () => {
       {/* CTA */}
       <section className="py-24 px-6 text-center border-t border-slate-800/80">
         <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
-          Join hundreds of affiliates earning big<br />
-          {'💰'} with Gigspace
+          Join hundreds of affiliates earning big <span style={{ WebkitTextFillColor: 'initial' }}>💰</span><br />
+          with Gigspace
         </h2>
         <Link
           to={ctaHref}

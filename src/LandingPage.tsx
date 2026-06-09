@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, Car, PenTool, Home, Package, Code, Hammer, Menu, X, Search, Camera, Leaf, Zap, Scissors, Truck, Wrench } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Car, Palette, Home, Package, Code, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, Menu, X, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import LocationSearch from './LocationSearch';
@@ -9,17 +9,16 @@ import StarryBackground from './StarryBackground';
 
 const categories = [
   { name: 'Automotive', icon: Car },
-  { name: 'Graphics & Design', icon: PenTool },
+  { name: 'Graphics & Design', icon: Palette },
   { name: 'Home & Garden', icon: Home },
   { name: 'Labor & Moving', icon: Package },
   { name: 'Programming & Tech', icon: Code },
-  { name: 'Skilled Trade', icon: Hammer },
-  { name: 'Photography', icon: Camera },
-  { name: 'Landscaping', icon: Leaf },
-  { name: 'Electrical', icon: Zap },
-  { name: 'Beauty & Wellness', icon: Scissors },
-  { name: 'Delivery', icon: Truck },
-  { name: 'Plumbing', icon: Wrench },
+  { name: 'Skilled Trade', icon: Wrench },
+  { name: 'Business', icon: Briefcase },
+  { name: 'Lessons', icon: Music },
+  { name: 'Marketing', icon: Megaphone },
+  { name: 'Legal', icon: Scale },
+  { name: 'Real Estate', icon: MapPinHouse },
 ];
 
 const IconSearch = () => (
@@ -230,12 +229,12 @@ const LandingPage = () => {
               <Link
                 key={index}
                 to={`/search?category=${encodeURIComponent(cat.name)}`}
-                className="flex flex-col items-center group cursor-pointer flex-shrink-0 w-24 md:w-28"
+                className="flex flex-col items-center group cursor-pointer flex-shrink-0 px-2"
               >
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 md:mb-4 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
                   <Icon className="w-8 h-8 md:w-10 md:h-10 text-primary" strokeWidth={1.5} />
                 </div>
-                <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors text-center w-full">
+                <span className="text-base font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
                   {cat.name}
                 </span>
               </Link>

@@ -8,7 +8,7 @@ interface LocationSearchProps {
   variant?: 'header' | 'hero';
 }
 
-const MAX_DISPLAY_CHARS = 22;
+const MAX_DISPLAY_CHARS = 32;
 
 function truncateLabel(label: string): string {
   if (label.length <= MAX_DISPLAY_CHARS) return label;
@@ -93,7 +93,7 @@ const LocationSearch = ({
       className={variant === 'hero' ? 'relative w-full md:w-auto' : 'relative shrink-0 h-full'}
     >
       <button type="button" onClick={() => setOpen((v) => !v)} className={triggerClass}>
-        <span className={`${variant === 'hero' ? 'text-sm mr-2' : 'mr-2'} max-w-[120px] truncate`}>
+        <span className={`${variant === 'hero' ? 'text-sm mr-2' : 'mr-2'} max-w-[200px] truncate`}>
           {displayLabel}
         </span>
         <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-auto" />

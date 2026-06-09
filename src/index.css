@@ -70,7 +70,7 @@
 
 @layer utilities {
   .gradient-heading {
-    background: linear-gradient(to right, #ffffff, #94A3B8);
+    background: linear-gradient(to right, rgba(255,255,255,0.38), rgba(255,255,255,1) 50%, rgba(255,255,255,0.38));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

@@ -6,29 +6,28 @@ import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 
-const IconSearch = () => (
+const IconShield = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M17.5 17.5L13.8833 13.8833" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16.6666 10.8335C16.6666 15.0002 13.75 17.0835 10.2833 18.2919C10.1018 18.3534 9.90459 18.3505 9.72498 18.2835C6.24998 17.0835 3.33331 15.0002 3.33331 10.8335V5.00021C3.33331 4.7792 3.42111 4.56724 3.57739 4.41096C3.73367 4.25468 3.94563 4.16688 4.16665 4.16688C5.83331 4.16688 7.91665 3.16688 9.36665 1.90021C9.54319 1.74938 9.76777 1.6665 9.99998 1.6665C10.2322 1.6665 10.4568 1.74938 10.6333 1.90021C12.0916 3.17521 14.1666 4.16688 15.8333 4.16688C16.0543 4.16688 16.2663 4.25468 16.4226 4.41096C16.5788 4.56724 16.6666 4.7792 16.6666 5.00021V10.8335Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
-const IconChat = () => (
+const IconUser = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g clipPath="url(#ch1a)">
-      <path d="M2.4934 13.6174C2.61593 13.9265 2.64321 14.2652 2.57173 14.5899L1.68423 17.3316C1.65564 17.4706 1.66303 17.6147 1.70571 17.75C1.7484 17.8854 1.82495 18.0077 1.92812 18.1052C2.03129 18.2027 2.15766 18.2722 2.29523 18.3071C2.43281 18.3421 2.57704 18.3413 2.71423 18.3049L5.5584 17.4733C5.86483 17.4125 6.18218 17.439 6.47423 17.5499C8.25372 18.3809 10.2695 18.5568 12.166 18.0464C14.0625 17.536 15.7178 16.3721 16.8398 14.7602C17.9618 13.1483 18.4785 11.1919 18.2986 9.23622C18.1188 7.2805 17.254 5.45115 15.8568 4.07092C14.4596 2.6907 12.6198 1.84829 10.6621 1.69234C8.70429 1.53639 6.75435 2.07691 5.15627 3.21854C3.55819 4.36017 2.41468 6.02955 1.92748 7.93212C1.44028 9.8347 1.64071 11.8482 2.4934 13.6174Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </g>
-    <defs><clipPath id="ch1a"><rect width="20" height="20" fill="white"/></clipPath></defs>
+    <path d="M10 10C12.2091 10 14 8.20914 14 6C14 3.79086 12.2091 2 10 2C7.79086 2 6 3.79086 6 6C6 8.20914 7.79086 10 10 10Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3.33331 17.5C3.33331 15.1 6.31665 13.1667 9.99998 13.1667C13.6833 13.1667 16.6666 15.1 16.6666 17.5" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
-const IconScreen = () => (
+const IconHeart = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V12.5C2.5 13.4205 3.24619 14.1667 4.16667 14.1667H15.8333C16.7538 14.1667 17.5 13.4205 17.5 12.5V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3.33333 17.5H4.16667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M7.5 17.5H8.33333" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M11.6667 17.5H12.5" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M15.8333 17.5H16.6667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M17.3666 3.84172C16.941 3.41589 16.4355 3.0781 15.8794 2.84768C15.3234 2.61725 14.7275 2.49878 14.1258 2.49878C13.524 2.49878 12.9282 2.61725 12.3721 2.84768C11.816 3.0781 11.3105 3.41589 10.885 3.84172L9.99997 4.72672L9.11497 3.84172C8.25538 2.98213 7.08833 2.49922 5.87247 2.49922C4.65661 2.49922 3.48956 2.98213 2.62997 3.84172C1.77038 4.70131 1.28747 5.86836 1.28747 7.08422C1.28747 8.30008 1.77038 9.46713 2.62997 10.3267L9.99997 17.6967L17.37 10.3267C17.7958 9.90117 18.1336 9.39568 18.364 8.83957C18.5944 8.28347 18.7129 7.68761 18.7129 7.08588C18.7129 6.48415 18.5944 5.88829 18.364 5.33218C18.1336 4.77608 17.7958 4.27059 17.37 3.84505L17.3666 3.84172Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const IconZap = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10.8333 2.5L3.33331 11.6667H9.99998L9.16665 17.5L16.6666 8.33333H9.99998L10.8333 2.5Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -39,19 +38,33 @@ const IconShieldCheck = () => (
   </svg>
 );
 
+const IconUsers = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14.1667 17.5V15.8333C14.1667 14.9493 13.8155 14.1014 13.1904 13.4763C12.5653 12.8512 11.7174 12.5 10.8333 12.5H4.16667C3.28261 12.5 2.43477 12.8512 1.80964 13.4763C1.18452 14.1014 0.833336 14.9493 0.833336 15.8333V17.5" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M7.5 9.16667C9.34095 9.16667 10.8333 7.67428 10.8333 5.83333C10.8333 3.99238 9.34095 2.5 7.5 2.5C5.65905 2.5 4.16667 3.99238 4.16667 5.83333C4.16667 7.67428 5.65905 9.16667 7.5 9.16667Z" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M19.1667 17.5V15.8333C19.1661 15.0948 18.9203 14.3773 18.4678 13.7936C18.0153 13.2099 17.3818 12.793 16.6667 12.6083" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13.3333 2.60834C14.0503 2.79192 14.6859 3.20892 15.1397 3.79359C15.5935 4.37827 15.8398 5.09736 15.8398 5.8375C15.8398 6.57764 15.5935 7.29673 15.1397 7.88141C14.6859 8.46608 14.0503 8.88308 13.3333 9.06667" stroke="#2B7FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const values = [
   {
-    icon: IconSearch,
+    icon: IconShield,
+    title: 'Trust first.',
+    description: 'We built a platform where transparency, safety, and reliability come before everything else.'
+  },
+  {
+    icon: IconUser,
     title: 'Opportunity for everyone.',
     description: "Whether you're a local pro or a digital expert, Gigspace gives you a fair shot to earn what you're worth."
   },
   {
-    icon: IconChat,
+    icon: IconHeart,
     title: 'Every interaction matters.',
     description: 'We treat every project and connection with care—because real people depend on the work done here.'
   },
   {
-    icon: IconScreen,
+    icon: IconZap,
     title: 'Simplicity wins.',
     description: 'From posting a service to hiring a pro, every step is designed to be fast, intuitive, and frustration-free.'
   },
@@ -59,6 +72,11 @@ const values = [
     icon: IconShieldCheck,
     title: 'Fairness & transparency.',
     description: "We're honest with our pricing, our policies, and our promises — no hidden fees, no surprises."
+  },
+  {
+    icon: IconUsers,
+    title: 'Strength in community.',
+    description: "We're building a space where pros and customers succeed together."
   },
 ];
 
@@ -144,10 +162,10 @@ const AboutUs = () => {
             <h2 className="text-3xl font-bold gradient-heading mb-8">Our mission</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
               <p>
-                At Gigspace, our mission is to connect talented professionals with the people and businesses who need them—whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
+                At Gigspace, our mission is to connect independent professionals with the people and businesses who need them—whether it's parents on home projects, entrepreneurs, or small businesses, we empower sellers to work independently, securely, and freely. Because when local experts thrive, so do their communities.
               </p>
               <p>
-                By combining the flexibility of digital freelance platforms with the reach of local service marketplaces, we make hiring faster, safer, and more efficient for everyone. Our platform is built to remove unnecessary fees, streamline communication, and provide secure transactions, so professionals can focus on what they do best and buyers can get their work done with confidence.
+                Current platforms suffer from high fees, limited support, and a lack of local reach. Gigspace aims to fix that. We're building a marketplace that works for freelancers, completely removing platform fees locally so that professionals can focus on what they do best and buyers can get their work done with confidence.
               </p>
             </div>
           </div>
@@ -156,15 +174,15 @@ const AboutUs = () => {
           <div className="flex flex-col justify-center space-y-10 lg:pl-12">
             <div>
               <div className="text-4xl md:text-5xl font-bold text-white mb-2">$1.95 trillion</div>
-              <div className="text-slate-500 text-sm">Spent annually on services worldwide</div>
+              <div className="text-slate-500 text-sm">Freelance GDP in the US annually</div>
             </div>
             <div>
               <div className="text-4xl md:text-5xl font-bold text-white mb-2">62%</div>
-              <div className="text-slate-500 text-sm">People who prefer hiring local talent</div>
+              <div className="text-slate-500 text-sm">Proportion of gen-Z working independent</div>
             </div>
             <div>
               <div className="text-4xl md:text-5xl font-bold text-white mb-2">$5 - $100K</div>
-              <div className="text-slate-500 text-sm">Price range sellers can set</div>
+              <div className="text-slate-500 text-sm">Price range sellers can earn</div>
             </div>
           </div>
         </div>
@@ -174,8 +192,8 @@ const AboutUs = () => {
       <section className="px-6 lg:px-12 py-16 w-full max-w-7xl mx-auto">
         <div className="w-full h-auto md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
           <img
-            src="/about-hero.png"
-            alt="Team collaborating at Gigspace"
+            src="/Gigspace office.jpg"
+            alt="Gigspace office"
             loading="lazy"
             decoding="async"
             className="w-full h-full object-cover object-center"
