@@ -2,8 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { ref, get } from 'firebase/database';
-import { auth, database } from './firebase';
+import { auth } from './firebase';
 
 const b64url = (buf: Uint8Array) =>
   btoa(String.fromCharCode(...buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
