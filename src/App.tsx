@@ -32,6 +32,7 @@ const PasswordUpdatedEmail  = lazy(() => import('./PasswordUpdatedEmail'));
 const ConfirmPasswordReset  = lazy(() => import('./ConfirmPasswordReset'));
 const TermsAndConditions  = lazy(() => import('./TermsAndConditions'));
 const PrivacyPolicy       = lazy(() => import('./PrivacyPolicy'));
+const AuthCallback        = lazy(() => import('./AuthCallback'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -112,6 +113,7 @@ function AppRoutes() {
           <Route path="/signin"             element={<Signin />} />
           <Route path="/reset-password"     element={<ResetPassword />} />
           <Route path="/auth/action"        element={<ConfirmPasswordReset />} />
+          <Route path="/auth/callback"      element={<AuthCallback />} />
           <Route path="/verify-email"       element={<VerifyEmail />} />
           <Route path="/account-type"       element={<ProtectedRoute><AccountType /></ProtectedRoute>} />
           <Route path="/seller-profile"     element={<ProtectedRoute><SellerProfile /></ProtectedRoute>} />

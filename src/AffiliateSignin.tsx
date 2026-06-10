@@ -1,8 +1,15 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase';
+import { useAuth } from './AuthContext';
+
+const b64url = (buf: Uint8Array) =>
+  btoa(String.fromCharCode(...buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+const generateCodeVerifier = () => { const a = new Uint8Array(32); crypto.getRandomValues(a); return b64url(a); };
+const generateCodeChallenge = async (v: string) =>
+  b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))));
 
 const errorMessages: Record<string, string> = {
   'auth/user-not-found': 'No account found with this email.',
@@ -19,10 +26,25 @@ const getErrorMessage = (code: string) =>
 
 const AffiliateSignin = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Navigate once auth state resolves (handles redirect return and email sign-in).
+  useEffect(() => {
+    if (user) navigate('/affiliate-dashboard');
+  }, [user, navigate]);
+
+  // Display any redirect error stored by AuthContext after returning from Google.
+  useEffect(() => {
+    const code = sessionStorage.getItem('authRedirectError');
+    if (!code) return;
+    sessionStorage.removeItem('authRedirectError');
+    const msg = getErrorMessage(code);
+    if (msg) setError(msg);
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,13 +64,23 @@ const AffiliateSignin = () => {
     setError('');
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate('/affiliate-dashboard');
-    } catch (err: any) {
-      const msg = getErrorMessage(err.code);
-      if (msg) setError(msg);
-    } finally {
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      const state = generateCodeVerifier();
+      sessionStorage.setItem('oauthCodeVerifier', codeVerifier);
+      sessionStorage.setItem('oauthState', state);
+      const params = new URLSearchParams({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID as string,
+        redirect_uri: `${window.location.origin}/auth/callback`,
+        response_type: 'code',
+        scope: 'openid email profile',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state,
+      });
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+    } catch {
+      setError('Something went wrong. Please try again.');
       setLoading(false);
     }
   };

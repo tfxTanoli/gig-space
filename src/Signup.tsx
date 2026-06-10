@@ -1,15 +1,15 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-} from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
+
+const b64url = (buf: Uint8Array) =>
+  btoa(String.fromCharCode(...buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+const generateCodeVerifier = () => { const a = new Uint8Array(32); crypto.getRandomValues(a); return b64url(a); };
+const generateCodeChallenge = async (v: string) =>
+  b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))));
 
 const errorMessages: Record<string, string> = {
   'auth/email-already-in-use': 'An account with this email already exists.',
@@ -18,6 +18,7 @@ const errorMessages: Record<string, string> = {
   'auth/popup-closed-by-user': '',
   'auth/cancelled-popup-request': '',
   'auth/popup-blocked': '',
+  'auth/redirect-lost': 'Google sign-in could not be completed. Please try again.',
   'auth/network-request-failed': 'Network error. Please check your connection.',
   'auth/unauthorized-domain': 'This domain is not authorised for Google sign-in.',
   'auth/operation-not-allowed': 'Google sign-in is not enabled. Please contact support.',
@@ -80,26 +81,41 @@ const Signup = () => {
     }
   };
 
+  // Display any OAuth error stored by AuthCallback after returning from Google.
+  useEffect(() => {
+    const code = sessionStorage.getItem('authRedirectError');
+    if (!code) return;
+    sessionStorage.removeItem('authRedirectError');
+    const msg = getErrorMessage(code);
+    if (msg) setError(msg);
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      // useEffect above handles navigation
-    } catch (err: any) {
-      if (err.code === 'auth/popup-blocked') {
-        // Popup blocked — fall back to redirect
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectErr: any) {
-          setError(getErrorMessage(redirectErr.code));
-          setLoading(false);
-        }
-        return;
-      }
-      const msg = getErrorMessage(err.code);
-      if (msg) setError(msg);
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      const state = generateCodeVerifier();
+
+      sessionStorage.setItem('oauthCodeVerifier', codeVerifier);
+      sessionStorage.setItem('oauthState', state);
+
+      if (next) sessionStorage.setItem('oauthNext', next);
+
+      const params = new URLSearchParams({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID as string,
+        redirect_uri: `${window.location.origin}/auth/callback`,
+        response_type: 'code',
+        scope: 'openid email profile',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state,
+      });
+
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+    } catch {
+      setError('Something went wrong. Please try again.');
       setLoading(false);
     }
   };

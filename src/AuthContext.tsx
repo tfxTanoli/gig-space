@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
-import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
+import { type User, onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { ref, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
 import { auth, database } from './firebase';
 import { ensureUsernameIndexed } from './username';
@@ -37,15 +37,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let profileUnsub: (() => void) | null = null;
-    // Tracks which uid has had its username backfilled into the index this session.
     let usernameSyncedUid: string | null = null;
+
+    // True when the user clicked "Continue with Google" and we're waiting for
+    // the OAuth redirect to complete. Prevents onAuthStateChanged(null) from
+    // collapsing the spinner before getRedirectResult has had a chance to run.
+    let pendingRedirect = !!sessionStorage.getItem('authRedirectPending');
 
     // Fallback: if Firebase Auth doesn't resolve within 6s (e.g. blocked by
     // browser tracking prevention), treat session as unauthenticated so the
     // app doesn't stay blank forever.
-    const fallback = setTimeout(() => setLoading(false), 6000);
+    const fallback = setTimeout(() => {
+      pendingRedirect = false;
+      sessionStorage.removeItem('authRedirectPending');
+      setLoading(false);
+    }, 6000);
 
     const SESSION_TIMEOUT_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+    // Process any pending OAuth redirect result as early as possible —
+    // before any child component mounts — so onAuthStateChanged receives the
+    // authenticated user instead of null.
+    getRedirectResult(auth).then((result) => {
+      if (!pendingRedirect) return;
+      pendingRedirect = false;
+      sessionStorage.removeItem('authRedirectPending');
+      if (!result) {
+        // Redirect returned but Firebase found no result (cross-site storage
+        // issue or user cancelled). Surface a generic error to the sign-in page.
+        sessionStorage.setItem('authRedirectError', 'auth/redirect-lost');
+        setUser(null);
+        setUserProfile(null);
+        setLoading(false);
+      }
+      // If result exists, onAuthStateChanged fires with the user automatically.
+    }).catch((err: any) => {
+      if (!pendingRedirect) return;
+      pendingRedirect = false;
+      sessionStorage.removeItem('authRedirectPending');
+      if (err?.code) sessionStorage.setItem('authRedirectError', err.code);
+      setUser(null);
+      setUserProfile(null);
+      setLoading(false);
+    });
 
     const authUnsub = onAuthStateChanged(auth, (firebaseUser) => {
       clearTimeout(fallback);
@@ -53,11 +87,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       profileUnsub = null;
 
       if (!firebaseUser) {
+        // While a redirect is in flight, hold the spinner.
+        // getRedirectResult above will resolve and take over.
+        if (pendingRedirect) return;
         setUser(null);
         setUserProfile(null);
         setLoading(false);
         return;
       }
+
+      // User signed in — redirect (if any) is complete.
+      pendingRedirect = false;
+      sessionStorage.removeItem('authRedirectPending');
 
       // Enforce 48-hour session timeout based on the last sign-in time stored
       // in the Firebase Auth token (more reliable than localStorage).

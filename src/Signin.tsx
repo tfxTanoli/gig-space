@@ -1,14 +1,15 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-} from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
+
+const b64url = (buf: Uint8Array) =>
+  btoa(String.fromCharCode(...buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+const generateCodeVerifier = () => { const a = new Uint8Array(32); crypto.getRandomValues(a); return b64url(a); };
+const generateCodeChallenge = async (v: string) =>
+  b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))));
 
 const errorMessages: Record<string, string> = {
   'auth/user-not-found': 'No account found with this email.',
@@ -19,6 +20,7 @@ const errorMessages: Record<string, string> = {
   'auth/popup-closed-by-user': '',
   'auth/cancelled-popup-request': '',
   'auth/popup-blocked': '',
+  'auth/redirect-lost': 'Google sign-in could not be completed. Please try again.',
   'auth/network-request-failed': 'Network error. Please check your connection.',
   'auth/unauthorized-domain': 'This domain is not authorised for Google sign-in. Please contact support.',
   'auth/operation-not-allowed': 'Google sign-in is not enabled. Please contact support.',
@@ -74,28 +76,59 @@ const Signin = () => {
     }
   };
 
+  // Display any OAuth error stored by AuthCallback after returning from Google.
+  // Skip if the user is already signed in — a stale error from a mid-flight
+  // remount shouldn't be shown when the sign-in actually succeeded.
+  useEffect(() => {
+    if (user) { sessionStorage.removeItem('authRedirectError'); return; }
+    const code = sessionStorage.getItem('authRedirectError');
+    if (!code) return;
+    sessionStorage.removeItem('authRedirectError');
+    const msg = getErrorMessage(code);
+    if (msg) setError(msg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      // useEffect above handles navigation
-    } catch (err: any) {
-      if (err.code === 'auth/popup-blocked') {
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectErr: any) {
-          setError(getErrorMessage(redirectErr.code));
-          setLoading(false);
-        }
-        return;
-      }
-      const msg = getErrorMessage(err.code);
-      if (msg) setError(msg);
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      const state = generateCodeVerifier();
+
+      sessionStorage.setItem('oauthCodeVerifier', codeVerifier);
+      sessionStorage.setItem('oauthState', state);
+
+      const next = searchParams.get('next');
+      if (next) sessionStorage.setItem('oauthNext', next);
+
+      const params = new URLSearchParams({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID as string,
+        redirect_uri: `${window.location.origin}/auth/callback`,
+        response_type: 'code',
+        scope: 'openid email profile',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state,
+      });
+
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+    } catch {
+      setError('Something went wrong. Please try again.');
       setLoading(false);
     }
   };
+
+  // Safety net: if the user is already signed in (e.g. an OAuth mid-flight remount
+  // briefly routed here), render nothing — the useEffect above handles navigation.
+  if (!authLoading && user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">

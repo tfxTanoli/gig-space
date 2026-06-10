@@ -128,6 +128,37 @@ app.post(
 // ── JSON body for all other routes ────────────────────────────────────────────
 app.use(express.json());
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/google  — server-side PKCE token exchange (keeps client_secret off the browser)
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/auth/google', async (req: Request, res: Response) => {
+  const { code, client_id, redirect_uri, code_verifier } = req.body || {};
+  if (!code || !client_id || !redirect_uri || !code_verifier) {
+    res.status(400).json({ error: 'missing_params' }); return;
+  }
+  try {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET as string,
+        redirect_uri,
+        grant_type: 'authorization_code',
+        code_verifier,
+      }),
+    });
+    const tokens = await tokenRes.json() as Record<string, string>;
+    if (!tokenRes.ok || tokens.error) {
+      res.status(400).json({ error: tokens.error, error_description: tokens.error_description }); return;
+    }
+    res.json({ id_token: tokens.id_token, access_token: tokens.access_token });
+  } catch (err) {
+    res.status(500).json({ error: 'token_exchange_failed' });
+  }
+});
+
 // ─── Auth middleware ──────────────────────────────────────────────────────────
 interface AuthRequest extends Request {
   uid?: string;
