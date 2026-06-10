@@ -174,15 +174,15 @@ const AboutUs = () => {
           <div className="flex flex-col justify-center space-y-10 lg:pl-12">
             <div>
               <div className="text-4xl md:text-5xl font-bold text-white mb-2">$1.95 trillion</div>
-              <div className="text-slate-500 text-sm">Freelance GDP in the US annually</div>
+              <div className="text-slate-500 text-sm">Spent annually on services worldwide</div>
             </div>
             <div>
               <div className="text-4xl md:text-5xl font-bold text-white mb-2">62%</div>
-              <div className="text-slate-500 text-sm">Proportion of gen-Z working independent</div>
+              <div className="text-slate-500 text-sm">People who prefer hiring local talent</div>
             </div>
             <div>
               <div className="text-4xl md:text-5xl font-bold text-white mb-2">$5 - $100K</div>
-              <div className="text-slate-500 text-sm">Price range sellers can earn</div>
+              <div className="text-slate-500 text-sm">Price range sellers can set</div>
             </div>
           </div>
         </div>
