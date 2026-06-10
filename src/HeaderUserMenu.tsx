@@ -54,7 +54,11 @@ const HeaderUserMenu = () => {
 
   const handleLogout = async () => {
     setOpen(false);
-    await logout();
+    try {
+      await logout();
+    } catch {
+      // sign-out failed but still navigate away
+    }
     navigate('/search', { replace: true });
   };
 

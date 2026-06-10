@@ -176,8 +176,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     if (user) {
-      // Mark offline and record accurate lastSeen before signing out.
-      await Promise.all([
+      // Fire-and-forget — don't block sign-out on presence writes that may
+      // hang when the RTDB connection is slow or offline.
+      Promise.all([
         set(ref(database, `users/${user.uid}/online`), false),
         set(ref(database, `users/${user.uid}/lastSeen`), Date.now()),
       ]).catch(() => {});
