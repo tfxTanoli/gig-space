@@ -131,19 +131,24 @@ interface NotificationBellProps {
   onNavigate: (tab: string) => void;
   /** If provided, only notifications of these types are shown */
   filterTypes?: string[];
+  /** If provided, only notifications for this dashboard type are shown */
+  dashboardType?: 'seller' | 'buyer';
   /** Custom empty-state body text */
   emptyStateText?: string;
 }
 
-export default function NotificationBell({ onNavigate, filterTypes, emptyStateText }: NotificationBellProps) {
+export default function NotificationBell({ onNavigate, filterTypes, dashboardType, emptyStateText }: NotificationBellProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const [open, setOpen] = useState(false);
   const [marking, setMarking] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const visibleNotifications = filterTypes
-    ? notifications.filter((n) => filterTypes.includes(n.type))
-    : notifications;
+  const visibleNotifications = notifications.filter((n) => {
+    if (filterTypes && !filterTypes.includes(n.type)) return false;
+    // Only filter by dashboardType when the notification has one set — old notifications (no field) show in both
+    if (dashboardType && n.dashboardType && n.dashboardType !== dashboardType) return false;
+    return true;
+  });
 
   // Close when clicking outside
   useEffect(() => {
@@ -181,7 +186,7 @@ export default function NotificationBell({ onNavigate, filterTypes, emptyStateTe
     }
   };
 
-  const displayCount = filterTypes
+  const displayCount = (filterTypes || dashboardType)
     ? Math.min(visibleNotifications.filter((n) => !n.isRead).length, 99)
     : Math.min(Math.max(0, unreadCount), 99);
 

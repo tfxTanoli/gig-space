@@ -361,6 +361,7 @@ export default function ChatMessages({
 
       // Notify the other participant (fire-and-forget — non-critical)
       if (recipientId) {
+        // Buyer sends → seller receives; seller sends → buyer receives
         sendNotification(recipientId, {
           type: 'message',
           title: `New message from ${userProfile.name}`,
@@ -369,6 +370,7 @@ export default function ChatMessages({
           senderName: userProfile.name,
           senderPhotoURL: userProfile.photoURL || '',
           conversationId: selectedConvId,
+          dashboardType: mode === 'buyer' ? 'seller' : 'buyer',
         }).catch(console.error);
       }
 
@@ -479,6 +481,7 @@ export default function ChatMessages({
           senderPhotoURL: userProfile.photoURL || '',
           conversationId: selectedConvId,
           serviceId: selectedService.id,
+          dashboardType: 'buyer',
         }).catch(console.error);
       }
 
@@ -555,6 +558,7 @@ export default function ChatMessages({
         senderId: user.uid,
         senderName: userProfile.name || '',
         senderPhotoURL: userProfile.photoURL || '',
+        dashboardType: 'buyer',
       }).catch(console.error);
       try {
         const raw = sessionStorage.getItem('pendingOfferNotif');
@@ -571,6 +575,7 @@ export default function ChatMessages({
             senderName: userProfile.name || '',
             senderPhotoURL: userProfile.photoURL || '',
             conversationId: pending.conversationId,
+            dashboardType: 'seller',
           }).catch(console.error);
           sessionStorage.removeItem('pendingOfferNotif');
         }

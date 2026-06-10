@@ -110,6 +110,7 @@ const BuyerDashboard = () => {
           senderId: user.uid,
           senderName: userProfile?.name || '',
           senderPhotoURL: userProfile?.photoURL || '',
+          dashboardType: 'buyer',
         }).catch(console.error);
 
         try {
@@ -131,6 +132,7 @@ const BuyerDashboard = () => {
               senderName: userProfile?.name || '',
               senderPhotoURL: userProfile?.photoURL || '',
               conversationId: pending.conversationId,
+              dashboardType: 'seller',
             }).catch(console.error);
             sessionStorage.removeItem('pendingOfferNotif');
           }
@@ -164,6 +166,7 @@ const BuyerDashboard = () => {
           senderId: user.uid,
           senderName: userProfile?.name || '',
           senderPhotoURL: userProfile?.photoURL || '',
+          dashboardType: 'buyer',
         }).catch(console.error);
 
         try {
@@ -181,6 +184,7 @@ const BuyerDashboard = () => {
               senderName: userProfile?.name || '',
               senderPhotoURL: userProfile?.photoURL || '',
               conversationId: pending.conversationId,
+              dashboardType: 'seller',
             }).catch(console.error);
             sessionStorage.removeItem('pendingOfferNotif');
           }
@@ -309,7 +313,7 @@ const BuyerDashboard = () => {
           </span>
           <div className="flex-1" />
           <div className="flex items-center gap-2 md:gap-4">
-            <NotificationBell onNavigate={setActiveTab} />
+            <NotificationBell onNavigate={setActiveTab} dashboardType="buyer" />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
 
             {/* Avatar with dropdown */}

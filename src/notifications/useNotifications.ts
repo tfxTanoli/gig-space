@@ -15,6 +15,7 @@ export interface AppNotification {
   orderId?: string;
   conversationId?: string;
   serviceId?: string;
+  dashboardType?: 'seller' | 'buyer';
   isRead: boolean;
   createdAt: number;
 }

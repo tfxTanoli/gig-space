@@ -274,6 +274,7 @@ export default function OrderDetail({
         senderName: userProfile?.name ?? '',
         senderPhotoURL: userProfile?.photoURL ?? '',
         orderId: order.id,
+        dashboardType: 'seller',
       }).catch(console.error);
     } catch (err) {
       console.error('Approve delivery error:', err);
@@ -331,6 +332,7 @@ export default function OrderDetail({
         senderPhotoURL: order.sellerPhoto || '',
         orderId: order.id,
         serviceId: order.serviceId,
+        dashboardType: 'buyer',
       }).catch(console.error);
 
       setShowDeliveryModal(false);
@@ -373,6 +375,7 @@ export default function OrderDetail({
     await update(ref(database), updates);
 
     // Notify the reviewed user (fire-and-forget)
+    // Buyer reviews seller → notification goes to seller dashboard; seller reviews buyer → buyer dashboard
     sendNotification(reviewedUserId, {
       type: 'review',
       title: 'You received a new review',
@@ -382,6 +385,7 @@ export default function OrderDetail({
       senderPhotoURL: userProfile!.photoURL || '',
       orderId: order.id,
       serviceId: order.serviceId,
+      dashboardType: mode === 'buyer' ? 'seller' : 'buyer',
     }).catch(console.error);
   };
 
@@ -752,6 +756,7 @@ export default function OrderDetail({
                       senderPhotoURL: order.buyerPhoto || '',
                       orderId: order.id,
                       serviceId: order.serviceId,
+                      dashboardType: 'seller',
                     }).catch(console.error);
                   }}
                   disabled={updatingStatus || approvingDelivery}

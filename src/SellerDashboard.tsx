@@ -801,7 +801,7 @@ const handleTabChange = useCallback((tab: string) => {
             />
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <NotificationBell onNavigate={handleTabChange} />
+            <NotificationBell onNavigate={handleTabChange} dashboardType="seller" />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
             <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">
               <Plus className="w-4 h-4" /> <span className="hidden md:inline">New Post</span>

@@ -23,6 +23,8 @@ export interface NotificationPayload {
   orderId?: string;
   conversationId?: string;
   serviceId?: string;
+  /** Which dashboard this notification belongs to. Filters it out of the other dashboard's bell. */
+  dashboardType?: 'seller' | 'buyer';
 }
 
 /**
