@@ -15,6 +15,7 @@ const ConfirmPasswordReset = () => {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [codeValid, setCodeValid] = useState<boolean | null>(null);
+  const [resetEmail, setResetEmail] = useState('');
 
   useEffect(() => {
     if (!oobCode) {
@@ -22,7 +23,7 @@ const ConfirmPasswordReset = () => {
       return;
     }
     verifyPasswordResetCode(auth, oobCode)
-      .then(() => setCodeValid(true))
+      .then((email) => { setResetEmail(email); setCodeValid(true); })
       .catch(() => setCodeValid(false));
   }, [oobCode]);
 
@@ -42,6 +43,15 @@ const ConfirmPasswordReset = () => {
       await confirmPasswordReset(auth, oobCode, password);
       setSuccess(true);
       setTimeout(() => navigate('/signin'), 3000);
+
+      // Fire-and-forget password-updated email (user isn't authenticated here, so we use the verified email)
+      if (resetEmail) {
+        fetch(`${import.meta.env.VITE_API_URL || ''}/api/email/password-updated-public`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: resetEmail }),
+        }).catch(() => {});
+      }
     } catch (err: any) {
       if (err.code === 'auth/expired-action-code') {
         setError('This reset link has expired. Please request a new one.');

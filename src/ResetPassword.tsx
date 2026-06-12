@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link } from 'react-router-dom';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from './firebase';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ResetPassword = () => {
   const [email, setEmail] = useState('');
@@ -15,14 +15,15 @@ const ResetPassword = () => {
     setError('');
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      await fetch(`${API_URL}/api/auth/send-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      // Always show success to avoid leaking whether an account exists
       setSuccess(true);
-    } catch (err: any) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-        setError('No account found with that email address.');
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

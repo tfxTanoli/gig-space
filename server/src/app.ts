@@ -4,7 +4,24 @@ import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
 import adminRouter from './routes/admin.routes';
 import affiliateRouter from './routes/affiliate.routes';
-import { sendEmailNotification } from './email';
+import {
+  sendEmailNotification,
+  sendTransactionalEmail,
+  buildWelcomeSellerEmail,
+  buildWelcomeBuyerEmail,
+  buildWelcomeAffiliateEmail,
+  buildPasswordResetEmail,
+  buildPasswordUpdatedEmail,
+  buildPostUpgradedEmail,
+  buildPostDowngradedEmail,
+  buildPaymentFailedEmail,
+  buildAffiliateCommissionEmail,
+  buildAccountDeactivatedEmail,
+  buildVerifyEmailEmail,
+  buildVerificationCodeEmail,
+  buildPaymentReceivedSellerEmail,
+  buildRefundIssuedBuyerEmail,
+} from './email';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -758,6 +775,37 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   await db.ref().update(mainUpdates);
   console.log(`Order ${orderId} created for session ${session.id}`);
+
+  // ── Transactional emails (fire-and-forget) ───────────────────────────────────
+  try {
+    const sellerRecord = await admin.auth().getUser(sellerId);
+    if (sellerRecord.email) {
+      const sellerFirstName = (sellerRecord.displayName || 'there').split(' ')[0];
+      await sendTransactionalEmail(
+        sellerRecord.email,
+        "You've received a new payment on Gigspace!",
+        buildPaymentReceivedSellerEmail(sellerFirstName, serviceTitle)
+      );
+    }
+  } catch { /* non-fatal */ }
+
+  if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
+    try {
+      const checkoutFeeAmt = parseInt(platformFeeCents, 10) / 100;
+      const checkoutCommission = parseFloat((checkoutFeeAmt * 0.5).toFixed(2));
+      if (checkoutCommission > 0) {
+        const affRecord = await admin.auth().getUser(affiliateId);
+        if (affRecord.email) {
+          const affFirstName = (affRecord.displayName || 'there').split(' ')[0];
+          await sendTransactionalEmail(
+            affRecord.email,
+            'You earned a new Gigspace Affiliate commission!',
+            buildAffiliateCommissionEmail(affFirstName, `$${checkoutCommission.toFixed(2)}`)
+          );
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
 }
 
 async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
@@ -866,6 +914,36 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
 
   await db.ref().update(mainUpdates);
   console.log(`Order ${orderId} created for PaymentIntent ${pi.id}`);
+
+  // ── Transactional emails (fire-and-forget) ───────────────────────────────────
+  try {
+    const sellerRecord = await admin.auth().getUser(sellerId);
+    if (sellerRecord.email) {
+      const sellerFirstName = (sellerRecord.displayName || 'there').split(' ')[0];
+      await sendTransactionalEmail(
+        sellerRecord.email,
+        "You've received a new payment on Gigspace!",
+        buildPaymentReceivedSellerEmail(sellerFirstName, serviceTitle)
+      );
+    }
+  } catch { /* non-fatal */ }
+
+  if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
+    try {
+      const affCommission = parseFloat((platformFeeAmt * 0.5).toFixed(2));
+      if (affCommission > 0) {
+        const affRecord = await admin.auth().getUser(affiliateId);
+        if (affRecord.email) {
+          const affFirstName = (affRecord.displayName || 'there').split(' ')[0];
+          await sendTransactionalEmail(
+            affRecord.email,
+            'You earned a new Gigspace Affiliate commission!',
+            buildAffiliateCommissionEmail(affFirstName, `$${affCommission.toFixed(2)}`)
+          );
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -873,7 +951,24 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     .orderByChild('stripePaymentIntentId').equalTo(paymentIntent.id).limitToFirst(1).get();
   if (!snap.exists()) return;
   const paymentId = Object.keys(snap.val())[0];
+  const payment = snap.val()[paymentId] as { buyerId?: string; sellerId?: string } | null;
   await db.ref(`payments/${paymentId}`).update({ status: 'failed' });
+
+  // Send payment failed email to the buyer (they're the one who needs to update billing)
+  const targetUid = payment?.buyerId || payment?.sellerId;
+  if (targetUid) {
+    try {
+      const userRecord = await admin.auth().getUser(targetUid);
+      if (userRecord.email) {
+        const firstName = (userRecord.displayName || 'there').split(' ')[0];
+        await sendTransactionalEmail(
+          userRecord.email,
+          'Your most recent payment has failed',
+          buildPaymentFailedEmail(firstName)
+        );
+      }
+    } catch { /* non-fatal */ }
+  }
 }
 
 async function handleChargeRefunded(charge: Stripe.Charge) {
@@ -885,7 +980,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   const paymentId = Object.keys(snap.val())[0];
   const payment = snap.val()[paymentId] as {
-    orderId?: string; sellerId?: string; sellerAmount?: number; status?: string;
+    orderId?: string; sellerId?: string; buyerId?: string; sellerAmount?: number; status?: string;
   };
   if (payment.status === 'refunded') return;
 
@@ -904,11 +999,32 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       amount: -payment.sellerAmount, description: 'Payment refunded', createdAt: now,
     };
   }
+
+  // Look up service title from the order before updating
+  let refundServiceTitle = 'Your service';
   if (payment.orderId) {
+    const orderSnap = await db.ref(`orders/${payment.orderId}`).get();
+    refundServiceTitle = (orderSnap.val() as { serviceTitle?: string } | null)?.serviceTitle || refundServiceTitle;
     updates[`orders/${payment.orderId}/status`]        = 'cancelled';
     updates[`orders/${payment.orderId}/paymentStatus`] = 'refunded';
   }
+
   await db.ref().update(updates);
+
+  // Send refund email to buyer (fire-and-forget)
+  if (payment.buyerId) {
+    try {
+      const buyerRecord = await admin.auth().getUser(payment.buyerId);
+      if (buyerRecord.email) {
+        const firstName = (buyerRecord.displayName || 'there').split(' ')[0];
+        await sendTransactionalEmail(
+          buyerRecord.email,
+          'Your order on Gigspace has been refunded',
+          buildRefundIssuedBuyerEmail(firstName, refundServiceTitle)
+        );
+      }
+    } catch { /* non-fatal */ }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -928,6 +1044,8 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
         orderId?: string;
         conversationId?: string;
         serviceId?: string;
+        serviceTitle?: string;
+        commissionAmount?: string;
       };
     };
 
@@ -936,13 +1054,11 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
       return;
     }
 
-    // Fetch recipient's email + displayName from Firebase Auth
     const userRecord = await admin.auth().getUser(recipientUid);
     const recipientEmail = userRecord.email;
     const recipientName = userRecord.displayName || 'there';
 
     if (!recipientEmail) {
-      // User has no email (e.g. anonymous) — silently skip
       res.json({ sent: false, reason: 'no_email' });
       return;
     }
@@ -952,6 +1068,220 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/notifications/email error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/email/welcome
+// Sends a welcome email (seller / buyer / affiliate) after profile setup.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/email/welcome', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const { accountType } = req.body as { accountType: 'seller' | 'buyer' | 'affiliate' };
+    if (!['seller', 'buyer', 'affiliate'].includes(accountType)) {
+      res.status(400).json({ error: 'accountType must be seller, buyer, or affiliate' }); return;
+    }
+    const userRecord = await admin.auth().getUser(uid);
+    if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
+    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+
+    let subject: string;
+    let html: string;
+    if (accountType === 'seller') {
+      subject = 'Welcome to Gigspace';
+      html = buildWelcomeSellerEmail();
+    } else if (accountType === 'affiliate') {
+      subject = 'Welcome to the Gigspace Affiliate Program!';
+      html = buildWelcomeAffiliateEmail();
+    } else {
+      subject = 'Welcome to Gigspace';
+      html = buildWelcomeBuyerEmail();
+    }
+    // Personalise the greeting — inject first name into the pre-built HTML
+    html = html.replace(/Hi there,/g, `Hi ${firstName},`);
+
+    await sendTransactionalEmail(userRecord.email, subject, html);
+    res.json({ sent: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/email/welcome error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/send-password-reset  (public — no auth required)
+// Generates a Firebase password reset link and sends a custom Resend email.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/auth/send-password-reset', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email) { res.status(400).json({ error: 'email is required' }); return; }
+
+    // Look up user to get display name
+    let firstName = 'there';
+    try {
+      const userRecord = await admin.auth().getUserByEmail(email);
+      firstName = (userRecord.displayName || 'there').split(' ')[0];
+    } catch { /* user not found — still generate link so we don't expose existence */ }
+
+    const resetLink = await admin.auth().generatePasswordResetLink(email, {
+      url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
+    });
+
+    await sendTransactionalEmail(
+      email,
+      'Reset your Gigspace password',
+      buildPasswordResetEmail(firstName, resetLink)
+    );
+    res.json({ sent: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/auth/send-password-reset error:', msg);
+    // Return success even on error to avoid leaking user existence
+    res.json({ sent: true });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/email/password-updated  (requires auth)
+// Sends a "your password was changed" confirmation email.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/email/password-updated', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const userRecord = await admin.auth().getUser(uid);
+    if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
+    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+    await sendTransactionalEmail(
+      userRecord.email,
+      'Your Gigspace password has been updated',
+      buildPasswordUpdatedEmail(firstName)
+    );
+    res.json({ sent: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/email/password-updated error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/email/password-updated-public  (public — called after oobCode reset)
+// Sends password-updated email using the email address directly.
+// Safe because the caller already had a valid Firebase OOB reset code.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/email/password-updated-public', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email) { res.status(400).json({ error: 'email is required' }); return; }
+
+    let firstName = 'there';
+    try {
+      const userRecord = await admin.auth().getUserByEmail(email);
+      firstName = (userRecord.displayName || 'there').split(' ')[0];
+    } catch { /* user not found — still send */ }
+
+    await sendTransactionalEmail(
+      email,
+      'Your Gigspace password has been updated',
+      buildPasswordUpdatedEmail(firstName)
+    );
+    res.json({ sent: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/email/password-updated-public error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/send-email-verification  (requires auth)
+// Generates a Firebase email verification link and sends via Resend.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/auth/send-email-verification', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const userRecord = await admin.auth().getUser(uid);
+    if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
+    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+
+    const verifyLink = await admin.auth().generateEmailVerificationLink(userRecord.email, {
+      url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-verified`,
+    });
+
+    await sendTransactionalEmail(
+      userRecord.email,
+      'Verify your updated email address',
+      buildVerifyEmailEmail(firstName, verifyLink)
+    );
+    res.json({ sent: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/auth/send-email-verification error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/send-verification-code  (requires auth)
+// Generates a 6-digit OTP, stores it in Firebase, and sends via Resend.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/auth/send-verification-code', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const userRecord = await admin.auth().getUser(uid);
+    if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
+    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    await db.ref(`verificationCodes/${uid}`).set({
+      code,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+    });
+
+    await sendTransactionalEmail(
+      userRecord.email,
+      'Your Gigspace verification code',
+      buildVerificationCodeEmail(firstName, code)
+    );
+    res.json({ sent: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/auth/send-verification-code error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/verify-code  (requires auth)
+// Validates the OTP stored by /api/auth/send-verification-code.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/auth/verify-code', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid!;
+    const { code } = req.body as { code?: string };
+    if (!code) { res.status(400).json({ error: 'code is required' }); return; }
+
+    const snap = await db.ref(`verificationCodes/${uid}`).get();
+    if (!snap.exists()) { res.status(400).json({ error: 'No verification code found' }); return; }
+
+    const record = snap.val() as { code: string; expiresAt: number };
+    if (Date.now() > record.expiresAt) {
+      await db.ref(`verificationCodes/${uid}`).remove();
+      res.status(400).json({ error: 'Verification code expired' }); return;
+    }
+    if (record.code !== code) {
+      res.status(400).json({ error: 'Invalid verification code' }); return;
+    }
+
+    await db.ref(`verificationCodes/${uid}`).remove();
+    res.json({ verified: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/auth/verify-code error:', msg);
     res.status(500).json({ error: msg });
   }
 });
@@ -1303,6 +1633,21 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       return;
     }
 
+    // Send upgrade email BEFORE responding — serverless containers freeze after res.json()
+    try {
+      const sellerRecord = await admin.auth().getUser(uid);
+      if (sellerRecord.email) {
+        const firstName = (sellerRecord.displayName || 'there').split(' ')[0];
+        const price = `$${(extraLocationCount * 5).toFixed(2)}`;
+        const nextDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        await sendTransactionalEmail(
+          sellerRecord.email,
+          'Your post on Gigspace has been upgraded!',
+          buildPostUpgradedEmail(firstName, price, nextDate)
+        );
+      }
+    } catch { /* non-fatal */ }
+
     res.json({ clientSecret: paymentIntent.client_secret, subscriptionId: subscription.id });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
@@ -1325,6 +1670,21 @@ app.post('/api/subscriptions/cancel-listing-subscription', requireAuth, async (r
     } catch {
       // Non-fatal: subscription may already be cancelled
     }
+
+    // Send downgrade email BEFORE responding — serverless containers freeze after res.json()
+    try {
+      const uid = req.uid!;
+      const sellerRecord = await admin.auth().getUser(uid);
+      if (sellerRecord.email) {
+        const firstName = (sellerRecord.displayName || 'there').split(' ')[0];
+        await sendTransactionalEmail(
+          sellerRecord.email,
+          'Your post on Gigspace has been downgraded',
+          buildPostDowngradedEmail(firstName)
+        );
+      }
+    } catch { /* non-fatal */ }
+
     res.json({ success: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';

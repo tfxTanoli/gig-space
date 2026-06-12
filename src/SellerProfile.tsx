@@ -1,9 +1,9 @@
 ﻿import { useState, useRef, type ChangeEvent } from 'react';
-import { User } from 'lucide-react';
+import { User, ArrowLeftRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, set, get } from 'firebase/database';
-import { storage, database } from './firebase';
+import { storage, database, auth } from './firebase';
 import { useAuth } from './AuthContext';
 import UsernameField from './UsernameField';
 import { normalizeUsername, validateUsername, claimUsername } from './username';
@@ -82,6 +82,15 @@ const SellerProfile = () => {
         createdAt: Date.now(),
         role: existingRole,
       });
+
+      // Fire-and-forget welcome email
+      auth.currentUser?.getIdToken().then(token =>
+        fetch(`${import.meta.env.VITE_API_URL || ''}/api/email/welcome`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ accountType: 'seller' }),
+        })
+      ).catch(() => {});
 
       navigate('/post-service?new=true');
     } catch {
@@ -163,7 +172,7 @@ const SellerProfile = () => {
             onClick={() => navigate('/account-type')}
             className="text-slate-400 hover:text-white text-sm transition-colors"
           >
-            â† Switch account type
+            <ArrowLeftRight className="inline w-3.5 h-3.5 mr-1.5" /> Switch account type
           </button>
           <button
             onClick={handleContinue}

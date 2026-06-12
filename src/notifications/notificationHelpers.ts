@@ -7,8 +7,13 @@ export type NotificationType =
   | 'message'
   | 'offer'
   | 'offer_accepted'
+  | 'order_placed'
   | 'delivery'
   | 'revision'
+  | 'order_approved'
+  | 'payment_received'
+  | 'refund_issued'
+  | 'affiliate_commission'
   | 'review'
   | 'referral_order';
 
@@ -23,6 +28,8 @@ export interface NotificationPayload {
   orderId?: string;
   conversationId?: string;
   serviceId?: string;
+  serviceTitle?: string;
+  commissionAmount?: string;
   /** Which dashboard this notification belongs to. Filters it out of the other dashboard's bell. */
   dashboardType?: 'seller' | 'buyer';
 }

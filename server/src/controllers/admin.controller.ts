@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
+import { sendTransactionalEmail, buildAccountDeactivatedEmail } from '../email';
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
@@ -215,6 +216,19 @@ export async function deleteUser(req: AdminRequest, res: Response): Promise<void
     if (uid === req.uid) {
       res.status(400).json({ error: 'You cannot delete your own account' }); return;
     }
+
+    // Send deactivation email before deleting (fire-and-forget)
+    try {
+      const userRecord = await admin.auth().getUser(uid);
+      if (userRecord.email) {
+        const firstName = (userRecord.displayName || 'there').split(' ')[0];
+        await sendTransactionalEmail(
+          userRecord.email,
+          'Your Gigspace account has been deactivated',
+          buildAccountDeactivatedEmail(firstName)
+        );
+      }
+    } catch { /* non-fatal */ }
 
     // Remove from Firebase Auth (ignore "user not found" — DB cleanup still runs)
     try {
