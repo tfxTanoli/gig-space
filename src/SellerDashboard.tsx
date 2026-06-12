@@ -113,9 +113,9 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
   const hasStats = (post.views ?? 0) > 0 || (post.clicks ?? 0) > 0;
 
   return (
-    <div className="group block flex flex-col">
+    <div className="group block">
       {/* Image */}
-      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative flex-none">
+      <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative">
         <button
           onClick={() => onSelect(post)}
           className="block w-full h-full text-left"
@@ -149,8 +149,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
         </Link>
       </div>
 
-      {/* Info — flex-col so price is always pinned to the same row across cards */}
-      <button onClick={() => onSelect(post)} className="flex-1 w-full text-left flex flex-col">
+      <button onClick={() => onSelect(post)} className="w-full text-left block">
         {/* Avatar & Name */}
         <div className="flex items-center gap-2 mb-2.5">
           <UserAvatar photoURL={sellerPhotoURL} name={sellerName} size="sm" />
@@ -159,8 +158,8 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           </div>
         </div>
 
-        {/* Title */}
-        <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 group-hover:underline">
+        {/* Title — min-h keeps single-line titles consistent with two-line ones */}
+        <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:underline">
           {post.title}
         </h3>
 
@@ -184,9 +183,6 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           </div>
         )}
 
-        {/* Spacer — pushes reviews + price to the bottom */}
-        <div className="flex-1" />
-
         {/* Reviews row — fixed height keeps price aligned across all cards */}
         <div className="mb-2 h-[26px] flex items-center">
           <span className="text-[13px] text-slate-500">No reviews</span>
@@ -199,7 +195,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           <span className="text-xs text-slate-400">{suffix}</span>
         </div>
 
-        {/* Views / clicks below price */}
+        {/* Views / clicks — only on dashboard cards */}
         {hasStats && (
           <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
             {(post.views ?? 0) > 0 && <span>{post.views!.toLocaleString()} views</span>}
