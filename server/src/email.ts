@@ -58,10 +58,10 @@ function shell(iconBoxBg: string, iconContent: string, bodyHtml: string): string
           <tr>
             <td style="background-color:#111827;border-radius:16px;padding:40px 40px 36px;border:1px solid #1f2937;">
 
-              <!-- Logo inside card -->
+              <!-- Logo inside card — centered -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding-bottom:32px;">
+                  <td align="center" style="padding-bottom:32px;">
                     <a href="${APP_URL}" target="_blank" style="text-decoration:none;display:inline-block;">
                       ${GIGSPACE_LOGO_IMG}
                     </a>
