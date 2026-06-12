@@ -117,14 +117,14 @@ const LandingPage = () => {
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
-            <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors">For Sellers</Link>
-            <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors">Become an Affiliate</Link>
+            <Link to="/for-sellers" className="text-slate-300 hover:text-white transition-colors">For Sellers</Link>
+            <Link to="/affiliate" className="text-slate-300 hover:text-white transition-colors">Become an Affiliate</Link>
             {user ? (
               <HeaderUserMenu />
             ) : (
               <>
-                <Link to="/signin?next=/buyer-dashboard" className="text-white hover:text-slate-300 transition-colors">Log in</Link>
-                <Link to="/signup" className="flex items-center text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                <Link to="/signin?next=/buyer-dashboard" className="text-slate-300 hover:text-white transition-colors">Log in</Link>
+                <Link to="/signup" className="flex items-center text-slate-300 hover:text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
                   Sign up <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </>
@@ -143,14 +143,14 @@ const LandingPage = () => {
           {/* Mobile dropdown menu */}
           {menuOpen && (
             <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
-              <Link to="/for-sellers" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>For Sellers</Link>
-              <Link to="/affiliate" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
+              <Link to="/for-sellers" className="text-slate-300 hover:text-white transition-colors py-2" onClick={() => setMenuOpen(false)}>For Sellers</Link>
+              <Link to="/affiliate" className="text-slate-300 hover:text-white transition-colors py-2" onClick={() => setMenuOpen(false)}>Become an Affiliate</Link>
               {user ? (
                 <HeaderUserMenu />
               ) : (
                 <>
-                  <Link to="/signin?next=/buyer-dashboard" className="text-white hover:text-slate-300 transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
-                  <Link to="/signup" className="flex items-center justify-center text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                  <Link to="/signin?next=/buyer-dashboard" className="text-slate-300 hover:text-white transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
+                  <Link to="/signup" className="flex items-center justify-center text-slate-300 hover:text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
                     Sign up <ArrowRight className="ml-2 w-4 h-4" />
                   </Link>
                 </>
@@ -162,10 +162,10 @@ const LandingPage = () => {
         {/* Hero Section */}
         <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-24 pb-12 md:pb-16 px-4 text-center relative">
           <div className="relative z-10 w-full flex flex-col items-center">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-heading mb-4 md:mb-6">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold gradient-heading mb-4 md:mb-6">
               Local talent. On demand.
             </h1>
-            <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto mb-8 md:mb-12">
+            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-12">
               Hire talented pros for in-person services or remote experts for digital work.
               <br className="hidden md:block"/>
               One marketplace for everything you need.
@@ -302,7 +302,7 @@ const LandingPage = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );
