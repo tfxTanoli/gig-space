@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Logo from './Logo';
 
@@ -18,7 +18,7 @@ const WelcomeEmail = () => {
         {/* Header Title with Icon */}
         <div className="flex items-center mb-8">
           <div className="w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-xl shrink-0">
-            ðŸŽ‰
+            Ã°Å¸Å½â€°
           </div>
           <h1 className="text-xl sm:text-2xl font-semibold text-white ml-5">
             Welcome to Gigspace. We're glad you're here!
@@ -34,14 +34,14 @@ const WelcomeEmail = () => {
             Once your post is live, it will be visible to people searching for services in your area. You can edit it anytime, create additional posts for other services, or expand to more locations whenever you're ready.
           </p>
           <p className="font-medium text-white flex items-center">
-            <span className="mr-2">ðŸ‘‡</span> Click below to create your first post.
+            <span className="mr-2">Ã°Å¸â€˜â€¡</span> Click below to create your first post.
           </p>
 
           {/* Action Button */}
           <div className="pt-2">
             <button
               onClick={() => navigate('/post-service')}
-              className="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center"
+              className="bg-primary hover:bg-blue-400 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center"
             >
               Create post
               <ArrowRight className="w-4 h-4 ml-2" />

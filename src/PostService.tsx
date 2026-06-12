@@ -118,7 +118,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
             type="button"
             onClick={onBack}
             disabled={processing}
-            className="px-6 py-2.5 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors text-sm"
+            className="px-6 py-2 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors text-sm"
           >
             Back
           </button>
@@ -126,7 +126,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
             type="button"
             onClick={handlePublish}
             disabled={processing || !stripe}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors text-sm"
+            className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-400 disabled:opacity-50 transition-colors text-sm"
           >
             {processing ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</> : 'Publish'}
           </button>
@@ -1279,7 +1279,7 @@ const PostService = () => {
                   Share via email
                 </button>
               </div>
-              <button onClick={handleCopyLink} className="w-full flex items-center justify-center px-4 py-3 rounded-lg bg-primary text-white hover:bg-blue-600 transition-colors text-sm font-semibold">
+              <button onClick={handleCopyLink} className="w-full flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-400 transition-colors text-sm font-semibold">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                 {copied ? 'Copied!' : 'Copy link'}
               </button>
@@ -1339,11 +1339,11 @@ const PostService = () => {
             <div className="w-full h-px bg-slate-800 my-8" />
             <div className="flex justify-between items-center">
               {step === 1 ? (
-                <Link to="/seller-dashboard" className="px-6 py-2.5 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
+                <Link to="/seller-dashboard" className="px-6 py-2 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
                   Cancel
                 </Link>
               ) : (
-                <button onClick={prevStep} className="px-6 py-2.5 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
+                <button onClick={prevStep} className="px-6 py-2 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
                   Back
                 </button>
               )}
@@ -1353,7 +1353,7 @@ const PostService = () => {
                   <button
                     onClick={() => saveStep(true)}
                     disabled={saving || publishing}
-                    className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                    className="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 font-medium hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                   >
                     Save &amp; exit
                   </button>
@@ -1362,7 +1362,7 @@ const PostService = () => {
                 <button
                   onClick={step === 8 ? () => doPublish() : () => saveStep(false)}
                   disabled={saving || publishing}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                 >
                   {step === 8 ? (
                     publishing

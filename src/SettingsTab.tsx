@@ -406,7 +406,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
 
           {/* Name — max-w keeps field comfortable but card fills full width */}
           <div className="max-w-lg">
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+            <label className="block text-sm font-medium text-slate-200 mb-1.5">
               Display name
             </label>
             <input
@@ -420,7 +420,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
 
           {/* Username */}
           <div className="max-w-lg">
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+            <label className="block text-sm font-medium text-slate-200 mb-1.5">Username</label>
             <div className="flex items-center">
               <span className="bg-background border border-r-0 border-slate-700 text-slate-500 text-sm px-3 py-2 rounded-l-lg select-none">
                 @
@@ -456,7 +456,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
 
           {/* Email */}
           <div className="max-w-lg">
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+            <label className="block text-sm font-medium text-slate-200 mb-1.5">
               Email address
             </label>
             {isEmailProvider ? (
@@ -517,7 +517,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
           <button
             onClick={handleProfileSave}
             disabled={profileSaving}
-            className="bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            className="bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
           >
             {profileSaving ? 'Saving…' : 'Save changes'}
           </button>
@@ -546,7 +546,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
             <>
               {/* Current password */}
               <div className="max-w-lg">
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-200 mb-1.5">
                   Current password
                 </label>
                 <div className="relative">
@@ -570,7 +570,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
 
               {/* New password */}
               <div className="max-w-lg">
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-200 mb-1.5">
                   New password
                 </label>
                 <div className="relative">
@@ -594,7 +594,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
 
               {/* Confirm new password */}
               <div className="max-w-lg">
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-200 mb-1.5">
                   Confirm new password
                 </label>
                 <div className="relative">
@@ -625,7 +625,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                 disabled={
                   passwordSaving || !currentPassword || !newPassword || !confirmPassword
                 }
-                className="bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+                className="bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
               >
                 {passwordSaving ? 'Updating…' : 'Update password'}
               </button>
@@ -734,7 +734,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteLoading || deleteConfirmText !== 'DELETE' || (isEmailProvider && !deletePassword)}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
                 >
                   {deleteLoading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { X, DollarSign, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { requestWithdrawal } from '../stripe/paymentHelpers';
 
@@ -59,7 +59,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               <p className="text-white font-semibold">Withdrawal initiated!</p>
               <p className="text-slate-400 text-sm text-center">
                 ${parsed.toFixed(2)} is on its way to your Stripe account.
-                It may take 1–3 business days.
+                It may take 1â€“3 business days.
               </p>
             </div>
           ) : (
@@ -135,20 +135,20 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               <button
                 onClick={handleWithdraw}
                 disabled={!isValid || loading}
-                className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-primary hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing…
+                    Processingâ€¦
                   </>
                 ) : (
-                  `Withdraw $${isValid ? parsed.toFixed(2) : '—'}`
+                  `Withdraw $${isValid ? parsed.toFixed(2) : 'â€”'}`
                 )}
               </button>
 
               <p className="text-slate-600 text-xs text-center">
-                Funds will be transferred to your connected Stripe account within 1–3 business days.
+                Funds will be transferred to your connected Stripe account within 1â€“3 business days.
               </p>
             </>
           )}

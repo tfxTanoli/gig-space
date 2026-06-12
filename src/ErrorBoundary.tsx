@@ -1,4 +1,4 @@
-import { Component, type ReactNode, type ErrorInfo } from 'react';
+﻿import { Component, type ReactNode, type ErrorInfo } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -28,7 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-slate-400 text-sm">An unexpected error occurred. Please try refreshing the page.</p>
           <a
             href="/"
-            className="mt-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            className="mt-2 bg-primary hover:bg-blue-400 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
           >
             Go home
           </a>

@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+﻿import { useState, useRef, type ChangeEvent } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -163,12 +163,12 @@ const SellerProfile = () => {
             onClick={() => navigate('/account-type')}
             className="text-slate-400 hover:text-white text-sm transition-colors"
           >
-            ← Switch account type
+            â† Switch account type
           </button>
           <button
             onClick={handleContinue}
             disabled={loading}
-            className="bg-primary hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-colors"
+            className="bg-primary hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-colors"
           >
             {loading ? 'Saving...' : 'Continue'}
           </button>

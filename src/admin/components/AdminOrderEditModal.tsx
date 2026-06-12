@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { X, AlertTriangle, Package } from 'lucide-react';
 import { ref as dbRef, update } from 'firebase/database';
 import { database } from '../../firebase';
@@ -97,11 +97,11 @@ const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
           <div className="bg-slate-800/40 rounded-xl px-4 py-3 border border-slate-700/50 space-y-1.5 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500 text-xs uppercase tracking-wide">Buyer</span>
-              <span className="text-white">{order.buyerName || '—'}</span>
+              <span className="text-white">{order.buyerName || 'â€”'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500 text-xs uppercase tracking-wide">Seller</span>
-              <span className="text-slate-300">{order.sellerName || '—'}</span>
+              <span className="text-slate-300">{order.sellerName || 'â€”'}</span>
             </div>
             {order.serviceTitle && (
               <div className="flex justify-between">
@@ -154,7 +154,7 @@ const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
           {status === 'cancelled' && (
             <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2.5 border border-amber-500/20">
               <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-              <span>Marking as cancelled will hide this order from active order views. Wallet balances are not automatically adjusted — handle refunds separately if needed.</span>
+              <span>Marking as cancelled will hide this order from active order views. Wallet balances are not automatically adjusted â€” handle refunds separately if needed.</span>
             </div>
           )}
         </div>
@@ -171,9 +171,9 @@ const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
           <button
             onClick={handleSave}
             disabled={saving || !changed}
-            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Saving…' : 'Save Changes'}
+            {saving ? 'Savingâ€¦' : 'Save Changes'}
           </button>
         </div>
       </div>

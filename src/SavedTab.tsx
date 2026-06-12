@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, Package } from 'lucide-react';
 import { ref, onValue } from 'firebase/database';
@@ -23,7 +23,7 @@ interface SavedService {
 
 function formatPrice(svc: SavedService) {
   const suffix = svc.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (svc.priceMax) return { prefix: '', price: `$${svc.priceMin} – $${svc.priceMax}`, suffix };
+  if (svc.priceMax) return { prefix: '', price: `$${svc.priceMin} â€“ $${svc.priceMax}`, suffix };
   return { prefix: 'From', price: `$${svc.priceMin}`, suffix };
 }
 
@@ -102,7 +102,7 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
 
       {loading ? (
         <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
-          <p className="text-slate-500 text-sm">Loading saved services…</p>
+          <p className="text-slate-500 text-sm">Loading saved servicesâ€¦</p>
         </div>
       ) : displayed.length === 0 ? (
         <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
@@ -120,7 +120,7 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
           {services.length === 0 && (
             <Link
               to="/search"
-              className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+              className="bg-primary hover:bg-blue-400 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
             >
               Browse services
             </Link>

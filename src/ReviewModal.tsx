@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Star, X, Loader2, CheckCircle } from 'lucide-react';
 
 interface ReviewModalProps {
@@ -169,7 +169,7 @@ export default function ReviewModal({
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
-                  placeholder="Share details about your experience…"
+                  placeholder="Share details about your experienceâ€¦"
                   rows={4}
                   disabled={submitting}
                   className="w-full bg-background border border-slate-700 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-50 leading-relaxed"
@@ -191,19 +191,19 @@ export default function ReviewModal({
             <button
               onClick={handleClose}
               disabled={submitting}
-              className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2.5 rounded-xl transition-colors"
+              className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={rating === 0 || submitting}
-              className="flex-1 bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Submitting…
+                  Submittingâ€¦
                 </>
               ) : (
                 'Submit review'

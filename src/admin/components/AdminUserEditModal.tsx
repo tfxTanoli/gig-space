@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { ref as dbRef, get, update, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../../firebase';
@@ -19,7 +19,7 @@ async function fanOutUserProfile(
 ) {
   const patches: Promise<void>[] = [];
 
-  // ── Services (sellerId index exists) ─────────────────────────────────────
+  // â”€â”€ Services (sellerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const svcQ = query(dbRef(database, 'services'), orderByChild('sellerId'), equalTo(uid));
   const svcSnap = await get(svcQ);
   svcSnap.forEach((child) => {
@@ -32,7 +32,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Orders as buyer (buyerId index exists) ────────────────────────────────
+  // â”€â”€ Orders as buyer (buyerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buyerOrdersQ = query(dbRef(database, 'orders'), orderByChild('buyerId'), equalTo(uid));
   const buyerSnap = await get(buyerOrdersQ);
   buyerSnap.forEach((child) => {
@@ -44,7 +44,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Orders as seller (sellerId index exists) ──────────────────────────────
+  // â”€â”€ Orders as seller (sellerId index exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sellerOrdersQ = query(dbRef(database, 'orders'), orderByChild('sellerId'), equalTo(uid));
   const sellerOrdersSnap = await get(sellerOrdersQ);
   sellerOrdersSnap.forEach((child) => {
@@ -56,7 +56,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Conversations as buyer ────────────────────────────────────────────────
+  // â”€â”€ Conversations as buyer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buyerConvsQ = query(dbRef(database, 'conversations'), orderByChild('buyerId'), equalTo(uid));
   const buyerConvsSnap = await get(buyerConvsQ);
   buyerConvsSnap.forEach((child) => {
@@ -68,7 +68,7 @@ async function fanOutUserProfile(
     }
   });
 
-  // ── Conversations as seller ───────────────────────────────────────────────
+  // â”€â”€ Conversations as seller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sellerConvsQ = query(dbRef(database, 'conversations'), orderByChild('sellerId'), equalTo(uid));
   const sellerConvsSnap = await get(sellerConvsQ);
   sellerConvsSnap.forEach((child) => {
@@ -256,9 +256,9 @@ const AdminUserEditModal = ({ user, onClose, onSuccess }: Props) => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save Changes'}
+            {saving ? 'Savingâ€¦' : 'Save Changes'}
           </button>
         </div>
       </div>

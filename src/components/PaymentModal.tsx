@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { X, Loader2, Lock } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -66,21 +66,21 @@ function CheckoutForm({ offerAmount, onSuccess, onClose }: CheckoutFormProps) {
           <button
             onClick={onClose}
             disabled={paying}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-40"
+            className="flex-1 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-40"
           >
             Cancel
           </button>
           <button
             onClick={handlePay}
             disabled={paying}
-            className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {paying ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Lock className="w-3.5 h-3.5" />
             )}
-            {paying ? 'Processing…' : `Pay $${offerAmount}`}
+            {paying ? 'Processingâ€¦' : `Pay $${offerAmount}`}
           </button>
         </div>
       )}
@@ -115,7 +115,7 @@ export default function PaymentModal({
           <div>
             <h3 className="font-semibold text-white text-base">Complete payment</h3>
             <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[280px]">
-              {serviceTitle} — ${offerAmount}
+              {serviceTitle} â€” ${offerAmount}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors ml-4 shrink-0">

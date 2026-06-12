@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
 import { ref as dbRef, get, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -220,7 +220,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
               <FieldLabel>Category</FieldLabel>
               <div className="relative">
                 <Select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}>
-                  <option value="">Select…</option>
+                  <option value="">Selectâ€¦</option>
                   {categoryOptions.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
@@ -232,7 +232,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
               <FieldLabel>Subcategory</FieldLabel>
               <div className="relative">
                 <Select value={subcategory} onChange={(e) => setSubcategory(e.target.value)} disabled={!category}>
-                  <option value="">Select…</option>
+                  <option value="">Selectâ€¦</option>
                   {subcategoryOptions.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
@@ -245,13 +245,13 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
           {/* Title */}
           <div>
             <FieldLabel>Title</FieldLabel>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post title…" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post titleâ€¦" />
           </div>
 
           {/* Description */}
           <div>
             <FieldLabel>Description</FieldLabel>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the service…" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Describe the serviceâ€¦" />
           </div>
 
           {/* Pricing */}
@@ -324,7 +324,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
           {/* Primary Location */}
           <div>
             <FieldLabel>Primary Location</FieldLabel>
-            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full address…" />
+            <Input value={primaryLocation} onChange={(e) => setPrimaryLocation(e.target.value)} placeholder="City, State or full addressâ€¦" />
           </div>
 
           {/* Extra Locations */}
@@ -335,7 +335,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
                 value={locationInput}
                 onChange={(e) => setLocationInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addLocation()}
-                placeholder="Add a location…"
+                placeholder="Add a locationâ€¦"
               />
               <button
                 onClick={addLocation}
@@ -381,7 +381,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
                 value={languageInput}
                 onChange={(e) => setLanguageInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addLanguage()}
-                placeholder="e.g. English, Spanish…"
+                placeholder="e.g. English, Spanishâ€¦"
               />
               <button
                 onClick={addLanguage}
@@ -410,16 +410,16 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
           <button
             onClick={onClose}
             disabled={saving}
-            className="flex-1 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors disabled:opacity-50"
+            className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save Changes'}
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Savingâ€¦</> : 'Save Changes'}
           </button>
         </div>
       </div>

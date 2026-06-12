@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { ref as dbRef, get, update } from 'firebase/database';
 import { database } from '../../firebase';
@@ -138,9 +138,9 @@ const AdminServiceEditModal = ({ service, onClose, onSuccess }: Props) => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save Changes'}
+            {saving ? 'Savingâ€¦' : 'Save Changes'}
           </button>
         </div>
       </div>

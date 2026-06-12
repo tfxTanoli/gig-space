@@ -1,4 +1,4 @@
-import Logo from './Logo';
+﻿import Logo from './Logo';
 import { Link, useNavigate } from 'react-router-dom';
 
 const VerifyEmail = () => {
@@ -44,7 +44,7 @@ const VerifyEmail = () => {
 
           <button
             type="submit"
-            className="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-md transition-colors"
+            className="w-full bg-primary hover:bg-blue-400 text-white font-semibold py-3 px-4 rounded-md transition-colors"
           >
             Submit
           </button>

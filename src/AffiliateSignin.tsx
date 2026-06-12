@@ -104,7 +104,7 @@ const AffiliateSignin = () => {
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300" htmlFor="email">
+            <label className="text-sm font-medium text-slate-200" htmlFor="email">
               Email address
             </label>
             <input
@@ -113,13 +113,13 @@ const AffiliateSignin = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-surface-raised border border-slate-700/50 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              className="w-full px-4 py-3 bg-surface-raised border border-slate-700/50 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-slate-300" htmlFor="password">
+              <label className="text-sm font-medium text-slate-200" htmlFor="password">
                 Password
               </label>
               <Link to="/reset-password" className="text-sm font-medium text-primary hover:text-blue-400 transition-colors">
@@ -132,7 +132,7 @@ const AffiliateSignin = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-surface-raised border border-slate-700/50 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              className="w-full px-4 py-3 bg-surface-raised border border-slate-700/50 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
             />
           </div>
 
@@ -142,9 +142,9 @@ const AffiliateSignin = () => {
               name="remember-me"
               type="checkbox"
               defaultChecked
-              className="h-4 w-4 rounded border-slate-700 bg-surface-raised text-primary focus:ring-primary focus:ring-offset-background"
+              className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-slate-900 cursor-pointer"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-300">
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-200 cursor-pointer">
               Remember me on this device
             </label>
           </div>
@@ -152,7 +152,7 @@ const AffiliateSignin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-md transition-colors"
+            className="w-full bg-primary hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-md transition-colors"
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>

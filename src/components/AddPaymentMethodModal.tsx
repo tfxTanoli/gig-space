@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import type { Stripe, StripeElements } from '@stripe/stripe-js';
@@ -101,17 +101,17 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
             <button
               onClick={onClose}
               disabled={saving}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-40"
+              className="flex-1 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-40"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {saving ? 'Saving…' : 'Save payment method'}
+              {saving ? 'Savingâ€¦' : 'Save payment method'}
             </button>
           </div>
         )}

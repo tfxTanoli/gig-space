@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Eye, Pencil, UserX, UserCheck, Plus } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
@@ -28,7 +28,7 @@ interface Props {
 }
 
 const fmtDate = (ts: number) =>
-  ts ? new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—';
+  ts ? new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'â€”';
 
 const fmtUSD = (n: number) =>
   `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -53,7 +53,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
         {onNew && (
           <button
             onClick={onNew}
-            className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-colors"
+            className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-blue-400 text-white text-sm font-semibold rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Affiliate
@@ -76,7 +76,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
         {onNew && (
           <button
             onClick={onNew}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-blue-400 text-white text-xs font-semibold rounded-lg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Affiliate
@@ -113,7 +113,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-white font-medium text-sm truncate">{a.name || '—'}</p>
+                      <p className="text-white font-medium text-sm truncate">{a.name || 'â€”'}</p>
                       <p className="text-slate-500 text-xs truncate">{a.email}</p>
                     </div>
                   </div>
@@ -123,7 +123,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                   {a.referralCode ? (
                     <span className="text-slate-300 font-mono text-xs bg-slate-800 px-2 py-1 rounded">{a.referralCode}</span>
                   ) : (
-                    <span className="text-slate-600 text-xs">—</span>
+                    <span className="text-slate-600 text-xs">â€”</span>
                   )}
                 </td>
 

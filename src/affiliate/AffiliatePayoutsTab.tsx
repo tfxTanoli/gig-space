@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   DollarSign, Clock, ArrowDownLeft, ArrowUpRight, X, Loader2,
   FileText, BanknoteArrowDown, ExternalLink, AlertCircle, CheckCircle,
@@ -18,7 +18,7 @@ import {
   type AffiliatePayout,
 } from './affiliateHelpers';
 
-/* ── Stripe Connect card ──────────────────────────────────────────────────── */
+/* â”€â”€ Stripe Connect card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null }) {
   const [connectStatus, setConnectStatus] = useState<{
@@ -65,7 +65,7 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
 
       {!stats?.stripeConnectedAccountId && (
         <p className="text-slate-400 text-xs leading-relaxed">
-          Your commissions are tracked automatically — no Stripe connection needed. Connect Stripe
+          Your commissions are tracked automatically â€” no Stripe connection needed. Connect Stripe
           only when you're ready to withdraw your available balance to your bank.
         </p>
       )}
@@ -88,7 +88,7 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
             className="flex items-center gap-2 bg-stripe hover:bg-stripe-hover disabled:opacity-60 text-white text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors"
           >
             {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-            {connecting ? 'Connecting…' : 'Connect Stripe Account'}
+            {connecting ? 'Connectingâ€¦' : 'Connect Stripe Account'}
           </button>
         </div>
       ) : isFullyEnabled ? (
@@ -113,7 +113,7 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
               className="flex items-center gap-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 disabled:opacity-60 text-yellow-300 text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors"
             >
               {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-              {connecting ? 'Loading…' : 'Complete Onboarding'}
+              {connecting ? 'Loadingâ€¦' : 'Complete Onboarding'}
             </button>
           )}
         </div>
@@ -122,7 +122,7 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
   );
 }
 
-/* ── Withdraw modal ───────────────────────────────────────────────────────── */
+/* â”€â”€ Withdraw modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function WithdrawModal({
   available,
@@ -195,7 +195,7 @@ function WithdrawModal({
           <button
             onClick={handle}
             disabled={loading}
-            className="flex-1 bg-primary hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             Withdraw
@@ -206,7 +206,7 @@ function WithdrawModal({
   );
 }
 
-/* ── Status pills ─────────────────────────────────────────────────────────── */
+/* â”€â”€ Status pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -222,7 +222,7 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-/* ── Main component ───────────────────────────────────────────────────────── */
+/* â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export default function AffiliatePayoutsTab() {
   const { user } = useAuth();
@@ -312,7 +312,7 @@ export default function AffiliatePayoutsTab() {
       <button
         onClick={() => setShowWithdraw(true)}
         disabled={available < 10}
-        className="flex items-center gap-2 bg-primary hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors"
+        className="flex items-center gap-2 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2 rounded-xl transition-colors"
       >
         <ArrowUpRight className="w-4 h-4" />
         Withdraw funds
@@ -353,7 +353,7 @@ export default function AffiliatePayoutsTab() {
                     <td className="py-3 text-slate-400 pr-4">
                       {new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
-                    <td className="py-3 text-slate-400 font-mono text-xs pr-4">{c.orderId.substring(0, 8)}…</td>
+                    <td className="py-3 text-slate-400 font-mono text-xs pr-4">{c.orderId.substring(0, 8)}â€¦</td>
                     <td className="py-3 text-slate-300 pr-4">{c.buyerName}</td>
                     <td className="py-3 text-slate-300 pr-4">${c.orderAmount.toFixed(2)}</td>
                     <td className="py-3 text-white font-semibold pr-4">${c.commissionAmount.toFixed(2)}</td>

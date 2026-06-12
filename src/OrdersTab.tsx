@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, ChevronRight } from 'lucide-react';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
@@ -108,7 +108,7 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
 
       {loading ? (
         <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
-          <p className="text-slate-500 text-sm">Loading orders…</p>
+          <p className="text-slate-500 text-sm">Loading ordersâ€¦</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
@@ -130,7 +130,7 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
           {orders.length === 0 && mode === 'buyer' && (
             <Link
               to="/search"
-              className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+              className="bg-primary hover:bg-blue-400 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
             >
               Browse services
             </Link>

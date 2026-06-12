@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import Logo from './Logo';
 
@@ -46,7 +46,7 @@ const PasswordUpdatedEmail = () => {
           <div className="pt-4">
             <Link
               to="/signin"
-              className="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors inline-flex items-center"
+              className="bg-primary hover:bg-blue-400 text-white px-6 py-2.5 rounded-lg font-medium transition-colors inline-flex items-center"
             >
               Sign in to your account
             </Link>

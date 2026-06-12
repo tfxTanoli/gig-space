@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link2, Users, Clock, DollarSign, Copy, Check, TrendingUp } from 'lucide-react';
 import { ref as dbRef, onValue, set } from 'firebase/database';
 import { database } from '../firebase';
@@ -94,14 +94,14 @@ export default function AffiliateHomeTab() {
   const [commissionsLoading, setCommissionsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // ── Read affiliate stats directly from Firebase RTDB (real-time, no server needed) ──
+  // â”€â”€ Read affiliate stats directly from Firebase RTDB (real-time, no server needed) â”€â”€
   useEffect(() => {
     if (!user) return;
 
     const affiliateRef = dbRef(database, `affiliates/${user.uid}`);
     const unsub = onValue(affiliateRef, async (snap) => {
       if (!snap.exists()) {
-        // First-time / existing user — auto-init their affiliate record
+        // First-time / existing user â€” auto-init their affiliate record
         try { await initAffiliateRecord(user.uid); } catch { /* ignore */ }
         return;
       }
@@ -122,7 +122,7 @@ export default function AffiliateHomeTab() {
     return () => unsub();
   }, [user]);
 
-  // ── Commissions via API (needs server) ────────────────────────────────────────
+  // â”€â”€ Commissions via API (needs server) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     fetchAffiliateCommissions()
       .then(c => setCommissions(c.commissions))
@@ -194,12 +194,12 @@ export default function AffiliateHomeTab() {
         </p>
         <div className="flex items-center gap-2">
           <div className="flex-1 bg-background border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-300 font-mono truncate min-w-0">
-            {referralLink || (statsLoading ? 'Generating your link…' : 'Link unavailable')}
+            {referralLink || (statsLoading ? 'Generating your linkâ€¦' : 'Link unavailable')}
           </div>
           <button
             onClick={copyLink}
             disabled={!referralLink}
-            className="flex items-center gap-1.5 bg-primary hover:bg-blue-600 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0"
+            className="flex items-center gap-1.5 bg-primary hover:bg-blue-400 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shrink-0"
           >
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied!' : 'Copy'}
@@ -235,7 +235,7 @@ export default function AffiliateHomeTab() {
                 <span className="text-slate-400">
                   {new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
-                <span className="text-slate-400 font-mono text-xs truncate">{c.orderId.substring(0, 8)}…</span>
+                <span className="text-slate-400 font-mono text-xs truncate">{c.orderId.substring(0, 8)}â€¦</span>
                 <span className="text-white font-medium">${c.commissionAmount.toFixed(2)}</span>
                 <StatusBadge status={c.status} />
               </div>

@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+﻿import { useState, useRef, type ChangeEvent } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -178,7 +178,7 @@ const AffiliateProfile = () => {
         <button
           onClick={handleContinue}
           disabled={loading}
-          className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+          className="w-full bg-primary hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-colors"
         >
           {loading ? 'Saving...' : 'Continue'}
         </button>

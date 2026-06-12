@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -61,7 +61,7 @@ const AccountType = () => {
 
         <button
           onClick={() => navigate(destinationMap[selectedType])}
-          className="mt-8 w-full bg-primary hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+          className="mt-8 w-full bg-primary hover:bg-blue-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
         >
           Continue
         </button>

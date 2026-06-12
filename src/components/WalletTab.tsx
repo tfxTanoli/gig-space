@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
@@ -119,7 +119,7 @@ export default function WalletTab() {
             value={pending}
             icon={<Clock className="w-4 h-4 text-amber-500" />}
             accent="amber"
-            tooltip="Held in escrow — released when buyer approves delivery"
+            tooltip="Held in escrow â€” released when buyer approves delivery"
           />
           <BalanceCard
             label="Lifetime"
@@ -139,7 +139,7 @@ export default function WalletTab() {
         <button
           onClick={() => setShowWithdraw(true)}
           disabled={available < MIN_WITHDRAWAL}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors"
         >
           <ArrowUpRight className="w-4 h-4" />
           Withdraw funds

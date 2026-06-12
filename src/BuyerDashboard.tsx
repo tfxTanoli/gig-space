@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -245,7 +245,7 @@ const BuyerDashboard = () => {
         </div>
       )}
 
-      {/* Sidebar — desktop only */}
+      {/* Sidebar â€” desktop only */}
       <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
           <Logo className="h-6" />
@@ -410,7 +410,7 @@ const BuyerDashboard = () => {
               </div>
               <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
                 <p className="text-slate-500 text-sm">No orders yet.</p>
-                <Link to="/search" className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                <Link to="/search" className="bg-primary hover:bg-blue-400 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors">
                   Browse services
                 </Link>
               </div>
@@ -438,7 +438,7 @@ const BuyerDashboard = () => {
 
           {activeTab !== 'Home' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Saved' && activeTab !== 'Billing' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-background flex items-center justify-center min-h-[400px]">
-              <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
+              <p className="text-slate-500 text-sm">{activeTab} â€” coming soon</p>
             </div>
           )}
         </main>

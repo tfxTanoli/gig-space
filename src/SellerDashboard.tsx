@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -90,7 +90,7 @@ const sellerNavItems = [
 
 function formatPostPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
+  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} â€“ $${post.priceMax}`, suffix };
   return { prefix: 'From', price: `$${post.priceMin}`, suffix };
 }
 
@@ -158,7 +158,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           </div>
         </div>
 
-        {/* Title — min-h keeps single-line titles consistent with two-line ones */}
+        {/* Title â€” min-h keeps single-line titles consistent with two-line ones */}
         <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:underline">
           {post.title}
         </h3>
@@ -183,7 +183,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           </div>
         )}
 
-        {/* Reviews row — fixed height keeps price aligned across all cards */}
+        {/* Reviews row â€” fixed height keeps price aligned across all cards */}
         <div className="mb-2 h-[26px] flex items-center">
           <span className="text-[13px] text-slate-500">No reviews</span>
         </div>
@@ -195,7 +195,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           <span className="text-xs text-slate-400">{suffix}</span>
         </div>
 
-        {/* Views / clicks — only on dashboard cards */}
+        {/* Views / clicks â€” only on dashboard cards */}
         {hasStats && (
           <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
             {(post.views ?? 0) > 0 && <span>{post.views!.toLocaleString()} views</span>}
@@ -207,7 +207,7 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
   );
 });
 
-/* ── Analytics Chart ── */
+/* â”€â”€ Analytics Chart â”€â”€ */
 const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; clicks: number }> }) => {
   const today = new Date();
   const days = Array.from({ length: 30 }, (_, i) => {
@@ -283,7 +283,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
               </svg>
               {!hasData && (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
-                  <p className="text-xs text-slate-600 text-center">No data yet — views and clicks appear after buyers visit your posts</p>
+                  <p className="text-xs text-slate-600 text-center">No data yet â€” views and clicks appear after buyers visit your posts</p>
                 </div>
               )}
             </div>
@@ -300,7 +300,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
   );
 };
 
-/* ── Post detail modal ── */
+/* â”€â”€ Post detail modal â”€â”€ */
 interface PostModalProps {
   post: ServicePost;
   onClose: () => void;
@@ -314,7 +314,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
 
   const formatPrice = () => {
     const suffix = post.priceType === 'per_hour' ? '/hr' : '/project';
-    if (post.priceMax) return `$${post.priceMin} – $${post.priceMax}${suffix}`;
+    if (post.priceMax) return `$${post.priceMin} â€“ $${post.priceMax}${suffix}`;
     return `$${post.priceMin}${suffix}`;
   };
 
@@ -472,13 +472,13 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
           <div className="flex gap-3 pt-1">
             <Link
               to={`/post-service?id=${post.id}`}
-              className="flex-1 text-center bg-primary hover:bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-[6px] transition-colors"
+              className="flex-1 text-center bg-primary hover:bg-blue-400 text-white text-sm font-semibold py-2 rounded-[6px] transition-colors"
             >
               Edit post
             </Link>
             <button
               onClick={() => onDelete(post)}
-              className="flex-1 text-center bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white text-sm font-semibold py-2.5 rounded-[6px] transition-colors"
+              className="flex-1 text-center bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white text-sm font-semibold py-2 rounded-[6px] transition-colors"
             >
               Delete
             </button>
@@ -489,7 +489,7 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
   );
 };
 
-/* ── Delete post confirmation modal ── */
+/* â”€â”€ Delete post confirmation modal â”€â”€ */
 interface DeletePostModalProps {
   post: ServicePost;
   onClose: () => void;
@@ -575,7 +575,7 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
             disabled={deleting}
             className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Deleting…' : 'Delete Post'}
+            {deleting ? 'Deletingâ€¦' : 'Delete Post'}
           </button>
         </div>
       </div>
@@ -718,7 +718,7 @@ const handleTabChange = useCallback((tab: string) => {
         />
       )}
 
-      {/* Sidebar — desktop only */}
+      {/* Sidebar â€” desktop only */}
       <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
         <div className="h-16 flex items-center px-6">
           <Logo className="h-6" />
@@ -799,7 +799,7 @@ const handleTabChange = useCallback((tab: string) => {
           <div className="flex items-center gap-2 md:gap-4">
             <NotificationBell onNavigate={handleTabChange} dashboardType="seller" />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
-            <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">
+            <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-400 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">
               <Plus className="w-4 h-4" /> <span className="hidden md:inline">New Post</span>
             </Link>
             <div ref={userMenuRef} className="relative">
@@ -882,16 +882,16 @@ const handleTabChange = useCallback((tab: string) => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="bg-surface border border-slate-800 rounded-xl p-4">
                   <p className="text-slate-400 text-xs mb-1">Total Posts</p>
-                  <p className="text-2xl font-bold text-white">{postsLoading ? '—' : posts.length}</p>
+                  <p className="text-2xl font-bold text-white">{postsLoading ? 'â€”' : posts.length}</p>
                 </div>
                 <div className="bg-surface border border-slate-800 rounded-xl p-4">
                   <p className="text-slate-400 text-xs mb-1">Orders</p>
-                  <p className="text-2xl font-bold text-white">{orderCount === null ? '—' : orderCount}</p>
+                  <p className="text-2xl font-bold text-white">{orderCount === null ? 'â€”' : orderCount}</p>
                 </div>
                 <div className="bg-surface border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
                   <p className="text-slate-400 text-xs mb-1">Earnings</p>
                   <p className="text-2xl font-bold text-white">
-                    {lifetimeEarnings === null ? '—' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
+                    {lifetimeEarnings === null ? 'â€”' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
                   </p>
                 </div>
               </div>
@@ -906,7 +906,7 @@ const handleTabChange = useCallback((tab: string) => {
               ) : posts.length === 0 ? (
                 <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[240px] gap-4">
                   <p className="text-slate-500 text-sm">You have no posts yet.</p>
-                  <Link to="/post-service" className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                  <Link to="/post-service" className="bg-primary hover:bg-blue-400 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors">
                     Create your first post
                   </Link>
                 </div>
@@ -915,7 +915,7 @@ const handleTabChange = useCallback((tab: string) => {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-white">Recent Posts</h3>
                     <button onClick={() => handleTabChange('Posts')} className="text-xs text-primary hover:text-blue-400 transition-colors">
-                      View all →
+                      View all â†’
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -936,7 +936,7 @@ const handleTabChange = useCallback((tab: string) => {
                 </div>
                 <Link
                   to="/post-service"
-                  className="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 bg-primary hover:bg-blue-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
                   <Plus className="w-4 h-4" /> New Post
                 </Link>
@@ -949,7 +949,7 @@ const handleTabChange = useCallback((tab: string) => {
               ) : posts.length === 0 ? (
                 <div className="border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center min-h-[300px] gap-4">
                   <p className="text-slate-500 text-sm">No posts yet. Create one to get started.</p>
-                  <Link to="/post-service" className="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                  <Link to="/post-service" className="bg-primary hover:bg-blue-400 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors">
                     Create post
                   </Link>
                 </div>
@@ -981,7 +981,7 @@ const handleTabChange = useCallback((tab: string) => {
           {/* OTHER TABS (coming soon) */}
           {activeTab !== 'Home' && activeTab !== 'Posts' && activeTab !== 'Messages' && activeTab !== 'Orders' && activeTab !== 'Settings' && activeTab !== 'Payouts' && activeTab !== 'Statements' && (
             <div className="flex-1 border border-dashed border-slate-800 rounded-xl bg-background flex items-center justify-center min-h-[400px]">
-              <p className="text-slate-500 text-sm">{activeTab} — coming soon</p>
+              <p className="text-slate-500 text-sm">{activeTab} â€” coming soon</p>
             </div>
           )}
         </main>

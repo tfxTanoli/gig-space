@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { ArrowRight, KeyRound } from 'lucide-react';
 import Logo from './Logo';
 
@@ -41,7 +41,7 @@ const ResetPasswordEmail = () => {
           <div className="pt-2">
             <button
               onClick={() => navigate('/reset-password')}
-              className="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center"
+              className="bg-primary hover:bg-blue-400 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center"
             >
               Reset password
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -62,7 +62,7 @@ const ResetPasswordEmail = () => {
           <hr className="border-slate-800 my-8" />
 
           <p>
-            If you didn't request a password reset, you can safely ignore this email — your current password will remain unchanged.
+            If you didn't request a password reset, you can safely ignore this email â€” your current password will remain unchanged.
           </p>
 
           <p className="pt-2">
