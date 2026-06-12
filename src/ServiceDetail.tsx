@@ -83,7 +83,7 @@ function FitBounds({ pins }: { pins: MapPin[] }) {
       map.setView([pins[0].lat, pins[0].lng], 11);
     } else {
       const bounds = L.latLngBounds(pins.map((p) => [p.lat, p.lng]));
-      map.fitBounds(bounds, { padding: [40, 40] });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 7 });
     }
   }, [map, pins]);
   return null;
@@ -146,9 +146,12 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
         scrollWheelZoom={false}
         zoomControl={true}
         style={{ width: '100%', height: '100%' }}
-        attributionControl={false}
+        attributionControl={true}
       >
-        <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+        <TileLayer
+          url={`https://tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token=${import.meta.env.VITE_JAWG_ACCESS_TOKEN}`}
+          attribution='<a href="https://www.jawg.io" target="_blank">&copy; Jawg Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        />
         <FitBounds pins={pins} />
         {pins.map((pin, i) => (
           <Marker key={i} position={[pin.lat, pin.lng]} icon={PIN_ICON} />
