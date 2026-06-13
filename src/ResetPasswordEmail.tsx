@@ -62,7 +62,7 @@ const ResetPasswordEmail = () => {
           <hr className="border-slate-800 my-8" />
 
           <p>
-            If you didn't request a password reset, you can safely ignore this email â€” your current password will remain unchanged.
+            If you didn't request a password reset, you can safely ignore this email — your current password will remain unchanged.
           </p>
 
           <p className="pt-2">

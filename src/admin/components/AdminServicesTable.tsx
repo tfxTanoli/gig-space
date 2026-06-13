@@ -97,19 +97,19 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
                     </td>
 
                     {/* Title */}
-                    <td className="px-5 py-3 text-white font-medium max-w-[200px] truncate">{s.title || 'â€”'}</td>
+                    <td className="px-5 py-3 text-white font-medium max-w-[200px] truncate">{s.title || '—'}</td>
 
                     {/* Seller */}
-                    <td className="px-5 py-3 text-slate-400">{s.sellerName || 'â€”'}</td>
+                    <td className="px-5 py-3 text-slate-400">{s.sellerName || '—'}</td>
 
                     {/* Price */}
                     <td className="px-5 py-3 text-slate-300 whitespace-nowrap">
                       ${(s.priceMin ?? s.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      {s.priceMax ? ` â€“ $${s.priceMax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+                      {s.priceMax ? ` – $${s.priceMax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
                     </td>
 
                     {/* Category */}
-                    <td className="px-5 py-3 text-slate-500 text-xs capitalize">{s.category || 'â€”'}</td>
+                    <td className="px-5 py-3 text-slate-500 text-xs capitalize">{s.category || '—'}</td>
 
                     {/* Status */}
                     <td className="px-5 py-3">

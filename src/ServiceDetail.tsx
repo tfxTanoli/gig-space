@@ -18,7 +18,7 @@ import { geocodeLocation } from './photon';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
-/* â”€â”€â”€ Types â”€â”€â”€ */
+/* ─── Types ─── */
 
 interface ReviewItem {
   orderId: string;
@@ -56,7 +56,7 @@ interface ServicePost {
   createdAt: number;
 }
 
-/* â”€â”€â”€ Map helpers â”€â”€â”€ */
+/* ─── Map helpers ─── */
 
 const PIN_ICON = L.divIcon({
   className: '',
@@ -131,7 +131,7 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
   if (!ready || pins.length === 0) {
     return (
       <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40 bg-slate-800 flex items-center justify-center" style={{ height: 210 }}>
-        <p className="text-slate-500 text-xs">Loading mapâ€¦</p>
+        <p className="text-slate-500 text-xs">Loading map…</p>
       </div>
     );
   }
@@ -161,7 +161,7 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
   );
 };
 
-/* â”€â”€â”€ Sub-components â”€â”€â”€ */
+/* ─── Sub-components ─── */
 
 const FilledStars = ({ count, size = 14 }: { count: number; size?: number }) => (
   <div className="flex items-center gap-0.5">
@@ -218,22 +218,22 @@ const SocialBtn = ({
   );
 };
 
-/* â”€â”€â”€ Media item type for the gallery â”€â”€â”€ */
+/* ─── Media item type for the gallery ─── */
 type MediaItem =
   | { kind: 'image'; url: string }
   | { kind: 'video'; url: string };
 
-/* â”€â”€â”€ Helper: readable subcategory label â”€â”€â”€ */
+/* ─── Helper: readable subcategory label ─── */
 function humanize(slug: string) {
   return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/* â”€â”€â”€ Helper: format price with commas â”€â”€â”€ */
+/* ─── Helper: format price with commas ─── */
 function fmtPrice(n: number) {
   return n.toLocaleString('en-US');
 }
 
-/* â”€â”€â”€ Main component â”€â”€â”€ */
+/* ─── Main component ─── */
 
 const ServiceDetail = () => {
   const [searchParams] = useSearchParams();
@@ -352,7 +352,7 @@ const ServiceDetail = () => {
     const description = post.description
       ? post.description.slice(0, 160).replace(/\s+/g, ' ').trim()
       : `${post.sellerName} offers this service on GigSpace.`;
-    const priceLabel = `$${post.priceMin}${post.priceMax ? `â€“$${post.priceMax}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
+    const priceLabel = `$${post.priceMin}${post.priceMax ? `–$${post.priceMax}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
 
     document.title = `${post.title} | GigSpace`;
 
@@ -360,12 +360,12 @@ const ServiceDetail = () => {
     setMeta('og:site_name', 'GigSpace');
     setMeta('og:url', pageUrl);
     setMeta('og:title', post.title);
-    setMeta('og:description', `${priceLabel} Â· ${description}`);
+    setMeta('og:description', `${priceLabel} · ${description}`);
     if (image) setMeta('og:image', image);
 
     setNameMeta('twitter:card', 'summary_large_image');
     setNameMeta('twitter:title', post.title);
-    setNameMeta('twitter:description', `${priceLabel} Â· ${description}`);
+    setNameMeta('twitter:description', `${priceLabel} · ${description}`);
     if (image) setNameMeta('twitter:image', image);
 
     return () => {
@@ -424,7 +424,7 @@ const ServiceDetail = () => {
     return () => unsub();
   }, [post?.id, post?.title]);
 
-  /* â”€â”€ Loading â”€â”€ */
+  /* ── Loading ── */
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -433,7 +433,7 @@ const ServiceDetail = () => {
     );
   }
 
-  /* â”€â”€ Not found â”€â”€ */
+  /* ── Not found ── */
   if (notFound || !post) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
@@ -443,7 +443,7 @@ const ServiceDetail = () => {
     );
   }
 
-  /* â”€â”€ Breadcrumb labels â”€â”€ */
+  /* ── Breadcrumb labels ── */
   const rawCatLabel = getCategoryLabel(post.category);
   const categoryLabel = rawCatLabel !== post.category ? rawCatLabel : humanize(post.category);
   const rawSubLabel = post.subcategory ? getSubcategoryLabel(post.category, post.subcategory) : null;
@@ -459,7 +459,7 @@ const ServiceDetail = () => {
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* ── Header ── */}
       <header className="bg-background border-b border-slate-800/70 h-16 flex items-center justify-between px-4 md:px-6 lg:px-12">
         <Logo className="h-6 shrink-0" />
         <div className="flex items-center gap-3 md:gap-5">
@@ -492,16 +492,16 @@ const ServiceDetail = () => {
         </div>
       </header>
 
-      {/* â”€â”€ Main two-column content â”€â”€ */}
+      {/* ── Main two-column content ── */}
       <main className="max-w-6xl mx-auto w-full px-4 md:px-6 lg:px-10 py-6 md:py-8 flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,380px)] gap-8 md:gap-10">
 
-        {/* â•â•â• LEFT COLUMN â€” gallery + description + reviews â•â•â• */}
+        {/* ═══ LEFT COLUMN — gallery + description + reviews ═══ */}
         <div className="order-2 lg:order-1 min-w-0">
 
-          {/* â”€â”€ Media gallery â”€â”€ */}
+          {/* ── Media gallery ── */}
           {mediaItems.length > 0 ? (
             <div className="mb-8">
-              {/* Main viewer â€” 4:3 aspect ratio */}
+              {/* Main viewer — 4:3 aspect ratio */}
               <div
                 className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full"
                 style={{ aspectRatio: '4/3' }}
@@ -584,7 +584,7 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          {/* â”€â”€ Description â”€â”€ */}
+          {/* ── Description ── */}
           <div className="mb-8">
             <h2 className="text-base font-medium text-white mb-4">Description</h2>
             {post.description ? (
@@ -597,12 +597,12 @@ const ServiceDetail = () => {
             )}
           </div>
 
-          {/* â”€â”€ Customer Reviews â”€â”€ */}
+          {/* ── Customer Reviews ── */}
           <div className="border-t border-slate-800/60 pt-8">
             <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
 
             {reviewsLoading ? (
-              <p className="text-slate-500 text-sm">Loading reviewsâ€¦</p>
+              <p className="text-slate-500 text-sm">Loading reviews…</p>
             ) : reviews.length === 0 ? (
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full">
@@ -658,7 +658,7 @@ const ServiceDetail = () => {
           </div>
         </div>
 
-        {/* â•â•â• RIGHT COLUMN â€” price/CTA/details â•â•â• */}
+        {/* ═══ RIGHT COLUMN — price/CTA/details ═══ */}
         <div className="order-1 lg:order-2 min-w-0 overflow-hidden">
 
           {/* Breadcrumb */}
@@ -714,11 +714,11 @@ const ServiceDetail = () => {
           {post.priceMin != null && (
             <div className="mb-5">
               {post.priceMax ? (
-                /* Range: From $X â€“ $Y per project */
+                /* Range: From $X – $Y per project */
                 <>
                   <span className="text-slate-400 text-sm">From </span>
                   <span className="text-white text-2xl font-bold">
-                    ${fmtPrice(post.priceMin)} â€“ ${fmtPrice(post.priceMax)}
+                    ${fmtPrice(post.priceMin)} – ${fmtPrice(post.priceMax)}
                   </span>
                   <span className="text-slate-400 text-sm"> {post.priceType === 'per_hour' ? 'per hour' : 'per project'}</span>
                 </>
@@ -859,7 +859,7 @@ const ServiceDetail = () => {
         </div>
       </main>
 
-      {/* â”€â”€ Footer â”€â”€ */}
+      {/* ── Footer ── */}
       <footer className="border-t border-slate-800 py-10 px-6 text-center text-sm text-slate-500">
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-6">
           <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
@@ -869,7 +869,7 @@ const ServiceDetail = () => {
           <Link to="#" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
           <Link to="#" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
         </div>
-        <p>Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
 
     </div>

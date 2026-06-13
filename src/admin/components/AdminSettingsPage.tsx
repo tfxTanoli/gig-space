@@ -8,7 +8,7 @@ import { ref as dbRef, get, update, set } from 'firebase/database';
 import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface GeneralSettings {
   platformName: string;
@@ -32,7 +32,7 @@ interface FaqItem { id: string; question: string; answer: string }
 type SectionKey = 'general' | 'fees' | 'registration';
 interface SectionStatus { saving: boolean; saved: boolean; error: string }
 
-// â”€â”€â”€ Primitives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Primitives ───────────────────────────────────────────────────────────────
 
 const Toggle = ({
   id, checked, onChange, disabled = false,
@@ -125,7 +125,7 @@ const SettingCard = ({ icon: Icon, iconColor, title, description, children, stat
         onClick={onSave} disabled={status.saving}
         className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
       >
-        {status.saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Savingâ€¦</> : <><Save className="w-3.5 h-3.5" /> Save</>}
+        {status.saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Save</>}
       </button>
     </div>
   </div>
@@ -148,7 +148,7 @@ const SkeletonCard = () => (
   </div>
 );
 
-// â”€â”€â”€ Tab types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Tab types ────────────────────────────────────────────────────────────────
 
 type SettingsTab = 'platform' | 'cms' | 'admin';
 
@@ -158,7 +158,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'admin',    label: 'Admin' },
 ];
 
-// â”€â”€â”€ CMS Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CMS Tab ──────────────────────────────────────────────────────────────────
 
 function CmsTab() {
   const { user } = useAuth();
@@ -259,8 +259,8 @@ function CmsTab() {
           ))}
           <div className="space-y-2 pt-2">
             <p className="text-xs font-medium text-slate-400">{editingFaq ? 'Edit FAQ' : 'Add FAQ'}</p>
-            <input value={faqQ} onChange={(e) => setFaqQ(e.target.value)} placeholder="Questionâ€¦" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors" />
-            <textarea value={faqA} onChange={(e) => setFaqA(e.target.value)} placeholder="Answerâ€¦" rows={3} className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
+            <input value={faqQ} onChange={(e) => setFaqQ(e.target.value)} placeholder="Question…" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors" />
+            <textarea value={faqA} onChange={(e) => setFaqA(e.target.value)} placeholder="Answer…" rows={3} className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
             <div className="flex gap-2">
               <button onClick={saveFaq} disabled={faqSaving} className="flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
                 {faqSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
@@ -287,12 +287,12 @@ function CmsTab() {
           </div>
         </div>
         <div className="px-6 py-5">
-          <textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows={10} placeholder="Enter your Terms & Conditionsâ€¦" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
+          <textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows={10} placeholder="Enter your Terms & Conditions…" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
         </div>
         <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
           {termsSaved ? <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Saved</span> : <span />}
           <button onClick={() => saveText('terms', terms, setTermsSaving, setTermsSaved)} disabled={termsSaving} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
-            {termsSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Savingâ€¦</> : <><Save className="w-3.5 h-3.5" /> Save</>}
+            {termsSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Save</>}
           </button>
         </div>
       </div>
@@ -309,12 +309,12 @@ function CmsTab() {
           </div>
         </div>
         <div className="px-6 py-5">
-          <textarea value={privacy} onChange={(e) => setPrivacy(e.target.value)} rows={10} placeholder="Enter your Privacy Policyâ€¦" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
+          <textarea value={privacy} onChange={(e) => setPrivacy(e.target.value)} rows={10} placeholder="Enter your Privacy Policy…" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
         </div>
         <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
           {privSaved ? <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Saved</span> : <span />}
           <button onClick={() => saveText('privacy', privacy, setPrivSaving, setPrivSaved)} disabled={privSaving} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
-            {privSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Savingâ€¦</> : <><Save className="w-3.5 h-3.5" /> Save</>}
+            {privSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Save</>}
           </button>
         </div>
       </div>
@@ -322,7 +322,7 @@ function CmsTab() {
   );
 }
 
-// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main component ───────────────────────────────────────────────────────────
 
 const BLANK_STATUS: SectionStatus = { saving: false, saved: false, error: '' };
 
@@ -365,7 +365,7 @@ const AdminSettingsPage = () => {
     if (section === 'fees') {
       const f = data as FeeSettings;
       if (isNaN(f.platformFeePercent) || f.platformFeePercent < 0 || f.platformFeePercent > 50) {
-        setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Platform fee must be 0â€“50%' } }));
+        setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Platform fee must be 0–50%' } }));
         return;
       }
       if (isNaN(f.minimumWithdrawal) || f.minimumWithdrawal < 1) {
@@ -450,7 +450,7 @@ const AdminSettingsPage = () => {
           </SettingCard>
 
           <SettingCard icon={DollarSign} iconColor="bg-emerald-500/10 text-emerald-400" title="Fees &amp; Payments" description="Controls how the platform charges on each transaction" status={status.fees} onSave={() => saveSection('fees', fees)}>
-            <SettingRow label="Platform Fee" hint="Percentage deducted from each completed payment (0â€“50%)" htmlFor="platformFee">
+            <SettingRow label="Platform Fee" hint="Percentage deducted from each completed payment (0–50%)" htmlFor="platformFee">
               <NumberInput id="platformFee" value={fees.platformFeePercent} onChange={(v) => setFees((f) => ({ ...f, platformFeePercent: v }))} min={0} max={50} step={0.5} suffix="%" />
             </SettingRow>
             <SettingRow label="Minimum Withdrawal" hint="Smallest amount a seller can withdraw at once" htmlFor="minWithdrawal" last>

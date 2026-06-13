@@ -28,7 +28,7 @@ interface Props {
 }
 
 const fmtDate = (ts: number) =>
-  ts ? new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'â€”';
+  ts ? new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—';
 
 const fmtUSD = (n: number) =>
   `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -113,7 +113,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-white font-medium text-sm truncate">{a.name || 'â€”'}</p>
+                      <p className="text-white font-medium text-sm truncate">{a.name || '—'}</p>
                       <p className="text-slate-500 text-xs truncate">{a.email}</p>
                     </div>
                   </div>
@@ -123,7 +123,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                   {a.referralCode ? (
                     <span className="text-slate-300 font-mono text-xs bg-slate-800 px-2 py-1 rounded">{a.referralCode}</span>
                   ) : (
-                    <span className="text-slate-600 text-xs">â€”</span>
+                    <span className="text-slate-600 text-xs">—</span>
                   )}
                 </td>
 

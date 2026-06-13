@@ -28,7 +28,7 @@ import { ref as dbRef, push, set, get } from 'firebase/database';
 import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useCategories } from './CategoriesContext';
-import { geocodeLocation, searchLocations, type LocationResult } from './photon';
+import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
 import { createListingSubscription } from './stripe/paymentHelpers';
 import { STRIPE_APPEARANCE, STRIPE_FONTS } from './stripe/stripeAppearance';
 import { LANGUAGES } from './data/languages';
@@ -296,9 +296,18 @@ const PostService = () => {
         setExistingVideoURL(String(d.video ?? ''));
         setLanguages(Array.isArray(d.languages) ? (d.languages as string[]) : []);
         setExtraLocations(Array.isArray(d.extraLocations) ? (d.extraLocations as string[]) : []);
-        setPrimaryLocation(String(d.primaryLocation ?? ''));
+        const loadedPrimaryLocation = String(d.primaryLocation ?? '');
+        setPrimaryLocation(loadedPrimaryLocation);
         setOfferedRemotely(Boolean(d.offeredRemotely ?? false));
-        setPrimaryLocationIsCountry(Boolean(d.offeredRemotely ?? false));
+        // Whether the primary location is a country gates the Remote toggle. A recognised
+        // country name always qualifies (self-healing for older posts, and for posts whose
+        // flag was persisted as false by an earlier build); the persisted flag and
+        // offeredRemotely are honoured as additional signals.
+        setPrimaryLocationIsCountry(
+          Boolean(d.primaryLocationIsCountry) ||
+            Boolean(d.offeredRemotely) ||
+            isCountryName(loadedPrimaryLocation),
+        );
       })
       .catch(() => navigate('/seller-dashboard'))
       .finally(() => setLoadingEdit(false));
@@ -530,6 +539,7 @@ const PostService = () => {
       primaryLocation: primaryLocation.trim(),
       primaryLocationLat,
       primaryLocationLng,
+      primaryLocationIsCountry,
       offeredRemotely,
       extraLocations,
       subscriptionId: subscriptionId ?? null,
@@ -1259,7 +1269,7 @@ const PostService = () => {
               <p className="text-slate-400 text-sm mb-6 text-center">
                 {editId
                   ? 'Your changes have been saved. Buyers can now see the updated listing.'
-                  : 'Sellers who share their posts on social media get up to 3Ã— more views. Share yours now!'}
+                  : 'Sellers who share their posts on social media get up to 3× more views. Share yours now!'}
               </p>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">

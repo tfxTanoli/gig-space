@@ -108,7 +108,7 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
 
       {loading ? (
         <div className="border border-slate-800 rounded-xl p-8 flex items-center justify-center">
-          <p className="text-slate-500 text-sm">Loading ordersâ€¦</p>
+          <p className="text-slate-500 text-sm">Loading orders…</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">

@@ -47,7 +47,7 @@ interface SellerMeta {
 
 function formatPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} â€“ $${post.priceMax}`, suffix };
+  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
   return { prefix: 'From', price: `$${post.priceMin}`, suffix };
 }
 
@@ -189,7 +189,7 @@ const BuyerSearchFiltered = () => {
         {/* Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <p className="text-slate-500 text-sm">Loading servicesâ€¦</p>
+            <p className="text-slate-500 text-sm">Loading services…</p>
           </div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -255,36 +255,38 @@ const BuyerSearchFiltered = () => {
                         {post.title}
                       </h3>
 
-                      {/* Location */}
-                      {locationLabel && (
-                        <div className="relative flex items-center text-slate-400 text-xs mb-2 group/loc">
-                          <MapPin className="w-3 h-3 mr-1.5 shrink-0 text-slate-400" />
-                          <span className="truncate">{locationLabel}</span>
-                          {extraLocationNames.length > 0 && (
-                            <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-surface border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max max-w-[200px]">
-                              {extraLocationNames.map((loc) => (
-                                <p key={loc} className="text-xs text-slate-300 py-0.5">{loc}</p>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Location — always reserves height so the badge/price row aligns across cards */}
+                      <div className="relative flex items-center text-slate-400 text-xs mb-2 min-h-[16px] group/loc">
+                        {locationLabel && (
+                          <>
+                            <MapPin className="w-3 h-3 mr-1.5 shrink-0 text-slate-400" />
+                            <span className="truncate">{locationLabel}</span>
+                            {extraLocationNames.length > 0 && (
+                              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-surface border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max max-w-[200px]">
+                                {extraLocationNames.map((loc) => (
+                                  <p key={loc} className="text-xs text-slate-300 py-0.5">{loc}</p>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
 
-                      {/* Reviews / New Seller badge */}
-                      {hasReviews ? (
-                        <div className="flex items-center gap-1 mb-2">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="text-xs text-slate-400">
-                            {meta!.rating.toFixed(1)} ({meta!.reviewCount})
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="mb-2">
-                          <span className="text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      {/* Reviews / New Seller badge — fixed height keeps price aligned across cards */}
+                      <div className="flex items-center mb-2 h-[24px]">
+                        {hasReviews ? (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            <span className="text-xs text-slate-400">
+                              {meta!.rating.toFixed(1)} ({meta!.reviewCount})
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
                             New seller
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
 
                       {/* Price */}
                       <div className="flex items-baseline gap-1">
@@ -315,7 +317,7 @@ const BuyerSearchFiltered = () => {
           <button className="hover:text-white transition-colors">Terms &amp; Conditions</button>
           <button className="hover:text-white transition-colors">Privacy Policy</button>
         </div>
-        <p className="text-xs text-slate-500">Â© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p className="text-xs text-slate-500">© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

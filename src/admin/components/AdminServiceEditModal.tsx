@@ -140,7 +140,7 @@ const AdminServiceEditModal = ({ service, onClose, onSuccess }: Props) => {
             disabled={saving}
             className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {saving ? 'Savingâ€¦' : 'Save Changes'}
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>

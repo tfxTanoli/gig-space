@@ -169,7 +169,7 @@ export default function ReviewModal({
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
-                  placeholder="Share details about your experienceâ€¦"
+                  placeholder="Share details about your experience…"
                   rows={4}
                   disabled={submitting}
                   className="w-full bg-background border border-slate-700 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-50 leading-relaxed"
@@ -203,7 +203,7 @@ export default function ReviewModal({
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Submittingâ€¦
+                  Submitting…
                 </>
               ) : (
                 'Submit review'

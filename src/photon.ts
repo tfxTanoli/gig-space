@@ -146,6 +146,47 @@ export async function geocodeLocation(
   }
 }
 
+// Common English country names as returned by Photon/OSM. Used to detect whether a
+// previously-saved primary-location label is a country, so the Remote toggle can be
+// re-enabled when editing posts saved before we persisted that flag explicitly.
+const COUNTRY_NAMES = new Set<string>([
+  'afghanistan', 'albania', 'algeria', 'andorra', 'angola', 'antigua and barbuda',
+  'argentina', 'armenia', 'australia', 'austria', 'azerbaijan', 'bahamas', 'bahrain',
+  'bangladesh', 'barbados', 'belarus', 'belgium', 'belize', 'benin', 'bhutan', 'bolivia',
+  'bosnia and herzegovina', 'botswana', 'brazil', 'brunei', 'bulgaria', 'burkina faso',
+  'burundi', 'cambodia', 'cameroon', 'canada', 'cape verde', 'central african republic',
+  'chad', 'chile', 'china', 'colombia', 'comoros', 'congo', 'costa rica', 'croatia',
+  'cuba', 'cyprus', 'czechia', 'czech republic', 'denmark', 'djibouti', 'dominica',
+  'dominican republic', 'east timor', 'ecuador', 'egypt', 'el salvador',
+  'equatorial guinea', 'eritrea', 'estonia', 'eswatini', 'ethiopia', 'fiji', 'finland',
+  'france', 'gabon', 'gambia', 'georgia', 'germany', 'ghana', 'greece', 'grenada',
+  'guatemala', 'guinea', 'guinea-bissau', 'guyana', 'haiti', 'honduras', 'hungary',
+  'iceland', 'india', 'indonesia', 'iran', 'iraq', 'ireland', 'israel', 'italy',
+  'ivory coast', "côte d'ivoire", 'jamaica', 'japan', 'jordan', 'kazakhstan', 'kenya',
+  'kiribati', 'kosovo', 'kuwait', 'kyrgyzstan', 'laos', 'latvia', 'lebanon', 'lesotho',
+  'liberia', 'libya', 'liechtenstein', 'lithuania', 'luxembourg', 'madagascar', 'malawi',
+  'malaysia', 'maldives', 'mali', 'malta', 'marshall islands', 'mauritania', 'mauritius',
+  'mexico', 'micronesia', 'moldova', 'monaco', 'mongolia', 'montenegro', 'morocco',
+  'mozambique', 'myanmar', 'namibia', 'nauru', 'nepal', 'netherlands', 'new zealand',
+  'nicaragua', 'niger', 'nigeria', 'north korea', 'north macedonia', 'norway', 'oman',
+  'pakistan', 'palau', 'palestine', 'panama', 'papua new guinea', 'paraguay', 'peru',
+  'philippines', 'poland', 'portugal', 'qatar', 'romania', 'russia', 'rwanda',
+  'saint kitts and nevis', 'saint lucia', 'saint vincent and the grenadines', 'samoa',
+  'san marino', 'sao tome and principe', 'saudi arabia', 'senegal', 'serbia',
+  'seychelles', 'sierra leone', 'singapore', 'slovakia', 'slovenia', 'solomon islands',
+  'somalia', 'south africa', 'south korea', 'south sudan', 'spain', 'sri lanka', 'sudan',
+  'suriname', 'sweden', 'switzerland', 'syria', 'taiwan', 'tajikistan', 'tanzania',
+  'thailand', 'togo', 'tonga', 'trinidad and tobago', 'tunisia', 'turkey', 'türkiye',
+  'turkmenistan', 'tuvalu', 'uganda', 'ukraine', 'united arab emirates',
+  'united kingdom', 'united states', 'uruguay', 'uzbekistan', 'vanuatu',
+  'vatican city', 'venezuela', 'vietnam', 'yemen', 'zambia', 'zimbabwe',
+]);
+
+// True when the given location label is a recognised country name (case-insensitive).
+export function isCountryName(label: string): boolean {
+  return COUNTRY_NAMES.has(label.trim().toLowerCase());
+}
+
 export function haversineDistanceMiles(
   lat1: number, lng1: number,
   lat2: number, lng2: number,

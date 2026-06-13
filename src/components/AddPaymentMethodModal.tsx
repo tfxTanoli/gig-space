@@ -111,7 +111,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
               className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {saving ? 'Savingâ€¦' : 'Save payment method'}
+              {saving ? 'Saving…' : 'Save payment method'}
             </button>
           </div>
         )}

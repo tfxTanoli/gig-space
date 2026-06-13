@@ -77,12 +77,12 @@ const IconBadgePercent = () => (
 );
 
 const features = [
-  { icon: IconSearch,       title: 'Instant search results.',      description: 'Find local or remote pros in seconds â€” no scrolling through irrelevant listings.' },
+  { icon: IconSearch,       title: 'Instant search results.',      description: 'Find local or remote pros in seconds — no scrolling through irrelevant listings.' },
   { icon: IconChat,         title: 'Real-time messaging.',          description: 'Chat instantly without filling out forms, sharing personal details, or waiting for bids.' },
   { icon: IconBadgeCheck,   title: 'Transparent profiles.',         description: 'See upfront rates and service areas before reaching out.' },
   { icon: IconShieldCheck,  title: 'Secure escrow payments.',       description: 'Transact with confidence and only pay when services are completed and fully approved.' },
   { icon: IconScreen,       title: 'Photo & video portfolios.',     description: "Preview real work quality so you know exactly who you're hiring and how talented they are." },
-  { icon: IconBadgePercent, title: '0% buyer fees.',                description: 'Skip the added fees other platforms sneak in â€” your budget should go to the work, not the platform.' },
+  { icon: IconBadgePercent, title: '0% buyer fees.',                description: 'Skip the added fees other platforms sneak in — your budget should go to the work, not the platform.' },
 ];
 
 const LandingPage = () => {
@@ -254,7 +254,7 @@ const LandingPage = () => {
             Hire the right pro for any project
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl">
-            Find trusted professionals for any project â€” home repairs, digital tasks, and everything in between.
+            Find trusted professionals for any project — home repairs, digital tasks, and everything in between.
           </p>
         </div>
 
@@ -302,7 +302,7 @@ const LandingPage = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>Â© Gigspace, LLC. All rights reserved.</p>
+        <p>© Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );
