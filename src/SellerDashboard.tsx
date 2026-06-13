@@ -967,7 +967,9 @@ const handleTabChange = useCallback((tab: string) => {
 
           {/* MESSAGES TAB */}
           {activeTab === 'Messages' && (
-            <ChatMessages mode="seller" />
+            <div className="flex-1 flex flex-col min-h-0 p-4 md:p-6 pb-20 md:pb-6 overflow-hidden">
+              <ChatMessages mode="seller" />
+            </div>
           )}
 
           {/* ORDERS TAB */}

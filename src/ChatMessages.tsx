@@ -598,7 +598,7 @@ export default function ChatMessages({
   const formatMsgTimestamp = (ts: number) => {
     const d = new Date(ts);
     const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return `${date}, ${time}`;
   };
 
@@ -1228,7 +1228,7 @@ export default function ChatMessages({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0"
+                  className="h-10 px-3 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-colors shrink-0 flex items-center justify-center"
                   title="Attach file"
                 >
                   <Paperclip className="w-5 h-5" />
