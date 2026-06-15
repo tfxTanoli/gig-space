@@ -493,9 +493,10 @@ const ServiceDetail = () => {
       </header>
 
       {/* ── Main two-column content ── */}
-      <main className="max-w-6xl mx-auto w-full px-4 md:px-6 lg:px-10 py-6 md:py-8 flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,380px)] gap-8 md:gap-10">
+      <main className="w-full px-4 md:px-6 lg:px-12 py-6 md:py-8 flex flex-col">
+      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,420px)] gap-8 lg:gap-14 mb-10">
 
-        {/* ═══ LEFT COLUMN — gallery + description + reviews ═══ */}
+        {/* ═══ LEFT COLUMN — gallery + description ═══ */}
         <div className="order-2 lg:order-1 min-w-0">
 
           {/* ── Media gallery ── */}
@@ -597,65 +598,6 @@ const ServiceDetail = () => {
             )}
           </div>
 
-          {/* ── Customer Reviews ── */}
-          <div className="border-t border-slate-800/60 pt-8">
-            <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
-
-            {reviewsLoading ? (
-              <p className="text-slate-500 text-sm">Loading reviews…</p>
-            ) : reviews.length === 0 ? (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full">
-                  <span className="text-amber-400 text-xs font-semibold">New seller</span>
-                </div>
-                <span className="text-slate-500 text-sm">No reviews yet</span>
-              </div>
-            ) : (
-              <>
-                {/* Summary row */}
-                {(() => {
-                  const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-                  return (
-                    <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800/60">
-                      <span className="text-5xl font-bold text-white leading-none">{avg.toFixed(1)}</span>
-                      <div>
-                        <FilledStars count={avg} size={20} />
-                        <p className="text-slate-400 text-sm mt-1">
-                          {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Individual reviews */}
-                <div className="space-y-6">
-                  {reviews.map((review) => (
-                    <div
-                      key={review.orderId}
-                      className="flex gap-4 pb-6 border-b border-slate-800/50 last:border-0 last:pb-0"
-                    >
-                      <UserAvatar photoURL={review.reviewerPhoto} name={review.reviewerName} size="md" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1.5">
-                          <p className="text-white text-sm font-semibold">{review.reviewerName}</p>
-                          <span className="text-slate-600 text-xs shrink-0">
-                            {new Date(review.timestamp).toLocaleDateString('en-US', {
-                              month: 'short', day: 'numeric', year: 'numeric',
-                            })}
-                          </span>
-                        </div>
-                        <FilledStars count={review.rating} size={13} />
-                        {review.text && (
-                          <p className="text-slate-300 text-sm leading-relaxed mt-2">{review.text}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
         </div>
 
         {/* ═══ RIGHT COLUMN — price/CTA/details ═══ */}
@@ -678,7 +620,7 @@ const ServiceDetail = () => {
           <h1 className="text-3xl font-bold text-white mb-4 leading-snug">{post.title}</h1>
 
           {/* Seller row */}
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-5">
             <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
@@ -693,7 +635,7 @@ const ServiceDetail = () => {
 
           {/* Rating / New seller badge (between seller and price) */}
           {!reviewsLoading && (
-            <div className="mb-4">
+            <div className="mb-5">
               {isNewSeller ? (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full">
                   <span className="text-amber-400 text-xs font-semibold">New seller</span>
@@ -756,11 +698,11 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          <hr className="border-slate-800 mb-5" />
+          <hr className="border-slate-800 mb-6" />
 
           {/* Locations */}
           {(post.primaryLocation || post.offeredRemotely || post.extraLocations?.length > 0) && (
-            <div className="mb-4">
+            <div className="mb-5">
               <h3 className="text-sm font-medium text-white mb-2">Locations Served</h3>
               <div className="text-slate-400 text-sm space-y-1">
                 {post.primaryLocation && <p>{post.primaryLocation}</p>}
@@ -784,9 +726,12 @@ const ServiceDetail = () => {
             />
           )}
 
+          {/* Divider between Locations/Map and Languages/Remote */}
+          <hr className="border-slate-700 mb-6" />
+
           {/* Languages */}
           {post.languages?.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-5">
               <h3 className="text-sm font-medium text-white mb-1">Languages Spoken</h3>
               <div className="text-slate-400 text-sm space-y-0.5">
                 {post.languages.map((lang) => (
@@ -797,12 +742,12 @@ const ServiceDetail = () => {
           )}
 
           {/* Offered Remotely */}
-          <div className="mb-4">
+          <div className="mb-5">
             <h3 className="text-sm font-medium text-white mb-1">Offered Remotely</h3>
             <p className="text-slate-400 text-sm">{post.offeredRemotely ? 'Yes' : 'No'}</p>
           </div>
 
-          <hr className="border-slate-800 mb-5" />
+          <hr className="border-slate-800 mb-6" />
 
           {/* Share */}
           <div>
@@ -857,6 +802,67 @@ const ServiceDetail = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Customer Reviews — full width, always below both columns ── */}
+      <div className="border-t border-slate-800/60 pt-8">
+        <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
+
+        {reviewsLoading ? (
+          <p className="text-slate-500 text-sm">Loading reviews…</p>
+        ) : reviews.length === 0 ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full">
+              <span className="text-amber-400 text-xs font-semibold">New seller</span>
+            </div>
+            <span className="text-slate-500 text-sm">No reviews yet</span>
+          </div>
+        ) : (
+          <>
+            {/* Summary row */}
+            {(() => {
+              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+              return (
+                <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800/60">
+                  <span className="text-5xl font-bold text-white leading-none">{avg.toFixed(1)}</span>
+                  <div>
+                    <FilledStars count={avg} size={20} />
+                    <p className="text-slate-400 text-sm mt-1">
+                      {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Individual reviews */}
+            <div className="space-y-6">
+              {reviews.map((review) => (
+                <div
+                  key={review.orderId}
+                  className="flex gap-4 pb-6 border-b border-slate-800/50 last:border-0 last:pb-0"
+                >
+                  <UserAvatar photoURL={review.reviewerPhoto} name={review.reviewerName} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-start justify-between gap-2 mb-1.5">
+                      <p className="text-white text-sm font-semibold">{review.reviewerName}</p>
+                      <span className="text-slate-600 text-xs shrink-0">
+                        {new Date(review.timestamp).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                    <FilledStars count={review.rating} size={13} />
+                    {review.text && (
+                      <p className="text-slate-300 text-sm leading-relaxed mt-2">{review.text}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
       </main>
 
       {/* ── Footer ── */}

@@ -106,7 +106,7 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
         </div>
       ) : displayed.length === 0 ? (
         <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
-          <Bookmark className="w-10 h-10 text-slate-600" />
+          <Bookmark className="w-10 h-10 text-slate-500" />
           <div className="text-center">
             <p className="text-slate-300 font-medium text-sm">
               {services.length === 0 ? 'No saved services yet' : 'No saved services match'}

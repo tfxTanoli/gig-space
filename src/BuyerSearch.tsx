@@ -44,8 +44,6 @@ type OnlineOption = '' | 'online';
 
 interface SellerMeta {
   verified: boolean;
-  rating: number;
-  reviewCount: number;
   lastSeen?: number | null;
 }
 
@@ -123,6 +121,8 @@ interface ServicePost {
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
+  reviewCount?: number;
+  totalStars?: number;
 }
 
 function formatPrice(post: ServicePost) {
@@ -140,7 +140,9 @@ interface ServiceCardProps {
 
 const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProps) => {
   const { prefix, price, suffix } = formatPrice(post);
-  const hasReviews = meta != null && meta.reviewCount > 0;
+  const serviceReviewCount = post.reviewCount ?? 0;
+  const serviceAvgRating = serviceReviewCount > 0 ? (post.totalStars ?? 0) / serviceReviewCount : 0;
+  const hasReviews = serviceReviewCount > 0;
   const isVerified = meta?.verified ?? false;
 
   const allLocations = post.offeredRemotely
@@ -225,7 +227,7 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
           <div className="flex items-center gap-1.5 mb-2 h-[26px]">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
             <span className="text-[13px] text-slate-400">
-              {meta!.rating.toFixed(1)} ({meta!.reviewCount})
+              {serviceAvgRating.toFixed(1)} ({serviceReviewCount})
             </span>
           </div>
         ) : (
@@ -608,16 +610,12 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
 
     Promise.all(
       missing.map(async (id) => {
-        const [verifiedSnap, ratingSnap, lastSeenSnap] = await Promise.all([
+        const [verifiedSnap, lastSeenSnap] = await Promise.all([
           get(ref(database, `users/${id}/emailVerified`)).catch(() => null),
-          get(ref(database, `userRatings/${id}`)).catch(() => null),
           get(ref(database, `users/${id}/lastSeen`)).catch(() => null),
         ]);
-        const r = ratingSnap?.val();
-        const reviewCount: number = r?.reviewCount ?? 0;
-        const rating = reviewCount > 0 ? r.totalStars / reviewCount : 0;
         const lastSeen: number | null = typeof lastSeenSnap?.val() === 'number' ? lastSeenSnap.val() : null;
-        return [id, { verified: verifiedSnap?.val() === true, rating, reviewCount, lastSeen }] as const;
+        return [id, { verified: verifiedSnap?.val() === true, lastSeen }] as const;
       }),
     ).then((entries) => {
       if (cancelled) return;
@@ -694,7 +692,9 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
         (p.languages ?? []).some((l) => selectedLanguages.includes(l));
 
       const meta = sellerMeta[p.sellerId];
-      const matchesRating = minRating === 0 || !meta || meta.rating >= minRating;
+      const svcReviewCount = p.reviewCount ?? 0;
+      const svcAvgRating = svcReviewCount > 0 ? (p.totalStars ?? 0) / svcReviewCount : 0;
+      const matchesRating = minRating === 0 || svcAvgRating >= minRating;
       const matchesVerified =
         !verifiedFilter || !meta ||
         (verifiedFilter === 'yes' ? meta.verified : !meta.verified);

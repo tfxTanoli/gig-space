@@ -112,7 +112,7 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
         </div>
       ) : filtered.length === 0 ? (
         <div className="border border-dashed border-slate-800 rounded-xl bg-background flex flex-col items-center justify-center min-h-[300px] gap-4">
-          <Package className="w-10 h-10 text-slate-600" />
+          <Package className="w-10 h-10 text-slate-500" />
           <div className="text-center">
             <p className="text-slate-300 font-medium text-sm">
               {orders.length === 0 ? 'No orders yet' : 'No orders match'}

@@ -37,12 +37,12 @@ interface ServicePost {
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
+  reviewCount?: number;
+  totalStars?: number;
 }
 
 interface SellerMeta {
   verified: boolean;
-  rating: number;
-  reviewCount: number;
 }
 
 function formatPrice(post: ServicePost) {
@@ -85,14 +85,10 @@ const BuyerSearchFiltered = () => {
     let cancelled = false;
     Promise.all(
       missing.map(async (id) => {
-        const [verifiedSnap, ratingSnap] = await Promise.all([
+        const [verifiedSnap] = await Promise.all([
           get(ref(database, `users/${id}/emailVerified`)).catch(() => null),
-          get(ref(database, `userRatings/${id}`)).catch(() => null),
         ]);
-        const r = ratingSnap?.val();
-        const reviewCount: number = r?.reviewCount ?? 0;
-        const rating = reviewCount > 0 ? r.totalStars / reviewCount : 0;
-        return [id, { verified: verifiedSnap?.val() === true, rating, reviewCount }] as const;
+        return [id, { verified: verifiedSnap?.val() === true }] as const;
       }),
     ).then((entries) => {
       if (cancelled) return;
@@ -202,7 +198,9 @@ const BuyerSearchFiltered = () => {
               {posts.map((post) => {
                 const { prefix, price, suffix } = formatPrice(post);
                 const meta = sellerMeta[post.sellerId];
-                const hasReviews = meta != null && meta.reviewCount > 0;
+                const svcReviewCount = post.reviewCount ?? 0;
+                const svcAvgRating = svcReviewCount > 0 ? (post.totalStars ?? 0) / svcReviewCount : 0;
+                const hasReviews = svcReviewCount > 0;
                 const isVerified = meta?.verified ?? false;
 
                 const allLocations = post.offeredRemotely
@@ -278,7 +276,7 @@ const BuyerSearchFiltered = () => {
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                             <span className="text-xs text-slate-400">
-                              {meta!.rating.toFixed(1)} ({meta!.reviewCount})
+                              {svcAvgRating.toFixed(1)} ({svcReviewCount})
                             </span>
                           </div>
                         ) : (

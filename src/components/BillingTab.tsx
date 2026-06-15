@@ -9,8 +9,8 @@ function CardBrandIcon({ brand }: { brand: string }) {
   switch (brand.toLowerCase()) {
     case 'visa':
       return (
-        <svg viewBox="0 0 48 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-auto">
-          <text x="0" y="13" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="16" fill="#1A1F71" letterSpacing="-0.5">VISA</text>
+        <svg viewBox="0 0 50 18" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-auto">
+          <text x="25" y="14" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fill="white" letterSpacing="0.5">VISA</text>
         </svg>
       );
     case 'mastercard':
@@ -25,14 +25,14 @@ function CardBrandIcon({ brand }: { brand: string }) {
       return (
         <svg viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-auto">
           <rect width="48" height="30" rx="4" fill="#2557D6" />
-          <text x="5" y="21" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="11" fill="white">AMEX</text>
+          <text x="24" y="21" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="11" fill="white">AMEX</text>
         </svg>
       );
     case 'discover':
       return (
         <svg viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-auto">
           <rect width="48" height="30" rx="4" fill="#F76F21" />
-          <text x="4" y="20" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="9" fill="white">DISC</text>
+          <text x="13" y="20" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="9" fill="white">DISC</text>
           <circle cx="35" cy="15" r="9" fill="#F9A12E" />
         </svg>
       );
@@ -161,17 +161,17 @@ export default function BillingTab() {
       {/* Summary card */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="bg-surface border border-slate-800 rounded-xl p-4">
-          <p className="text-slate-400 text-xs mb-1">Total spent</p>
+          <p className="text-slate-300 text-xs mb-1">Total spent</p>
           <p className="text-white text-xl font-bold">${totalSpent.toFixed(2)}</p>
         </div>
         <div className="bg-surface border border-slate-800 rounded-xl p-4">
-          <p className="text-slate-400 text-xs mb-1">Active orders</p>
+          <p className="text-slate-300 text-xs mb-1">Active orders</p>
           <p className="text-blue-400 text-xl font-bold">
             {payments.filter((p) => p.status === 'paid').length}
           </p>
         </div>
         <div className="bg-surface border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
-          <p className="text-slate-400 text-xs mb-1">Completed</p>
+          <p className="text-slate-300 text-xs mb-1">Completed</p>
           <p className="text-emerald-400 text-xl font-bold">
             {payments.filter((p) => p.status === 'released').length}
           </p>
@@ -209,9 +209,9 @@ export default function BillingTab() {
           </div>
         ) : savedMethods.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-3">
-            <CreditCard className="w-9 h-9 text-slate-700" />
-            <p className="text-slate-500 text-sm">No saved payment methods.</p>
-            <p className="text-slate-600 text-xs text-center max-w-xs">
+            <CreditCard className="w-9 h-9 text-slate-500" />
+            <p className="text-slate-400 text-sm">No saved payment methods.</p>
+            <p className="text-slate-500 text-xs text-center max-w-xs">
               Save a card for faster checkout on future orders.
             </p>
           </div>
@@ -219,7 +219,7 @@ export default function BillingTab() {
           <div className="divide-y divide-slate-800">
             {savedMethods.map((pm) => (
               <div key={pm.id} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="w-10 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0 overflow-hidden px-1">
+                <div className="w-14 h-9 rounded-md bg-slate-800 border border-slate-600 flex items-center justify-center shrink-0 overflow-hidden">
                   <CardBrandIcon brand={pm.brand} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -262,15 +262,15 @@ export default function BillingTab() {
 
         {payments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <CreditCard className="w-10 h-10 text-slate-700" />
-            <p className="text-slate-500 text-sm">No payments yet.</p>
-            <p className="text-slate-600 text-xs">Payments appear here after you accept an offer.</p>
+            <CreditCard className="w-10 h-10 text-slate-500" />
+            <p className="text-slate-400 text-sm">No payments yet.</p>
+            <p className="text-slate-500 text-xs">Payments appear here after you accept an offer.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-800">
             {payments.map((payment) => (
               <div key={payment.id} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="w-8 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
                   {statusIcon(payment.status)}
                 </div>
                 <div className="flex-1 min-w-0">

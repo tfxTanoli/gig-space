@@ -159,15 +159,15 @@ export default function WalletTab() {
 
           {transactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <DollarSign className="w-10 h-10 text-slate-700" />
-              <p className="text-slate-500 text-sm">No transactions yet.</p>
-              <p className="text-slate-400 text-xs">Transactions appear here when orders are paid.</p>
+              <DollarSign className="w-10 h-10 text-slate-500" />
+              <p className="text-slate-400 text-sm">No transactions yet.</p>
+              <p className="text-slate-500 text-xs">Transactions appear here when orders are paid.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-800">
               {transactions.map((tx) => (
                 <div key={tx.id} className="flex items-center gap-4 px-5 py-3.5">
-                  <div className="w-8 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
                     {txIcon(tx.type)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -216,7 +216,7 @@ function BalanceCard({ label, value, icon, accent, tooltip }: BalanceCardProps) 
     >
       <div className="flex items-center gap-1.5 mb-2">
         {icon}
-        <p className="text-slate-400 text-xs font-medium">{label}</p>
+        <p className="text-slate-300 text-xs font-medium">{label}</p>
       </div>
       <p className="text-white text-xl font-bold">${value.toFixed(2)}</p>
     </div>

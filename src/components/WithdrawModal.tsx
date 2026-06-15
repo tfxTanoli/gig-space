@@ -75,7 +75,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Amount (USD)
                 </label>
-                <div className="flex items-center bg-background border border-slate-700 rounded-xl overflow-hidden focus-within:border-blue-500 transition-colors">
+                <div className="flex items-center bg-background border border-slate-600 rounded-xl overflow-hidden focus-within:border-blue-500 transition-colors">
                   <DollarSign className="w-4 h-4 text-slate-500 ml-3 mr-1 shrink-0" />
                   <input
                     type="number"
@@ -88,7 +88,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                     className="flex-1 bg-transparent text-white text-sm py-3 pr-4 focus:outline-none"
                   />
                 </div>
-                <p className="text-slate-600 text-xs mt-1.5">Minimum withdrawal: ${MINIMUM}.00</p>
+                <p className="text-slate-500 text-xs mt-1.5">Minimum withdrawal: ${MINIMUM}.00</p>
               </div>
 
               {/* Quick select buttons */}
@@ -147,7 +147,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 )}
               </button>
 
-              <p className="text-slate-600 text-xs text-center">
+              <p className="text-slate-500 text-xs text-center">
                 Funds will be transferred to your connected Stripe account within 1–3 business days.
               </p>
             </>

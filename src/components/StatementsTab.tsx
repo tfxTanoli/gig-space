@@ -313,8 +313,8 @@ export default function StatementsTab() {
 
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <FileText className="w-10 h-10 text-slate-700" />
-            <p className="text-slate-500 text-sm">No transactions found.</p>
+            <FileText className="w-10 h-10 text-slate-500" />
+            <p className="text-slate-400 text-sm">No transactions found.</p>
             {(typeFilter !== 'all' || selectedMonth !== null) && (
               <button
                 onClick={() => { setTypeFilter('all'); setSelectedMonth(null); }}
@@ -334,14 +334,14 @@ export default function StatementsTab() {
               return (
                 <div key={tx.id} className="grid grid-cols-[auto_1fr] sm:grid-cols-[1fr_2fr_auto_auto] gap-3 sm:gap-4 items-center px-5 py-3.5 hover:bg-slate-800/30 transition-colors">
                   {/* Icon (mobile) */}
-                  <div className="sm:hidden w-8 h-8 rounded-lg bg-background border border-slate-800 flex items-center justify-center shrink-0">
+                  <div className="sm:hidden w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
                     {txIcon(tx.type)}
                   </div>
 
                   {/* Date */}
                   <div className="hidden sm:block">
                     <p className="text-slate-300 text-sm">{dateStr}</p>
-                    <p className="text-slate-600 text-xs mt-0.5">{timeStr}</p>
+                    <p className="text-slate-500 text-xs mt-0.5">{timeStr}</p>
                   </div>
 
                   {/* Description + mobile date */}
@@ -349,7 +349,7 @@ export default function StatementsTab() {
                     <p className="text-white text-sm font-medium truncate">{tx.description}</p>
                     <p className="text-slate-500 text-xs mt-0.5 sm:hidden">{dateStr}</p>
                     {tx.orderId && (
-                      <p className="text-slate-600 text-xs mt-0.5 hidden sm:block truncate">Order #{tx.orderId.slice(-8)}</p>
+                      <p className="text-slate-500 text-xs mt-0.5 hidden sm:block truncate">Order #{tx.orderId.slice(-8)}</p>
                     )}
                   </div>
 
@@ -394,10 +394,10 @@ function SummaryCard({ label, value, sub, accent, icon }: SummaryCardProps) {
     <div className={`bg-surface border rounded-xl p-4 ${accentMap[accent]}`}>
       <div className="flex items-center gap-1.5 mb-2">
         {icon}
-        <p className="text-slate-400 text-xs font-medium truncate">{label}</p>
+        <p className="text-slate-300 text-xs font-medium truncate">{label}</p>
       </div>
       <p className="text-white text-lg font-bold leading-tight">{value}</p>
-      <p className="text-slate-600 text-xs mt-1">{sub}</p>
+      <p className="text-slate-500 text-xs mt-1">{sub}</p>
     </div>
   );
 }

@@ -222,8 +222,8 @@ export default function AffiliateHomeTab() {
           </div>
         ) : recentCommissions.length === 0 ? (
           <div className="text-center py-10">
-            <p className="text-slate-500 text-sm">No commissions yet</p>
-            <p className="text-slate-600 text-xs mt-1">Share your referral link to start earning</p>
+            <p className="text-slate-400 text-sm">No commissions yet</p>
+            <p className="text-slate-500 text-xs mt-1">Share your referral link to start earning</p>
           </div>
         ) : (
           <>

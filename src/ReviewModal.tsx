@@ -172,7 +172,7 @@ export default function ReviewModal({
                   placeholder="Share details about your experience…"
                   rows={4}
                   disabled={submitting}
-                  className="w-full bg-background border border-slate-700 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-50 leading-relaxed"
+                  className="w-full bg-background border border-slate-600 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-50 leading-relaxed"
                 />
               </div>
             </div>

@@ -252,9 +252,9 @@ export default function NotificationBell({ onNavigate, filterTypes, dashboardTyp
           >
             {visibleNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-10 px-4">
-                <Bell className="w-8 h-8 text-slate-700" />
-                <p className="text-slate-500 text-sm text-center">No notifications yet</p>
-                <p className="text-slate-600 text-xs text-center">
+                <Bell className="w-8 h-8 text-slate-500" />
+                <p className="text-slate-400 text-sm text-center">No notifications yet</p>
+                <p className="text-slate-500 text-xs text-center">
                   {emptyStateText ?? "You'll be notified about messages, orders, and reviews."}
                 </p>
               </div>

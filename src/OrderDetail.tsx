@@ -370,6 +370,8 @@ export default function OrderDetail({
         ...reviewData,
         serviceTitle: order.serviceTitle,
       };
+      updates[`services/${order.serviceId}/reviewCount`] = increment(1);
+      updates[`services/${order.serviceId}/totalStars`] = increment(rating);
     }
 
     await update(ref(database), updates);
@@ -476,7 +478,7 @@ export default function OrderDetail({
                   placeholder="Describe what you've delivered, any notes for the buyer, or next steps…"
                   rows={3}
                   disabled={uploading}
-                  className="w-full bg-background border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-60 leading-relaxed"
+                  className="w-full bg-background border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-60 leading-relaxed"
                 />
               </div>
 
@@ -987,7 +989,7 @@ export default function OrderDetail({
                   }}
                   placeholder="Message about this order…"
                   rows={1}
-                  className="flex-1 bg-background border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
+                  className="flex-1 bg-background border border-slate-600 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   style={{ minHeight: '40px' }}
                 />
                 <button

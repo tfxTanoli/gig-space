@@ -677,9 +677,9 @@ export default function ChatMessages({
                   </div>
                 ) : sellerServices.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
-                    <Tag className="w-10 h-10 text-slate-700" />
+                    <Tag className="w-10 h-10 text-slate-600" />
                     <p className="text-slate-400 text-sm">No active services found.</p>
-                    <p className="text-slate-600 text-xs">
+                    <p className="text-slate-500 text-xs">
                       Create and activate a service post first to send offers.
                     </p>
                   </div>
@@ -753,7 +753,7 @@ export default function ChatMessages({
                     onChange={(e) => setOfferDescription(e.target.value)}
                     placeholder="Describe what's included in this offer…"
                     rows={3}
-                    className="w-full bg-background border border-slate-700 text-white text-sm px-4 py-3 rounded-xl focus:outline-none focus:border-primary transition-colors placeholder-slate-600 resize-none"
+                    className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-3 rounded-xl focus:outline-none focus:border-primary transition-colors placeholder-slate-500 resize-none"
                   />
                 </div>
 
@@ -763,7 +763,7 @@ export default function ChatMessages({
                     Price
                   </label>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center flex-1 bg-background border border-slate-700 rounded-xl overflow-hidden focus-within:border-primary transition-colors">
+                    <div className="flex items-center flex-1 bg-background border border-slate-600 rounded-xl overflow-hidden focus-within:border-primary transition-colors">
                       <span className="text-slate-500 pl-4 pr-1 text-sm select-none">$</span>
                       <input
                         type="number"
@@ -779,7 +779,7 @@ export default function ChatMessages({
                       onChange={(e) =>
                         setOfferPriceUnit(e.target.value as 'per_project' | 'per_hour')
                       }
-                      className="bg-background border border-slate-700 text-white text-sm px-3 py-2.5 rounded-xl focus:outline-none focus:border-primary transition-colors"
+                      className="bg-background border border-slate-600 text-white text-sm px-3 py-2.5 rounded-xl focus:outline-none focus:border-primary transition-colors"
                     >
                       <option value="per_project">/ project</option>
                       <option value="per_hour">/ hour</option>
@@ -802,10 +802,10 @@ export default function ChatMessages({
       )}
 
       {/* ── Main chat layout ── */}
-      <div className="flex rounded-xl border border-slate-800 overflow-hidden flex-1 min-h-0 h-full">
+      <div className="flex rounded-xl border border-slate-700 overflow-hidden flex-1 min-h-0 h-full">
         {/* Left: Conversation list */}
         <div
-          className={`w-full md:w-72 shrink-0 border-r border-slate-800 bg-surface flex flex-col ${
+          className={`w-full md:w-72 shrink-0 border-r border-slate-700 bg-surface flex flex-col ${
             selectedConvId ? 'hidden md:flex' : 'flex'
           }`}
         >
@@ -819,10 +819,10 @@ export default function ChatMessages({
             </div>
           ) : conversations.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <MessagesIcon className="w-10 h-10 text-slate-700" />
-              <p className="text-slate-500 text-sm">No conversations yet.</p>
+              <MessagesIcon className="w-10 h-10 text-slate-600" />
+              <p className="text-slate-400 text-sm">No conversations yet.</p>
               {mode === 'buyer' && (
-                <p className="text-slate-600 text-xs">
+                <p className="text-slate-500 text-xs">
                   Browse services and click "Message seller" to start chatting.
                 </p>
               )}
@@ -879,8 +879,8 @@ export default function ChatMessages({
         >
           {!selectedConvId ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
-              <MessagesIcon className="w-12 h-12 text-slate-700" />
-              <p className="text-slate-500 text-sm">Select a conversation to start chatting</p>
+              <MessagesIcon className="w-12 h-12 text-slate-600" />
+              <p className="text-slate-400 text-sm">Select a conversation to start chatting</p>
             </div>
           ) : (
             <>
@@ -943,7 +943,7 @@ export default function ChatMessages({
               <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-5">
                 {messages.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center">
-                    <p className="text-slate-600 text-sm">No messages yet — say hello!</p>
+                    <p className="text-slate-500 text-sm">No messages yet — say hello!</p>
                   </div>
                 ) : (
                   messages.map((msg) => {
@@ -1252,7 +1252,7 @@ export default function ChatMessages({
                   onChange={(e) => { setInputText(e.target.value); autoResizeInput(e.target); }}
                   onKeyDown={handleKeyDown}
                   placeholder={imageFile ? 'Add a caption…' : 'Type a message…'}
-                  className="flex-1 bg-background border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
+                  className="flex-1 bg-background border border-slate-600 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   rows={1}
                   style={{ minHeight: '40px' }}
                 />
