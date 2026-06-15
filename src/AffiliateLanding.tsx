@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
@@ -58,16 +58,19 @@ const EarnIcon3 = () => (
 );
 
 const EarnIcon4 = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 10H12.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 14H12.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 6H12.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M16 10H16.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="40" height="40" rx="8" fill="#2B7FFF"/>
+    <path d="M20 18H20.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20 22H20.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20 14H20.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M24 18H24.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M24 22H24.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M24 14H24.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 18H16.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 22H16.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M16 14H16.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M16 6H16.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M8 10H8.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M8 14H8.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M8 6H8.01" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M17 30V27C17 26.7348 17.1054 26.4804 17.2929 26.2929C17.4804 26.1054 17.7348 26 18 26H22C22.2652 26 22.5196 26.1054 22.7071 26.2929C22.8946 26.4804 23 26.7348 23 27V30" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M26 10H14C12.8954 10 12 10.8954 12 12V28C12 29.1046 12.8954 30 14 30H26C27.1046 30 28 29.1046 28 28V12C28 10.8954 27.1046 10 26 10Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -75,7 +78,7 @@ const earnIconComponents = [
   <div className="mb-5"><EarnIcon1 /></div>,
   <div className="mb-5"><EarnIcon2 /></div>,
   <div className="p-3 bg-[#2B7FFF] rounded-lg w-fit mb-5"><EarnIcon3 /></div>,
-  <div className="p-3 bg-[#2B7FFF] rounded-lg w-fit mb-5"><EarnIcon4 /></div>,
+  <div className="mb-5"><EarnIcon4 /></div>,
 ];
 
 const faqs = [
@@ -275,7 +278,7 @@ const AffiliateLanding = () => {
       </section>
 
       {/* Earnings Section */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
+      <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="mb-16 text-center">
           <span className="inline-block text-primary text-xs font-bold tracking-widest border border-primary/30 bg-primary/10 rounded-full px-4 py-1.5 mb-6">
             Earnings that scale
@@ -301,7 +304,7 @@ const AffiliateLanding = () => {
       </section>
 
       {/* Popular Service Categories */}
-      <section className="px-4 md:px-6 lg:px-12 py-20 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
+      <section className="px-4 md:px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-xl font-bold gradient-heading">Popular Service Categories</h2>
           <div className="flex items-center gap-2">
@@ -321,7 +324,7 @@ const AffiliateLanding = () => {
         </div>
 
         <div ref={catScrollRef} className="overflow-x-auto scrollbar-hide">
-          <div className="flex flex-nowrap gap-6 md:gap-10 pb-2">
+          <div className="flex flex-nowrap gap-6 md:gap-10 pb-2 pt-4">
           {categories.map(({ name, Icon }, i) => (
             <Link
               key={i}
@@ -341,25 +344,23 @@ const AffiliateLanding = () => {
       </section>
 
       {/* FAQ */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-4xl mx-auto w-full">
+      <section className="px-6 lg:px-12 py-24 max-w-4xl mx-auto w-full">
         <h2 className="text-2xl font-bold gradient-heading mb-10">Frequently asked questions</h2>
         <div>
           {faqs.map((faq, index) => (
             <div key={index} className="border-b border-slate-800/80 overflow-hidden">
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full py-5 flex justify-between items-center text-left focus:outline-none group"
+                className="w-full py-6 flex justify-between items-center text-left focus:outline-none group"
               >
-                <span className="font-medium text-white text-sm group-hover:text-primary transition-colors pr-8">
+                <span className="font-medium text-white group-hover:text-primary transition-colors pr-8">
                   {faq.question}
                 </span>
-                <span className="text-slate-400 text-xl flex-shrink-0 leading-none select-none">
-                  {openFaqIndex === index ? '−' : '+'}
-                </span>
+                <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform duration-300 flex-shrink-0 ${openFaqIndex === index ? 'rotate-180' : ''}`} />
               </button>
               <div
                 className={`transition-all duration-300 ease-in-out ${
-                  openFaqIndex === index ? 'max-h-40 opacity-100 pb-5' : 'max-h-0 opacity-0'
+                  openFaqIndex === index ? 'max-h-40 opacity-100 pb-6' : 'max-h-0 opacity-0'
                 }`}
               >
                 <p className="text-slate-400 text-sm leading-relaxed pr-8">{faq.answer}</p>
@@ -370,7 +371,7 @@ const AffiliateLanding = () => {
       </section>
 
       {/* Mission */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
+      <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div>
             <h2 className="text-3xl font-bold gradient-heading mb-6">Our mission</h2>
@@ -402,7 +403,7 @@ const AffiliateLanding = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-6 text-center border-t border-slate-800/80">
+      <section className="py-24 px-6 text-center">
         <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
           Join hundreds of affiliates earning big <span style={{ WebkitTextFillColor: 'initial' }}>💰</span><br />
           with Gigspace

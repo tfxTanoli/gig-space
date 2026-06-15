@@ -180,14 +180,13 @@ const LandingPage = () => {
               <div className="hidden md:block w-[1px] h-8 bg-slate-700 mx-2"></div>
 
               <div className="flex-1 w-full flex items-center pr-2">
-                <Search className="w-4 h-4 text-slate-500 ml-3 shrink-0" />
                 <input
                   type="text"
                   placeholder="Search for a service"
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && goToSearch()}
-                  className="w-full bg-transparent border-none text-white px-3 py-2 focus:outline-none focus:ring-0 text-sm"
+                  className="w-full bg-transparent border-none text-white px-4 py-2 focus:outline-none focus:ring-0 text-sm"
                 />
                 <button
                   onClick={goToSearch}
@@ -222,7 +221,7 @@ const LandingPage = () => {
         </div>
 
         <div ref={catScrollRef} className="overflow-x-auto scrollbar-hide max-w-7xl mx-auto">
-          <div className="flex flex-nowrap gap-6 md:gap-10 pb-2">
+          <div className="flex flex-nowrap gap-6 md:gap-10 pb-2 pt-4">
           {categories.map((cat, index) => {
             const Icon = cat.icon;
             return (
@@ -254,7 +253,7 @@ const LandingPage = () => {
             Hire the right pro for any project
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl">
-            Find trusted professionals for any project — home repairs, digital tasks, and everything in between.
+            Find trusted professionals for any project {'—'} home repairs, digital tasks, and everything in between.
           </p>
         </div>
 

@@ -214,42 +214,8 @@ const SellerLandingPage = () => {
         </section>
       </div>
 
-      {/* Features */}
-      <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
-        <div className="mb-16 max-w-2xl">
-          <span className="text-primary text-xs font-bold tracking-widest uppercase block mb-3">
-            Finally, a marketplace built for sellers
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
-            A better way to sell your services
-          </h2>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            We remove the limits of traditional freelance platforms by giving you control and flexibility to scale your business on your terms.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-          {features.map((feature, i) => {
-            const FeatureIcon = featureIcons[i];
-            return (
-              <div key={i} className="flex items-start">
-                <div className="mt-1 flex-shrink-0">
-                  <FeatureIcon />
-                </div>
-                <div className="ml-4">
-                  <p className="text-slate-300 text-base leading-relaxed">
-                    <span className="font-bold text-white mr-1">{feature.title}</span>
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* How it works */}
-      <section className="px-6 lg:px-12 py-20 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
+      <section className="px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
         <div className="mb-16 max-w-2xl">
           <h2 className="text-3xl font-bold gradient-heading mb-4">How it works</h2>
           <p className="text-slate-400 leading-relaxed">
@@ -300,7 +266,7 @@ const SellerLandingPage = () => {
       </section>
 
       {/* Our Mission */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-7xl mx-auto w-full">
+      <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div>
             <h2 className="text-3xl font-bold gradient-heading mb-6">Our mission</h2>
@@ -331,8 +297,42 @@ const SellerLandingPage = () => {
         </div>
       </section>
 
+      {/* Features */}
+      <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
+        <div className="mb-16 max-w-2xl">
+          <span className="text-primary text-xs font-bold tracking-widest block mb-3">
+            Finally, a marketplace built for sellers
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
+            A better way to sell your services
+          </h2>
+          <p className="text-slate-400 text-lg leading-relaxed">
+            We remove the limits of traditional freelance platforms by giving you control and flexibility to scale your business on your terms.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
+          {features.map((feature, i) => {
+            const FeatureIcon = featureIcons[i];
+            return (
+              <div key={i} className="flex items-start">
+                <div className="mt-1 flex-shrink-0">
+                  <FeatureIcon />
+                </div>
+                <div className="ml-4">
+                  <p className="text-slate-300 text-base leading-relaxed">
+                    <span className="font-bold text-white mr-1">{feature.title}</span>
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* FAQ */}
-      <section className="px-6 lg:px-12 py-24 border-t border-slate-800/80 max-w-4xl mx-auto w-full">
+      <section className="px-6 lg:px-12 py-24 max-w-4xl mx-auto w-full">
         <h2 className="text-2xl font-bold gradient-heading mb-10 text-center md:text-left">
           Frequently asked questions
         </h2>
@@ -364,7 +364,7 @@ const SellerLandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-6 text-center border-t border-slate-800/80">
+      <section className="py-24 px-6 text-center">
         <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
           Work smarter, not harder.<br />
           Earn more with Gigspace today.

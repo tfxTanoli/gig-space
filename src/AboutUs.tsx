@@ -218,7 +218,7 @@ const AboutUs = () => {
       </section>
 
       {/* About Us Values */}
-      <section className="px-6 lg:px-12 py-16 max-w-7xl mx-auto w-full border-b border-slate-800/80 mb-8">
+      <section className="px-6 lg:px-12 py-16 max-w-7xl mx-auto w-full mb-8">
         <div className="mb-16 max-w-2xl">
           <h2 className="text-3xl font-bold gradient-heading mb-4">About Us</h2>
           <p className="text-slate-400 text-lg leading-relaxed">
