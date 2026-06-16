@@ -874,10 +874,10 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
               </div>
             ) : (
               <div className="flex items-center gap-6">
-                <Link to="/signin" className="text-sm font-medium text-white hover:text-slate-300 transition-colors">
+                <Link to="/signin" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
                   Log in
                 </Link>
-                <Link to="/signup" className="flex items-center text-sm font-medium text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
+                <Link to="/signup" className="flex items-center text-sm font-medium text-slate-300 hover:text-white px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors">
                   Sign up <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </div>
@@ -1324,7 +1324,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           <button className="hover:text-white transition-colors cursor-pointer">Terms &amp; Conditions</button>
           <button className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
         </div>
-        <p className="text-xs text-slate-500">© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p className="text-sm text-slate-500">© Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );

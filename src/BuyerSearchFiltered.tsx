@@ -315,7 +315,7 @@ const BuyerSearchFiltered = () => {
           <button className="hover:text-white transition-colors">Terms &amp; Conditions</button>
           <button className="hover:text-white transition-colors">Privacy Policy</button>
         </div>
-        <p className="text-xs text-slate-500">© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p className="text-sm text-slate-500">© Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );
