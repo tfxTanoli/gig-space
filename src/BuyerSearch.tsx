@@ -125,10 +125,11 @@ interface ServicePost {
   totalStars?: number;
 }
 
+function fmt(n: number) { return n.toLocaleString('en-US'); }
 function formatPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
-  return { prefix: 'From', price: `$${post.priceMin}`, suffix };
+  if (post.priceMax) return { prefix: 'From', price: `$${fmt(post.priceMin)} – $${fmt(post.priceMax)}`, suffix };
+  return { prefix: 'From', price: `$${fmt(post.priceMin)}`, suffix };
 }
 
 interface ServiceCardProps {
@@ -232,7 +233,7 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
           </div>
         ) : (
           <div className="mb-2 h-[26px] flex items-center">
-            <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
+            <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-md">
               New seller
             </span>
           </div>

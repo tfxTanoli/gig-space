@@ -637,7 +637,7 @@ const ServiceDetail = () => {
           {!reviewsLoading && (
             <div className="mb-5">
               {isNewSeller ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-md">
                   <span className="text-emerald-400 text-xs font-semibold">New seller</span>
                 </div>
               ) : (
