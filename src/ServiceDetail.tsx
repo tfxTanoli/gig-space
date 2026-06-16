@@ -502,10 +502,10 @@ const ServiceDetail = () => {
           {/* ── Media gallery ── */}
           {mediaItems.length > 0 ? (
             <div className="mb-8">
-              {/* Main viewer — 4:3 aspect ratio */}
+              {/* Main viewer — 4:3 aspect ratio, capped to avoid oversized display */}
               <div
                 className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full"
-                style={{ aspectRatio: '4/3' }}
+                style={{ aspectRatio: '4/3', maxHeight: '420px' }}
               >
                 {activeMedia?.kind === 'video' ? (
                   <video
@@ -587,7 +587,7 @@ const ServiceDetail = () => {
 
           {/* ── Description ── */}
           <div className="mb-8">
-            <h2 className="text-base font-medium text-white mb-4">Description</h2>
+            <h2 className="text-sm font-medium text-white mb-4">Description</h2>
             {post.description ? (
               <div
                 className="text-slate-300 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
@@ -601,23 +601,23 @@ const ServiceDetail = () => {
         </div>
 
         {/* ═══ RIGHT COLUMN — price/CTA/details ═══ */}
-        <div className="order-1 lg:order-2 min-w-0 overflow-hidden">
+        <div className="order-1 lg:order-2 min-w-0">
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4 min-w-0 overflow-hidden whitespace-nowrap">
-            <Link to="/search" className="hover:text-white transition-colors shrink-0">All Services</Link>
+          <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4 flex-wrap">
+            <Link to="/search" className="text-slate-400 hover:text-slate-200 transition-colors shrink-0">All Services</Link>
             <span className="text-slate-600 shrink-0">/</span>
-            <span className="hover:text-white cursor-pointer transition-colors shrink-0">{categoryLabel}</span>
+            <span className="text-slate-400 hover:text-slate-200 cursor-pointer transition-colors shrink-0">{categoryLabel}</span>
             {subcategoryLabel && (
               <>
                 <span className="text-slate-600 shrink-0">/</span>
-                <span className="text-white truncate">{subcategoryLabel}</span>
+                <span className="text-slate-300">{subcategoryLabel}</span>
               </>
             )}
           </nav>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-white mb-4 leading-snug">{post.title}</h1>
+          <h1 className="text-3xl font-bold gradient-heading mb-4 leading-snug">{post.title}</h1>
 
           {/* Seller row */}
           <div className="flex items-center gap-2 mb-5">
@@ -637,8 +637,8 @@ const ServiceDetail = () => {
           {!reviewsLoading && (
             <div className="mb-5">
               {isNewSeller ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full">
-                  <span className="text-amber-400 text-xs font-semibold">New seller</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full">
+                  <span className="text-emerald-400 text-xs font-semibold">New seller</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -677,11 +677,11 @@ const ServiceDetail = () => {
 
           {/* CTAs */}
           {isOwnService ? (
-            <div className="mb-6 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-center">
+            <div className="mb-8 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-center">
               <p className="text-slate-400 text-sm">This is your service</p>
             </div>
           ) : (
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-stretch gap-3 mb-8">
               <button
                 onClick={handleContactSeller}
                 className="flex-1 bg-primary hover:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
@@ -690,7 +690,7 @@ const ServiceDetail = () => {
               </button>
               <button
                 onClick={() => post && toggleSave(post.id)}
-                className="w-10 h-10 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
+                className="w-12 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
                 title={post && isSaved(post.id) ? 'Remove from saved' : 'Save service'}
               >
                 <Bookmark className={`w-4 h-4 transition-colors ${post && isSaved(post.id) ? 'fill-primary text-primary' : 'text-slate-400'}`} />
@@ -698,11 +698,11 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          <hr className="border-slate-800 mb-6" />
+          <hr className="border-slate-700/60 mb-7" />
 
           {/* Locations */}
           {(post.primaryLocation || post.offeredRemotely || post.extraLocations?.length > 0) && (
-            <div className="mb-5">
+            <div className="mb-6">
               <h3 className="text-sm font-medium text-white mb-2">Locations Served</h3>
               <div className="text-slate-400 text-sm space-y-1">
                 {post.primaryLocation && <p>{post.primaryLocation}</p>}
@@ -726,13 +726,12 @@ const ServiceDetail = () => {
             />
           )}
 
-          {/* Divider between Locations/Map and Languages/Remote */}
-          <hr className="border-slate-700 mb-6" />
+          <hr className="border-slate-700/60 mb-7" />
 
           {/* Languages */}
           {post.languages?.length > 0 && (
-            <div className="mb-5">
-              <h3 className="text-sm font-medium text-white mb-1">Languages Spoken</h3>
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-white mb-2">Languages Spoken</h3>
               <div className="text-slate-400 text-sm space-y-0.5">
                 {post.languages.map((lang) => (
                   <p key={lang}>{lang}</p>
@@ -742,12 +741,12 @@ const ServiceDetail = () => {
           )}
 
           {/* Offered Remotely */}
-          <div className="mb-5">
-            <h3 className="text-sm font-medium text-white mb-1">Offered Remotely</h3>
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-white mb-2">Offered Remotely</h3>
             <p className="text-slate-400 text-sm">{post.offeredRemotely ? 'Yes' : 'No'}</p>
           </div>
 
-          <hr className="border-slate-800 mb-6" />
+          <hr className="border-slate-700/60 mb-7" />
 
           {/* Share */}
           <div>
@@ -805,16 +804,13 @@ const ServiceDetail = () => {
       </div>
 
       {/* ── Customer Reviews — full width, always below both columns ── */}
-      <div className="border-t border-slate-800/60 pt-8">
+      <div className="border-t border-slate-700/60 pt-8 pb-14">
         <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
 
         {reviewsLoading ? (
           <p className="text-slate-500 text-sm">Loading reviews…</p>
         ) : reviews.length === 0 ? (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full">
-              <span className="text-amber-400 text-xs font-semibold">New seller</span>
-            </div>
             <span className="text-slate-500 text-sm">No reviews yet</span>
           </div>
         ) : (
@@ -866,7 +862,7 @@ const ServiceDetail = () => {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-slate-800 py-10 px-6 text-center text-sm text-slate-500">
+      <footer className="border-t border-slate-700/60 py-12 px-6 text-center text-sm text-slate-500">
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-6">
           <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
           <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
@@ -875,7 +871,7 @@ const ServiceDetail = () => {
           <Link to="#" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
           <Link to="#" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© Gigspace, LLC. All rights reserved.</p>
       </footer>
 
     </div>
