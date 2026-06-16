@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { UserRound, Check } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 type AccountTypeOption = 'buyer' | 'seller' | 'affiliate';
