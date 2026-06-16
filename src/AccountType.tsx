@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { UserRound, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 type AccountTypeOption = 'buyer' | 'seller' | 'affiliate';
@@ -30,9 +30,8 @@ const AccountType = () => {
     <div className="min-h-screen flex items-center justify-center bg-background-deep p-4">
       <div className="bg-card rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
 
-        {/* Top Green Checkmark */}
-        <div className="w-12 h-12 bg-brand-green-bg rounded-full flex items-center justify-center mb-6">
-          <Check strokeWidth={3} className="text-brand-green w-6 h-6" />
+        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+          <UserRound strokeWidth={2} className="text-primary w-6 h-6" />
         </div>
 
         <h2 className="text-lg font-bold text-white mb-8">
@@ -43,7 +42,7 @@ const AccountType = () => {
           {options.map(({ type, label, description }) => (
             <div
               key={type}
-              className={`w-full p-4 rounded-xl cursor-pointer transition-colors border-2 flex justify-between items-center ${
+              className={`w-full p-4 rounded-xl cursor-pointer transition-colors border-2 flex justify-between items-center bg-surface-raised ${
                 selectedType === type
                   ? 'border-primary'
                   : 'border-slate-700/50 hover:border-slate-600'

@@ -1,5 +1,5 @@
 ﻿import { useState, useRef, type ChangeEvent } from 'react';
-import { User, ArrowLeftRight } from 'lucide-react';
+import { UserRound, ArrowLeftRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, set, get } from 'firebase/database';
@@ -104,8 +104,8 @@ const SellerProfile = () => {
     <div className="min-h-screen flex items-center justify-center bg-background-deep p-4">
       <div className="bg-card rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
 
-        <div className="w-12 h-12 bg-brand-green-bg rounded-full flex items-center justify-center mb-6">
-          <User strokeWidth={2} className="text-brand-green w-6 h-6" />
+        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+          <UserRound strokeWidth={2} className="text-primary w-6 h-6" />
         </div>
 
         <h2 className="text-lg font-bold text-white mb-8">
@@ -123,9 +123,8 @@ const SellerProfile = () => {
             {logoPreview ? (
               <img src={logoPreview} alt="Logo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
-              <svg width="44" height="50" viewBox="0 0 44 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 0C10.4 0 1 9.4 1 21C1 32.5 22 50 22 50C22 50 43 32.5 43 21C43 9.4 33.6 0 22 0Z" fill="#2D3748" />
-                <text x="22" y="26" textAnchor="middle" fill="#94A3B8" fontSize="15" fontWeight="700" fontFamily="system-ui, -apple-system, sans-serif">G</text>
+              <svg viewBox="0 0 18.67 24.61" className="w-9 h-9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.67 10.3419C18.6704 10.8302 18.6268 11.3175 18.5397 11.7979C17.4027 18.2019 9.33891 24.6084 9.33891 24.6084C9.33891 24.6084 0 18.2058 0 10.3419C0.000236174 8.70603 0.429663 7.09887 1.24533 5.68118C2.061 4.26349 3.23432 3.08496 4.64794 2.26347C6.06156 1.44198 7.66593 1.00632 9.3006 1.00007C10.9353 0.993812 12.5429 1.41718 13.9628 2.22782C14.2229 2.37544 14.4455 2.58116 14.6133 2.82896C14.781 3.07676 14.8893 3.35995 14.9297 3.65649C14.9702 3.95303 14.9417 4.25492 14.8465 4.53864C14.7513 4.82237 14.592 5.08027 14.3809 5.29228C14.0768 5.59209 13.6829 5.78397 13.2595 5.83859C12.8361 5.8932 12.4065 5.80753 12.0364 5.59469C11.0494 5.03095 9.91113 4.78977 8.78054 4.90483C7.64994 5.01989 6.58349 5.48545 5.73012 6.23649C4.87675 6.98752 4.27907 7.98653 4.02057 9.09399C3.76206 10.2014 3.85563 11.3621 4.28821 12.4137C4.7208 13.4654 5.47079 14.3556 6.43344 14.96C7.39609 15.5644 8.52333 15.8528 9.65773 15.785C10.7921 15.7172 11.877 15.2965 12.7609 14.5817C13.6448 13.8668 14.2836 12.8936 14.588 11.7979H11.2757C10.7624 11.7979 10.2699 11.5944 9.90618 11.2318C9.54245 10.8693 9.33707 10.3773 9.335 9.86356C9.335 9.34846 9.53947 8.85446 9.90342 8.49023C10.2674 8.12601 10.761 7.92139 11.2757 7.92139H16.2343C16.8751 7.9186 17.4909 8.16968 17.9473 8.6198C18.4036 9.06991 18.6635 9.68248 18.67 10.3237V10.3419Z" fill="#64748B"/>
               </svg>
             )}
           </div>

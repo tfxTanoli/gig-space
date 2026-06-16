@@ -1,5 +1,5 @@
 ﻿import { useState, useRef, type ChangeEvent } from 'react';
-import { User } from 'lucide-react';
+import { UserRound, ArrowLeftRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, set, get } from 'firebase/database';
@@ -121,8 +121,8 @@ const AffiliateProfile = () => {
     <div className="min-h-screen flex items-center justify-center bg-background-deep p-4">
       <div className="bg-card rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
 
-        <div className="w-12 h-12 bg-brand-green-bg rounded-full flex items-center justify-center mb-6">
-          <User strokeWidth={2} className="text-brand-green w-6 h-6" />
+        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+          <UserRound strokeWidth={2} className="text-primary w-6 h-6" />
         </div>
 
         <h2 className="text-lg font-bold text-white mb-8">
@@ -136,14 +136,11 @@ const AffiliateProfile = () => {
         )}
 
         <div className="w-full flex items-center gap-5 mb-7">
-          <div className="w-20 h-20 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-20 h-20 rounded-full bg-surface-raised flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
               <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="28" cy="21" r="10" fill="#6B7280" />
-                <ellipse cx="28" cy="52" rx="22" ry="12" fill="#6B7280" />
-              </svg>
+              <UserRound strokeWidth={1.5} className="w-10 h-10 text-slate-500" />
             )}
           </div>
 
@@ -184,13 +181,21 @@ const AffiliateProfile = () => {
           />
         </div>
 
-        <button
-          onClick={handleContinue}
-          disabled={loading}
-          className="w-full bg-primary hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-colors"
-        >
-          {loading ? 'Saving...' : 'Continue'}
-        </button>
+        <div className="w-full flex items-center justify-between">
+          <button
+            onClick={() => navigate('/account-type')}
+            className="text-slate-400 hover:text-white text-sm transition-colors"
+          >
+            <ArrowLeftRight className="inline w-3.5 h-3.5 mr-1.5" /> Switch account type
+          </button>
+          <button
+            onClick={handleContinue}
+            disabled={loading}
+            className="bg-primary hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-colors"
+          >
+            {loading ? 'Saving...' : 'Continue'}
+          </button>
+        </div>
 
       </div>
     </div>
