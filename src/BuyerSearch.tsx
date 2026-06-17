@@ -1322,8 +1322,8 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           <Link to="/for-sellers" className="hover:text-white transition-colors">For Sellers</Link>
           <Link to="/" className="hover:text-white transition-colors">For Buyers</Link>
           <Link to="/affiliate" className="hover:text-white transition-colors">Affiliate Program</Link>
-          <button className="hover:text-white transition-colors cursor-pointer">Terms &amp; Conditions</button>
-          <button className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
+          <Link to="/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link>
+          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
         </div>
         <p className="text-sm text-slate-500">© Gigspace, LLC. All rights reserved.</p>
       </footer>
