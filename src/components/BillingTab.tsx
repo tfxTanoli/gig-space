@@ -182,8 +182,8 @@ export default function BillingTab() {
       <div className="flex items-start gap-3 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-3.5">
         <ShieldCheck className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" />
         <div>
-          <p className="text-blue-300 text-sm font-medium">Secured by escrow</p>
-          <p className="text-blue-400/70 text-xs mt-0.5 leading-relaxed">
+          <p className="text-blue-400 text-sm font-medium">Secured by escrow</p>
+          <p className="text-blue-300/60 text-xs mt-0.5 leading-relaxed">
             Payments are held securely until you approve the delivery. Funds are only released to the
             seller once you're satisfied with the work.
           </p>

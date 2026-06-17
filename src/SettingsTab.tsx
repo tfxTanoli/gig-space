@@ -413,7 +413,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
+              className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
               placeholder="Your name"
             />
           </div>
@@ -422,7 +422,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
           <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
             <div className="flex items-center">
-              <span className="bg-background border border-r-0 border-slate-600 text-slate-500 text-sm px-3 py-2 rounded-l-lg select-none">
+              <span className="bg-slate-700 border border-r-0 border-slate-600 text-slate-500 text-sm px-3 py-2 rounded-l-lg select-none">
                 @
               </span>
               <div className="relative flex-1">
@@ -430,7 +430,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(normalizeUsername(e.target.value))}
-                  className={`w-full bg-background border text-white text-sm px-4 py-2 pr-10 rounded-r-lg focus:outline-none transition-colors placeholder-slate-500 ${
+                  className={`w-full bg-slate-700 border text-white text-sm px-4 py-2 pr-10 rounded-r-lg focus:outline-none transition-colors placeholder-slate-500 ${
                     usernameChanged && usernameStatus === 'available'
                       ? 'border-green-500/60'
                       : usernameChanged && (usernameStatus === 'taken' || usernameStatus === 'invalid')
@@ -465,7 +465,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
+                  className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
                   placeholder="your@email.com"
                 />
                 {emailChanged && (
@@ -479,7 +479,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                         value={emailConfirmPassword}
                         onChange={(e) => setEmailConfirmPassword(e.target.value)}
                         autoComplete="current-password"
-                        className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
+                        className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
                         placeholder="Enter current password"
                       />
                       <button
@@ -502,7 +502,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="email"
                   value={userProfile?.email ?? user?.email ?? ''}
                   disabled
-                  className="w-full bg-background border border-slate-600 text-slate-500 text-sm px-4 py-2 rounded-lg cursor-not-allowed"
+                  className="w-full bg-slate-700 border border-slate-600 text-slate-500 text-sm px-4 py-2 rounded-lg cursor-not-allowed"
                 />
                 <p className="text-slate-500 text-xs mt-1">Email is managed by your Google account</p>
               </>
@@ -555,7 +555,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     autoComplete="current-password"
-                    className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
+                    className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
                     placeholder="Enter current password"
                   />
                   <button
@@ -579,7 +579,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
-                    className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
+                    className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
                     placeholder="Enter new password"
                   />
                   <button
@@ -603,7 +603,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
-                    className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
+                    className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-primary transition-colors placeholder-slate-500"
                     placeholder="Confirm new password"
                   />
                   <button
@@ -698,7 +698,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                       value={deletePassword}
                       onChange={(e) => setDeletePassword(e.target.value)}
                       autoComplete="current-password"
-                      className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-500"
+                      className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 pr-11 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-500"
                       placeholder="Enter your password"
                     />
                     <button
@@ -721,7 +721,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-500"
+                  className="w-full bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 rounded-lg focus:outline-none focus:border-red-500/60 transition-colors placeholder-slate-500"
                   placeholder="DELETE"
                 />
               </div>

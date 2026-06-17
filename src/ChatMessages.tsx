@@ -838,7 +838,7 @@ export default function ChatMessages({
                     key={conv.id}
                     onClick={() => setSelectedConvId(conv.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 border-b border-slate-800/40 transition-colors text-left relative ${
-                      sel ? 'bg-blue-600/10' : 'hover:bg-slate-800/50'
+                      sel ? 'bg-blue-600/10' : 'hover:bg-slate-700/40'
                     }`}
                   >
                     {sel && (
