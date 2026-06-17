@@ -15,7 +15,7 @@ import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
 import { useCategories } from './CategoriesContext';
 import { geocodeLocation } from './photon';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from 'react-leaflet';
 import L from 'leaflet';
 
 /* ─── Types ─── */
@@ -146,11 +146,12 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
         scrollWheelZoom={false}
         zoomControl={true}
         style={{ width: '100%', height: '100%' }}
-        attributionControl={true}
+        attributionControl={false}
       >
+        <AttributionControl prefix={false} />
         <TileLayer
           url={`https://tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token=${import.meta.env.VITE_JAWG_ACCESS_TOKEN}`}
-          attribution='<a href="https://www.jawg.io" target="_blank">&copy; Jawg Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <FitBounds pins={pins} />
         {pins.map((pin, i) => (
