@@ -1287,7 +1287,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
             </div>
 
             {/* Pagination */}
-            <div className="border-t border-slate-800 pt-6 pb-16">
+            <div className="pt-6 pb-16">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                 <p className="text-slate-400 text-sm">
                   {loadingMore && paginatedPosts.length === 0
@@ -1316,16 +1316,16 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
       </main>
 
       {/* Footer */}
-      <footer className="w-full py-10 flex flex-col items-center">
-        <div className="flex flex-wrap justify-center gap-8 mb-8 text-sm text-slate-300">
-          <Link to="/about" className="hover:text-white transition-colors">About Us</Link>
-          <Link to="/for-sellers" className="hover:text-white transition-colors">For Sellers</Link>
-          <Link to="/" className="hover:text-white transition-colors">For Buyers</Link>
-          <Link to="/affiliate" className="hover:text-white transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+      <footer className="border-t border-slate-800 w-full py-10 flex flex-col items-center text-sm text-slate-500">
+        <div className="flex flex-wrap justify-center gap-8 mb-8">
+          <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
+          <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
+          <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
+          <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
+          <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms &amp; Conditions</Link>
+          <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
         </div>
-        <p className="text-sm text-slate-500">© Gigspace, LLC. All rights reserved.</p>
+        <p>© Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );
