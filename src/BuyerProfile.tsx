@@ -1,5 +1,5 @@
 ﻿import { useState, useRef, type ChangeEvent } from 'react';
-import { UserRound, ArrowLeftRight } from 'lucide-react';
+import { UserRound, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, set, get, push, update, increment } from 'firebase/database';
@@ -134,11 +134,15 @@ const BuyerProfile = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background-deep p-4">
-      <div className="bg-card rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="bg-surface rounded-xl shadow-2xl p-8 lg:p-12 w-full max-w-[500px] flex flex-col items-center">
 
-        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-          <UserRound strokeWidth={2} className="text-primary w-6 h-6" />
+        <div className="mb-6">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="24" fill="#004F3B"/>
+            <path d="M24 25C26.7614 25 29 22.7614 29 20C29 17.2386 26.7614 15 24 15C21.2386 15 19 17.2386 19 20C19 22.7614 21.2386 25 24 25Z" stroke="#00D492" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M32 33C32 30.8783 31.1571 28.8434 29.6569 27.3431C28.1566 25.8429 26.1217 25 24 25C21.8783 25 19.8434 25.8429 18.3431 27.3431C16.8429 28.8434 16 30.8783 16 33" stroke="#00D492" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </div>
 
         <h2 className="text-lg font-bold text-white mb-8">
@@ -202,12 +206,12 @@ const BuyerProfile = () => {
             onClick={() => navigate('/account-type')}
             className="text-slate-400 hover:text-white text-sm transition-colors"
           >
-            <ArrowLeftRight className="inline w-3.5 h-3.5 mr-1.5" /> Switch account type
+            <ArrowLeft className="inline w-3.5 h-3.5 mr-1.5" /> Switch account type
           </button>
           <button
             onClick={handleContinue}
             disabled={loading}
-            className="bg-primary hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-colors"
+            className="bg-[#2b7fff] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-colors"
           >
             {loading ? 'Saving...' : 'Continue'}
           </button>
