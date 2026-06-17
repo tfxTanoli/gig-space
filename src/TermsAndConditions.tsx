@@ -84,7 +84,7 @@ const TermsAndConditions = () => {
           <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
           <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
         </div>
-        <p>© {new Date().getFullYear()} Gigspace, LLC. All rights reserved.</p>
+        <p>© Gigspace, LLC. All rights reserved.</p>
       </footer>
     </div>
   );
