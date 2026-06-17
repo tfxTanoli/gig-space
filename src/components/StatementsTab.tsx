@@ -196,7 +196,7 @@ export default function StatementsTab() {
           value={fmt(lastMonth)}
           sub="Last month"
           accent="slate"
-          icon={<Calendar className="w-4 h-4 text-slate-400" />}
+          icon={<Calendar className="w-4 h-4 text-amber-400" />}
         />
         <SummaryCard
           label="Year to date"
@@ -210,7 +210,7 @@ export default function StatementsTab() {
           value={fmt(totalWithdrawn)}
           sub="All time"
           accent="slate"
-          icon={<ArrowUpRight className="w-4 h-4 text-slate-400" />}
+          icon={<ArrowUpRight className="w-4 h-4 text-violet-400" />}
         />
       </div>
 

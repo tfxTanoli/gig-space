@@ -167,25 +167,27 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           {post.title}
         </h3>
 
-        {/* Location */}
-        {locationPrimary && (
-          <div className="relative flex items-center text-slate-400 text-[13px] mb-2 group/loc">
-            <MapPin className="w-3.5 h-3.5 mr-1.5 shrink-0 text-slate-400" />
-            <span className="truncate">
-              {locationPrimary}
+        {/* Location — fixed height keeps reviews/price aligned across all cards */}
+        <div className="h-[26px] flex items-center mb-2 relative group/loc">
+          {locationPrimary && (
+            <>
+              <MapPin className="w-3.5 h-3.5 mr-1.5 shrink-0 text-slate-400" />
+              <span className="truncate text-slate-400 text-[13px]">
+                {locationPrimary}
+                {extraCount > 0 && (
+                  <> <span className="underline underline-offset-2">+{extraCount} more</span></>
+                )}
+              </span>
               {extraCount > 0 && (
-                <> <span className="underline underline-offset-2">+{extraCount} more</span></>
+                <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-surface border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max">
+                  {extraLocationNames.map((loc) => (
+                    <p key={loc} className="text-[13px] text-slate-300 py-0.5">{loc}</p>
+                  ))}
+                </div>
               )}
-            </span>
-            {extraCount > 0 && (
-              <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 z-20 hidden group-hover/loc:block bg-surface border border-slate-700 rounded-lg px-3 py-2 shadow-xl w-max">
-                {extraLocationNames.map((loc) => (
-                  <p key={loc} className="text-[13px] text-slate-300 py-0.5">{loc}</p>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         {/* Reviews row — fixed height keeps price aligned across all cards */}
         <div className="mb-2 h-[26px] flex items-center">
