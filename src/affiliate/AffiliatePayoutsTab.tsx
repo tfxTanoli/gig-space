@@ -85,7 +85,7 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
           <button
             onClick={handleConnect}
             disabled={connecting}
-            className="flex items-center gap-2 bg-stripe hover:bg-stripe-hover disabled:opacity-60 text-white text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-stripe hover:bg-stripe-hover disabled:opacity-60 text-white text-sm font-semibold py-2.5 px-5 rounded-md transition-colors"
           >
             {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
             {connecting ? 'Connecting…' : 'Connect Stripe Account'}
@@ -110,7 +110,7 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
             <button
               onClick={handleConnect}
               disabled={connecting}
-              className="flex items-center gap-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 disabled:opacity-60 text-yellow-300 text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 disabled:opacity-60 text-yellow-300 text-sm font-semibold py-2.5 px-5 rounded-md transition-colors"
             >
               {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
               {connecting ? 'Loading…' : 'Complete Onboarding'}
@@ -188,14 +188,14 @@ function WithdrawModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
+            className="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold py-3 rounded-md transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handle}
             disabled={loading}
-            className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-md transition-colors flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             Withdraw
@@ -312,7 +312,7 @@ export default function AffiliatePayoutsTab() {
       <button
         onClick={() => setShowWithdraw(true)}
         disabled={available < 10}
-        className="flex items-center gap-2 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2 rounded-xl transition-colors"
+        className="flex items-center gap-2 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2 rounded-md transition-colors"
       >
         <ArrowUpRight className="w-4 h-4" />
         Withdraw funds

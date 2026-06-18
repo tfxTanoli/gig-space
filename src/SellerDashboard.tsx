@@ -541,8 +541,7 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-white">Delete Post</h2>
+        <div className="flex items-center justify-end px-6 py-4 border-b border-slate-800">
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>

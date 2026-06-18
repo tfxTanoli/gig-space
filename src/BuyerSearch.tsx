@@ -1078,7 +1078,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
             >
               <div className="p-4 w-56">
                 <label className="block text-xs text-slate-400 mb-2">Up to</label>
-                <div className="flex items-center bg-background border border-slate-700 rounded-lg px-3 h-10">
+                <div className="flex items-center bg-slate-700 border border-slate-600 rounded-lg px-3 h-10">
                   <span className="text-slate-500 text-sm">$</span>
                   <input
                     type="text"

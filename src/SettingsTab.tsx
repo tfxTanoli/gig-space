@@ -642,7 +642,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
         </div>
 
         {/* ── Delete Account ── */}
-        <div className="bg-surface border border-red-900/40 rounded-xl p-6 space-y-4">
+        <div className="bg-surface border border-slate-800 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
               <Trash2 className="w-4 h-4 text-red-400" />
