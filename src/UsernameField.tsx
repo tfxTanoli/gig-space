@@ -19,7 +19,7 @@ const UsernameField = ({ value, onChange, status, message, label = 'Username' }:
       ? 'border-green-500/60'
       : status === 'taken' || status === 'invalid'
         ? 'border-red-500/60'
-        : 'border-slate-700/50';
+        : 'border-slate-600';
 
   return (
     <div className="w-full">

@@ -140,7 +140,7 @@ const AffiliateProfile = () => {
         )}
 
         <div className="w-full flex items-center gap-5 mb-7">
-          <div className="w-20 h-20 rounded-full bg-surface-raised flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-20 h-20 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
               <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
@@ -172,7 +172,7 @@ const AffiliateProfile = () => {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+            className="w-full bg-surface-raised border border-slate-600 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
           />
         </div>
 
