@@ -177,7 +177,7 @@ const LandingPage = () => {
                 <LocationSearch value={heroLocation} onChange={(label) => setHeroLocation(label)} variant="hero" />
               </div>
 
-              <div className="hidden md:block w-[1px] h-8 bg-slate-700 mx-2"></div>
+              <div className="hidden md:block w-[1px] h-8 bg-slate-600 mx-2"></div>
 
               <div className="flex-1 w-full flex items-center pr-2">
                 <input
