@@ -388,7 +388,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
               )}
             </div>
             <div>
-              <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <Camera className="w-4 h-4" />
                 {photoUploading ? 'Uploading…' : (mode === 'seller' ? 'Change logo' : 'Change photo')}
                 <input
@@ -422,7 +422,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
           <div className="max-w-lg">
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
             <div className="flex items-center">
-              <span className="bg-slate-700 border border-r-0 border-slate-600 text-slate-500 text-sm px-3 py-2 rounded-l-lg select-none">
+              <span className="bg-slate-700 border border-r-0 border-slate-600 text-slate-400 text-sm px-3 py-2 rounded-l-lg select-none">
                 @
               </span>
               <div className="relative flex-1">
