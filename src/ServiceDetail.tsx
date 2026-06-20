@@ -494,7 +494,7 @@ const ServiceDetail = () => {
       </header>
 
       {/* ── Main two-column content ── */}
-      <main className="w-full px-4 md:px-6 lg:px-12 py-6 md:py-8 flex flex-col">
+      <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-12 py-6 md:py-8 flex flex-col">
       <div className="flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,420px)] gap-8 lg:gap-14 mb-10">
 
         {/* ═══ LEFT COLUMN — gallery + description ═══ */}
@@ -691,7 +691,7 @@ const ServiceDetail = () => {
               </button>
               <button
                 onClick={() => post && toggleSave(post.id)}
-                className="w-12 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
+                className="w-11 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
                 title={post && isSaved(post.id) ? 'Remove from saved' : 'Save service'}
               >
                 <Bookmark className={`w-4 h-4 transition-colors ${post && isSaved(post.id) ? 'fill-primary text-primary' : 'text-slate-400'}`} />
@@ -699,11 +699,11 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          <hr className="border-slate-700/60 mb-7" />
+          <hr className="border-slate-700/60 mb-8" />
 
           {/* Locations */}
           {(post.primaryLocation || post.offeredRemotely || post.extraLocations?.length > 0) && (
-            <div className="mb-6">
+            <div className="mb-7">
               <h3 className="text-sm font-medium text-white mb-2">Locations Served</h3>
               <div className="text-slate-400 text-sm space-y-1">
                 {post.primaryLocation && <p>{post.primaryLocation}</p>}
@@ -727,11 +727,11 @@ const ServiceDetail = () => {
             />
           )}
 
-          <hr className="border-slate-700/60 mb-7" />
+          <hr className="border-slate-700/60 mb-8" />
 
           {/* Languages */}
           {post.languages?.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-7">
               <h3 className="text-sm font-medium text-white mb-2">Languages Spoken</h3>
               <div className="text-slate-400 text-sm space-y-0.5">
                 {post.languages.map((lang) => (
@@ -742,12 +742,12 @@ const ServiceDetail = () => {
           )}
 
           {/* Offered Remotely */}
-          <div className="mb-6">
+          <div className="mb-7">
             <h3 className="text-sm font-medium text-white mb-2">Offered Remotely</h3>
             <p className="text-slate-400 text-sm">{post.offeredRemotely ? 'Yes' : 'No'}</p>
           </div>
 
-          <hr className="border-slate-700/60 mb-7" />
+          <hr className="border-slate-700/60 mb-8" />
 
           {/* Share */}
           <div>
@@ -805,7 +805,7 @@ const ServiceDetail = () => {
       </div>
 
       {/* ── Customer Reviews — full width, always below both columns ── */}
-      <div className="border-t border-slate-700/60 pt-8 pb-14">
+      <div className="border-t border-slate-700/60 pt-8 pb-20">
         <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
 
         {reviewsLoading ? (
