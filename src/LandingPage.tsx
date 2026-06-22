@@ -186,7 +186,7 @@ const LandingPage = () => {
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && goToSearch()}
-                  className="w-full bg-transparent border-none text-white px-4 py-2 focus:outline-none focus:ring-0 text-sm"
+                  className="w-full bg-transparent border-none text-white px-4 py-2 focus:outline-none focus:ring-0 text-sm placeholder-slate-400"
                 />
                 <button
                   onClick={goToSearch}

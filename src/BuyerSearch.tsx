@@ -791,7 +791,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
-                className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-500"
+                className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-400"
               />
               <button
                 onClick={commitSearch}
@@ -1087,7 +1087,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                     onChange={(e) => setBudgetInput(e.target.value.replace(/\D/g, ''))}
                     onKeyDown={(e) => e.key === 'Enter' && applyBudget()}
                     placeholder="Any"
-                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-500"
+                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-400"
                   />
                 </div>
                 <div className="flex items-center justify-between mt-4">

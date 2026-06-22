@@ -104,16 +104,16 @@ const LocationSearch = ({
           {/* Search input */}
           <div className="p-2 border-b border-slate-800">
             <div className="flex items-center bg-background border border-slate-700 rounded-lg px-3 h-9">
-              <Search className="w-4 h-4 text-slate-500 shrink-0" />
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search a city, state, or country"
-                className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-500"
+                className="flex-1 bg-transparent px-2 text-sm text-slate-200 focus:outline-none placeholder-slate-400"
               />
-              {loading && <Loader2 className="w-4 h-4 text-slate-500 animate-spin shrink-0" />}
+              {loading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />}
             </div>
           </div>
 

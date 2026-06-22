@@ -121,7 +121,7 @@ const BuyerSearchFiltered = () => {
             <input
               type="text"
               placeholder="Search for a service"
-              className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-500"
+              className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-400"
             />
             <button className="bg-primary h-full px-4 flex items-center justify-center hover:bg-blue-400 transition-colors">
               <Search className="w-4 h-4 text-white" />
