@@ -136,18 +136,17 @@ const AffiliateSignin = () => {
             />
           </div>
 
-          <div className="flex items-center">
+          <label htmlFor="remember-me" className="flex items-center gap-2 cursor-pointer">
             <input
               id="remember-me"
               name="remember-me"
               type="checkbox"
               defaultChecked
-              className="appearance-none h-4 w-4 rounded border bg-slate-800 border-slate-700 hover:border-slate-600 checked:bg-primary checked:border-primary checked:hover:ring-2 checked:hover:ring-primary/30 checked:bg-[url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27white%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e')] bg-center bg-no-repeat focus:outline-none checked:focus:ring-2 checked:focus:ring-primary checked:focus:ring-offset-2 checked:focus:ring-offset-slate-900 cursor-pointer transition-colors"
+              className="sr-only peer"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-200 cursor-pointer">
-              Remember me on this device
-            </label>
-          </div>
+            <div className="h-5 w-5 flex-shrink-0 rounded-md border border-slate-600 bg-slate-800 peer-checked:bg-primary peer-checked:border-primary bg-center bg-no-repeat [background-size:80%_80%] peer-checked:bg-[url('data:image/svg+xml,%3csvg%20viewBox=%270%200%2016%2016%27%20fill=%27white%27%20xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath%20d=%27M12.207%204.793a1%201%200%20010%201.414l-5%205a1%201%200%2001-1.414%200l-2-2a1%201%200%20011.414-1.414L6.5%209.086l4.293-4.293a1%201%200%20011.414%200z%27/%3e%3c/svg%3e')] transition-colors" />
+            <span className="text-sm text-slate-200">Remember me on this device</span>
+          </label>
 
           <button
             type="submit"
