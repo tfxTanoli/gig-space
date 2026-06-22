@@ -193,7 +193,7 @@ export default function AffiliateHomeTab() {
           Share this link to earn 50% of every platform fee from referred orders
         </p>
         <div className="flex items-center gap-2">
-          <div className="flex-1 bg-background border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-300 font-mono truncate min-w-0">
+          <div className="flex-1 bg-background border border-slate-700 rounded-md px-4 py-2.5 text-sm text-slate-300 font-mono truncate min-w-0">
             {referralLink || (statsLoading ? 'Generating your link…' : 'Link unavailable')}
           </div>
           <button
