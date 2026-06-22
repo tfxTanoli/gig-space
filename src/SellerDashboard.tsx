@@ -88,10 +88,12 @@ const sellerNavItems = [
   { name: 'Settings', icon: Settings },
 ];
 
+function fmt(n: number) { return n.toLocaleString('en-US'); }
+
 function formatPostPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (post.priceMax) return { prefix: '', price: `$${post.priceMin} – $${post.priceMax}`, suffix };
-  return { prefix: 'From', price: `$${post.priceMin}`, suffix };
+  if (post.priceMax) return { prefix: '', price: `$${fmt(post.priceMin)} – $${fmt(post.priceMax)}`, suffix };
+  return { prefix: 'From', price: `$${fmt(post.priceMin)}`, suffix };
 }
 
 interface PostCardProps {
