@@ -199,7 +199,7 @@ export default function AffiliateHomeTab() {
           <button
             onClick={copyLink}
             disabled={!referralLink}
-            className="flex items-center gap-1.5 bg-primary hover:bg-blue-400 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-md transition-colors shrink-0"
+            className="flex items-center gap-1.5 bg-primary hover:bg-blue-400 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2.5 rounded-md transition-colors shrink-0"
           >
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied!' : 'Copy'}
