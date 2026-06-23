@@ -114,7 +114,7 @@ const BuyerSearchFiltered = () => {
           </span>
 
           <div className="hidden md:flex items-center bg-background border border-slate-700 rounded-lg overflow-hidden h-10 w-full max-w-xl">
-            <div className="px-4 border-r border-slate-700 flex items-center shrink-0 cursor-pointer text-slate-300 text-sm h-full bg-surface-raised">
+            <div className="px-4 border-r border-slate-700 flex items-center shrink-0 cursor-pointer text-slate-300 text-sm h-full bg-slate-800">
               All locations
               <ChevronDown className="w-4 h-4 ml-2 text-slate-500" />
             </div>

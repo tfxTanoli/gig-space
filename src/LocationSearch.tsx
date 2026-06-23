@@ -103,7 +103,7 @@ const LocationSearch = ({
         <div className="absolute left-0 top-full mt-2 w-72 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
           {/* Search input */}
           <div className="p-2 border-b border-slate-800">
-            <div className="flex items-center bg-background border border-slate-700 rounded-lg px-3 h-9">
+            <div className="flex items-center bg-slate-700 border border-slate-700 rounded-lg px-3 h-9">
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
               <input
                 ref={inputRef}
