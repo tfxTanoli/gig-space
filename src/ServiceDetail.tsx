@@ -494,8 +494,8 @@ const ServiceDetail = () => {
       </header>
 
       {/* ── Main two-column content ── */}
-      <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-12 py-6 md:py-8 flex flex-col">
-      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,420px)] gap-8 lg:gap-14 mb-10">
+      <main className="w-full px-4 md:px-6 lg:px-12 py-6 md:py-8 flex flex-col">
+      <div className="flex flex-col lg:grid lg:grid-cols-[592px_minmax(0,1fr)] gap-8 lg:gap-[100px] mb-10">
 
         {/* ═══ LEFT COLUMN — gallery + description ═══ */}
         <div className="order-2 lg:order-1 min-w-0">
@@ -503,10 +503,9 @@ const ServiceDetail = () => {
           {/* ── Media gallery ── */}
           {mediaItems.length > 0 ? (
             <div className="mb-8">
-              {/* Main viewer — 4:3 aspect ratio, capped to avoid oversized display */}
+              {/* Main viewer — fixed 592×444 on desktop, responsive 4:3 below */}
               <div
-                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full"
-                style={{ aspectRatio: '4/3', maxHeight: '420px' }}
+                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3] lg:w-[592px] lg:h-[444px] lg:aspect-auto"
               >
                 {activeMedia?.kind === 'video' ? (
                   <video
@@ -685,7 +684,7 @@ const ServiceDetail = () => {
             <div className="flex items-stretch gap-3 mb-8">
               <button
                 onClick={handleContactSeller}
-                className="flex-1 bg-primary hover:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                className="w-full max-w-[320px] bg-primary hover:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
               >
                 Message seller
               </button>
