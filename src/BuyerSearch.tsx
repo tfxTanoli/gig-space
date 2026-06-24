@@ -92,7 +92,7 @@ const RadioOpt = ({ label, selected, onClick }: { label: string; selected: boole
 
 const RadioFooter = ({ onClear, onApply }: { onClear: () => void; onApply: () => void }) => (
   <div className="border-t border-slate-800 flex items-center justify-between px-4 py-3">
-    <button type="button" onClick={onClear} className="text-sm text-slate-400 hover:text-white transition-colors">
+    <button type="button" onClick={onClear} className="text-xs text-slate-400 hover:text-white transition-colors">
       Clear all
     </button>
     <button type="button" onClick={onApply} className="bg-primary hover:bg-blue-400 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
