@@ -1274,7 +1274,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-12 mb-10">
               {paginatedPosts.map((post) => (
                 <ServiceCard
                   key={post.id}
