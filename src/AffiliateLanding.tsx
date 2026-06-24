@@ -112,7 +112,7 @@ const earningsCards = [
   { label: 'Small Job', service: '$100 local repair job', commission: '+ $5 commission', emoji: '🔥' },
   { label: 'Medium Job', service: '$1,000 home service project', commission: '+ $50 commission', emoji: '⚡' },
   { label: 'High-Ticket Job', service: '$10,000 renovation project', commission: '+ $500 commission', emoji: '🌟' },
-  { label: 'Large Project (top-end example)', service: '$100,000 service contract', commission: '+ $5,000 commission', emoji: '💰' },
+  { label: 'Large Project (top-end example)', service: '$100,000 commercial contract', commission: '+ $5,000 commission', emoji: '💰' },
 ];
 
 const categories = [
