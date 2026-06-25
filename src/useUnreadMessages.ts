@@ -41,11 +41,20 @@ export function useUnreadMessages(mode: 'buyer' | 'seller'): number {
       });
 
       // Add new listeners only for new conversations
+      const roleField = mode === 'buyer' ? 'buyerId' : 'sellerId';
       ids.forEach(id => {
         if (fieldListeners[id]) return;
-        const fieldRef = ref(database, `conversations/${id}/${field}`);
-        fieldListeners[id] = onValue(fieldRef, (s) => {
-          counts[id] = s.val() || 0;
+        // Read the full conversation so we can verify the user's role before counting.
+        // A user's userConversations node includes convs where they're a buyer OR seller,
+        // so without this check the seller badge would also count unreadSeller from
+        // conversations where this user is actually the buyer.
+        const convRef = ref(database, `conversations/${id}`);
+        fieldListeners[id] = onValue(convRef, (s) => {
+          if (!s.exists() || s.val()[roleField] !== user!.uid) {
+            counts[id] = 0;
+          } else {
+            counts[id] = s.val()[field] || 0;
+          }
           recompute();
         });
       });
