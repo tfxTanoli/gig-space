@@ -123,11 +123,11 @@ const SellerProfile = () => {
         )}
 
         <div className="w-full flex items-center gap-5 mb-7">
-          <div className="w-20 h-20 rounded-full bg-[#1a2d42] flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {logoPreview ? (
               <img src={logoPreview} alt="Logo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
-              <svg viewBox="0 0 18.67 24.61" className="w-9 h-9" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg viewBox="0 0 18.67 24.61" className="w-12 h-12" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18.67 10.3419C18.6704 10.8302 18.6268 11.3175 18.5397 11.7979C17.4027 18.2019 9.33891 24.6084 9.33891 24.6084C9.33891 24.6084 0 18.2058 0 10.3419C0.000236174 8.70603 0.429663 7.09887 1.24533 5.68118C2.061 4.26349 3.23432 3.08496 4.64794 2.26347C6.06156 1.44198 7.66593 1.00632 9.3006 1.00007C10.9353 0.993812 12.5429 1.41718 13.9628 2.22782C14.2229 2.37544 14.4455 2.58116 14.6133 2.82896C14.781 3.07676 14.8893 3.35995 14.9297 3.65649C14.9702 3.95303 14.9417 4.25492 14.8465 4.53864C14.7513 4.82237 14.592 5.08027 14.3809 5.29228C14.0768 5.59209 13.6829 5.78397 13.2595 5.83859C12.8361 5.8932 12.4065 5.80753 12.0364 5.59469C11.0494 5.03095 9.91113 4.78977 8.78054 4.90483C7.64994 5.01989 6.58349 5.48545 5.73012 6.23649C4.87675 6.98752 4.27907 7.98653 4.02057 9.09399C3.76206 10.2014 3.85563 11.3621 4.28821 12.4137C4.7208 13.4654 5.47079 14.3556 6.43344 14.96C7.39609 15.5644 8.52333 15.8528 9.65773 15.785C10.7921 15.7172 11.877 15.2965 12.7609 14.5817C13.6448 13.8668 14.2836 12.8936 14.588 11.7979H11.2757C10.7624 11.7979 10.2699 11.5944 9.90618 11.2318C9.54245 10.8693 9.33707 10.3773 9.335 9.86356C9.335 9.34846 9.53947 8.85446 9.90342 8.49023C10.2674 8.12601 10.761 7.92139 11.2757 7.92139H16.2343C16.8751 7.9186 17.4909 8.16968 17.9473 8.6198C18.4036 9.06991 18.6635 9.68248 18.67 10.3237V10.3419Z" fill="#64748B"/>
               </svg>
             )}
@@ -143,7 +143,7 @@ const SellerProfile = () => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-card hover:bg-card-hover text-white font-medium py-2 px-5 rounded-lg border border-slate-600/60 transition-colors text-sm"
+              className="bg-card hover:bg-card-hover text-white font-medium py-2 px-5 rounded-lg transition-colors text-sm"
             >
               Upload logo
             </button>
@@ -180,7 +180,7 @@ const SellerProfile = () => {
           <button
             onClick={handleContinue}
             disabled={loading}
-            className="bg-[#2b7fff] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-colors"
+            className="bg-[#2b7fff] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold h-9 px-6 rounded-lg text-sm transition-colors"
           >
             {loading ? 'Saving...' : 'Continue'}
           </button>

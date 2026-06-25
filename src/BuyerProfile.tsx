@@ -1,5 +1,5 @@
 ﻿import { useState, useRef, type ChangeEvent } from 'react';
-import { UserRound, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, set, get, push, update, increment } from 'firebase/database';
@@ -156,11 +156,14 @@ const BuyerProfile = () => {
         )}
 
         <div className="w-full flex items-center gap-5 mb-7">
-          <div className="w-20 h-20 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-20 h-20 rounded-full bg-[#1d293d] flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
               <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
-              <UserRound strokeWidth={1.5} className="w-10 h-10 text-slate-500" />
+              <svg viewBox="0 0 80 80" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="28" r="14" fill="#64748B"/>
+                <circle cx="40" cy="76" r="28" fill="#64748B"/>
+              </svg>
             )}
           </div>
 
@@ -174,7 +177,7 @@ const BuyerProfile = () => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-card hover:bg-card-hover text-white font-medium py-2 px-5 rounded-lg border border-slate-600/60 transition-colors text-sm"
+              className="bg-card hover:bg-card-hover text-white font-medium py-2 px-5 rounded-lg transition-colors text-sm"
             >
               Upload profile photo
             </button>
@@ -211,7 +214,7 @@ const BuyerProfile = () => {
           <button
             onClick={handleContinue}
             disabled={loading}
-            className="bg-[#2b7fff] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-colors"
+            className="bg-[#2b7fff] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold h-9 px-6 rounded-lg text-sm transition-colors"
           >
             {loading ? 'Saving...' : 'Continue'}
           </button>
