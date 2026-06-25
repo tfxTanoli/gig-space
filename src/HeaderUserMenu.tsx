@@ -124,7 +124,7 @@ const HeaderUserMenu = () => {
             )}
           </div>
 
-          <div className="border-t border-slate-800 py-1">
+          <div className="border-t border-slate-700 py-1">
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-500 hover:bg-slate-800/80 transition-colors cursor-pointer"

@@ -845,10 +845,6 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                         <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
                         Saved Services
                       </Link>
-                      <Link to="/affiliate" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                        <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
-                        Affiliate Program
-                      </Link>
                       {user && (
                         <Link to="/post-service" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors lg:hidden">
                           <Settings className="w-4 h-4 shrink-0 text-slate-500" />
@@ -859,9 +855,13 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                         <Settings className="w-4 h-4 shrink-0 text-slate-500" />
                         Settings
                       </Link>
+                      <Link to="/affiliate" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                        <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
+                        Affiliate Program
+                      </Link>
                     </div>
 
-                    <div className="border-t border-slate-800 py-1">
+                    <div className="border-t border-slate-700 py-1">
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-500 hover:bg-slate-800/80 transition-colors cursor-pointer"
