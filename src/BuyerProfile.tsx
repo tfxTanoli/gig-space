@@ -161,8 +161,8 @@ const BuyerProfile = () => {
               <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
               <svg viewBox="0 0 80 80" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="40" cy="28" r="14" fill="#64748B"/>
-                <circle cx="40" cy="76" r="28" fill="#64748B"/>
+                <circle cx="40" cy="27" r="13" fill="#64748B"/>
+                <circle cx="40" cy="67" r="32" fill="#64748B"/>
               </svg>
             )}
           </div>
