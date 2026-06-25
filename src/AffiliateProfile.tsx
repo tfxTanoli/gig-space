@@ -140,13 +140,13 @@ const AffiliateProfile = () => {
         )}
 
         <div className="w-full flex items-center gap-5 mb-7">
-          <div className="w-20 h-20 rounded-full bg-[#1d293d] flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-20 h-20 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
               <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
               <svg viewBox="0 0 80 80" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="40" cy="27" r="13" fill="#64748B"/>
-                <circle cx="40" cy="67" r="32" fill="#64748B"/>
+                <circle cx="40" cy="29" r="11" fill="#94A3B8"/>
+                <circle cx="40" cy="72" r="25" fill="#94A3B8"/>
               </svg>
             )}
           </div>
@@ -161,7 +161,7 @@ const AffiliateProfile = () => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-card hover:bg-card-hover text-white font-medium py-2 px-5 rounded-lg transition-colors text-sm"
+              className="bg-card hover:bg-card-hover text-white font-medium py-2 px-5 rounded-lg transition-colors text-sm focus:outline-none focus-visible:outline-none"
             >
               Upload profile photo
             </button>
@@ -175,7 +175,7 @@ const AffiliateProfile = () => {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-surface-raised border border-slate-600 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+            className="w-full h-9 bg-surface-raised border border-slate-600 rounded-lg px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
           />
         </div>
 
