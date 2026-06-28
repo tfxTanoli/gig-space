@@ -140,13 +140,25 @@ const AffiliateProfile = () => {
         )}
 
         <div className="w-full flex items-center gap-5 mb-7">
-          <div className="w-20 h-20 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
               <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
             ) : (
-              <svg viewBox="0 0 80 80" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="40" cy="29" r="11" fill="#94A3B8"/>
-                <circle cx="40" cy="72" r="25" fill="#94A3B8"/>
+              <svg viewBox="0 0 72 72" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clipPath="url(#clip0)">
+                  <path d="M0 36C0 16.1178 16.1178 0 36 0C55.8823 0 72 16.1178 72 36C72 55.8823 55.8823 72 36 72C16.1178 72 0 55.8823 0 36Z" fill="#314158"/>
+                  <g clipPath="url(#clip1)">
+                    <path d="M72 62.9791V72.0001H0V63.0121C4.18785 57.4154 9.62372 52.8731 15.8754 49.7462C22.127 46.6194 29.022 44.9942 36.012 45.0001C50.724 45.0001 63.792 52.0621 72 62.9791ZM48.006 26.9971C48.006 30.1797 46.7417 33.2319 44.4913 35.4824C42.2408 37.7328 39.1886 38.9971 36.006 38.9971C32.8234 38.9971 29.7712 37.7328 27.5207 35.4824C25.2703 33.2319 24.006 30.1797 24.006 26.9971C24.006 23.8145 25.2703 20.7622 27.5207 18.5118C29.7712 16.2614 32.8234 14.9971 36.006 14.9971C39.1886 14.9971 42.2408 16.2614 44.4913 18.5118C46.7417 20.7622 48.006 23.8145 48.006 26.9971Z" fill="#62748E"/>
+                  </g>
+                </g>
+                <defs>
+                  <clipPath id="clip0">
+                    <path d="M0 36C0 16.1178 16.1178 0 36 0C55.8823 0 72 16.1178 72 36C72 55.8823 55.8823 72 36 72C16.1178 72 0 55.8823 0 36Z" fill="white"/>
+                  </clipPath>
+                  <clipPath id="clip1">
+                    <rect width="72" height="72" fill="white"/>
+                  </clipPath>
+                </defs>
               </svg>
             )}
           </div>
