@@ -1,7 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Search,
   MessageCircle,
   Bell,
   ChevronDown,
@@ -113,8 +112,8 @@ const BuyerSearchFiltered = () => {
             <Logo className="h-6" />
           </span>
 
-          <div className="hidden md:flex items-center bg-background border border-slate-700 rounded-lg overflow-hidden h-10 w-full max-w-xl">
-            <div className="px-4 border-r border-slate-700 flex items-center shrink-0 cursor-pointer text-slate-300 text-sm h-full bg-slate-800">
+          <div className="hidden md:flex items-center bg-background border border-slate-700 rounded-lg h-10 w-full max-w-xl">
+            <div className="px-4 border-r border-slate-700 flex items-center shrink-0 cursor-pointer text-slate-300 text-sm h-full rounded-l-lg">
               All locations
               <ChevronDown className="w-4 h-4 ml-2 text-slate-500" />
             </div>
@@ -123,8 +122,12 @@ const BuyerSearchFiltered = () => {
               placeholder="Search for a service"
               className="flex-1 bg-transparent px-4 text-sm text-white focus:outline-none placeholder-slate-400"
             />
-            <button className="bg-primary h-full px-4 flex items-center justify-center hover:bg-blue-400 transition-colors">
-              <Search className="w-4 h-4 text-white" />
+            <button className="flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
+              <svg width="36" height="40" viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect y="6" width="30" height="28" rx="4" fill="#2B7FFF"/>
+                <path d="M14.1667 25.3333C17.8486 25.3333 20.8333 22.3486 20.8333 18.6667C20.8333 14.9848 17.8486 12 14.1667 12C10.4848 12 7.5 14.9848 7.5 18.6667C7.5 22.3486 10.4848 25.3333 14.1667 25.3333Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22.5003 27.0003L18.917 23.417" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
           </div>
         </div>
