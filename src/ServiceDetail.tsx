@@ -676,9 +676,12 @@ const ServiceDetail = () => {
                 <div className="flex items-center gap-2">
                   <FilledStars count={avgRating} size={14} />
                   <span className="text-white text-sm font-semibold">{avgRating.toFixed(1)}</span>
-                  <span className="text-slate-500 text-xs">
-                    ({reviews.length} review{reviews.length !== 1 ? 's' : ''})
-                  </span>
+                  <button
+                    onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-blue-400 text-sm hover:underline cursor-pointer"
+                  >
+                    See all the {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                  </button>
                 </div>
               )}
             </div>
@@ -840,7 +843,7 @@ const ServiceDetail = () => {
       </div>
 
       {/* ── Customer Reviews — full width, always below both columns ── */}
-      <div className="border-t border-slate-700/60 pt-8 pb-20">
+      <div id="reviews" className="border-t border-slate-700/60 pt-8 pb-20 scroll-mt-24">
         <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
 
         {reviewsLoading ? (
