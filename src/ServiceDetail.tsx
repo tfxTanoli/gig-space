@@ -256,6 +256,7 @@ const ServiceDetail = () => {
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [sellerVerified, setSellerVerified] = useState(false);
+  const [visibleReviews, setVisibleReviews] = useState(3);
 
   const isOwnService = !!(user && post && user.uid === post.sellerId);
   const viewTrackedRef = useRef(false);
@@ -845,54 +846,76 @@ const ServiceDetail = () => {
         {reviewsLoading ? (
           <p className="text-slate-500 text-sm">Loading reviews…</p>
         ) : reviews.length === 0 ? (
-          <div className="flex items-center gap-3">
-            <span className="text-slate-500 text-sm">No reviews yet</span>
-          </div>
-        ) : (
-          <>
-            {/* Summary row */}
-            {(() => {
-              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-              return (
-                <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800/60">
-                  <span className="text-5xl font-bold text-white leading-none">{avg.toFixed(1)}</span>
-                  <div>
-                    <FilledStars count={avg} size={20} />
-                    <p className="text-slate-400 text-sm mt-1">
-                      {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
+          <span className="text-slate-500 text-sm">No reviews yet</span>
+        ) : (() => {
+          const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+          const breakdown = [5, 4, 3, 2, 1].map((star) => ({
+            star,
+            pct: Math.round((reviews.filter((r) => r.rating === star).length / reviews.length) * 100),
+          }));
+          return (
+            <div className="flex flex-col lg:flex-row items-start" style={{ gap: 136 }}>
+              {/* Left: aggregate summary + bar breakdown — 384px wide */}
+              <div style={{ width: 384 }} className="shrink-0 flex flex-col">
+                <div className="flex items-center gap-3 mb-2">
+                  <FilledStars count={avg} size={20} />
                 </div>
-              );
-            })()}
-
-            {/* Individual reviews */}
-            <div className="space-y-6">
-              {reviews.map((review) => (
-                <div
-                  key={review.orderId}
-                  className="flex gap-4 pb-6 border-b border-slate-800/50 last:border-0 last:pb-0"
-                >
-                  <UserAvatar photoURL={review.reviewerPhoto} name={review.reviewerName} size="md" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-start justify-between gap-2 mb-1.5">
-                      <p className="text-white text-sm font-semibold">{review.reviewerName}</p>
-                      <span className="text-slate-600 text-xs shrink-0">
-                        {new Date(review.timestamp).toLocaleDateString('en-US', {
-                          month: 'short', day: 'numeric', year: 'numeric',
-                        })}
-                      </span>
+                <p className="text-slate-400 text-sm mb-5">
+                  Based on {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                </p>
+                <div className="space-y-2.5">
+                  {breakdown.map(({ star, pct }) => (
+                    <div key={star} className="flex items-center gap-2.5">
+                      <span className="text-slate-400 text-xs w-2.5 shrink-0">{star}</span>
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                      <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-slate-400 text-xs w-8 text-right shrink-0">{pct}%</span>
                     </div>
-                    <FilledStars count={review.rating} size={13} />
-                    {review.text && (
-                      <p className="text-slate-300 text-sm leading-relaxed mt-2">{review.text}</p>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Right: individual reviews — 696px wide */}
+              <div style={{ width: 696 }} className="flex flex-col">
+                <div className="divide-y divide-slate-800/60">
+                  {reviews.slice(0, visibleReviews).map((review) => (
+                    <div key={review.orderId} className="py-5 first:pt-0 flex gap-4">
+                      <UserAvatar photoURL={review.reviewerPhoto} name={review.reviewerName} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-semibold">{review.reviewerName}</p>
+                        <p className="text-slate-500 text-xs mb-2">
+                          {new Date(review.timestamp).toLocaleDateString('en-US', {
+                            month: 'long', day: 'numeric', year: 'numeric',
+                          })}
+                        </p>
+                        <FilledStars count={review.rating} size={13} />
+                        {review.text && (
+                          <p className="text-slate-300 text-sm leading-relaxed mt-2">{review.text}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {visibleReviews < reviews.length && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={() => setVisibleReviews((v) => v + 5)}
+                      className="text-slate-400 text-sm hover:text-white transition-colors"
+                    >
+                      See more
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </>
-        )}
+          );
+        })()}
       </div>
       </main>
 
