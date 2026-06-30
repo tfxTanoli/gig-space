@@ -1,6 +1,8 @@
-import { lazy, Suspense, type ReactNode, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
+import { lazy, Suspense, type ReactNode, useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useSearchParams, useLocation } from 'react-router-dom';
+import { ref as dbRef, get } from 'firebase/database';
 import { Toaster } from 'sonner'; // toast notifications
+import { database } from './firebase';
 import { AuthProvider, useAuth } from './AuthContext';
 import { CategoriesProvider } from './CategoriesContext';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -85,6 +87,39 @@ function ReferralCapture() {
   return null;
 }
 
+// Applies platform-wide settings: sets the browser-tab title from the configured
+// platform name and enforces Maintenance Mode (admins and the sign-in page bypass).
+function PlatformGate({ children }: { children: ReactNode }) {
+  const { userProfile, loading } = useAuth();
+  const { pathname } = useLocation();
+  const [maintenance, setMaintenance] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    get(dbRef(database, 'settings/general')).then((snap) => {
+      const g = (snap.val() ?? {}) as { platformName?: string; maintenanceMode?: boolean };
+      if (g.platformName?.trim()) document.title = g.platformName.trim();
+      setMaintenance(Boolean(g.maintenanceMode));
+    }).catch(() => {}).finally(() => setReady(true));
+  }, []);
+
+  const isAdmin = userProfile?.role === 'admin';
+  const onAuthPath = pathname === '/signin' || pathname.startsWith('/auth') || pathname === '/reset-password';
+
+  if (ready && maintenance && !loading && !isAdmin && !onAuthPath) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6 text-center">
+        <div className="max-w-md space-y-3">
+          <h1 className="text-2xl font-bold text-white">We'll be right back</h1>
+          <p className="text-slate-400 text-sm">Gigspace is undergoing scheduled maintenance. Please check back shortly.</p>
+          <Link to="/signin" className="inline-block text-blue-400 hover:text-blue-300 text-sm transition-colors">Admin sign in →</Link>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   return (
     <>
@@ -134,7 +169,9 @@ function App() {
       <Router>
         <AuthProvider>
           <CategoriesProvider>
-            <AppRoutes />
+            <PlatformGate>
+              <AppRoutes />
+            </PlatformGate>
             <Toaster position="top-center" richColors theme="dark" />
           </CategoriesProvider>
         </AuthProvider>

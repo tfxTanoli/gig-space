@@ -17,6 +17,9 @@ dist-ssr
 .env.local
 .env.*.local
 server/.env
+# Bare env files (no dot) used locally — contain live secrets, never commit
+/env
+/server/env
 
 # Firebase / Google service account keys — NEVER commit these
 *-firebase-adminsdk-*.json

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Eye, Pencil, UserX, UserCheck } from 'lucide-react';
+import { Eye, Pencil, UserX, UserCheck, Plus } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
 export interface AdminUser {
@@ -21,6 +21,7 @@ interface Props {
   onView:         (user: AdminUser) => void;
   onEdit:         (user: AdminUser) => void;
   onDelete:       (user: AdminUser) => void;
+  onNew?:         () => void;
 }
 
 const SkeletonRow = () => (
@@ -39,19 +40,53 @@ const accountBadge = (type: string) => {
   return 'bg-blue-500/10 text-blue-400';
 };
 
-const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDelete }: Props) => {
-  const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); }, [users.length]);
+const SELECT_CLASS =
+  'bg-surface-raised border border-slate-700/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors';
 
-  // Filter out admin users from the table
-  const nonAdmins = users.filter((u) => u.role !== 'admin');
-  const visible   = nonAdmins.slice(page * pageSize, (page + 1) * pageSize);
+const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDelete, onNew }: Props) => {
+  const [page, setPage] = useState(0);
+  const [typeFilter,   setTypeFilter]   = useState<'all' | 'buyer' | 'seller'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'deactivated'>('all');
+  useEffect(() => { setPage(0); }, [users.length, typeFilter, statusFilter]);
+
+  // Affiliates have their own tab — exclude them (and admins) from the Users list.
+  const base = users.filter((u) => u.role !== 'admin' && u.accountType !== 'affiliate');
+  const nonAdmins = base.filter((u) => {
+    if (typeFilter !== 'all' && u.accountType !== typeFilter) return false;
+    if (statusFilter === 'active'      &&  u.disabled) return false;
+    if (statusFilter === 'deactivated' && !u.disabled) return false;
+    return true;
+  });
+  const visible = nonAdmins.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Users</h3>
-        {!loading && <span className="text-xs text-slate-500">{nonAdmins.length.toLocaleString()} total</span>}
+      <div className="px-5 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-semibold text-white">Users</h3>
+          {!loading && <span className="text-xs text-slate-500">{nonAdmins.length.toLocaleString()} total</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} className={SELECT_CLASS} aria-label="Filter by account type">
+            <option value="all">All types</option>
+            <option value="buyer">Buyers</option>
+            <option value="seller">Sellers</option>
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className={SELECT_CLASS} aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="deactivated">Deactivated</option>
+          </select>
+          {onNew && (
+            <button
+              onClick={onNew}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-blue-400 text-white text-xs font-semibold rounded-lg transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New User
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto">

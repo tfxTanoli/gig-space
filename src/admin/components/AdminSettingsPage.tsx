@@ -1,12 +1,28 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Globe, DollarSign, UserPlus, Save,
   CheckCircle2, AlertTriangle, Loader2,
   Info, FileText, Shield, Plus, Pencil, Trash2, X,
+  Mail, KeyRound,
 } from 'lucide-react';
+import {
+  EmailAuthProvider, reauthenticateWithCredential, updatePassword, verifyBeforeUpdateEmail,
+} from 'firebase/auth';
+import { toast } from 'sonner';
 import { ref as dbRef, get, update, set } from 'firebase/database';
-import { database } from '../../firebase';
+import { database, auth } from '../../firebase';
 import { useAuth } from '../../AuthContext';
+
+// Map a Firebase reauth error to a friendly message.
+const credError = (err: unknown, fallback: string) => {
+  const m = err instanceof Error ? err.message : '';
+  if (m.includes('wrong-password') || m.includes('invalid-credential') || m.includes('INVALID_LOGIN_CREDENTIALS')) {
+    return 'Current password is incorrect.';
+  }
+  if (m.includes('too-many-requests')) return 'Too many attempts. Please try again later.';
+  if (m.includes('email-already-in-use')) return 'That email is already in use by another account.';
+  return fallback;
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,24 +86,53 @@ const TextInput = ({ id, value, onChange, placeholder = '', type = 'text' }: {
 const NumberInput = ({ id, value, onChange, min, max, step = 1, prefix, suffix }: {
   id: string; value: number; onChange: (v: number) => void;
   min?: number; max?: number; step?: number; prefix?: string; suffix?: string;
-}) => (
-  <div className="relative flex items-center">
-    {prefix && <span className="absolute left-3 text-slate-400 text-sm select-none">{prefix}</span>}
-    <input
-      id={id} type="number" value={value} min={min} max={max} step={step}
-      onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-      className={`w-full bg-surface-raised border border-slate-700/60 rounded-lg py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-colors ${prefix ? 'pl-7 pr-3' : suffix ? 'pl-3 pr-9' : 'px-3'}`}
-    />
-    {suffix && <span className="absolute right-3 text-slate-400 text-sm select-none">{suffix}</span>}
-  </div>
-);
+}) => {
+  // Hold the raw text so the field can be transiently empty (e.g. while the user
+  // clears "5" to type "10"). The numeric prop is only pushed up for valid values.
+  const [text, setText] = useState(String(value));
+  const focused = useRef(false);
 
-const SettingRow = ({ label, hint, htmlFor, children, last = false }: {
-  label: string; hint?: string; htmlFor?: string; children: React.ReactNode; last?: boolean;
+  // Adopt external changes (load/save/reset) only when the user isn't editing,
+  // so live typing is never clobbered.
+  useEffect(() => {
+    if (!focused.current) setText(String(value));
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setText(raw);
+    if (raw === '' || raw === '-' || raw === '.') return; // transient — keep last valid number
+    const n = parseFloat(raw);
+    if (!isNaN(n)) onChange(n);
+  };
+
+  const handleBlur = () => {
+    focused.current = false;
+    const n = parseFloat(text);
+    setText(isNaN(n) ? String(value) : String(n)); // revert empty/invalid to last valid value
+  };
+
+  return (
+    <div className="relative flex items-center">
+      {prefix && <span className="absolute left-3 text-slate-400 text-sm select-none">{prefix}</span>}
+      <input
+        id={id} type="number" inputMode="decimal" value={text} min={min} max={max} step={step}
+        onFocus={() => { focused.current = true; }}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className={`w-full bg-surface-raised border border-slate-700/60 rounded-lg py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-colors ${prefix ? 'pl-7 pr-3' : suffix ? 'pl-3 pr-9' : 'px-3'}`}
+      />
+      {suffix && <span className="absolute right-3 text-slate-400 text-sm select-none">{suffix}</span>}
+    </div>
+  );
+};
+
+const SettingRow = ({ label, hint, htmlFor, children, last = false, wide = false }: {
+  label: string; hint?: string; htmlFor?: string; children: React.ReactNode; last?: boolean; wide?: boolean;
 }) => (
   <div className={`flex items-center justify-between gap-6 ${!last ? 'pb-5 border-b border-slate-800/70' : ''}`}>
     <FieldLabel label={label} hint={hint} htmlFor={htmlFor} />
-    <div className="flex-shrink-0 w-56">{children}</div>
+    <div className={`flex-shrink-0 ${wide ? 'w-72 sm:w-96' : 'w-56'}`}>{children}</div>
   </div>
 );
 
@@ -322,6 +367,132 @@ function CmsTab() {
   );
 }
 
+// ─── Admin credentials (Admin tab) ──────────────────────────────────────────────
+
+function AdminCredentialsCard() {
+  const current = auth.currentUser;
+  const isPasswordProvider = current?.providerData.some((p) => p.providerId === 'password') ?? false;
+
+  const [newEmail, setNewEmail]   = useState(current?.email ?? '');
+  const [emailPw,  setEmailPw]    = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+
+  const [curPw,     setCurPw]     = useState('');
+  const [newPw,     setNewPw]     = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwSaving,  setPwSaving]  = useState(false);
+
+  const handleEmailUpdate = async () => {
+    if (!current?.email) return;
+    const email = newEmail.trim().toLowerCase();
+    if (!email || email === current.email) { toast.error('Enter a new email address.'); return; }
+    if (!emailPw) { toast.error('Enter your current password to confirm.'); return; }
+    setEmailSaving(true);
+    try {
+      const credential = EmailAuthProvider.credential(current.email, emailPw);
+      await reauthenticateWithCredential(current, credential);
+      // Firebase sends a confirmation link to the new address; the change applies once clicked.
+      await verifyBeforeUpdateEmail(current, email);
+      await update(dbRef(database, `users/${current.uid}`), { email, emailVerified: false });
+      setEmailPw('');
+      toast.success(`Verification email sent to ${email}. Click the link to confirm the change.`);
+    } catch (err) {
+      toast.error(credError(err, 'Failed to update email. Please try again.'));
+    } finally { setEmailSaving(false); }
+  };
+
+  const handlePasswordUpdate = async () => {
+    if (!current?.email) return;
+    if (newPw.length < 6) { toast.error('New password must be at least 6 characters.'); return; }
+    if (newPw !== confirmPw) { toast.error('New passwords do not match.'); return; }
+    setPwSaving(true);
+    try {
+      const credential = EmailAuthProvider.credential(current.email, curPw);
+      await reauthenticateWithCredential(current, credential);
+      await updatePassword(current, newPw);
+      setCurPw(''); setNewPw(''); setConfirmPw('');
+      toast.success('Password updated successfully.');
+    } catch (err) {
+      toast.error(credError(err, 'Failed to update password. Please try again.'));
+    } finally { setPwSaving(false); }
+  };
+
+  if (!isPasswordProvider) {
+    return (
+      <div className="bg-surface rounded-xl border border-slate-800 px-6 py-5 flex items-start gap-3">
+        <Info className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-slate-500 leading-relaxed">
+          You're signed in with Google, so email/password can't be edited here. Manage your credentials through your Google account.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Email */}
+      <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-4">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <Mail style={{ width: '1.1rem', height: '1.1rem' }} />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-white">Admin Email</h3>
+            <p className="text-xs text-slate-500 mt-0.5">A confirmation link is sent to the new address before it changes</p>
+          </div>
+        </div>
+        <div className="px-6 py-5 space-y-4 max-w-md">
+          <div>
+            <label htmlFor="adminEmail" className="block text-xs font-medium text-slate-400 mb-1.5">New email</label>
+            <TextInput id="adminEmail" type="email" value={newEmail} onChange={setNewEmail} placeholder="admin@gigspace.com" />
+          </div>
+          <div>
+            <label htmlFor="adminEmailPw" className="block text-xs font-medium text-slate-400 mb-1.5">Current password</label>
+            <TextInput id="adminEmailPw" type="password" value={emailPw} onChange={setEmailPw} placeholder="••••••••" />
+          </div>
+        </div>
+        <div className="px-6 py-4 border-t border-slate-800 flex justify-end">
+          <button onClick={handleEmailUpdate} disabled={emailSaving} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
+            {emailSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</> : <><Save className="w-3.5 h-3.5" /> Update Email</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Password */}
+      <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-4">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <KeyRound style={{ width: '1.1rem', height: '1.1rem' }} />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-white">Admin Password</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Choose a strong password of at least 6 characters</p>
+          </div>
+        </div>
+        <div className="px-6 py-5 space-y-4 max-w-md">
+          <div>
+            <label htmlFor="adminCurPw" className="block text-xs font-medium text-slate-400 mb-1.5">Current password</label>
+            <TextInput id="adminCurPw" type="password" value={curPw} onChange={setCurPw} placeholder="••••••••" />
+          </div>
+          <div>
+            <label htmlFor="adminNewPw" className="block text-xs font-medium text-slate-400 mb-1.5">New password</label>
+            <TextInput id="adminNewPw" type="password" value={newPw} onChange={setNewPw} placeholder="••••••••" />
+          </div>
+          <div>
+            <label htmlFor="adminConfirmPw" className="block text-xs font-medium text-slate-400 mb-1.5">Confirm new password</label>
+            <TextInput id="adminConfirmPw" type="password" value={confirmPw} onChange={setConfirmPw} placeholder="••••••••" />
+          </div>
+        </div>
+        <div className="px-6 py-4 border-t border-slate-800 flex justify-end">
+          <button onClick={handlePasswordUpdate} disabled={pwSaving} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
+            {pwSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Update Password</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const BLANK_STATUS: SectionStatus = { saving: false, saved: false, error: '' };
@@ -432,13 +603,13 @@ const AdminSettingsPage = () => {
       {activeTab === 'platform' && (
         <div className="space-y-5">
           <SettingCard icon={Globe} iconColor="bg-blue-500/10 text-blue-400" title="Platform Information" description="General details shown across the platform" status={status.general} onSave={() => saveSection('general', general)}>
-            <SettingRow label="Platform Name" hint="Displayed in the browser tab and emails" htmlFor="platformName">
+            <SettingRow label="Platform Name" hint="Displayed in the browser tab and emails" htmlFor="platformName" wide>
               <TextInput id="platformName" value={general.platformName} onChange={(v) => setGeneral((g) => ({ ...g, platformName: v }))} placeholder="Gigspace" />
             </SettingRow>
-            <SettingRow label="Tagline" hint="Short description shown on the landing page hero" htmlFor="tagline">
+            <SettingRow label="Tagline" hint="Short description shown on the landing page hero" htmlFor="tagline" wide>
               <TextInput id="tagline" value={general.tagline} onChange={(v) => setGeneral((g) => ({ ...g, tagline: v }))} placeholder="Find the perfect freelance service" />
             </SettingRow>
-            <SettingRow label="Support Email" hint="Where users can reach your support team" htmlFor="supportEmail">
+            <SettingRow label="Support Email" hint="Where users can reach your support team" htmlFor="supportEmail" wide>
               <TextInput id="supportEmail" type="email" value={general.supportEmail} onChange={(v) => setGeneral((g) => ({ ...g, supportEmail: v }))} placeholder="support@gigspace.com" />
             </SettingRow>
             <SettingRow label="Maintenance Mode" hint="Blocks access for non-admin users while you make updates" last>
@@ -486,18 +657,22 @@ const AdminSettingsPage = () => {
 
       {/* Admin tab */}
       {activeTab === 'admin' && (
-        <div className="bg-surface rounded-xl border border-slate-800 px-6 py-5 flex items-start gap-4">
-          <div className="w-9 h-9 rounded-xl bg-slate-800/60 flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 text-slate-400" style={{ width: '1.1rem', height: '1.1rem' }} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">Security &amp; Access</p>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Admin access is controlled via the <code className="text-slate-400 bg-slate-800 px-1 py-0.5 rounded text-[11px]">role</code> field on user records in the database.
-              Set <code className="text-slate-400 bg-slate-800 px-1 py-0.5 rounded text-[11px]">role: "admin"</code> using the Users tab above or via the
-              <code className="text-slate-400 bg-slate-800 px-1 py-0.5 rounded text-[11px] mx-1">set-admin</code> script.
-              Firebase Auth tokens are verified on every admin API request.
-            </p>
+        <div className="space-y-5">
+          <AdminCredentialsCard />
+
+          <div className="bg-surface rounded-xl border border-slate-800 px-6 py-5 flex items-start gap-4">
+            <div className="w-9 h-9 rounded-xl bg-slate-800/60 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-slate-400" style={{ width: '1.1rem', height: '1.1rem' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Security &amp; Access</p>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Admin access is controlled via the <code className="text-slate-400 bg-slate-800 px-1 py-0.5 rounded text-[11px]">role</code> field on user records in the database.
+                Set <code className="text-slate-400 bg-slate-800 px-1 py-0.5 rounded text-[11px]">role: "admin"</code> using the Users tab above or via the
+                <code className="text-slate-400 bg-slate-800 px-1 py-0.5 rounded text-[11px] mx-1">set-admin</code> script.
+                Firebase Auth tokens are verified on every admin API request.
+              </p>
+            </div>
           </div>
         </div>
       )}

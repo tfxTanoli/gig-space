@@ -3,7 +3,7 @@ import { sanitizeHtml } from './utils/sanitize';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight,
-  Bookmark, Star, Play, ArrowRight,
+  Bookmark, Star, Play, ArrowRight, Megaphone,
 } from 'lucide-react';
 import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
@@ -42,7 +42,7 @@ interface ServicePost {
   subcategory: string;
   priceMin: number;
   priceMax: number | null;
-  priceType: 'per_project' | 'per_hour';
+  priceType: 'per_project' | 'per_hour' | 'contact_for_pricing';
   images: string[];
   video?: string;
   videoIsCover?: boolean;
@@ -54,6 +54,11 @@ interface ServicePost {
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
+  /* Admin-generated (Google) listings awaiting an owner claim */
+  isGenerated?: boolean;
+  source?: string;
+  claimStatus?: 'unclaimed' | 'claimed';
+  claimedBy?: string | null;
 }
 
 /* ─── Map helpers ─── */
@@ -299,8 +304,10 @@ const ServiceDetail = () => {
   useEffect(() => {
     if (!postId) { setNotFound(true); setLoading(false); return; }
     const unsub = onValue(ref(database, `services/${postId}`), (snap) => {
-      if (!snap.exists()) { setNotFound(true); }
-      else { setPost({ id: postId, ...snap.val() }); }
+      const val = snap.val();
+      // Treat archived (admin-deleted) posts as not found so they can't be viewed by direct link.
+      if (!snap.exists() || val?.status === 'deleted') { setNotFound(true); setPost(null); }
+      else { setPost({ id: postId, ...val }); }
       setLoading(false);
     });
     return () => unsub();
@@ -495,6 +502,22 @@ const ServiceDetail = () => {
 
       {/* ── Main two-column content ── */}
       <main className="w-full px-4 md:px-6 lg:px-12 py-6 md:py-8 flex flex-col">
+      {/* Claim banner for admin-generated (Google) listings that no owner has claimed */}
+      {post.isGenerated && post.claimStatus !== 'claimed' && (
+        <button
+          onClick={() => {
+            const target = `/post-service?claim=${post.id}`;
+            navigate(user ? target : `/signin?next=${encodeURIComponent(target)}`);
+          }}
+          className="w-full text-left mb-6 flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3.5 hover:bg-blue-500/15 transition-colors"
+        >
+          <Megaphone className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <span className="text-sm text-slate-200">
+            This post was generated from publicly available business info.{' '}
+            <span className="font-semibold text-blue-300">Are you the business owner? Click here to claim and update it.</span>
+          </span>
+        </button>
+      )}
       <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_512px] gap-8 lg:gap-[100px] mb-10">
 
         {/* ═══ LEFT COLUMN — gallery + description ═══ */}
@@ -661,7 +684,11 @@ const ServiceDetail = () => {
           )}
 
           {/* Price */}
-          {post.priceMin != null && (
+          {post.priceType === 'contact_for_pricing' ? (
+            <div className="mb-5">
+              <span className="text-white text-sm font-semibold">Contact for pricing</span>
+            </div>
+          ) : post.priceMin != null && (
             <div className="mb-5">
               {post.priceMax ? (
                 /* Range: From $X – $Y per project */

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Eye, Pencil } from 'lucide-react';
+import { Eye, Pencil, ExternalLink } from 'lucide-react';
 import AdminPagination from './AdminPagination';
 
 export interface AdminOrder {
@@ -8,7 +8,9 @@ export interface AdminOrder {
   buyerId: string;
   sellerName: string;
   sellerId: string;
+  serviceId: string;
   serviceTitle: string;
+  conversationId: string;
   status: string;
   paymentStatus: string;
   paymentId: string;
@@ -32,6 +34,16 @@ const STATUS_STYLES: Record<string, string> = {
   completed:   'bg-emerald-500/10 text-emerald-400',
   cancelled:   'bg-red-500/10 text-red-400',
   disputed:    'bg-orange-500/10 text-orange-400',
+};
+
+// Display labels — note `cancelled` (stored) renders as the American spelling "Canceled".
+const STATUS_LABELS: Record<string, string> = {
+  pending:     'Pending',
+  in_progress: 'In Progress',
+  delivered:   'Delivered',
+  completed:   'Completed',
+  cancelled:   'Canceled',
+  disputed:    'Disputed',
 };
 
 const SkeletonRow = ({ cols }: { cols: number }) => (
@@ -91,7 +103,7 @@ const AdminOrdersTable = ({ orders, loading, pageSize = 100, onView, onEdit }: P
                     {/* Status */}
                     <td className="px-5 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[o.status] ?? 'bg-slate-700 text-slate-400'}`}>
-                        {o.status?.replace(/_/g, ' ') || '—'}
+                        {STATUS_LABELS[o.status] ?? (o.status?.replace(/_/g, ' ') || '—')}
                       </span>
                     </td>
 
@@ -103,6 +115,15 @@ const AdminOrdersTable = ({ orders, loading, pageSize = 100, onView, onEdit }: P
                     {hasActions && (
                       <td className="px-5 py-3">
                         <div className="flex items-center justify-end gap-1">
+                          {o.serviceId && (
+                            <button
+                              onClick={() => window.open(`/service-detail?id=${o.serviceId}`, '_blank', 'noopener,noreferrer')}
+                              title="View post"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {onView && (
                             <button onClick={() => onView(o)} title="View" className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
                               <Eye className="w-3.5 h-3.5" />

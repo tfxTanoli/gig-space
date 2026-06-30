@@ -1,10 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
+import { ref as dbRef, get } from 'firebase/database';
 import Logo from './Logo';
 import { Link } from 'react-router-dom';
+import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
+
+// Reads admin-managed FAQs from the CMS, falling back to the provided defaults.
+function useCmsFaqs(defaults: { question: string; answer: string }[]) {
+  const [faqs, setFaqs] = useState(defaults);
+  useEffect(() => {
+    get(dbRef(database, 'cms/faqs')).then((snap) => {
+      const v = snap.val();
+      if (v && typeof v === 'object') {
+        const list = Object.values(v as Record<string, { question?: string; answer?: string }>)
+          .filter((f) => f?.question && f?.answer)
+          .map((f) => ({ question: String(f.question), answer: String(f.answer) }));
+        if (list.length) setFaqs(list);
+      }
+    }).catch(() => {});
+  }, []);
+  return faqs;
+}
 
 const StepIconCreate = () => (
   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -117,7 +136,7 @@ const features = [
   }
 ];
 
-const faqs = [
+const DEFAULT_FAQS = [
   { question: "What can I sell?", answer: "You can offer any service that falls inside our diverse categories ranging from digital professional services to localized trade work." },
   { question: "How much money can I make?", answer: "Your earning potential is entirely up to you. You set your own prices and determine how much work you want to take on." },
   { question: "How much does it cost?", answer: "Joining and setting up your primary listing is completely free. We charge a flat platform fee on completed orders and optional subscriptions for multiple local reach." },
@@ -127,6 +146,7 @@ const faqs = [
 ];
 
 const SellerLandingPage = () => {
+  const faqs = useCmsFaqs(DEFAULT_FAQS);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();

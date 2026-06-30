@@ -1,6 +1,8 @@
-﻿import { useState, useRef } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Car, Palette, Home, Package, Code, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, Menu, X, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ref as dbRef, get } from 'firebase/database';
+import { database } from './firebase';
 import Logo from './Logo';
 import LocationSearch from './LocationSearch';
 import { useAuth } from './AuthContext';
@@ -89,6 +91,14 @@ const LandingPage = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [heroQuery, setHeroQuery] = useState('');
   const [heroLocation, setHeroLocation] = useState('');
+  // Optional admin-configured tagline (Settings → Platform). Shown in the hero when set.
+  const [tagline, setTagline] = useState('');
+  useEffect(() => {
+    get(dbRef(database, 'settings/general/tagline')).then((snap) => {
+      const v = snap.val();
+      if (typeof v === 'string' && v.trim()) setTagline(v.trim());
+    }).catch(() => {});
+  }, []);
   const catScrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -166,9 +176,13 @@ const LandingPage = () => {
               Local talent. On demand.
             </h1>
             <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-12">
-              Hire talented pros for in-person services or remote experts for digital work.
-              <br className="hidden md:block"/>
-              One marketplace for everything you need.
+              {tagline || (
+                <>
+                  Hire talented pros for in-person services or remote experts for digital work.
+                  <br className="hidden md:block"/>
+                  One marketplace for everything you need.
+                </>
+              )}
             </p>
 
             {/* Search Bar */}

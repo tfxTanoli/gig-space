@@ -2,7 +2,8 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { auth } from './firebase';
+import { ref as dbRef, get } from 'firebase/database';
+import { auth, database } from './firebase';
 import { useAuth } from './AuthContext';
 
 const b64url = (buf: Uint8Array) =>
@@ -35,6 +36,13 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Honour the admin "Allow New Signups" toggle (Settings → User Registration).
+  const [signupsClosed, setSignupsClosed] = useState(false);
+  useEffect(() => {
+    get(dbRef(database, 'settings/registration/allowNewSignups')).then((snap) => {
+      if (snap.exists() && snap.val() === false) setSignupsClosed(true);
+    }).catch(() => {});
+  }, []);
 
   const next = searchParams.get('next');
 
@@ -119,6 +127,21 @@ const Signup = () => {
       setLoading(false);
     }
   };
+
+  if (signupsClosed) {
+    return (
+      <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">
+        <div className="w-full max-w-7xl flex items-center mb-10 lg:mb-16">
+          <Logo className="h-6" />
+        </div>
+        <div className="w-full max-w-md text-center mt-10 space-y-3">
+          <h1 className="text-2xl font-bold text-white">Registration is currently closed</h1>
+          <p className="text-slate-400 text-sm">New sign-ups are temporarily disabled. Please check back soon.</p>
+          <Link to="/signin" className="inline-block text-blue-400 hover:text-blue-300 text-sm transition-colors">Already have an account? Sign in →</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">

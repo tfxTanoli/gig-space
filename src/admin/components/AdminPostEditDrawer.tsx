@@ -2,7 +2,9 @@
 import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
 import { ref as dbRef, get, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { toast } from 'sonner';
 import { database, storage } from '../../firebase';
+import { adminDeleteService } from '../adminApi';
 import { type AdminService } from './AdminServicesTable';
 import { useCategories } from '../../CategoriesContext';
 
@@ -10,6 +12,7 @@ interface Props {
   service: AdminService;
   onClose: () => void;
   onSuccess: (updated: AdminService) => void;
+  onDeleted?: (id: string) => void;
 }
 
 const PRICE_TYPES = [
@@ -49,8 +52,26 @@ const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   />
 );
 
-export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Props) {
+export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDeleted }: Props) {
   const { categoryOptions, subcategoryMap } = useCategories();
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const { archived } = await adminDeleteService(service.id);
+      toast.success(archived
+        ? 'Post archived — it has orders, so its history is preserved and it is hidden everywhere public.'
+        : 'Post deleted. Any active location subscription was cancelled.');
+      onDeleted?.(service.id);
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete post');
+      setDeleting(false);
+    }
+  };
 
   const [title,          setTitle]          = useState(service.title ?? '');
   const [description,    setDescription]    = useState(service.description ?? '');
@@ -406,21 +427,48 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess }: Pro
         </div>
 
         {/* Sticky footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-800 bg-surface flex-shrink-0">
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save Changes'}
-          </button>
+        <div className="px-6 py-4 border-t border-slate-800 bg-surface flex-shrink-0">
+          {confirmingDelete ? (
+            <div className="space-y-2.5">
+              <p className="text-xs text-amber-400 flex items-start gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                Permanently delete this post? Any active location subscription will be cancelled. Posts with orders are archived (history kept).
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setConfirmingDelete(false)}
+                  disabled={deleting}
+                  className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  Keep post
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : 'Yes, delete'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                disabled={saving}
+                className="flex-1 py-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-400 text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save Changes'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

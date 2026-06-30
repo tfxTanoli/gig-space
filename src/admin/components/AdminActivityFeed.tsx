@@ -1,6 +1,8 @@
+import { useEffect, useMemo, useState } from 'react';
 import type { AdminUser } from './AdminUsersTable';
 import type { AdminService } from './AdminServicesTable';
 import type { AdminOrder } from './AdminOrdersTable';
+import AdminPagination from './AdminPagination';
 
 interface Props {
   users: AdminUser[];
@@ -14,7 +16,7 @@ type ActivityItem =
   | { kind: 'post';    title: string; seller: string; ts: number }
   | { kind: 'order';   buyer: string; seller: string; amount: number; ts: number };
 
-const WINDOW_MS = 24 * 60 * 60 * 1000;
+const PAGE_SIZE = 20;
 
 const dot: Record<ActivityItem['kind'], string> = {
   signup: 'bg-blue-500',
@@ -29,15 +31,35 @@ const label: Record<ActivityItem['kind'], string> = {
 };
 
 const timeAgo = (ts: number) => {
+  if (!ts) return '';
   const diff = Date.now() - ts;
   const m = Math.floor(diff / 60_000);
   if (m < 1)  return 'just now';
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  return `${h}h ago`;
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7)  return `${d}d ago`;
+  return new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
 };
 
 export default function AdminActivityFeed({ users, services, orders, loading }: Props) {
+  const [page, setPage] = useState(0);
+
+  const items: ActivityItem[] = useMemo(() => [
+    ...users
+      .filter((u) => u.createdAt > 0)
+      .map((u): ActivityItem => ({ kind: 'signup', name: u.name || u.email, ts: u.createdAt })),
+    ...services
+      .filter((s) => (s.createdAt ?? 0) > 0)
+      .map((s): ActivityItem => ({ kind: 'post', title: s.title, seller: s.sellerName, ts: s.createdAt ?? 0 })),
+    ...orders
+      .filter((o) => o.createdAt > 0)
+      .map((o): ActivityItem => ({ kind: 'order', buyer: o.buyerName, seller: o.sellerName, amount: o.amount, ts: o.createdAt })),
+  ].sort((a, b) => b.ts - a.ts), [users, services, orders]);
+
+  useEffect(() => { setPage(0); }, [items.length]);
+
   if (loading) {
     return (
       <div className="bg-surface rounded-xl border border-slate-800 p-5">
@@ -55,63 +77,54 @@ export default function AdminActivityFeed({ users, services, orders, loading }: 
     );
   }
 
-  const cutoff = Date.now() - WINDOW_MS;
-
-  const items: ActivityItem[] = [
-    ...users
-      .filter((u) => u.createdAt > cutoff)
-      .map((u): ActivityItem => ({ kind: 'signup', name: u.name || u.email, ts: u.createdAt })),
-    ...services
-      .filter((s) => (s.createdAt ?? 0) > cutoff)
-      .map((s): ActivityItem => ({ kind: 'post', title: s.title, seller: s.sellerName, ts: s.createdAt ?? 0 })),
-    ...orders
-      .filter((o) => o.createdAt > cutoff)
-      .map((o): ActivityItem => ({ kind: 'order', buyer: o.buyerName, seller: o.sellerName, amount: o.amount, ts: o.createdAt })),
-  ].sort((a, b) => b.ts - a.ts);
+  const visible = items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Activity — Last 24 Hours</h3>
-        <span className="text-xs text-slate-500">{items.length} event{items.length !== 1 ? 's' : ''}</span>
+        <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+        <span className="text-xs text-slate-500">{items.length.toLocaleString()} event{items.length !== 1 ? 's' : ''}</span>
       </div>
 
       {items.length === 0 ? (
         <div className="py-12 text-center">
-          <p className="text-slate-500 text-sm">No activity in the last 24 hours</p>
+          <p className="text-slate-500 text-sm">No activity yet</p>
         </div>
       ) : (
-        <ul className="divide-y divide-slate-800/60 max-h-[420px] overflow-y-auto">
-          {items.map((item, i) => (
-            <li key={i} className="flex items-start gap-3 px-5 py-3.5 hover:bg-slate-800/20 transition-colors">
-              <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dot[item.kind]}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">
-                  {label[item.kind]}
-                </p>
-                {item.kind === 'signup' && (
-                  <p className="text-sm text-white truncate">{item.name}</p>
-                )}
-                {item.kind === 'post' && (
-                  <p className="text-sm text-white truncate">
-                    <span className="text-slate-400">{item.seller} · </span>{item.title}
+        <>
+          <ul className="divide-y divide-slate-800/60">
+            {visible.map((item, i) => (
+              <li key={i} className="flex items-start gap-3 px-5 py-3.5 hover:bg-slate-800/20 transition-colors">
+                <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dot[item.kind]}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">
+                    {label[item.kind]}
                   </p>
-                )}
-                {item.kind === 'order' && (
-                  <p className="text-sm text-white truncate">
-                    {item.buyer} → {item.seller}
-                    <span className="text-emerald-400 ml-1.5 font-semibold">
-                      ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </p>
-                )}
-              </div>
-              <span className="text-xs text-slate-600 whitespace-nowrap flex-shrink-0 mt-0.5">
-                {timeAgo(item.ts)}
-              </span>
-            </li>
-          ))}
-        </ul>
+                  {item.kind === 'signup' && (
+                    <p className="text-sm text-white truncate">{item.name}</p>
+                  )}
+                  {item.kind === 'post' && (
+                    <p className="text-sm text-white truncate">
+                      <span className="text-slate-400">{item.seller} · </span>{item.title}
+                    </p>
+                  )}
+                  {item.kind === 'order' && (
+                    <p className="text-sm text-white truncate">
+                      {item.buyer} → {item.seller}
+                      <span className="text-emerald-400 ml-1.5 font-semibold">
+                        ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <span className="text-xs text-slate-600 whitespace-nowrap flex-shrink-0 mt-0.5">
+                  {timeAgo(item.ts)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <AdminPagination page={page} pageSize={PAGE_SIZE} total={items.length} onPageChange={setPage} />
+        </>
       )}
     </div>
   );

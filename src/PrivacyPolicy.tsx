@@ -1,11 +1,22 @@
+import { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ref as dbRef, get } from 'firebase/database';
+import { database } from './firebase';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 
 const PrivacyPolicy = () => {
   const { user } = useAuth();
+  // Admin-managed content from the CMS overrides the default copy when present.
+  const [cmsContent, setCmsContent] = useState<string | null>(null);
+  useEffect(() => {
+    get(dbRef(database, 'cms/privacy')).then((snap) => {
+      const v = snap.val();
+      if (typeof v === 'string' && v.trim()) setCmsContent(v);
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
@@ -38,6 +49,9 @@ const PrivacyPolicy = () => {
         </h1>
         <p className="text-slate-500 text-sm mb-12">Last updated: {new Date().getFullYear()}</p>
 
+        {cmsContent ? (
+          <div className="text-slate-300 leading-relaxed text-[15px] whitespace-pre-wrap">{cmsContent}</div>
+        ) : (
         <div className="space-y-10 text-slate-400 leading-relaxed text-[15px]">
           <div>
             <h2 className="text-lg font-semibold text-white mb-3">1. Information We Collect</h2>
@@ -72,6 +86,7 @@ const PrivacyPolicy = () => {
             <p>For privacy-related questions, please contact us at <span className="text-slate-300">privacy@gigspace.com</span>.</p>
           </div>
         </div>
+        )}
       </section>
 
       {/* Footer */}

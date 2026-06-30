@@ -14,6 +14,8 @@ export interface UserProfile {
   role?: string;
   /** Mirrors Firebase Auth's emailVerified — kept in sync on every load. */
   emailVerified?: boolean;
+  /** Set by an admin to deactivate the account. Deactivated users are signed out on load. */
+  disabled?: boolean;
 }
 
 interface AuthContextType {
@@ -118,6 +120,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userRef = ref(database, `users/${firebaseUser.uid}`);
       profileUnsub = onValue(userRef, (snapshot) => {
         const profile: UserProfile | null = snapshot.val() ?? null;
+
+        // Enforce admin deactivation: a deactivated account is signed out
+        // immediately and cannot access Gigspace. The sign-in page reads the
+        // `authDeactivated` flag to explain why.
+        if (profile?.disabled) {
+          sessionStorage.setItem('authDeactivated', '1');
+          setUserProfile(null);
+          signOut(auth);
+          return;
+        }
+
         setUserProfile(profile);
         setLoading(false);
 

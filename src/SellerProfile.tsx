@@ -2,7 +2,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { ref as dbRef, set, get } from 'firebase/database';
+import { ref as dbRef, set, get, push, update, increment } from 'firebase/database';
 import { storage, database, auth } from './firebase';
 import { useAuth } from './AuthContext';
 import UsernameField from './UsernameField';
@@ -73,15 +73,48 @@ const SellerProfile = () => {
       const existingRoleSnap = await get(dbRef(database, `users/${user.uid}/role`));
       const existingRole = (existingRoleSnap.val() as string | null) ?? 'user';
 
+      // Affiliate referral: if this seller arrived via an affiliate link, associate
+      // them so the affiliate earns a % of the platform fee on this seller's sales.
+      const referralCode = localStorage.getItem('pendingReferral');
+      let referredByAffiliate: string | undefined;
+      if (referralCode) {
+        try {
+          const codeSnap = await get(dbRef(database, `affiliateCodes/${referralCode}`));
+          if (codeSnap.exists()) referredByAffiliate = codeSnap.val() as string;
+        } catch { /* ignore lookup errors */ }
+      }
+
+      const now = Date.now();
       await set(dbRef(database, `users/${user.uid}`), {
         name: name.trim(),
         username: uname,
         photoURL,
         accountType: 'seller',
         email: user.email ?? '',
-        createdAt: Date.now(),
+        createdAt: now,
         role: existingRole,
+        ...(referredByAffiliate ? { referredBy: referredByAffiliate } : {}),
       });
+
+      // Record the referral and bump the affiliate's counter.
+      if (referredByAffiliate) {
+        try {
+          const referralRef = push(dbRef(database, 'affiliateReferrals'));
+          await set(referralRef, {
+            affiliateId: referredByAffiliate,
+            referredUserId: user.uid,
+            referredUserName: name.trim(),
+            referredUserEmail: user.email ?? '',
+            accountType: 'seller',
+            status: 'signed_up',
+            createdAt: now,
+          });
+          await update(dbRef(database, `affiliates/${referredByAffiliate}`), {
+            totalReferrals: increment(1),
+          });
+          localStorage.removeItem('pendingReferral');
+        } catch { /* don't fail profile creation if referral tracking fails */ }
+      }
 
       // Fire-and-forget welcome email
       auth.currentUser?.getIdToken().then(token =>

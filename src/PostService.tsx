@@ -24,7 +24,7 @@ import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { ref as dbRef, push, set, get } from 'firebase/database';
+import { ref as dbRef, push, set, get, update } from 'firebase/database';
 import { storage, database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useCategories } from './CategoriesContext';
@@ -148,6 +148,9 @@ const PostService = () => {
   const [originalCreatedAt, setOriginalCreatedAt] = useState<number>(0);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
+  // When claiming an admin-generated (Google) listing, we prefill from it but
+  // publish a brand-new post under this seller, then mark the original claimed.
+  const [claimId, setClaimId] = useState<string | null>(null);
 
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState('');
@@ -308,6 +311,38 @@ const PostService = () => {
             Boolean(d.offeredRemotely) ||
             isCountryName(loadedPrimaryLocation),
         );
+      })
+      .catch(() => navigate('/seller-dashboard'))
+      .finally(() => setLoadingEdit(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Claim an admin-generated listing: prefill the form from it (no ownership
+  // check), but keep editId null so publishing creates a fresh post. ───────────
+  useEffect(() => {
+    const cid = searchParams.get('claim');
+    if (!cid || !user) return;
+
+    setClaimId(cid);
+    setLoadingEdit(true);
+    get(dbRef(database, `services/${cid}`))
+      .then((snap) => {
+        if (!snap.exists()) { navigate('/seller-dashboard'); return; }
+        const d = snap.val() as Record<string, unknown>;
+        // Only generated, unclaimed listings can be claimed.
+        if (!d.isGenerated || d.claimStatus === 'claimed') { navigate(`/service-detail?id=${cid}`); return; }
+
+        setCategory(String(d.category ?? ''));
+        setSubcategory(String(d.subcategory ?? ''));
+        setTitle(String(d.title ?? ''));
+        setDescription(String(d.description ?? ''));
+        // Price is intentionally left blank — the owner sets their own pricing.
+        setMediaItems(Array.isArray(d.images) ? (d.images as string[]).map((url) => ({ kind: 'existing' as const, url })) : []);
+        setLanguages(Array.isArray(d.languages) ? (d.languages as string[]) : []);
+        setExtraLocations(Array.isArray(d.extraLocations) ? (d.extraLocations as string[]) : []);
+        const loadedPrimaryLocation = String(d.primaryLocation ?? '');
+        setPrimaryLocation(loadedPrimaryLocation);
+        setPrimaryLocationIsCountry(isCountryName(loadedPrimaryLocation));
       })
       .catch(() => navigate('/seller-dashboard'))
       .finally(() => setLoadingEdit(false));
@@ -603,6 +638,19 @@ const PostService = () => {
         await set(newPostRef, { ...payload, createdAt: Date.now() });
         if (newPostRef.key) await set(dbRef(database, `users/${user.uid}/posts/${newPostRef.key}`), true);
       }
+
+      // If this publish came from claiming a generated listing, mark the original
+      // as claimed and unpublish it so the claim banner no longer shows and there
+      // is no public duplicate of the seller's new post.
+      if (claimId && claimId !== currentPostId) {
+        await update(dbRef(database, `services/${claimId}`), {
+          claimStatus: 'claimed',
+          claimedBy: user.uid,
+          status: 'paused',
+          updatedAt: Date.now(),
+        });
+      }
+
       setStep(9);
     } catch {
       setStepError(editId ? 'Failed to update. Please try again.' : 'Failed to publish. Please try again.');
