@@ -130,7 +130,7 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
 
   if (!ready || pins.length === 0) {
     return (
-      <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40 bg-slate-800 flex items-center justify-center" style={{ height: 210 }}>
+      <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40 bg-slate-800 flex items-center justify-center" style={{ height: 280 }}>
         <p className="text-slate-500 text-xs">Loading map…</p>
       </div>
     );
@@ -139,7 +139,7 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
   const center: [number, number] = [pins[0].lat, pins[0].lng];
 
   return (
-    <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40" style={{ height: 210 }}>
+    <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40" style={{ height: 280 }}>
       <MapContainer
         center={center}
         zoom={11}
@@ -468,7 +468,7 @@ const ServiceDetail = () => {
             <>
               <Link
                 to="/post-service"
-                className="text-white text-sm font-medium hover:text-slate-300 transition-colors hidden md:block"
+                className="text-sm font-medium text-slate-300 hover:text-primary transition-colors hidden md:block"
               >
                 Create New Post
               </Link>
@@ -495,7 +495,7 @@ const ServiceDetail = () => {
 
       {/* ── Main two-column content ── */}
       <main className="w-full px-4 md:px-6 lg:px-12 py-6 md:py-8 flex flex-col">
-      <div className="flex flex-col lg:grid lg:grid-cols-[592px_minmax(0,1fr)] gap-8 lg:gap-[100px] mb-10">
+      <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_512px] gap-8 lg:gap-[100px] mb-10">
 
         {/* ═══ LEFT COLUMN — gallery + description ═══ */}
         <div className="order-2 lg:order-1 min-w-0">
@@ -505,7 +505,7 @@ const ServiceDetail = () => {
             <div className="mb-8">
               {/* Main viewer — fixed 592×444 on desktop, responsive 4:3 below */}
               <div
-                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3] lg:w-[592px] lg:h-[444px] lg:aspect-auto"
+                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3]"
               >
                 {activeMedia?.kind === 'video' ? (
                   <video
@@ -617,7 +617,15 @@ const ServiceDetail = () => {
           </nav>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold gradient-heading mb-4 leading-snug">{post.title}</h1>
+          <h1
+            className="text-3xl font-bold mb-4 leading-snug"
+            style={{
+              background: 'linear-gradient(90deg, rgba(255,255,255,0.38) 0%, #ffffff 50%, rgba(255,255,255,0.38) 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >{post.title}</h1>
 
           {/* Seller row */}
           <div className="flex items-center gap-2 mb-5">
@@ -677,20 +685,20 @@ const ServiceDetail = () => {
 
           {/* CTAs */}
           {isOwnService ? (
-            <div className="mb-8 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-center">
+            <div className="mb-8 bg-slate-800/50 border border-slate-700 rounded-[6px] px-4 py-3 text-center w-full max-w-[376px]">
               <p className="text-slate-400 text-sm">This is your service</p>
             </div>
           ) : (
             <div className="flex items-stretch gap-3 mb-8">
               <button
                 onClick={handleContactSeller}
-                className="w-full max-w-[320px] bg-primary hover:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                className="w-full max-w-[320px] bg-primary hover:bg-blue-400 text-white font-semibold py-3 rounded-[6px] transition-colors text-sm"
               >
                 Message seller
               </button>
               <button
                 onClick={() => post && toggleSave(post.id)}
-                className="w-11 border border-slate-700 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
+                className="w-11 border border-slate-700 rounded-[6px] flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
                 title={post && isSaved(post.id) ? 'Remove from saved' : 'Save service'}
               >
                 <Bookmark className={`w-4 h-4 transition-colors ${post && isSaved(post.id) ? 'fill-primary text-primary' : 'text-slate-400'}`} />
