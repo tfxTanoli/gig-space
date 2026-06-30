@@ -1,10 +1,29 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ref as dbRef, get } from 'firebase/database';
 import Logo from './Logo';
+import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
+
+// Reads admin-managed FAQs from the CMS, falling back to the provided defaults.
+function useCmsFaqs(defaults: { question: string; answer: string }[]) {
+  const [faqs, setFaqs] = useState(defaults);
+  useEffect(() => {
+    get(dbRef(database, 'cms/faqs')).then((snap) => {
+      const v = snap.val();
+      if (v && typeof v === 'object') {
+        const list = Object.values(v as Record<string, { question?: string; answer?: string }>)
+          .filter((f) => f?.question && f?.answer)
+          .map((f) => ({ question: String(f.question), answer: String(f.answer) }));
+        if (list.length) setFaqs(list);
+      }
+    }).catch(() => {});
+  }, []);
+  return faqs;
+}
 
 const AffStepIcon1 = () => (
   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -81,7 +100,7 @@ const earnIconComponents = [
   <div className="mb-5"><EarnIcon4 /></div>,
 ];
 
-const faqs = [
+const DEFAULT_FAQS = [
   {
     question: 'Who can become a Gigspace affiliate?',
     answer: 'Anyone can become a Gigspace affiliate. Whether you\'re a content creator, blogger, business owner, or just someone with a network, you can earn commissions by referring new clients to Gigspace.',
@@ -131,6 +150,7 @@ const categories = [
 
 const AffiliateLanding = () => {
   const { user, loading } = useAuth();
+  const faqs = useCmsFaqs(DEFAULT_FAQS);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const catScrollRef = useRef<HTMLDivElement>(null);

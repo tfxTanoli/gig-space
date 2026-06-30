@@ -29,7 +29,7 @@ interface ServicePost {
   subcategory: string;
   priceMin: number;
   priceMax: number | null;
-  priceType: 'per_project' | 'per_hour';
+  priceType: 'per_project' | 'per_hour' | 'contact_for_pricing';
   images: string[];
   primaryLocation: string;
   extraLocations?: string[];
@@ -292,9 +292,15 @@ const BuyerSearchFiltered = () => {
 
                       {/* Price */}
                       <div className="flex items-baseline gap-1">
-                        {prefix && <span className="text-xs text-slate-400">{prefix}</span>}
-                        <span className="font-bold text-white">{price}</span>
-                        <span className="text-xs text-slate-400">{suffix}</span>
+                        {post.priceType === 'contact_for_pricing' ? (
+                          <span className="text-xs font-semibold text-white">Contact for pricing</span>
+                        ) : (
+                          <>
+                            {prefix && <span className="text-xs text-slate-400">{prefix}</span>}
+                            <span className="font-bold text-white">{price}</span>
+                            <span className="text-xs text-slate-400">{suffix}</span>
+                          </>
+                        )}
                       </div>
                     </Link>
                   </div>

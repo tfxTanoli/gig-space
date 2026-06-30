@@ -738,8 +738,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   };
 
   // ── Affiliate commission (50% of platform fee) ───────────────────────────────
-  const buyerReferralSnap = await db.ref(`users/${buyerId}/referredBy`).get();
-  const affiliateId = buyerReferralSnap.val() as string | null;
+  // Affiliates refer sellers and earn a % of the platform fee on that seller's
+  // sales. Prefer the seller's referrer; fall back to the buyer's for back-compat.
+  const [sellerReferralSnap, buyerReferralSnap] = await Promise.all([
+    db.ref(`users/${sellerId}/referredBy`).get(),
+    db.ref(`users/${buyerId}/referredBy`).get(),
+  ]);
+  const affiliateId = (sellerReferralSnap.val() as string | null) ?? (buyerReferralSnap.val() as string | null);
 
   if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
     const commissionAmount = parseFloat((platformFeeAmt * 0.5).toFixed(2));
@@ -877,8 +882,13 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
     },
   };
 
-  const buyerReferralSnap = await db.ref(`users/${buyerId}/referredBy`).get();
-  const affiliateId = buyerReferralSnap.val() as string | null;
+  // Affiliates refer sellers and earn a % of the platform fee on that seller's
+  // sales. Prefer the seller's referrer; fall back to the buyer's for back-compat.
+  const [sellerReferralSnap, buyerReferralSnap] = await Promise.all([
+    db.ref(`users/${sellerId}/referredBy`).get(),
+    db.ref(`users/${buyerId}/referredBy`).get(),
+  ]);
+  const affiliateId = (sellerReferralSnap.val() as string | null) ?? (buyerReferralSnap.val() as string | null);
 
   if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
     const commissionAmount = parseFloat((platformFeeAmt * 0.5).toFixed(2));

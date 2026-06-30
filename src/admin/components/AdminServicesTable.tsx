@@ -1,6 +1,20 @@
-﻿import { useEffect, useState } from 'react';
-import { Eye, Pencil, Plus } from 'lucide-react';
+﻿import { useEffect, useMemo, useState } from 'react';
+import { Eye, Pencil, Plus, ExternalLink } from 'lucide-react';
 import AdminPagination from './AdminPagination';
+
+const SELECT_CLASS =
+  'bg-surface-raised border border-slate-700/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors';
+
+const PRICE_BANDS: Record<string, (p: number) => boolean> = {
+  all:       () => true,
+  lt50:      (p) => p < 50,
+  '50-200':  (p) => p >= 50 && p < 200,
+  '200-500': (p) => p >= 200 && p < 500,
+  gt500:     (p) => p >= 500,
+};
+const PRICE_LABELS: Record<string, string> = {
+  all: 'All prices', lt50: 'Under $50', '50-200': '$50–$200', '200-500': '$200–$500', gt500: '$500+',
+};
 
 export interface AdminService {
   id: string;
@@ -46,27 +60,60 @@ const SkeletonRow = ({ cols }: { cols: number }) => (
 
 const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit, onNew }: Props) => {
   const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); }, [services.length]);
-  const visible = services.slice(page * pageSize, (page + 1) * pageSize);
+  const [catFilter,    setCatFilter]    = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priceFilter,  setPriceFilter]  = useState('all');
+  useEffect(() => { setPage(0); }, [services.length, catFilter, statusFilter, priceFilter]);
+
+  const categories = useMemo(
+    () => Array.from(new Set(services.map((s) => s.category).filter(Boolean) as string[])).sort(),
+    [services],
+  );
+  const statuses = useMemo(
+    () => Array.from(new Set(services.map((s) => s.status || 'active'))).sort(),
+    [services],
+  );
+
+  const filtered = useMemo(() => services.filter((s) => {
+    if (catFilter !== 'all' && s.category !== catFilter) return false;
+    if (statusFilter !== 'all' && (s.status || 'active') !== statusFilter) return false;
+    if (!PRICE_BANDS[priceFilter](s.priceMin ?? s.price ?? 0)) return false;
+    return true;
+  }), [services, catFilter, statusFilter, priceFilter]);
+
+  const visible = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold text-white">Posts</h3>
           {!loading && (
-            <span className="text-xs text-slate-500">{services.length.toLocaleString()} total</span>
+            <span className="text-xs text-slate-500">{filtered.length.toLocaleString()} total</span>
           )}
         </div>
-        {onNew && (
-          <button
-            onClick={onNew}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-blue-400 text-white text-xs font-semibold rounded-lg transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Post
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filter by category">
+            <option value="all">All categories</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filter by price">
+            {Object.keys(PRICE_BANDS).map((k) => <option key={k} value={k}>{PRICE_LABELS[k]}</option>)}
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            {statuses.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
+          </select>
+          {onNew && (
+            <button
+              onClick={onNew}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-blue-400 text-white text-xs font-semibold rounded-lg transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New Post
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -127,8 +174,15 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
                     {/* Actions */}
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => window.open(`/service-detail?id=${s.id}`, '_blank', 'noopener,noreferrer')}
+                          title="Open post in new tab"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
                         {onView && (
-                          <button onClick={() => onView(s)} title="View" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors">
+                          <button onClick={() => onView(s)} title="Quick view" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors">
                             <Eye className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -144,10 +198,10 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
           </tbody>
         </table>
 
-        {!loading && services.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="py-12 text-center">
             <p className="text-slate-500 text-sm">No posts found</p>
-            {onNew && (
+            {onNew && services.length === 0 && (
               <button onClick={onNew} className="mt-3 text-blue-400 hover:text-blue-300 text-sm transition-colors">
                 + Create the first post
               </button>
@@ -157,7 +211,7 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
       </div>
 
       {!loading && (
-        <AdminPagination page={page} pageSize={pageSize} total={services.length} onPageChange={setPage} />
+        <AdminPagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
       )}
     </div>
   );

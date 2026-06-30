@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 import { sendTransactionalEmail, buildAccountDeactivatedEmail } from '../email';
+import { stripe } from '../stripeClient';
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
@@ -321,8 +322,46 @@ export async function deleteService(req: AdminRequest, res: Response): Promise<v
     const db = admin.database();
     const snap = await db.ref(`services/${id}`).get();
     if (!snap.exists()) { res.status(404).json({ error: 'Service not found' }); return; }
-    await db.ref(`services/${id}`).remove();
-    res.json({ success: true });
+    const svc = snap.val() as Record<string, unknown>;
+    const subscriptionId = svc.subscriptionId ? String(svc.subscriptionId) : '';
+
+    // 1) Cancel the post's Stripe subscription FIRST, so we never delete a record
+    //    that is still billing the seller. Each post carries its own subscription
+    //    (quantity = extra locations), so cancelling this one leaves the seller's
+    //    other posts untouched — which is exactly the "reduce the future bill"
+    //    behaviour requested. An already-cancelled/missing sub is treated as success.
+    if (subscriptionId) {
+      try {
+        await stripe.subscriptions.cancel(subscriptionId);
+      } catch (e) {
+        const code = (e as { code?: string }).code;
+        if (code !== 'resource_missing') {
+          res.status(502).json({ error: 'Could not cancel the post’s Stripe subscription, so it was not deleted. Please retry.' });
+          return;
+        }
+      }
+    }
+
+    // 2) Preserve audit history: a post referenced by any order is archived
+    //    (hidden from search, profiles and direct view) rather than hard-deleted,
+    //    so orders, reviews and dispute records stay intact. Clean posts (drafts,
+    //    generated listings, anything with no orders) are removed outright.
+    const ordersData = ((await db.ref('orders').get()).val() ?? {}) as Record<string, { serviceId?: string }>;
+    const hasOrders = Object.values(ordersData).some((o) => o?.serviceId === id);
+
+    if (hasOrders) {
+      await db.ref(`services/${id}`).update({
+        status: 'deleted',
+        deletedAt: Date.now(),
+        deletedBy: req.uid,
+        subscriptionId: null,
+      });
+      res.json({ success: true, archived: true });
+    } else {
+      await db.ref(`services/${id}`).remove();
+      if (svc.sellerId) await db.ref(`users/${String(svc.sellerId)}/posts/${id}`).remove();
+      res.json({ success: true, archived: false });
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/services/:id DELETE error:', msg);
@@ -395,6 +434,217 @@ export async function getOrders(req: AdminRequest, res: Response): Promise<void>
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/orders error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Order conversation (dispute review) ────────────────────────────────────────
+// Returns the buyer⇄seller message thread tied to an order so an admin can review
+// what's being disputed. Uses the Admin SDK so it isn't gated by client read rules.
+export async function getOrderMessages(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { orderId } = req.params;
+    if (!orderId) { res.status(400).json({ error: 'orderId is required' }); return; }
+
+    const db = admin.database();
+    const orderSnap = await db.ref(`orders/${orderId}`).get();
+    if (!orderSnap.exists()) { res.status(404).json({ error: 'Order not found' }); return; }
+
+    const order = orderSnap.val() as Record<string, unknown>;
+    const convId = order?.conversationId ? String(order.conversationId) : '';
+    if (!convId) { res.json({ messages: [], conversationId: '' }); return; }
+
+    const msgsSnap = await db.ref(`messages/${convId}`).get();
+    const raw = (msgsSnap.val() ?? {}) as Record<string, Record<string, unknown>>;
+    const messages = Object.entries(raw)
+      .map(([id, m]) => ({
+        id,
+        senderId:   String(m?.senderId   ?? ''),
+        senderName: String(m?.senderName ?? ''),
+        text:       String(m?.text       ?? ''),
+        imageURL:   m?.imageURL ? String(m.imageURL) : null,
+        type:       String(m?.type       ?? 'text'),
+        timestamp:  Number(m?.timestamp ?? m?.createdAt ?? 0),
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    res.json({ messages, conversationId: convId });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/orders/:orderId/messages error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Deactivate / reactivate (auth-level, reversible) ───────────────────────────
+// Soft, reversible alternative to deleteUser: disables the Firebase Auth account
+// (blocking sign-in) and mirrors a `disabled` flag into RTDB. Revokes existing
+// sessions when deactivating so the user is kicked out immediately.
+export async function setUserDisabled(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { uid } = req.params;
+    const disabled = Boolean((req.body ?? {}).disabled);
+    if (!uid) { res.status(400).json({ error: 'uid is required' }); return; }
+    if (uid === req.uid) {
+      res.status(400).json({ error: 'You cannot deactivate your own account' }); return;
+    }
+
+    const db = admin.database();
+    const snap = await db.ref(`users/${uid}`).get();
+    if (!snap.exists()) { res.status(404).json({ error: 'User not found' }); return; }
+
+    // Auth-level enforcement (ignore "user not found" so a DB-only record still updates).
+    try {
+      await admin.auth().updateUser(uid, { disabled });
+      if (disabled) await admin.auth().revokeRefreshTokens(uid);
+    } catch (authErr) {
+      const code = (authErr as { code?: string }).code;
+      if (code !== 'auth/user-not-found') throw authErr;
+    }
+
+    await db.ref(`users/${uid}`).update({
+      disabled,
+      disabledAt: disabled ? Date.now() : null,
+      disabledBy: disabled ? req.uid : null,
+      ...(disabled ? { role: 'user' } : {}),
+    });
+
+    // Notify the user when deactivated (fire-and-forget).
+    if (disabled) {
+      try {
+        const rec = await admin.auth().getUser(uid);
+        if (rec.email) {
+          const firstName = (rec.displayName || 'there').split(' ')[0];
+          await sendTransactionalEmail(
+            rec.email,
+            'Your Gigspace account has been deactivated',
+            buildAccountDeactivatedEmail(firstName),
+          );
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    res.json({ success: true, disabled });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/users/:uid/disabled error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Impersonate ────────────────────────────────────────────────────────────────
+// Returns a short-lived custom token the admin's browser exchanges for a session
+// as the target user (for customer-support purposes). The route is admin-guarded.
+export async function impersonateUser(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { uid } = req.params;
+    if (!uid) { res.status(400).json({ error: 'uid is required' }); return; }
+
+    const rec = await admin.auth().getUser(uid).catch(() => null);
+    if (!rec) { res.status(404).json({ error: 'User not found' }); return; }
+    if (rec.disabled) { res.status(400).json({ error: 'User is deactivated' }); return; }
+
+    const token = await admin.auth().createCustomToken(uid, { impersonatedBy: req.uid });
+    res.json({ token });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/impersonate error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Create user (buyer / seller) ───────────────────────────────────────────────
+function makeUsername(seed: string): string {
+  const base = seed.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 16) || 'user';
+  return `${base}${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+export async function createUser(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { name, email, password, accountType } = (req.body ?? {}) as Record<string, string>;
+    if (!email || !password) { res.status(400).json({ error: 'email and password are required' }); return; }
+    if (password.length < 6) { res.status(400).json({ error: 'Password must be at least 6 characters' }); return; }
+    const type = accountType === 'seller' ? 'seller' : 'buyer';
+
+    const rec = await admin.auth().createUser({
+      email: email.trim().toLowerCase(),
+      password,
+      displayName: name?.trim() || undefined,
+    });
+
+    const profile = {
+      name: name?.trim() ?? '',
+      email: email.trim().toLowerCase(),
+      username: makeUsername(name || email.split('@')[0]),
+      photoURL: '',
+      accountType: type,
+      role: 'user',
+      emailVerified: false,
+      disabled: false,
+      createdAt: Date.now(),
+    };
+    await admin.database().ref(`users/${rec.uid}`).set(profile);
+
+    res.json({ uid: rec.uid, ...profile });
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === 'auth/email-already-exists') { res.status(400).json({ error: 'That email is already in use' }); return; }
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/users POST error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Create affiliate (user + referral code + link) ─────────────────────────────
+export async function createAffiliate(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { name, email, password } = (req.body ?? {}) as Record<string, string>;
+    if (!email || !password) { res.status(400).json({ error: 'email and password are required' }); return; }
+    if (password.length < 6) { res.status(400).json({ error: 'Password must be at least 6 characters' }); return; }
+
+    const rec = await admin.auth().createUser({
+      email: email.trim().toLowerCase(),
+      password,
+      displayName: name?.trim() || undefined,
+    });
+
+    const referralCode = rec.uid.substring(0, 8).toLowerCase();
+    const db = admin.database();
+    const now = Date.now();
+
+    const profile = {
+      name: name?.trim() ?? '',
+      email: email.trim().toLowerCase(),
+      username: makeUsername(name || email.split('@')[0]),
+      photoURL: '',
+      accountType: 'affiliate',
+      role: 'user',
+      emailVerified: false,
+      disabled: false,
+      createdAt: now,
+    };
+
+    await Promise.all([
+      db.ref(`users/${rec.uid}`).set(profile),
+      db.ref(`affiliates/${rec.uid}`).set({
+        referralCode,
+        totalClicks: 0,
+        totalReferrals: 0,
+        pendingBalance: 0,
+        availableBalance: 0,
+        lifetimeEarnings: 0,
+        totalWithdrawn: 0,
+        createdAt: now,
+      }),
+      db.ref(`affiliateCodes/${referralCode}`).set(rec.uid),
+    ]);
+
+    res.json({ uid: rec.uid, referralCode, ...profile });
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === 'auth/email-already-exists') { res.status(400).json({ error: 'That email is already in use' }); return; }
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/affiliates POST error:', msg);
     res.status(500).json({ error: msg });
   }
 }

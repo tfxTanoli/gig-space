@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { X, AlertTriangle, Trash2, ShieldAlert } from 'lucide-react';
+import { X, AlertTriangle, UserX, UserCheck } from 'lucide-react';
 import { ref as dbRef, update } from 'firebase/database';
 import { database } from '../../firebase';
 import { useAuth } from '../../AuthContext';
+import { adminSetUserDisabled } from '../adminApi';
 import { type AdminUser } from './AdminUsersTable';
 
 interface Props {
@@ -22,26 +23,36 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  const reactivating = !!user.disabled;
+
   const handleDelete = async () => {
     if (!authUser) return;
     if (authUser.uid === user.uid) {
-      setError('You cannot disable your own account'); return;
+      setError('You cannot deactivate your own account'); return;
     }
     setError(null);
     setDeleting(true);
     try {
-      // Soft delete: keep record for audit, mark disabled. Removing the auth
-      // account requires the Admin SDK on a backend / Cloud Function.
+      // Write the `disabled` flag — enforced at sign-in by AuthContext, so it
+      // works even if the backend is unreachable.
       await update(dbRef(database, `users/${user.uid}`), {
-        disabled: true,
-        disabledAt: Date.now(),
-        disabledBy: authUser.uid,
-        role: 'user',
+        disabled: !reactivating,
+        disabledAt: reactivating ? null : Date.now(),
+        disabledBy: reactivating ? null : authUser.uid,
+        ...(reactivating ? {} : { role: 'user' }),
       });
+
+      // Best-effort: harden at the Firebase Auth level (disable the auth account
+      // and revoke active sessions). Non-fatal if the backend isn't deployed —
+      // the RTDB flag above already blocks new sign-ins.
+      try {
+        await adminSetUserDisabled(user.uid, !reactivating);
+      } catch { /* non-fatal — RTDB flag still enforces deactivation */ }
+
       onSuccess(user.uid);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to disable user');
+      setError(err instanceof Error ? err.message : `Failed to ${reactivating ? 'reactivate' : 'deactivate'} user`);
     } finally {
       setDeleting(false);
     }
@@ -52,25 +63,26 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-surface border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-white">Disable User</h2>
+        {/* Header — title intentionally omitted; the action is stated in the body */}
+        <div className="flex items-center justify-end px-6 py-4">
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-6">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 mx-auto mb-4">
-            <Trash2 className="w-5 h-5 text-red-400" />
+        <div className="px-6 pb-6">
+          <div className={`flex items-center justify-center w-12 h-12 rounded-full mx-auto mb-4 border ${reactivating ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+            {reactivating ? <UserCheck className="w-5 h-5 text-emerald-400" /> : <UserX className="w-5 h-5 text-red-400" />}
           </div>
 
           <p className="text-center text-white font-semibold mb-1">
-            Disable "{user.name || 'this user'}"?
+            {reactivating ? 'Reactivate' : 'Deactivate'} "{user.name || 'this user'}"?
           </p>
           <p className="text-center text-slate-500 text-sm mb-5">
-            This marks the user record as disabled and revokes admin role. The record stays for audit history.
+            {reactivating
+              ? 'This restores the user\'s access to Gigspace. Their account type and data are unchanged.'
+              : 'This blocks the user from signing in to Gigspace and revokes any admin role. The record stays for audit history.'}
           </p>
 
           {/* User preview */}
@@ -92,17 +104,12 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
             </div>
           </div>
 
-          <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2.5 border border-amber-500/20 mb-2">
-            <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-            <span>
-              The user's Firebase Auth account is <strong>not</strong> removed by this action — they may still be able to sign in until the auth account is revoked from the Firebase console or a backend script using the Admin SDK.
-            </span>
-          </div>
-
-          <div className="flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2.5 border border-slate-700/50">
-            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-            <span>Their services, orders, and wallet data remain in the database for audit and stay linked to the disabled record.</span>
-          </div>
+          {!reactivating && (
+            <div className="flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2.5 border border-slate-700/50">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+              <span>Their posts, orders, and wallet data remain in the database for audit and stay linked to the account, so you can reactivate them later.</span>
+            </div>
+          )}
 
           {error && (
             <div className="mt-3 text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2.5 border border-red-500/20">
@@ -123,9 +130,13 @@ const AdminUserDeleteModal = ({ user, onClose, onSuccess }: Props) => {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+            className={`flex-1 py-2 rounded-lg text-white text-sm font-semibold transition-colors disabled:opacity-50 ${
+              reactivating ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'
+            }`}
           >
-            {deleting ? 'Disabling…' : 'Disable User'}
+            {deleting
+              ? (reactivating ? 'Reactivating…' : 'Deactivating…')
+              : (reactivating ? 'Reactivate' : 'Deactivate')}
           </button>
         </div>
       </div>

@@ -1,5 +1,10 @@
-import { useEffect } from 'react';
-import { X, Mail, User, Calendar, Hash, Shield, Briefcase } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Mail, User, Calendar, Hash, Shield, Briefcase, LogIn } from 'lucide-react';
+import { signInWithCustomToken } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { auth } from '../../firebase';
+import { adminImpersonate } from '../adminApi';
 import { type AdminUser } from './AdminUsersTable';
 
 interface Props {
@@ -20,11 +25,31 @@ const Field = ({ icon: Icon, label, value }: { icon: React.ElementType; label: s
 );
 
 const AdminUserViewModal = ({ user, onClose }: Props) => {
+  const navigate = useNavigate();
+  const [impersonating, setImpersonating] = useState(false);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  const handleImpersonate = async () => {
+    const ok = window.confirm(
+      `Sign in as ${user.name || 'this user'} for support?\n\nYou will be signed out of the admin account and into theirs. Sign back in with your admin credentials when you're done.`,
+    );
+    if (!ok) return;
+    setImpersonating(true);
+    try {
+      const { token } = await adminImpersonate(user.uid);
+      await signInWithCustomToken(auth, token);
+      toast.success(`You are now signed in as ${user.name || user.email}.`);
+      navigate('/', { replace: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to impersonate user');
+      setImpersonating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -81,13 +106,24 @@ const AdminUserViewModal = ({ user, onClose }: Props) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-800">
+        <div className="px-6 py-4 border-t border-slate-800 flex items-center gap-3">
           <button
             onClick={onClose}
-            className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors"
+            className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors"
           >
             Close
           </button>
+          {user.role !== 'admin' && (
+            <button
+              onClick={handleImpersonate}
+              disabled={impersonating}
+              title="Sign in as this user for customer support"
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              {impersonating ? 'Signing in…' : 'Impersonate'}
+            </button>
+          )}
         </div>
       </div>
     </div>

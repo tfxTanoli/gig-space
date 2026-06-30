@@ -52,6 +52,9 @@ import AdminActivityFeed from './components/AdminActivityFeed';
 import AdminCharts from './components/AdminCharts';
 import AdminPostEditDrawer from './components/AdminPostEditDrawer';
 import AdminPostCreateDrawer from './components/AdminPostCreateDrawer';
+import AdminUserCreateModal from './components/AdminUserCreateModal';
+import AdminAffiliateCreateModal from './components/AdminAffiliateCreateModal';
+import AdminListingsTab from './components/AdminListingsTab';
 
 type TabName = 'Home' | 'Posts' | 'Listings' | 'Users' | 'Orders' | 'Subscriptions' | 'Affiliates' | 'Settings';
 
@@ -65,7 +68,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { name: 'Home',          Icon: Home,             subtitle: 'Overview & metrics' },
   { name: 'Posts',         Icon: PostsIcon,        subtitle: 'Service listings' },
-  { name: 'Listings',      Icon: ListingsIcon,     subtitle: 'Google My Business', comingSoon: true },
+  { name: 'Listings',      Icon: ListingsIcon,     subtitle: 'Google My Business' },
   { name: 'Users',         Icon: UsersIcon,        subtitle: 'Registered accounts' },
   { name: 'Orders',        Icon: Package,          subtitle: 'All transactions' },
   { name: 'Subscriptions', Icon: CreditCard,       subtitle: 'Plans & billing', comingSoon: true },
@@ -152,7 +155,9 @@ const parseOrders = (raw: Record<string, Record<string, unknown>>): AdminOrder[]
       buyerId:       String(o?.buyerId       ?? ''),
       sellerName:    String(o?.sellerName    ?? ''),
       sellerId:      String(o?.sellerId      ?? ''),
+      serviceId:     String(o?.serviceId     ?? ''),
       serviceTitle:  String(o?.serviceTitle  ?? ''),
+      conversationId: String(o?.conversationId ?? ''),
       status:        String(o?.status        ?? ''),
       paymentStatus: String(o?.paymentStatus ?? ''),
       paymentId:     String(o?.paymentId     ?? ''),
@@ -193,6 +198,8 @@ const AdminDashboard = () => {
   const [viewUser,   setViewUser]   = useState<AdminUser | null>(null);
   const [editUser,   setEditUser]   = useState<AdminUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
+  const [createUserOpen,      setCreateUserOpen]      = useState(false);
+  const [createAffiliateOpen, setCreateAffiliateOpen] = useState(false);
 
   const [viewService,  setViewService]  = useState<AdminService | null>(null);
   const [editPost,     setEditPost]     = useState<AdminService | null>(null);
@@ -213,12 +220,19 @@ const AdminDashboard = () => {
     setServices((prev) => prev?.map((s) => s.id === updated.id ? updated : s) ?? null);
   const handlePostCreateSuccess = (created: AdminService) =>
     setServices((prev) => prev ? [created, ...prev] : [created]);
+  const handlePostDeleteSuccess = (id: string) =>
+    setServices((prev) => prev?.filter((s) => s.id !== id) ?? null);
 
   const handleOrderEditSuccess   = (updated: AdminOrder) => setOrders((prev) => prev?.map((o) => o.orderId === updated.orderId ? updated : o) ?? null);
   const handleOrderDeleteSuccess = (orderId: string) => setOrders((prev) => prev?.filter((o) => o.orderId !== orderId) ?? null);
 
   const handleAffiliateEditSuccess = (updated: AdminAffiliate) =>
     setAffiliates((prev) => prev?.map((a) => a.uid === updated.uid ? updated : a) ?? null);
+
+  const handleUserCreateSuccess = (created: AdminUser) =>
+    setUsers((prev) => prev ? [created, ...prev] : [created]);
+  const handleAffiliateCreateSuccess = (created: AdminAffiliate) =>
+    setAffiliates((prev) => prev ? [created, ...prev] : [created]);
 
   // Deactivate/reactivate affiliate
   const handleAffiliateDeactivate = async (a: AdminAffiliate) => {
@@ -450,6 +464,7 @@ const AdminDashboard = () => {
               onView={(u) => setViewUser(u)}
               onEdit={(u) => setEditUser(u)}
               onDelete={(u) => setDeleteUser(u)}
+              onNew={() => setCreateUserOpen(true)}
             />
           </>
         );
@@ -477,10 +492,13 @@ const AdminDashboard = () => {
               onView={setViewAffiliate}
               onEdit={setEditAffiliate}
               onDeactivate={handleAffiliateDeactivate}
-              onNew={() => alert('To add an affiliate, go to Users → find the user → set their account type to Affiliate. Full invite flow coming soon.')}
+              onNew={() => setCreateAffiliateOpen(true)}
             />
           </>
         );
+
+      case 'Listings':
+        return <AdminListingsTab />;
 
       case 'Settings':
         return <AdminSettingsPage />;
@@ -492,16 +510,16 @@ const AdminDashboard = () => {
 
   // ── Shell ──────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background flex text-white font-sans">
+    <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — sticky full height; only the main pane scrolls */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface flex flex-col shrink-0
-        border-r border-slate-800 min-h-screen transition-transform duration-200
+        border-r border-slate-800 h-screen lg:h-full transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
       `}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
@@ -583,6 +601,8 @@ const AdminDashboard = () => {
       {viewUser   && <AdminUserViewModal   user={viewUser}     onClose={() => setViewUser(null)} />}
       {editUser   && <AdminUserEditModal   user={editUser}     onClose={() => setEditUser(null)}   onSuccess={handleEditSuccess} />}
       {deleteUser && <AdminUserDeleteModal user={deleteUser}   onClose={() => setDeleteUser(null)} onSuccess={handleDeleteSuccess} />}
+      {createUserOpen      && <AdminUserCreateModal      onClose={() => setCreateUserOpen(false)}      onSuccess={handleUserCreateSuccess} />}
+      {createAffiliateOpen && <AdminAffiliateCreateModal onClose={() => setCreateAffiliateOpen(false)} onSuccess={handleAffiliateCreateSuccess} />}
 
       {viewService && <AdminServiceViewModal service={viewService} onClose={() => setViewService(null)} />}
 
@@ -592,6 +612,7 @@ const AdminDashboard = () => {
           service={editPost}
           onClose={() => setEditPost(null)}
           onSuccess={handlePostEditSuccess}
+          onDeleted={handlePostDeleteSuccess}
         />
       )}
       {createPost && (

@@ -81,6 +81,12 @@ const Signin = () => {
   // remount shouldn't be shown when the sign-in actually succeeded.
   useEffect(() => {
     if (user) { sessionStorage.removeItem('authRedirectError'); return; }
+    // An admin deactivated this account — AuthContext signed them out and set this flag.
+    if (sessionStorage.getItem('authDeactivated')) {
+      sessionStorage.removeItem('authDeactivated');
+      setError('Your account has been deactivated. Please contact support if you believe this is a mistake.');
+      return;
+    }
     const code = sessionStorage.getItem('authRedirectError');
     if (!code) return;
     sessionStorage.removeItem('authRedirectError');
