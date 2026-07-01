@@ -4,30 +4,36 @@ import type { AdminService } from './AdminServicesTable';
 import type { AdminOrder } from './AdminOrdersTable';
 import AdminPagination from './AdminPagination';
 
+interface SubscriptionEvent { sellerName: string; amount: number; createdAt: number }
+
 interface Props {
   users: AdminUser[];
   services: AdminService[];
   orders: AdminOrder[];
+  subscriptions?: SubscriptionEvent[];
   loading: boolean;
 }
 
 type ActivityItem =
-  | { kind: 'signup';  name: string; ts: number }
-  | { kind: 'post';    title: string; seller: string; ts: number }
-  | { kind: 'order';   buyer: string; seller: string; amount: number; ts: number };
+  | { kind: 'signup';       name: string; ts: number }
+  | { kind: 'post';         title: string; seller: string; ts: number }
+  | { kind: 'order';        buyer: string; seller: string; amount: number; ts: number }
+  | { kind: 'subscription'; seller: string; amount: number; ts: number };
 
 const PAGE_SIZE = 20;
 
 const dot: Record<ActivityItem['kind'], string> = {
-  signup: 'bg-blue-500',
-  post:   'bg-purple-500',
-  order:  'bg-emerald-500',
+  signup:       'bg-blue-500',
+  post:         'bg-purple-500',
+  order:        'bg-emerald-500',
+  subscription: 'bg-cyan-500',
 };
 
 const label: Record<ActivityItem['kind'], string> = {
-  signup: 'New signup',
-  post:   'New post',
-  order:  'New order',
+  signup:       'New signup',
+  post:         'New post',
+  order:        'New order',
+  subscription: 'New subscription',
 };
 
 const timeAgo = (ts: number) => {
@@ -43,7 +49,7 @@ const timeAgo = (ts: number) => {
   return new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
 };
 
-export default function AdminActivityFeed({ users, services, orders, loading }: Props) {
+export default function AdminActivityFeed({ users, services, orders, subscriptions = [], loading }: Props) {
   const [page, setPage] = useState(0);
 
   const items: ActivityItem[] = useMemo(() => [
@@ -56,7 +62,10 @@ export default function AdminActivityFeed({ users, services, orders, loading }: 
     ...orders
       .filter((o) => o.createdAt > 0)
       .map((o): ActivityItem => ({ kind: 'order', buyer: o.buyerName, seller: o.sellerName, amount: o.amount, ts: o.createdAt })),
-  ].sort((a, b) => b.ts - a.ts), [users, services, orders]);
+    ...subscriptions
+      .filter((s) => s.createdAt > 0)
+      .map((s): ActivityItem => ({ kind: 'subscription', seller: s.sellerName, amount: s.amount, ts: s.createdAt })),
+  ].sort((a, b) => b.ts - a.ts), [users, services, orders, subscriptions]);
 
   useEffect(() => { setPage(0); }, [items.length]);
 
@@ -113,6 +122,14 @@ export default function AdminActivityFeed({ users, services, orders, loading }: 
                       {item.buyer} → {item.seller}
                       <span className="text-emerald-400 ml-1.5 font-semibold">
                         ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </p>
+                  )}
+                  {item.kind === 'subscription' && (
+                    <p className="text-sm text-white truncate">
+                      {item.seller || 'Seller'}
+                      <span className="text-cyan-400 ml-1.5 font-semibold">
+                        ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
                       </span>
                     </p>
                   )}

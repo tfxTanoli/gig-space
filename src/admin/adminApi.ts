@@ -93,3 +93,69 @@ export const adminGenerateListings = (body: { category: string; subcategory: str
     method: 'POST',
     body: JSON.stringify(body),
   });
+
+export interface AdminSubscription {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  sellerEmail: string;
+  status: string;
+  quantity: number;
+  amount: number;
+  currentPeriodEnd: number;
+  cancelAtPeriodEnd: boolean;
+  createdAt: number;
+}
+
+export const adminGetSubscriptions = () =>
+  authedFetch<{ subscriptions: AdminSubscription[] }>('/api/admin/subscriptions');
+
+export const adminCancelSubscription = (id: string) =>
+  authedFetch<{ success: boolean }>(`/api/admin/subscriptions/${id}/cancel`, { method: 'POST' });
+
+export interface AdminUserStatsPost {
+  id: string;
+  title: string;
+  status: string;
+  priceMin: number;
+  category: string;
+  primaryLocation: string;
+  imageUrl: string | null;
+  createdAt: number;
+}
+
+export interface AdminUserStats {
+  accountType: string;
+  postsCount: number;
+  salesCount: number;
+  salesTotal: number;
+  ordersAsBuyer: number;
+  spentTotal: number;
+  subscriptionCount: number;
+  subscriptionAmount: number;
+  wallet: { lifetimeEarnings: number; availableBalance: number; pendingBalance: number };
+  seller: { category: string; location: string };
+  isAffiliate: boolean;
+  posts: AdminUserStatsPost[];
+}
+
+export const adminGetUserStats = (uid: string) =>
+  authedFetch<AdminUserStats>(`/api/admin/users/${uid}/stats`);
+
+export interface AdminInvite {
+  id: string;
+  email: string;
+  status: string;
+  createdAt: number;
+  acceptedAt: number;
+  uid: string;
+}
+
+export const adminGetAdmins = () =>
+  authedFetch<{ invites: AdminInvite[] }>('/api/admin/admins');
+
+export const adminInviteAdmin = (email: string) =>
+  authedFetch<AdminInvite>('/api/admin/admins/invite', { method: 'POST', body: JSON.stringify({ email }) });
+
+export const adminRevokeAdmin = (id: string) =>
+  authedFetch<{ success: boolean }>(`/api/admin/admins/${id}`, { method: 'DELETE' });

@@ -595,6 +595,239 @@ export async function createUser(req: AdminRequest, res: Response): Promise<void
   }
 }
 
+// ─── Admin invites (invite additional admins; pending → accepted) ───────────────
+export async function inviteAdmin(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const email = String((req.body ?? {}).email ?? '').trim().toLowerCase();
+    if (!email) { res.status(400).json({ error: 'email is required' }); return; }
+
+    const db = admin.database();
+    const invites = ((await db.ref('adminInvites').get()).val() ?? {}) as Record<string, { email?: string; createdAt?: number }>;
+    const existing = Object.entries(invites).find(([, i]) => i?.email === email);
+
+    // If the account already exists, grant admin immediately (accepted); else pending.
+    let uid = '';
+    try { uid = (await admin.auth().getUserByEmail(email)).uid; } catch { /* no account yet */ }
+
+    const now = Date.now();
+    const id = existing ? existing[0] : (db.ref('adminInvites').push().key as string);
+    const record = {
+      email,
+      invitedBy: req.uid ?? '',
+      status: uid ? 'accepted' : 'pending',
+      createdAt: existing?.[1]?.createdAt ?? now,
+      ...(uid ? { uid, acceptedAt: now } : {}),
+    };
+    await db.ref(`adminInvites/${id}`).set(record);
+    if (uid) await db.ref(`users/${uid}/role`).set('admin');
+
+    res.json({ id, ...record });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/admins/invite error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+export async function getAdmins(_req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const db = admin.database();
+    const [invitesSnap, usersSnap] = await Promise.all([db.ref('adminInvites').get(), db.ref('users').get()]);
+    const invites = Object.entries((invitesSnap.val() ?? {}) as Record<string, Record<string, unknown>>)
+      .map(([id, i]) => ({
+        id,
+        email: String(i.email ?? ''),
+        status: String(i.status ?? 'pending'),
+        createdAt: Number(i.createdAt ?? 0),
+        acceptedAt: Number(i.acceptedAt ?? 0),
+        uid: i.uid ? String(i.uid) : '',
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
+    res.json({ invites });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/admins error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+export async function revokeAdmin(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const db = admin.database();
+    const snap = await db.ref(`adminInvites/${id}`).get();
+    if (!snap.exists()) { res.status(404).json({ error: 'Invite not found' }); return; }
+    const invite = snap.val() as { uid?: string };
+
+    if (invite.uid && invite.uid === req.uid) {
+      res.status(400).json({ error: 'You cannot revoke your own admin access' }); return;
+    }
+    // Demote an accepted admin back to a normal user.
+    if (invite.uid) await db.ref(`users/${invite.uid}/role`).set('user');
+    await db.ref(`adminInvites/${id}`).remove();
+
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/admins/:id revoke error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Per-user stats (for the full-page user detail) ─────────────────────────────
+export async function getUserStats(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { uid } = req.params;
+    if (!uid) { res.status(400).json({ error: 'uid is required' }); return; }
+
+    const db = admin.database();
+    const [userSnap, servicesSnap, ordersSnap, walletSnap, affSnap] = await Promise.all([
+      db.ref(`users/${uid}`).get(),
+      db.ref('services').get(),
+      db.ref('orders').get(),
+      db.ref(`wallets/${uid}`).get(),
+      db.ref(`affiliates/${uid}`).get(),
+    ]);
+
+    const user     = (userSnap.val()   ?? {}) as Record<string, unknown>;
+    const services = (servicesSnap.val() ?? {}) as Record<string, Record<string, unknown>>;
+    const orders   = (ordersSnap.val() ?? {}) as Record<string, Record<string, unknown>>;
+    const wallet   = (walletSnap.val() ?? {}) as Record<string, unknown>;
+
+    const myPosts = Object.entries(services)
+      .filter(([, s]) => s?.sellerId === uid && s?.isGenerated !== true)
+      .map(([id, s]) => ({
+        id,
+        title: String(s?.title ?? ''),
+        status: String(s?.status ?? 'active'),
+        priceMin: Number(s?.priceMin ?? 0),
+        category: String(s?.category ?? ''),
+        primaryLocation: String(s?.primaryLocation ?? ''),
+        imageUrl: (Array.isArray(s?.images) ? (s.images as string[])[0] : null) ?? null,
+        createdAt: Number(s?.createdAt ?? 0),
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
+
+    const orderList   = Object.values(orders);
+    const sellerOrders = orderList.filter((o) => o?.sellerId === uid);
+    const buyerOrders  = orderList.filter((o) => o?.buyerId === uid);
+    const completedSales = sellerOrders.filter((o) => o?.status === 'completed');
+    const salesTotal = completedSales.reduce((s, o) => s + Number(o?.price ?? 0), 0);
+    const spentTotal = buyerOrders.filter((o) => o?.status === 'completed').reduce((s, o) => s + Number(o?.price ?? 0), 0);
+
+    // Active subscription amount from Stripe (extra-location plans).
+    let subscriptionCount = 0;
+    let subscriptionAmount = 0;
+    const customerId = user.stripeCustomerId ? String(user.stripeCustomerId) : '';
+    if (customerId) {
+      try {
+        const subs = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 100 });
+        subscriptionCount = subs.data.length;
+        subscriptionAmount = subs.data.reduce((sum, s) => {
+          const item = s.items?.data?.[0];
+          return sum + ((item?.quantity ?? 1) * (item?.price?.unit_amount ?? 0)) / 100;
+        }, 0);
+      } catch { /* non-fatal */ }
+    }
+
+    const primary = myPosts[0] ?? { category: '', primaryLocation: '' };
+
+    res.json({
+      accountType: String(user.accountType ?? 'buyer'),
+      postsCount: myPosts.length,
+      salesCount: completedSales.length,
+      salesTotal,
+      ordersAsBuyer: buyerOrders.length,
+      spentTotal,
+      subscriptionCount,
+      subscriptionAmount,
+      wallet: {
+        lifetimeEarnings: Number(wallet.lifetimeEarnings ?? 0),
+        availableBalance: Number(wallet.availableBalance ?? 0),
+        pendingBalance:   Number(wallet.pendingBalance ?? 0),
+      },
+      seller: {
+        category: primary.category ?? '',
+        location: primary.primaryLocation ?? '',
+      },
+      isAffiliate: affSnap.exists(),
+      posts: myPosts,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/users/:uid/stats error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Subscriptions (seller extra-location plans, sourced from Stripe) ────────────
+export async function getSubscriptions(_req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const list = await stripe.subscriptions.list({ status: 'all', limit: 100, expand: ['data.customer'] });
+    const db = admin.database();
+
+    const subscriptions = await Promise.all(list.data.map(async (s) => {
+      // Map the Stripe customer back to a Gigspace seller via firebaseUid metadata.
+      const customer = s.customer as { id?: string; email?: string; metadata?: Record<string, string> } | string;
+      const uid = typeof customer === 'object' ? (customer.metadata?.firebaseUid ?? '') : '';
+      let sellerName = '';
+      let sellerEmail = typeof customer === 'object' ? (customer.email ?? '') : '';
+      if (uid) {
+        const u = (await db.ref(`users/${uid}`).get()).val() as Record<string, unknown> | null;
+        if (u) { sellerName = String(u.name ?? ''); sellerEmail = String(u.email ?? sellerEmail); }
+      }
+      const item = s.items?.data?.[0];
+      const quantity = item?.quantity ?? 1;
+      const unitAmount = item?.price?.unit_amount ?? 0;
+      // current_period_end lives on the item in recent API versions; fall back to the sub.
+      const periodEnd = (item as unknown as { current_period_end?: number })?.current_period_end
+        ?? (s as unknown as { current_period_end?: number }).current_period_end
+        ?? 0;
+      return {
+        id: s.id,
+        sellerId: uid,
+        sellerName,
+        sellerEmail,
+        status: s.status,
+        quantity,
+        amount: (quantity * unitAmount) / 100,
+        currentPeriodEnd: periodEnd * 1000,
+        cancelAtPeriodEnd: Boolean(s.cancel_at_period_end),
+        createdAt: s.created * 1000,
+      };
+    }));
+
+    res.json({ subscriptions });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/subscriptions error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+export async function cancelSubscription(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    if (!id) { res.status(400).json({ error: 'subscription id is required' }); return; }
+    await stripe.subscriptions.cancel(id);
+
+    // Clear the subscriptionId from any post that referenced it.
+    const db = admin.database();
+    const data = ((await db.ref('services').get()).val() ?? {}) as Record<string, { subscriptionId?: string }>;
+    const updates: Record<string, unknown> = {};
+    for (const [sid, svc] of Object.entries(data)) {
+      if (svc?.subscriptionId === id) updates[`services/${sid}/subscriptionId`] = null;
+    }
+    if (Object.keys(updates).length) await db.ref().update(updates);
+
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/subscriptions/:id/cancel error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
 // ─── Create affiliate (user + referral code + link) ─────────────────────────────
 export async function createAffiliate(req: AdminRequest, res: Response): Promise<void> {
   try {
