@@ -486,13 +486,13 @@ const ServiceDetail = () => {
             <>
               <Link
                 to="/signin"
-                className="text-white text-sm font-medium hover:text-slate-300 transition-colors hidden md:block"
+                className="text-slate-300 hover:text-white text-sm font-medium transition-colors hidden md:block"
               >
                 Log in
               </Link>
               <Link
                 to="/signup"
-                className="hidden md:flex items-center text-white text-sm px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors"
+                className="hidden md:flex items-center text-slate-300 hover:text-white text-sm px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors"
               >
                 Sign up <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
@@ -631,7 +631,12 @@ const ServiceDetail = () => {
           <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4 flex-wrap">
             <Link to="/search" className="text-slate-400 hover:text-slate-200 transition-colors shrink-0">All Services</Link>
             <span className="text-slate-600 shrink-0">/</span>
-            <span className="text-slate-400 hover:text-slate-200 cursor-pointer transition-colors shrink-0">{categoryLabel}</span>
+            <Link
+              to={`/search?category=${encodeURIComponent(post.category)}`}
+              className="text-slate-400 hover:text-slate-200 transition-colors shrink-0"
+            >
+              {categoryLabel}
+            </Link>
             {subcategoryLabel && (
               <>
                 <span className="text-slate-600 shrink-0">/</span>
@@ -641,15 +646,7 @@ const ServiceDetail = () => {
           </nav>
 
           {/* Title */}
-          <h1
-            className="text-3xl font-bold mb-4 leading-snug"
-            style={{
-              background: 'linear-gradient(90deg, rgba(255,255,255,0.38) 0%, #ffffff 50%, rgba(255,255,255,0.38) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >{post.title}</h1>
+          <h1 className="text-3xl font-bold mb-4 leading-snug text-slate-100">{post.title}</h1>
 
           {/* Seller row */}
           <div className="flex items-center gap-2 mb-5">
