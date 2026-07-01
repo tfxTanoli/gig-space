@@ -680,7 +680,7 @@ const ServiceDetail = () => {
                     onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
                     className="text-blue-400 text-sm hover:underline cursor-pointer"
                   >
-                    See all the {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                    See all {reviews.length} review{reviews.length !== 1 ? 's' : ''}
                   </button>
                 </div>
               )}
