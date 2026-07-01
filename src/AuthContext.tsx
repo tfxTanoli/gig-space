@@ -187,6 +187,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
+  // Opportunistically claim a pending admin invite (server grants the role only if
+  // a pending adminInvite matches the user's verified email). Runs once per session.
+  useEffect(() => {
+    if (!user || sessionStorage.getItem('adminClaimChecked')) return;
+    sessionStorage.setItem('adminClaimChecked', '1');
+    user.getIdToken()
+      .then((token) => fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/claim-admin`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }))
+      .catch(() => { /* non-fatal — backend may be unreachable */ });
+  }, [user]);
+
   const logout = useCallback(async () => {
     if (user) {
       // Fire-and-forget — don't block sign-out on presence writes that may

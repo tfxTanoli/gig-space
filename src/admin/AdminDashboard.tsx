@@ -37,7 +37,7 @@ import AdminStatsCards, { type AdminStats } from './components/AdminStatsCards';
 import AdminUsersTable, { type AdminUser } from './components/AdminUsersTable';
 import AdminServicesTable, { type AdminService } from './components/AdminServicesTable';
 import AdminOrdersTable, { type AdminOrder } from './components/AdminOrdersTable';
-import AdminUserViewModal from './components/AdminUserViewModal';
+import AdminUserDetail from './components/AdminUserDetail';
 import AdminUserEditModal from './components/AdminUserEditModal';
 import AdminUserDeleteModal from './components/AdminUserDeleteModal';
 import AdminSettingsPage from './components/AdminSettingsPage';
@@ -55,6 +55,8 @@ import AdminPostCreateDrawer from './components/AdminPostCreateDrawer';
 import AdminUserCreateModal from './components/AdminUserCreateModal';
 import AdminAffiliateCreateModal from './components/AdminAffiliateCreateModal';
 import AdminListingsTab from './components/AdminListingsTab';
+import AdminSubscriptionsTab from './components/AdminSubscriptionsTab';
+import { adminGetSubscriptions } from './adminApi';
 
 type TabName = 'Home' | 'Posts' | 'Listings' | 'Users' | 'Orders' | 'Subscriptions' | 'Affiliates' | 'Settings';
 
@@ -71,7 +73,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Listings',      Icon: ListingsIcon,     subtitle: 'Google My Business' },
   { name: 'Users',         Icon: UsersIcon,        subtitle: 'Registered accounts' },
   { name: 'Orders',        Icon: Package,          subtitle: 'All transactions' },
-  { name: 'Subscriptions', Icon: CreditCard,       subtitle: 'Plans & billing', comingSoon: true },
+  { name: 'Subscriptions', Icon: CreditCard,       subtitle: 'Plans & billing' },
   { name: 'Affiliates',    Icon: BadgeDollarSign,  subtitle: 'Referral program' },
   { name: 'Settings',      Icon: Settings,         subtitle: 'Platform configuration' },
 ];
@@ -200,6 +202,8 @@ const AdminDashboard = () => {
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
   const [createUserOpen,      setCreateUserOpen]      = useState(false);
   const [createAffiliateOpen, setCreateAffiliateOpen] = useState(false);
+  // Subscription events for the dashboard activity feed (sourced from Stripe via backend).
+  const [subEvents, setSubEvents] = useState<{ sellerName: string; amount: number; createdAt: number }[]>([]);
 
   const [viewService,  setViewService]  = useState<AdminService | null>(null);
   const [editPost,     setEditPost]     = useState<AdminService | null>(null);
@@ -331,6 +335,9 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case 'Home':
         loadUsers(); loadServices(); loadOrders(); loadAffiliates();
+        adminGetSubscriptions()
+          .then(({ subscriptions }) => setSubEvents(subscriptions.map((s) => ({ sellerName: s.sellerName, amount: s.amount, createdAt: s.createdAt }))))
+          .catch(() => { /* non-fatal — backend may be unreachable */ });
         break;
       case 'Users':      loadUsers();      break;
       case 'Posts':      loadServices();   break;
@@ -341,7 +348,7 @@ const AdminDashboard = () => {
   }, [user, accessChecked, accessDenied, activeTab, loadUsers, loadServices, loadOrders, loadAffiliates]);
 
   // ── Reset search on tab change ────────────────────────────────────────────────
-  useEffect(() => { setSearch(''); setSidebarOpen(false); }, [activeTab]);
+  useEffect(() => { setSearch(''); setSidebarOpen(false); setViewUser(null); }, [activeTab]);
 
   // ── Stats (all 8 fields) ──────────────────────────────────────────────────────
   const stats: AdminStats | null = useMemo(() => {
@@ -434,6 +441,7 @@ const AdminDashboard = () => {
                 users={users ?? []}
                 services={services ?? []}
                 orders={orders ?? []}
+                subscriptions={subEvents}
                 loading={usersLoading || servicesLoading || ordersLoading}
               />
             </div>
@@ -455,9 +463,20 @@ const AdminDashboard = () => {
         );
 
       case 'Users':
+        // A selected user opens a full-page detail view (with back arrow) instead of a modal.
+        if (viewUser) {
+          return (
+            <AdminUserDetail
+              user={viewUser}
+              onBack={() => setViewUser(null)}
+              onEdit={(u) => setEditUser(u)}
+              onDeactivate={(u) => setDeleteUser(u)}
+            />
+          );
+        }
         return (
           <>
-            <PageHeader title="Users" subtitle="All registered buyer, seller, and affiliate accounts" />
+            <PageHeader title="Users" subtitle="All registered buyer and seller accounts" />
             <AdminUsersTable
               users={filteredUsers}
               loading={usersLoading && users === null}
@@ -499,6 +518,9 @@ const AdminDashboard = () => {
 
       case 'Listings':
         return <AdminListingsTab />;
+
+      case 'Subscriptions':
+        return <AdminSubscriptionsTab />;
 
       case 'Settings':
         return <AdminSettingsPage />;
@@ -598,7 +620,6 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── Modals ── */}
-      {viewUser   && <AdminUserViewModal   user={viewUser}     onClose={() => setViewUser(null)} />}
       {editUser   && <AdminUserEditModal   user={editUser}     onClose={() => setEditUser(null)}   onSuccess={handleEditSuccess} />}
       {deleteUser && <AdminUserDeleteModal user={deleteUser}   onClose={() => setDeleteUser(null)} onSuccess={handleDeleteSuccess} />}
       {createUserOpen      && <AdminUserCreateModal      onClose={() => setCreateUserOpen(false)}      onSuccess={handleUserCreateSuccess} />}

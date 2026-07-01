@@ -3,7 +3,7 @@ import {
   Globe, DollarSign, UserPlus, Save,
   CheckCircle2, AlertTriangle, Loader2,
   Info, FileText, Shield, Plus, Pencil, Trash2, X,
-  Mail, KeyRound,
+  Mail, KeyRound, Clock, Users,
 } from 'lucide-react';
 import {
   EmailAuthProvider, reauthenticateWithCredential, updatePassword, verifyBeforeUpdateEmail,
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { ref as dbRef, get, update, set } from 'firebase/database';
 import { database, auth } from '../../firebase';
 import { useAuth } from '../../AuthContext';
+import { adminGetAdmins, adminInviteAdmin, adminRevokeAdmin, type AdminInvite } from '../adminApi';
 
 // Map a Firebase reauth error to a friendly message.
 const credError = (err: unknown, fallback: string) => {
@@ -205,6 +206,17 @@ const TABS: { key: SettingsTab; label: string }[] = [
 
 // ─── CMS Tab ──────────────────────────────────────────────────────────────────
 
+// The default FAQs shipped on the seller/affiliate landing pages — offered as a
+// one-click seed so the admin can edit/delete them from the panel.
+const DEFAULT_FAQS: { question: string; answer: string }[] = [
+  { question: 'What can I sell?', answer: 'You can offer any service that falls inside our diverse categories ranging from digital professional services to localized trade work.' },
+  { question: 'How much money can I make?', answer: 'Your earning potential is entirely up to you. You set your own prices and determine how much work you want to take on.' },
+  { question: 'How much does it cost?', answer: 'Joining and setting up your primary listing is completely free. We charge a flat platform fee on completed orders and optional subscriptions for multiple local reach.' },
+  { question: 'How do I get paid?', answer: 'Payments are securely held in escrow and released to you upon project approval. You can withdraw directly to your bank account.' },
+  { question: 'Who can become a Gigspace affiliate?', answer: 'Anyone can become an affiliate — content creators, bloggers, business owners, or anyone with a network — and earn commissions by referring new sellers to Gigspace.' },
+  { question: 'How do affiliate commissions work?', answer: 'Share your unique referral link. When a seller signs up through it, you earn a percentage of the platform fee on that seller’s sales.' },
+];
+
 function CmsTab() {
   const { user } = useAuth();
   const [faqs,    setFaqs]    = useState<FaqItem[]>([]);
@@ -263,6 +275,18 @@ function CmsTab() {
     setFaqs((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const seedDefaults = async () => {
+    const updates: Record<string, { question: string; answer: string }> = {};
+    const seeded: FaqItem[] = [];
+    DEFAULT_FAQS.forEach((f, i) => {
+      const id = `${Date.now()}${i}`;
+      updates[id] = { question: f.question, answer: f.answer };
+      seeded.push({ id, ...f });
+    });
+    await update(dbRef(database, 'cms/faqs'), updates);
+    setFaqs((prev) => [...prev, ...seeded]);
+  };
+
   const saveText = async (key: 'terms' | 'privacy', value: string, setSaving: (v: boolean) => void, setSaved: (v: boolean) => void) => {
     setSaving(true);
     try {
@@ -302,6 +326,11 @@ function CmsTab() {
               </div>
             </div>
           ))}
+          {faqs.length === 0 && (
+            <button onClick={seedDefaults} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 text-sm transition-colors">
+              <Plus className="w-3.5 h-3.5" /> Load default FAQs
+            </button>
+          )}
           <div className="space-y-2 pt-2">
             <p className="text-xs font-medium text-slate-400">{editingFaq ? 'Edit FAQ' : 'Add FAQ'}</p>
             <input value={faqQ} onChange={(e) => setFaqQ(e.target.value)} placeholder="Question…" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors" />
@@ -493,6 +522,123 @@ function AdminCredentialsCard() {
   );
 }
 
+// ─── Admin invites (Admin tab) ──────────────────────────────────────────────────
+
+function AdminInvitesCard() {
+  const [invites, setInvites] = useState<AdminInvite[] | null>(null);
+  const [email, setEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+
+  const load = () => {
+    adminGetAdmins()
+      .then(({ invites }) => setInvites(invites))
+      .catch(() => setInvites([]));
+  };
+  useEffect(() => { load(); }, []);
+
+  const handleInvite = async () => {
+    const e = email.trim().toLowerCase();
+    if (!e || !e.includes('@')) { toast.error('Enter a valid email address.'); return; }
+    setInviting(true);
+    try {
+      const invite = await adminInviteAdmin(e);
+      setInvites((prev) => {
+        const rest = (prev ?? []).filter((i) => i.email !== invite.email);
+        return [invite, ...rest];
+      });
+      setEmail('');
+      toast.success(invite.status === 'accepted'
+        ? 'That account already existed — admin access granted immediately.'
+        : 'Invite sent. They become an admin the next time they sign in.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally { setInviting(false); }
+  };
+
+  const revoke = async (inv: AdminInvite) => {
+    if (!window.confirm(`Revoke admin access/invite for ${inv.email}?`)) return;
+    try {
+      await adminRevokeAdmin(inv.id);
+      setInvites((prev) => prev?.filter((i) => i.id !== inv.id) ?? null);
+      toast.success('Revoked.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to revoke');
+    }
+  };
+
+  const fmtDate = (ts: number) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—';
+
+  return (
+    <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
+      <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-4">
+        <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+          <Users style={{ width: '1.1rem', height: '1.1rem' }} />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-white">Admin Users</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Invite additional admins by email — they're granted access on their next sign-in</p>
+        </div>
+      </div>
+
+      <div className="px-6 py-5">
+        <div className="flex items-end gap-2 max-w-lg mb-5">
+          <div className="flex-1">
+            <label htmlFor="inviteEmail" className="block text-xs font-medium text-slate-400 mb-1.5">Email address</label>
+            <input
+              id="inviteEmail" type="email" value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleInvite(); }}
+              placeholder="teammate@gigspace.com"
+              className="w-full bg-surface-raised border border-slate-700/60 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-colors"
+            />
+          </div>
+          <button onClick={handleInvite} disabled={inviting} className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
+            {inviting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Invite
+          </button>
+        </div>
+
+        {invites === null ? (
+          <div className="py-6 flex justify-center"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+        ) : invites.length === 0 ? (
+          <p className="text-slate-500 text-sm">No admin invites yet.</p>
+        ) : (
+          <div className="border border-slate-800 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 bg-background/40">
+                  {['Email', 'Status', 'Invited', ''].map((h) => (
+                    <th key={h} className={`px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wide ${h === '' ? 'text-right' : 'text-left'}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {invites.map((inv) => (
+                  <tr key={inv.id} className="border-b border-slate-800/50 last:border-0">
+                    <td className="px-4 py-2.5 text-white">{inv.email}</td>
+                    <td className="px-4 py-2.5">
+                      {inv.status === 'accepted' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> Accepted</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400"><Clock className="w-3 h-3" /> Pending</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-500 text-xs">{fmtDate(inv.createdAt)}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <button onClick={() => revoke(inv)} title="Revoke" className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const BLANK_STATUS: SectionStatus = { saving: false, saved: false, error: '' };
@@ -642,7 +788,7 @@ const AdminSettingsPage = () => {
                 <span className={`text-xs font-medium ${registration.allowSellerRegistrations && registration.allowNewSignups ? 'text-emerald-400' : 'text-slate-500'}`}>{registration.allowSellerRegistrations ? 'Enabled' : 'Disabled'}</span>
               </div>
             </SettingRow>
-            <SettingRow label="Require Email Verification" hint="New accounts must verify their email before accessing the platform" last>
+            <SettingRow label="Require Email Verification" hint="Email/password sign-ups must verify before access. Google sign-ups are already verified by Google, so they bypass this." last>
               <div className="flex items-center gap-3">
                 <Toggle id="requireEmailVerification" checked={registration.requireEmailVerification} onChange={(v) => setRegistration((r) => ({ ...r, requireEmailVerification: v }))} />
                 <span className={`text-xs font-medium ${registration.requireEmailVerification ? 'text-emerald-400' : 'text-slate-500'}`}>{registration.requireEmailVerification ? 'Required' : 'Optional'}</span>
@@ -659,6 +805,7 @@ const AdminSettingsPage = () => {
       {activeTab === 'admin' && (
         <div className="space-y-5">
           <AdminCredentialsCard />
+          <AdminInvitesCard />
 
           <div className="bg-surface rounded-xl border border-slate-800 px-6 py-5 flex items-start gap-4">
             <div className="w-9 h-9 rounded-xl bg-slate-800/60 flex items-center justify-center flex-shrink-0">

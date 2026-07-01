@@ -1703,6 +1703,32 @@ app.post('/api/subscriptions/cancel-listing-subscription', requireAuth, async (r
   }
 });
 
+// ─── Claim a pending admin invite ─────────────────────────────────────────────
+// Any authenticated user calls this after login; if a pending adminInvite matches
+// their verified email, they're granted the admin role (server-side, so a user
+// can never self-promote without a matching invite).
+app.post('/api/auth/claim-admin', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid as string;
+    const rec = await admin.auth().getUser(uid);
+    const email = (rec.email ?? '').toLowerCase();
+    if (!email) { res.json({ granted: false }); return; }
+
+    const invites = (await db.ref('adminInvites').get()).val() ?? {};
+    const entry = Object.entries(invites as Record<string, { email?: string; status?: string }>)
+      .find(([, i]) => i?.email === email && i?.status === 'pending');
+    if (!entry) { res.json({ granted: false }); return; }
+
+    await db.ref(`users/${uid}/role`).set('admin');
+    await db.ref(`adminInvites/${entry[0]}`).update({ status: 'accepted', uid, acceptedAt: Date.now() });
+    res.json({ granted: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/auth/claim-admin error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);
 
