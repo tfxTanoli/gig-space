@@ -640,7 +640,12 @@ const ServiceDetail = () => {
             {subcategoryLabel && (
               <>
                 <span className="text-slate-600 shrink-0">/</span>
-                <span className="text-slate-300">{subcategoryLabel}</span>
+                <Link
+                  to={`/search?category=${encodeURIComponent(post.subcategory)}`}
+                  className="text-slate-300 hover:text-slate-200 transition-colors"
+                >
+                  {subcategoryLabel}
+                </Link>
               </>
             )}
           </nav>
