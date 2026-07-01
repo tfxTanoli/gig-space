@@ -641,7 +641,7 @@ const ServiceDetail = () => {
               <>
                 <span className="text-slate-600 shrink-0">/</span>
                 <Link
-                  to={`/search?category=${encodeURIComponent(post.subcategory)}`}
+                  to={`/search?category=${encodeURIComponent(post.category)}&subcategory=${encodeURIComponent(post.subcategory)}`}
                   className="text-slate-300 hover:text-slate-200 transition-colors"
                 >
                   {subcategoryLabel}

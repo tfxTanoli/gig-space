@@ -352,7 +352,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const [inputValue, setInputValue] = useState(() => searchParams.get('q') ?? '');
   const [activeSearch, setActiveSearch] = useState(() => searchParams.get('q') ?? '');
   const [activeCategory, setActiveCategory] = useState(() => searchParams.get('category') ?? '');
-  const [activeSubcategory, setActiveSubcategory] = useState('');
+  const [activeSubcategory, setActiveSubcategory] = useState(() => searchParams.get('subcategory') ?? '');
   const [activeLocation, setActiveLocation] = useState(() => searchParams.get('location') ?? '');
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationType, setLocationType] = useState<'precise' | 'broad' | ''>('');
