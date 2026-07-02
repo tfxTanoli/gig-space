@@ -290,13 +290,10 @@ export default function AdminListingsTab() {
                   <tr key={g.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5">
-                        {g.imageUrl ? (
-                          <img src={g.imageUrl} alt={g.title} className="w-9 h-9 rounded-lg object-cover border border-slate-700/60" />
+                        {g.sellerPhotoURL ? (
+                          <img src={g.sellerPhotoURL} alt="" title="Business favicon (post avatar)" className="w-7 h-7 rounded-full bg-white object-contain flex-shrink-0" />
                         ) : (
-                          <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/60" />
-                        )}
-                        {g.sellerPhotoURL && (
-                          <img src={g.sellerPhotoURL} alt="" title="Business favicon (post avatar)" className="w-5 h-5 rounded-full bg-white object-contain flex-shrink-0" />
+                          <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700/60 flex-shrink-0" />
                         )}
                         <span className="text-white font-medium truncate max-w-[180px]">{g.title || '—'}</span>
                       </div>
