@@ -1073,11 +1073,14 @@ export default function ChatMessages({
                               </span>
                             </div>
                             {/* Service card */}
-                            <div
-                              className={`rounded-2xl overflow-hidden border w-64 rounded-bl-md ${
+                            <a
+                              href={`/service-detail?id=${encodeURIComponent(msg.serviceContext.serviceId)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`block rounded-2xl overflow-hidden border w-64 rounded-bl-md transition-colors ${
                                 isMe
-                                  ? 'border-blue-500/40 bg-blue-600/10'
-                                  : 'border-slate-700 bg-surface'
+                                  ? 'border-blue-500/40 bg-blue-600/10 hover:border-blue-500/70'
+                                  : 'border-slate-700 bg-surface hover:border-slate-600'
                               }`}
                             >
                               {msg.serviceContext.serviceImage && (
@@ -1095,19 +1098,17 @@ export default function ChatMessages({
                                   {msg.serviceContext.serviceTitle}
                                 </p>
                               </div>
-                              {/* Buyer's message text */}
-                              {msg.text && (
-                                <div
-                                  className={`px-3 pb-3 pt-0 text-sm leading-relaxed border-t ${
-                                    isMe
-                                      ? 'text-blue-100 border-blue-500/20'
-                                      : 'text-slate-200 border-slate-700/60'
-                                  }`}
-                                >
-                                  {msg.text}
-                                </div>
-                              )}
-                            </div>
+                            </a>
+                            {/* Buyer's message text, as its own bubble underneath the card */}
+                            {msg.text && (
+                              <div
+                                className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words w-fit max-w-[80%] ${
+                                  isMe ? 'bg-blue-600 text-white' : 'bg-surface-raised text-slate-200'
+                                }`}
+                              >
+                                {msg.text}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -1171,21 +1172,28 @@ export default function ChatMessages({
               {serviceContext?.serviceId && (
                 <div className="px-4 py-2 border-t border-slate-800 bg-surface shrink-0">
                   <div className="flex items-center gap-2.5 bg-background border border-slate-700 rounded-xl p-2.5">
-                    {serviceContext.serviceImage && (
-                      <img
-                        src={serviceContext.serviceImage}
-                        alt={serviceContext.serviceTitle}
-                        className="w-10 h-10 rounded-lg object-cover shrink-0"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                        Service inquiry
-                      </p>
-                      <p className="text-white text-xs font-medium truncate">
-                        {serviceContext.serviceTitle}
-                      </p>
-                    </div>
+                    <a
+                      href={`/service-detail?id=${encodeURIComponent(serviceContext.serviceId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2.5 flex-1 min-w-0"
+                    >
+                      {serviceContext.serviceImage && (
+                        <img
+                          src={serviceContext.serviceImage}
+                          alt={serviceContext.serviceTitle}
+                          className="w-10 h-10 rounded-lg object-cover shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                          Service inquiry
+                        </p>
+                        <p className="text-white text-xs font-medium truncate hover:underline">
+                          {serviceContext.serviceTitle}
+                        </p>
+                      </div>
+                    </a>
                     <button
                       onClick={onServiceContextHandled}
                       className="text-slate-500 hover:text-slate-300 transition-colors shrink-0 p-0.5"
