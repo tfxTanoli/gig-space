@@ -11,7 +11,12 @@ import { adminSearchListings, adminGenerateListings, type ListingBusiness } from
 import AdminPostEditDrawer from './AdminPostEditDrawer';
 import { type AdminService } from './AdminServicesTable';
 
-type GenListing = AdminService & { claimStatus?: 'unclaimed' | 'claimed' };
+type GenListing = AdminService & {
+  claimStatus?: 'unclaimed' | 'claimed';
+  sellerPhotoURL?: string;   // business favicon (post avatar)
+  contactEmail?: string;     // scraped from the business website; powers "Message seller" mailto
+  website?: string;
+};
 
 const SELECT_CLASS =
   'bg-surface-raised border border-slate-700/60 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-colors';
@@ -39,6 +44,9 @@ function parseGen(id: string, s: Record<string, unknown>): GenListing {
     languages:       Array.isArray(s.languages) ? (s.languages as string[]) : [],
     createdAt:       Number(s.createdAt ?? 0),
     claimStatus:     (s.claimStatus as 'unclaimed' | 'claimed') ?? 'unclaimed',
+    sellerPhotoURL:  String(s.sellerPhotoURL ?? ''),
+    contactEmail:    String(s.contactEmail ?? ''),
+    website:         String(s.website ?? ''),
   };
 }
 
@@ -272,7 +280,7 @@ export default function AdminListingsTab() {
             <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Business', 'Location', 'Category', 'Status', 'Claim', 'Actions'].map((h) => (
+                  {['Business', 'Location', 'Contact', 'Category', 'Status', 'Claim', 'Actions'].map((h) => (
                     <th key={h} className={`px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide ${h === 'Actions' ? 'text-right' : 'text-left'}`}>{h}</th>
                   ))}
                 </tr>
@@ -287,10 +295,25 @@ export default function AdminListingsTab() {
                         ) : (
                           <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/60" />
                         )}
+                        {g.sellerPhotoURL && (
+                          <img src={g.sellerPhotoURL} alt="" title="Business favicon (post avatar)" className="w-5 h-5 rounded-full bg-white object-contain flex-shrink-0" />
+                        )}
                         <span className="text-white font-medium truncate max-w-[180px]">{g.title || '—'}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3 text-slate-400 text-xs max-w-[180px] truncate">{g.primaryLocation || '—'}</td>
+                    <td className="px-5 py-3 text-xs max-w-[200px]">
+                      {g.contactEmail ? (
+                        <a href={`mailto:${g.contactEmail}`} className="block text-blue-400 hover:underline truncate">{g.contactEmail}</a>
+                      ) : (
+                        <span className="text-slate-600">no email found</span>
+                      )}
+                      {g.website && (
+                        <a href={g.website} target="_blank" rel="noopener noreferrer" className="block text-slate-500 hover:text-slate-300 hover:underline truncate mt-0.5">
+                          {g.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                        </a>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-slate-500 text-xs capitalize">{g.category || '—'}</td>
                     <td className="px-5 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_BADGE[g.status] ?? 'bg-slate-700 text-slate-400'}`}>{g.status}</span>
