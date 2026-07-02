@@ -78,6 +78,10 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Settings',      Icon: Settings,         subtitle: 'Platform configuration' },
 ];
 
+// Avatar dropdown shows a shortlist rather than every sidebar section.
+const DROPDOWN_TABS: TabName[] = ['Home', 'Users', 'Orders', 'Settings'];
+const DROPDOWN_NAV_ITEMS = NAV_ITEMS.filter((item) => DROPDOWN_TABS.includes(item.name));
+
 const SEARCH_PLACEHOLDERS: Partial<Record<TabName, string>> = {
   Home:       'Search users, services, orders…',
   Users:      'Search users by name, email, username…',
@@ -602,6 +606,9 @@ const AdminDashboard = () => {
           onSearchChange={setSearch}
           searchPlaceholder={SEARCH_PLACEHOLDERS[activeTab] ?? 'Search…'}
           onMenuClick={() => setSidebarOpen(true)}
+          navItems={DROPDOWN_NAV_ITEMS}
+          activeTab={activeTab}
+          onNavigate={setActiveTab}
         />
 
         <main className="flex-1 p-4 sm:p-6 overflow-auto">

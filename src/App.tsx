@@ -46,6 +46,11 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, userProfile } = useAuth();
 
   if (user) {
+    // Admins only ever get the admin dashboard — keep them out of the
+    // buyer/seller/affiliate areas even if they navigate there directly.
+    if (userProfile?.role === 'admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    }
     // Persist account type so we know where to redirect after logout
     if (userProfile?.accountType) {
       localStorage.setItem('lastAccountType', userProfile.accountType);
