@@ -178,18 +178,31 @@ function pageTitle(html: string): string {
   return decodeEntities(m?.[1] ?? '').slice(0, 90);
 }
 
-function pageDescription(html: string): string {
-  const meta = metaContent(html, 'og:description') || metaContent(html, 'description');
-  if (meta.length >= 60) return meta.slice(0, 1500);
-  // Fall back to the first substantial paragraphs of body copy.
+// Descriptions are assembled from the meta description plus real body copy so
+// posts read like an About section, not a one-liner. Paragraphs are joined with
+// blank lines; the post page renders each as its own paragraph.
+const DESC_TARGET = 1400;  // stop collecting once we have roughly this much
+const DESC_CAP = 2000;
+const BOILERPLATE = /cookie|javascript|browser|all rights reserved|privacy policy|terms of (use|service)|subscribe|newsletter|sign up|log in/i;
+
+function pageParagraphs(html: string): string[] {
   const body = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '');
-  const paras = [...body.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<(nav|footer|header)[\s\S]*?<\/\1>/gi, '');
+  return [...body.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
     .map((m) => decodeEntities(m[1].replace(/<[^>]+>/g, ' ')))
-    .filter((t) => t.length >= 80 && !/cookie|javascript|browser/i.test(t));
-  const joined = paras.slice(0, 3).join('\n\n').slice(0, 1500);
-  return joined || meta;
+    .filter((t) => t.length >= 80 && !BOILERPLATE.test(t));
+}
+
+// Append non-duplicate paragraphs until the target length is reached.
+function mergeParagraphs(parts: string[], extras: string[]): string[] {
+  for (const p of extras) {
+    if (parts.join('\n\n').length >= DESC_TARGET) break;
+    if (parts.some((e) => e.includes(p.slice(0, 80)) || p.includes(e.slice(0, 80)))) continue;
+    parts.push(p);
+  }
+  return parts;
 }
 
 const EMAIL_VALID = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -214,14 +227,17 @@ async function scrapeWebsite(website: string): Promise<ScrapedSite> {
   let origin = '';
   try { origin = new URL(website).origin; } catch { return out; }
 
+  let descParts: string[] = [];
   const home = await fetchPage(website);
   if (home) {
     out.title = pageTitle(home);
-    out.description = pageDescription(home);
     out.email = pageEmail(home);
+    const meta = metaContent(home, 'og:description') || metaContent(home, 'description');
+    if (meta.length >= 60) descParts.push(meta);
+    descParts = mergeParagraphs(descParts, pageParagraphs(home));
   }
 
-  // Try About-style pages for a richer description, contact pages for an email.
+  // Dig into About-style pages for richer copy, contact pages for an email.
   const fallbacks: { path: string; want: 'description' | 'email' }[] = [
     { path: '/about', want: 'description' },
     { path: '/about-us', want: 'description' },
@@ -230,19 +246,20 @@ async function scrapeWebsite(website: string): Promise<ScrapedSite> {
   ];
   let extraFetches = 0;
   for (const f of fallbacks) {
-    if (extraFetches >= 2) break;
-    if (f.want === 'description' && out.description.length >= 120) continue;
+    if (extraFetches >= 3) break;
+    if (f.want === 'description' && descParts.join('\n\n').length >= 500) continue;
     if (f.want === 'email' && out.email) continue;
     extraFetches += 1;
     const html = await fetchPage(origin + f.path);
     if (!html) continue;
     if (f.want === 'description') {
-      const d = pageDescription(html);
-      if (d.length > out.description.length) out.description = d;
+      descParts = mergeParagraphs(descParts, pageParagraphs(html));
     } else {
       out.email = out.email || pageEmail(html);
     }
   }
+
+  out.description = descParts.join('\n\n').slice(0, DESC_CAP);
   return out;
 }
 

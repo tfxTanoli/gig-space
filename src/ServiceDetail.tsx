@@ -636,7 +636,7 @@ const ServiceDetail = () => {
             <h2 className="text-sm font-medium text-white mb-4">Description</h2>
             {post.description ? (
               <div
-                className="text-slate-300 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
+                className="text-slate-300 text-sm leading-relaxed whitespace-pre-line [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.description) }}
               />
             ) : (
