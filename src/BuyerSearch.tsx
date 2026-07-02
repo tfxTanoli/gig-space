@@ -241,7 +241,8 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
         {/* Price */}
         <div className="flex items-baseline gap-1">
           {post.priceType === 'contact_for_pricing' ? (
-            <span className="text-xs font-semibold text-white">Contact for pricing</span>
+            /* Matches "per project" font; leading-6 keeps the row the same height as priced cards */
+            <span className="text-xs text-slate-400 leading-6">Contact for pricing</span>
           ) : (
             <>
               {prefix && <span className="text-xs text-slate-400">{prefix}</span>}

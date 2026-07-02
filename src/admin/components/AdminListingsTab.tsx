@@ -228,11 +228,22 @@ export default function AdminListingsTab() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-white font-medium text-sm">{b.name}</p>
-                      <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{b.address || '—'}</p>
+                      <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{b.location || b.address || '—'}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
                         {b.rating > 0 && <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{b.rating.toFixed(1)} ({b.reviewCount})</span>}
                         <span>{b.images.length} photo{b.images.length !== 1 ? 's' : ''}</span>
                         <span>{b.reviews.length} review{b.reviews.length !== 1 ? 's' : ''}</span>
+                        {b.website && (
+                          <a
+                            href={b.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-blue-400 hover:underline truncate max-w-[200px]"
+                          >
+                            {b.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                          </a>
+                        )}
                       </div>
                     </div>
                   </li>

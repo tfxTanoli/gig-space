@@ -74,6 +74,9 @@ export interface ListingBusiness {
   placeId: string;
   name: string;
   address: string;
+  location: string;   // "City, State" — what generated posts display
+  website: string;    // only businesses with a website are returned
+  logo: string;       // website favicon, used as the post's avatar
   rating: number;
   reviewCount: number;
   description: string;
