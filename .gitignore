@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+# Server tsc build output
+server/lib
 
 # Environment variables
 .env

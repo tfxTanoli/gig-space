@@ -3,7 +3,7 @@ import { sanitizeHtml } from './utils/sanitize';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight,
-  Bookmark, Star, Play, ArrowRight, Megaphone,
+  Bookmark, Star, Play, ArrowRight, Globe,
 } from 'lucide-react';
 import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
@@ -59,6 +59,8 @@ interface ServicePost {
   source?: string;
   claimStatus?: 'unclaimed' | 'claimed';
   claimedBy?: string | null;
+  website?: string;
+  contactEmail?: string;
 }
 
 /* ─── Map helpers ─── */
@@ -283,6 +285,24 @@ const ServiceDetail = () => {
 
   const handleContactSeller = () => {
     if (!post) return;
+    // Unclaimed generated listings have no seller account to chat with — open the
+    // buyer's mail client instead, pre-filled with an email that also pitches the
+    // business on claiming their free Gigspace listing. No login needed for this.
+    if (post.isGenerated && post.claimStatus !== 'claimed' && post.contactEmail) {
+      const postUrl = `${window.location.origin}/service-detail?id=${post.id}`;
+      const subject = `New customer inquiry via Gigspace — ${post.title}`;
+      const body =
+        `Hi ${post.sellerName || 'there'},\n\n` +
+        `I found your business on Gigspace and I'm interested in your services.\n\n` +
+        `[Write your message here]\n\n` +
+        `---\n` +
+        `This message was sent by a customer who found your free listing on Gigspace:\n` +
+        `${postUrl}\n\n` +
+        `Are you the owner of this business? Claim your free listing to chat with customers directly and win more work:\n` +
+        `${window.location.origin}/post-service?claim=${post.id}`;
+      window.location.href = `mailto:${post.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      return;
+    }
     if (!user) { navigate('/signin'); return; }
     if (isOwnService) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -510,12 +530,14 @@ const ServiceDetail = () => {
             const target = `/post-service?claim=${post.id}`;
             navigate(user ? target : `/signin?next=${encodeURIComponent(target)}`);
           }}
-          className="w-full text-left mb-6 flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3.5 hover:bg-blue-500/15 transition-colors"
+          className="w-full mb-6 flex items-center justify-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3.5 hover:bg-blue-500/15 transition-colors cursor-pointer"
         >
-          <Megaphone className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-          <span className="text-sm text-slate-200">
+          <Globe className="w-5 h-5 text-blue-400 flex-shrink-0" />
+          <span className="text-sm text-slate-200 text-center">
             This post was generated from publicly available business info.{' '}
-            <span className="font-semibold text-blue-300">Are you the business owner? Click here to claim and update it.</span>
+            <span className="font-semibold text-blue-300">
+              Are you the business owner? <span className="underline underline-offset-2">Click here to claim and update it.</span>
+            </span>
           </span>
         </button>
       )}
@@ -692,7 +714,8 @@ const ServiceDetail = () => {
           {/* Price */}
           {post.priceType === 'contact_for_pricing' ? (
             <div className="mb-5">
-              <span className="text-white text-sm font-semibold">Contact for pricing</span>
+              {/* Per client: slate-100, 18px, medium weight */}
+              <span className="text-slate-100 text-lg font-medium">Contact for pricing</span>
             </div>
           ) : post.priceMin != null && (
             <div className="mb-5">
