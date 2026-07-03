@@ -77,6 +77,7 @@ export interface ListingBusiness {
   location: string;   // "City, State" — what generated posts display
   website: string;    // only businesses with a website are returned
   logo: string;       // website favicon, used as the post's avatar
+  email: string;      // contact email scraped at search time ('' if none found)
   rating: number;
   reviewCount: number;
   description: string;
