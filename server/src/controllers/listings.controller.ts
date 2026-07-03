@@ -96,7 +96,7 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
     const data = (await resp.json()) as { places?: Place[] };
     // Only businesses with a website are imported — we scrape it for a description
     // and a contact email that powers "Message seller" on unclaimed listings.
-    const businesses = (data.places ?? [])
+    const mapped = (data.places ?? [])
       .filter((p) => !!p.websiteUri)
       .map((p) => ({
         placeId: p.id,
@@ -118,6 +118,11 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
           time: r.publishTime ? new Date(r.publishTime).getTime() : Date.now(),
         })),
       }));
+
+    // Scrape contact emails up front (parallel, email-only) so the admin can see
+    // which businesses are reachable before choosing what to generate.
+    const emails = await Promise.all(mapped.map((b) => scrapeEmail(b.website)));
+    const businesses = mapped.map((b, i) => ({ ...b, email: emails[i] }));
 
     res.json({ businesses });
   } catch (err) {
@@ -220,6 +225,20 @@ function pageEmail(html: string): string {
   return '';
 }
 
+// Email-only scrape used at search time: homepage, then contact pages.
+async function scrapeEmail(website: string): Promise<string> {
+  let origin = '';
+  try { origin = new URL(website).origin; } catch { return ''; }
+  const home = await fetchPage(website);
+  let email = home ? pageEmail(home) : '';
+  for (const p of ['/contact', '/contact-us']) {
+    if (email) break;
+    const html = await fetchPage(origin + p);
+    if (html) email = pageEmail(html);
+  }
+  return email;
+}
+
 interface ScrapedSite { title: string; description: string; email: string }
 
 async function scrapeWebsite(website: string): Promise<ScrapedSite> {
@@ -271,6 +290,7 @@ interface GenBusiness {
   location?: string;
   website?: string;
   logo?: string;
+  email?: string;    // scraped at search time; generate reuses it
   description?: string;
   type?: string;
   images?: string[];
@@ -334,7 +354,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         claimedBy: null,
         placeId: b.placeId ?? '',
         website: b.website ?? '',
-        contactEmail: site.email,  // powers the "Message seller" mailto on unclaimed posts
+        contactEmail: b.email || site.email,  // powers the "Message seller" mailto on unclaimed posts
         reviewCount,
         totalStars,
         createdAt: now,

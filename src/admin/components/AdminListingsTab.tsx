@@ -97,7 +97,7 @@ export default function AdminListingsTab() {
     try {
       const { businesses } = await adminSearchListings({ keyword: keyword.trim(), city: city.trim() });
       setResults(businesses);
-      setSelected(new Set(businesses.map((b) => b.placeId))); // select all by default
+      setSelected(new Set()); // admin picks manually (e.g. only businesses with an email)
       if (businesses.length === 0) toast.message('No businesses found for that search.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Search failed');
@@ -227,10 +227,10 @@ export default function AdminListingsTab() {
                     <button onClick={() => toggle(b.placeId)} className="mt-0.5 text-slate-400 hover:text-blue-400 flex-shrink-0">
                       {checked ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5" />}
                     </button>
-                    {b.images[0] ? (
-                      <img src={b.images[0]} alt={b.name} className="w-14 h-14 rounded-lg object-cover border border-slate-700/60 flex-shrink-0" />
+                    {b.logo ? (
+                      <img src={b.logo} alt="" title="Business favicon (post avatar)" className="w-9 h-9 rounded-full bg-white object-contain flex-shrink-0" />
                     ) : (
-                      <div className="w-14 h-14 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center flex-shrink-0 text-slate-600 text-lg font-bold">
+                      <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700/60 flex items-center justify-center flex-shrink-0 text-slate-600 text-sm font-bold">
                         {b.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -253,6 +253,11 @@ export default function AdminListingsTab() {
                           </a>
                         )}
                       </div>
+                      <p className="mt-0.5 text-xs">
+                        {b.email
+                          ? <a href={`mailto:${b.email}`} onClick={(e) => e.stopPropagation()} className="text-emerald-400 hover:underline">{b.email}</a>
+                          : <span className="text-slate-600">no email found</span>}
+                      </p>
                     </div>
                   </li>
                 );
