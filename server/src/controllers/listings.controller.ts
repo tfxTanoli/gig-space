@@ -210,6 +210,35 @@ function mergeParagraphs(parts: string[], extras: string[]): string[] {
   return parts;
 }
 
+// Post images come from the business's own website (og:image first, then large
+// content images) — Google Places photos are only a fallback when the site has none.
+const IMG_BLOCKLIST = /logo|icon|favicon|sprite|avatar|placeholder|captcha|badge|tracking|pixel|\.svg|\.gif/i;
+
+function pageImages(html: string, pageUrl: string): string[] {
+  const out: string[] = [];
+  const add = (raw: string | undefined, requireExt: boolean) => {
+    if (!raw || out.length >= 5) return;
+    try {
+      const abs = new URL(decodeEntities(raw), pageUrl).href;
+      if (!/^https?:/i.test(abs) || IMG_BLOCKLIST.test(abs)) return;
+      if (requireExt && !/\.(jpe?g|png|webp)([?#]|$)/i.test(abs)) return;
+      if (!out.includes(abs)) out.push(abs);
+    } catch { /* unparseable URL */ }
+  };
+  // Declared social images are trustworthy even without a file extension.
+  add(metaContent(html, 'og:image'), false);
+  add(metaContent(html, 'twitter:image'), false);
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    if (out.length >= 5) break;
+    const tag = m[0];
+    const w = Number(tag.match(/\bwidth=["']?(\d+)/i)?.[1] ?? 0);
+    const h = Number(tag.match(/\bheight=["']?(\d+)/i)?.[1] ?? 0);
+    if ((w && w < 300) || (h && h < 200)) continue; // skip small/decorative images
+    add(tag.match(/\b(?:data-src|data-lazy-src|src)=["']([^"']+)["']/i)?.[1], true);
+  }
+  return out;
+}
+
 const EMAIL_VALID = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 function pageEmail(html: string): string {
   const mailto = html.match(/mailto:([^"'?\s>]+)/i)?.[1];
@@ -239,10 +268,10 @@ async function scrapeEmail(website: string): Promise<string> {
   return email;
 }
 
-interface ScrapedSite { title: string; description: string; email: string }
+interface ScrapedSite { title: string; description: string; email: string; images: string[] }
 
 async function scrapeWebsite(website: string): Promise<ScrapedSite> {
-  const out: ScrapedSite = { title: '', description: '', email: '' };
+  const out: ScrapedSite = { title: '', description: '', email: '', images: [] };
   let origin = '';
   try { origin = new URL(website).origin; } catch { return out; }
 
@@ -251,6 +280,7 @@ async function scrapeWebsite(website: string): Promise<ScrapedSite> {
   if (home) {
     out.title = pageTitle(home);
     out.email = pageEmail(home);
+    out.images = pageImages(home, website);
     const meta = metaContent(home, 'og:description') || metaContent(home, 'description');
     if (meta.length >= 60) descParts.push(meta);
     descParts = mergeParagraphs(descParts, pageParagraphs(home));
@@ -312,7 +342,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
 
     // Scrape all selected websites up front (parallel) — title, description, email.
     const scraped = await Promise.all(
-      businesses.map((b) => (b.website ? scrapeWebsite(b.website) : Promise.resolve({ title: '', description: '', email: '' }))),
+      businesses.map((b) => (b.website ? scrapeWebsite(b.website) : Promise.resolve<ScrapedSite>({ title: '', description: '', email: '', images: [] }))),
     );
 
     for (let i = 0; i < businesses.length; i++) {
@@ -321,7 +351,8 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       const ref = db.ref('services').push();
       const id = ref.key as string;
       const now = Date.now();
-      const images = Array.isArray(b.images) ? b.images : [];
+      // Prefer images from the business's own website; Places photos are the fallback.
+      const images = site.images.length ? site.images : (Array.isArray(b.images) ? b.images : []);
       const reviews = Array.isArray(b.reviews) ? b.reviews : [];
       const reviewCount = reviews.length;
       const totalStars = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0);

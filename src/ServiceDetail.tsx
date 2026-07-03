@@ -882,9 +882,9 @@ const ServiceDetail = () => {
             pct: Math.round((reviews.filter((r) => r.rating === star).length / reviews.length) * 100),
           }));
           return (
-            <div className="flex flex-col lg:flex-row items-start" style={{ gap: 136 }}>
-              {/* Left: aggregate summary + bar breakdown — 384px wide */}
-              <div style={{ width: 384 }} className="shrink-0 flex flex-col">
+            <div className="flex flex-col lg:flex-row items-start gap-10 lg:gap-[136px]">
+              {/* Left: aggregate summary + bar breakdown — 384px wide on desktop, fluid on mobile */}
+              <div className="w-full max-w-[384px] lg:w-[384px] shrink-0 flex flex-col">
                 <div className="flex items-center gap-3 mb-2">
                   <FilledStars count={avg} size={20} />
                 </div>
@@ -908,8 +908,8 @@ const ServiceDetail = () => {
                 </div>
               </div>
 
-              {/* Right: individual reviews — 696px wide */}
-              <div style={{ width: 696 }} className="flex flex-col">
+              {/* Right: individual reviews — 696px wide on desktop, fluid on mobile */}
+              <div className="w-full lg:w-[696px] min-w-0 flex flex-col">
                 <div className="divide-y divide-slate-800/60">
                   {reviews.slice(0, visibleReviews).map((review) => (
                     <div key={review.orderId} className="py-5 first:pt-0 flex gap-4">
