@@ -210,118 +210,6 @@ function mergeParagraphs(parts: string[], extras: string[]): string[] {
   return parts;
 }
 
-// Post images come from the business's own website (og:image first, then large
-// content images) — Google Places photos are only a fallback when the site has none.
-// Every candidate is downloaded and its REAL pixel size checked: logos, thumbnails
-// and low-res portfolio images don't survive the gate.
-const IMG_BLOCKLIST = /logos?|icon|favicon|sprite|avatar|placeholder|captcha|badge|tracking|pixel|thumb|stamp|seal|\.svg|\.gif/i;
-const MAX_IMG_CANDIDATES = 12;
-
-function pageImages(html: string, pageUrl: string): string[] {
-  const out: string[] = [];
-  const add = (raw: string | undefined, requireExt: boolean) => {
-    if (!raw || out.length >= MAX_IMG_CANDIDATES) return;
-    try {
-      const abs = new URL(decodeEntities(raw), pageUrl).href;
-      if (!/^https?:/i.test(abs) || IMG_BLOCKLIST.test(abs)) return;
-      if (requireExt && !/\.(jpe?g|png|webp)([?#]|$)/i.test(abs)) return;
-      if (!out.includes(abs)) out.push(abs);
-    } catch { /* unparseable URL */ }
-  };
-  // Declared social images are trustworthy even without a file extension.
-  add(metaContent(html, 'og:image'), false);
-  add(metaContent(html, 'twitter:image'), false);
-  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
-    if (out.length >= MAX_IMG_CANDIDATES) break;
-    const tag = m[0];
-    const w = Number(tag.match(/\bwidth=["']?(\d+)/i)?.[1] ?? 0);
-    const h = Number(tag.match(/\bheight=["']?(\d+)/i)?.[1] ?? 0);
-    if ((w && w < 300) || (h && h < 200)) continue; // skip declared-small images
-    add(tag.match(/\b(?:data-src|data-lazy-src|src)=["']([^"']+)["']/i)?.[1], true);
-  }
-  return out;
-}
-
-// Download the first ~64KB of an image — enough to read its header dimensions.
-async function fetchImageHead(url: string, maxBytes = 65536, timeoutMs = 5000): Promise<Buffer | null> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const resp = await fetch(url, {
-      signal: ctrl.signal,
-      redirect: 'follow',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GigspaceBot/1.0; +https://gigspace.co)', Accept: 'image/*' },
-    });
-    if (!resp.ok || !resp.body) return null;
-    const reader = resp.body.getReader();
-    const chunks: Buffer[] = [];
-    let total = 0;
-    while (total < maxBytes) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(Buffer.from(value));
-      total += value.length;
-    }
-    reader.cancel().catch(() => {});
-    return Buffer.concat(chunks);
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// Minimal header parsers for PNG / JPEG / WebP — no image library needed.
-function imageDims(buf: Buffer): { w: number; h: number } | null {
-  if (buf.length < 30) return null;
-  if (buf[0] === 0x89 && buf[1] === 0x50) {                       // PNG
-    return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
-  }
-  if (buf[0] === 0xff && buf[1] === 0xd8) {                       // JPEG
-    let pos = 2;
-    while (pos + 9 < buf.length) {
-      if (buf[pos] !== 0xff) { pos += 1; continue; }
-      const marker = buf[pos + 1];
-      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-        return { h: buf.readUInt16BE(pos + 5), w: buf.readUInt16BE(pos + 7) };
-      }
-      const len = buf.readUInt16BE(pos + 2);
-      if (len < 2) return null;
-      pos += 2 + len;
-    }
-    return null;
-  }
-  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
-    const fourCC = buf.toString('ascii', 12, 16);
-    if (fourCC === 'VP8X') return { w: 1 + buf.readUIntLE(24, 3), h: 1 + buf.readUIntLE(27, 3) };
-    if (fourCC === 'VP8 ') return { w: buf.readUInt16LE(26) & 0x3fff, h: buf.readUInt16LE(28) & 0x3fff };
-    if (fourCC === 'VP8L') {
-      const w = 1 + ((buf[22] | ((buf[23] & 0x3f) << 8)));
-      const h = 1 + (((buf[23] >> 6) | (buf[24] << 2) | ((buf[25] & 0x0f) << 10)));
-      return { w, h };
-    }
-  }
-  return null;
-}
-
-// Keep only genuinely large, sensibly-proportioned images (gallery renders 592×444).
-const MIN_IMG_W = 600;
-const MIN_IMG_H = 350;
-
-async function qualityImages(candidates: string[]): Promise<string[]> {
-  const checked = await Promise.all(
-    candidates.map(async (url) => {
-      const buf = await fetchImageHead(url);
-      const d = buf ? imageDims(buf) : null;
-      if (!d || d.w < MIN_IMG_W || d.h < MIN_IMG_H) return null;
-      const ratio = d.w / d.h;
-      if (ratio < 0.5 || ratio > 3.2) return null;  // skip banners/skyscrapers
-      return url;
-    }),
-  );
-  return checked.filter((u): u is string => u !== null).slice(0, 5);
-}
-
 const EMAIL_VALID = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 function pageEmail(html: string): string {
   const mailto = html.match(/mailto:([^"'?\s>]+)/i)?.[1];
@@ -351,10 +239,10 @@ async function scrapeEmail(website: string): Promise<string> {
   return email;
 }
 
-interface ScrapedSite { title: string; description: string; email: string; images: string[] }
+interface ScrapedSite { title: string; description: string; email: string }
 
 async function scrapeWebsite(website: string): Promise<ScrapedSite> {
-  const out: ScrapedSite = { title: '', description: '', email: '', images: [] };
+  const out: ScrapedSite = { title: '', description: '', email: '' };
   let origin = '';
   try { origin = new URL(website).origin; } catch { return out; }
 
@@ -363,7 +251,6 @@ async function scrapeWebsite(website: string): Promise<ScrapedSite> {
   if (home) {
     out.title = pageTitle(home);
     out.email = pageEmail(home);
-    out.images = await qualityImages(pageImages(home, website));
     const meta = metaContent(home, 'og:description') || metaContent(home, 'description');
     if (meta.length >= 60) descParts.push(meta);
     descParts = mergeParagraphs(descParts, pageParagraphs(home));
@@ -425,7 +312,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
 
     // Scrape all selected websites up front (parallel) — title, description, email.
     const scraped = await Promise.all(
-      businesses.map((b) => (b.website ? scrapeWebsite(b.website) : Promise.resolve<ScrapedSite>({ title: '', description: '', email: '', images: [] }))),
+      businesses.map((b) => (b.website ? scrapeWebsite(b.website) : Promise.resolve<ScrapedSite>({ title: '', description: '', email: '' }))),
     );
 
     for (let i = 0; i < businesses.length; i++) {
@@ -434,9 +321,8 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       const ref = db.ref('services').push();
       const id = ref.key as string;
       const now = Date.now();
-      // Prefer quality-gated images from the business's own website. If none pass,
-      // fall back to a single Places cover photo so the post still has an image.
-      const images = site.images.length ? site.images : (Array.isArray(b.images) ? b.images.slice(0, 1) : []);
+      // Post images are the business's Google Business Profile photos (owner uploads).
+      const images = Array.isArray(b.images) ? b.images : [];
       const reviews = Array.isArray(b.reviews) ? b.reviews : [];
       const reviewCount = reviews.length;
       const totalStars = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0);
