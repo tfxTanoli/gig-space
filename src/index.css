@@ -19,6 +19,7 @@
 @layer base {
   html {
     overflow-x: hidden;
+    scrollbar-gutter: stable;
   }
 
   /* Prevent browser autofill from overriding dark input backgrounds */
@@ -36,7 +37,6 @@
     @apply bg-background text-white min-h-screen font-sans;
     scroll-behavior: smooth;
     overflow-x: hidden;
-    scrollbar-gutter: stable;
   }
 
   /* Global form field text colours */

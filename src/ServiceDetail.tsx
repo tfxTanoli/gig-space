@@ -489,35 +489,37 @@ const ServiceDetail = () => {
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* ── Header ── */}
-      <header className="bg-background border-b border-slate-800/70 h-16 flex items-center justify-between px-4 md:px-6 lg:px-12">
-        <Logo className="h-6 shrink-0" />
-        <div className="flex items-center gap-3 md:gap-5">
-          {user ? (
-            <>
-              <Link
-                to="/post-service"
-                className="text-sm font-medium text-slate-300 hover:text-primary transition-colors hidden md:block"
-              >
-                Create New Post
-              </Link>
-              <HeaderUserMenu />
-            </>
-          ) : (
-            <>
-              <Link
-                to="/signin"
-                className="text-slate-300 hover:text-white text-sm font-medium transition-colors hidden md:block"
-              >
-                Log in
-              </Link>
-              <Link
-                to="/signup"
-                className="hidden md:flex items-center text-slate-300 hover:text-white text-sm px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors"
-              >
-                Sign up <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-            </>
-          )}
+      <header className="bg-background border-b border-slate-800/70 px-4 md:px-6 lg:px-12">
+        <div className="h-16 flex items-center justify-between">
+          <Logo className="h-6 shrink-0" />
+          <div className="flex items-center gap-3 md:gap-5">
+            {user ? (
+              <>
+                <Link
+                  to="/post-service"
+                  className="text-sm font-medium text-slate-300 hover:text-primary transition-colors hidden md:block"
+                >
+                  Create New Post
+                </Link>
+                <HeaderUserMenu />
+              </>
+            ) : (
+              <div className="flex items-center gap-6">
+                <Link
+                  to="/signin"
+                  className="text-slate-300 hover:text-white text-sm font-medium transition-colors hidden md:block"
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/signup"
+                  className="hidden md:flex items-center text-slate-300 hover:text-white text-sm font-medium px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors"
+                >
+                  Sign up <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
