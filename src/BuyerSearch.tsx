@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo, memo, type ReactNode } from 'react';
+﻿import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, memo, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ChevronDown,
@@ -50,22 +50,45 @@ const FilterDropdown = ({
   label, isOpen, active, onToggle, children, align = 'right',
 }: {
   label: ReactNode; isOpen: boolean; active: boolean; onToggle: () => void; children: ReactNode; align?: 'left' | 'right';
-}) => (
-  <div className="relative">
-    <button
-      onClick={onToggle}
-      className={`flex items-center text-sm transition-colors gap-1 ${active ? 'text-white font-semibold' : 'text-slate-300 hover:text-white'}`}
-    >
-      {label}
-      <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-    </button>
-    {isOpen && (
-      <div className={`absolute top-full ${align === 'left' ? 'left-0' : 'right-0'} mt-2 min-w-[180px] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50`}>
-        {children}
-      </div>
-    )}
-  </div>
-);
+}) => {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+
+  // Position via fixed coords (computed from the trigger's rect) so the panel escapes
+  // clipping from the horizontally-scrollable filter bar on mobile.
+  useLayoutEffect(() => {
+    if (!isOpen || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const panelWidth = panelRef.current?.offsetWidth ?? 180;
+    const margin = 8;
+    let left = align === 'left' ? rect.left : rect.right - panelWidth;
+    left = Math.min(Math.max(left, margin), window.innerWidth - panelWidth - margin);
+    setCoords({ top: rect.bottom + 8, left });
+  }, [isOpen, align]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={btnRef}
+        onClick={onToggle}
+        className={`flex items-center text-sm transition-colors gap-1 ${active ? 'text-white font-semibold' : 'text-slate-300 hover:text-white'}`}
+      >
+        {label}
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div
+          ref={panelRef}
+          style={coords ?? undefined}
+          className={`fixed ${coords ? '' : (align === 'left' ? 'left-0 top-full mt-2' : 'right-0 top-full mt-2')} min-w-[180px] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50`}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Opt = ({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) => (
   <button
@@ -909,7 +932,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
-            className="flex-1 bg-transparent px-3 text-sm text-white focus:outline-none placeholder-slate-500 min-w-0"
+            className="flex-1 bg-transparent px-3 text-base md:text-sm text-white focus:outline-none placeholder-slate-500 min-w-0"
           />
           <button
             onClick={commitSearch}
@@ -1040,7 +1063,10 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
 
         {/* Filter bar — horizontally scrollable on mobile */}
         <div ref={filterBarRef} className="mb-6 border-b border-slate-800 pb-4">
-          <div className="-mx-4 md:mx-0 px-4 md:px-0">
+          <div
+            className="-mx-4 md:mx-0 px-4 md:px-0 overflow-x-auto md:overflow-visible scrollbar-hide"
+            onScroll={() => setOpenDropdown(null)}
+          >
             <div className="flex items-center gap-4 md:gap-6 min-w-max md:min-w-0 md:flex-wrap">
               {/* Sort */}
               <FilterDropdown
@@ -1101,7 +1127,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                     onChange={(e) => setBudgetInput(e.target.value.replace(/\D/g, ''))}
                     onKeyDown={(e) => e.key === 'Enter' && applyBudget()}
                     placeholder="Any"
-                    className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-400"
+                    className="flex-1 bg-transparent px-2 text-base md:text-sm text-white focus:outline-none placeholder-slate-400"
                   />
                 </div>
                 <div className="flex items-center justify-between mt-4">
@@ -1288,7 +1314,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-12 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-12 mb-10">
               {paginatedPosts.map((post) => (
                 <ServiceCard
                   key={post.id}

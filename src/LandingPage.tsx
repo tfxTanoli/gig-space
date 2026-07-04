@@ -185,26 +185,28 @@ const LandingPage = () => {
               )}
             </p>
 
-            {/* Search Bar */}
-            <div className="w-full max-w-3xl flex flex-col md:flex-row items-center bg-surface-raised p-2 rounded-xl border border-slate-700/50 shadow-xl">
-              <div className="w-full md:basis-2/5 md:shrink-0">
+            {/* Search Bar — two separate fields on mobile, combined pill on desktop */}
+            <div className="w-full max-w-3xl flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-0 md:bg-surface-raised md:p-2 md:rounded-xl md:border md:border-slate-700/50 md:shadow-xl">
+              {/* Location dropdown — its own field on mobile */}
+              <div className="w-full md:basis-2/5 md:shrink-0 bg-surface-raised rounded-xl border border-slate-700/50 shadow-lg md:bg-transparent md:rounded-none md:border-none md:shadow-none">
                 <LocationSearch value={heroLocation} onChange={(label) => setHeroLocation(label)} variant="hero" />
               </div>
 
               <div className="hidden md:block w-[1px] h-8 bg-slate-600 mx-2"></div>
 
-              <div className="flex-1 w-full flex items-center pr-2">
+              {/* Search input + button — its own field on mobile */}
+              <div className="flex-1 w-full flex items-center bg-surface-raised rounded-xl border border-slate-700/50 shadow-lg p-1.5 md:bg-transparent md:rounded-none md:border-none md:shadow-none md:p-0 md:pr-2">
                 <input
                   type="text"
                   placeholder="Search for a service"
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && goToSearch()}
-                  className="w-full bg-transparent border-none text-white px-4 py-2 focus:outline-none focus:ring-0 text-sm placeholder-slate-400"
+                  className="w-full bg-transparent border-none text-white px-4 py-2 focus:outline-none focus:ring-0 text-base md:text-sm placeholder-slate-400"
                 />
                 <button
                   onClick={goToSearch}
-                  className="bg-primary hover:bg-blue-400 text-white p-3 rounded-md transition-colors flex items-center justify-center ml-2"
+                  className="bg-primary hover:bg-blue-400 text-white p-3 rounded-md transition-colors flex items-center justify-center ml-2 shrink-0"
                 >
                   <Search className="w-5 h-5 text-white" />
                 </button>
@@ -244,10 +246,10 @@ const LandingPage = () => {
                 to={`/search?category=${encodeURIComponent(cat.name)}`}
                 className="flex flex-col items-center group cursor-pointer flex-shrink-0 px-2"
               >
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
-                  <Icon className="w-8 h-8 md:w-10 md:h-10 text-primary" strokeWidth={1.5} />
+                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-surface-raised flex items-center justify-center mb-2.5 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
+                  <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary" strokeWidth={1.5} />
                 </div>
-                <span className="text-base font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
+                <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
                   {cat.name}
                 </span>
               </Link>
