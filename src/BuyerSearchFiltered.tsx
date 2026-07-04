@@ -317,8 +317,8 @@ const BuyerSearchFiltered = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 w-full py-10 flex flex-col items-center text-sm text-slate-500">
-        <div className="flex flex-wrap justify-center gap-8 mb-8">
+      <footer className="border-t border-slate-800 w-full py-12 px-6 lg:px-12 text-center text-sm text-slate-500">
+        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-8">
           <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
           <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
           <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
