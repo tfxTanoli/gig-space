@@ -543,14 +543,15 @@ const ServiceDetail = () => {
           </span>
         </button>
       )}
-      <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_512px] gap-8 lg:gap-[100px] mb-10">
+      <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_512px] lg:gap-[100px] mb-10">
 
         {/* ═══ LEFT COLUMN — gallery + description ═══ */}
-        <div className="order-2 lg:order-1 min-w-0">
+        {/* `contents` on mobile lets each block be ordered individually in the single-column flow; `lg:block` restores the two-column layout on desktop */}
+        <div className="contents lg:block lg:order-1 lg:min-w-0">
 
           {/* ── Media gallery ── */}
           {mediaItems.length > 0 ? (
-            <div className="mb-8">
+            <div className="order-2 mb-8">
               {/* Main viewer — fixed 592×444 on desktop, responsive 4:3 below */}
               <div
                 className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3]"
@@ -628,13 +629,13 @@ const ServiceDetail = () => {
               )}
             </div>
           ) : (
-            <div className="rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8" style={{ aspectRatio: '4/3' }}>
+            <div className="order-2 rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8" style={{ aspectRatio: '4/3' }}>
               <p className="text-slate-500 text-sm">No images uploaded</p>
             </div>
           )}
 
           {/* ── Description ── */}
-          <div className="mb-8">
+          <div className="order-8 mb-8">
             <h2 className="text-sm font-medium text-white mb-4">Description</h2>
             {post.description ? (
               <div
@@ -649,10 +650,10 @@ const ServiceDetail = () => {
         </div>
 
         {/* ═══ RIGHT COLUMN — price/CTA/details ═══ */}
-        <div className="order-1 lg:order-2 min-w-0">
+        <div className="contents lg:block lg:order-2 lg:min-w-0">
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4 flex-wrap">
+          <nav className="order-1 flex items-center gap-1.5 text-xs text-slate-400 mb-4 flex-wrap">
             <Link to="/search" className="text-slate-400 hover:text-slate-200 transition-colors shrink-0">All Services</Link>
             <span className="text-slate-600 shrink-0">/</span>
             <Link
@@ -675,10 +676,10 @@ const ServiceDetail = () => {
           </nav>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold mb-4 leading-snug text-slate-100">{post.title}</h1>
+          <h1 className="order-3 text-3xl font-bold mb-4 leading-snug text-slate-100">{post.title}</h1>
 
           {/* Seller row */}
-          <div className="flex items-center gap-2 mb-5">
+          <div className="order-4 flex items-center gap-2 mb-5">
             <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
@@ -693,7 +694,7 @@ const ServiceDetail = () => {
 
           {/* Rating / New seller badge (between seller and price) */}
           {!reviewsLoading && (
-            <div className="mb-5">
+            <div className="order-5 mb-5">
               {isNewSeller ? (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-md">
                   <span className="text-emerald-400 text-xs font-semibold">New seller</span>
@@ -715,12 +716,12 @@ const ServiceDetail = () => {
 
           {/* Price */}
           {post.priceType === 'contact_for_pricing' ? (
-            <div className="mb-5">
+            <div className="order-6 mb-5">
               {/* Per client: slate-100, 18px, medium weight */}
               <span className="text-slate-100 text-lg font-medium">Contact for pricing</span>
             </div>
           ) : post.priceMin != null && (
-            <div className="mb-5">
+            <div className="order-6 mb-5">
               {post.priceMax ? (
                 /* Range: From $X – $Y per project */
                 <>
@@ -743,11 +744,11 @@ const ServiceDetail = () => {
 
           {/* CTAs */}
           {isOwnService ? (
-            <div className="mb-8 bg-slate-800/50 border border-slate-700 rounded-[6px] px-4 py-3 text-center w-full max-w-[376px]">
+            <div className="order-7 mb-8 bg-slate-800/50 border border-slate-700 rounded-[6px] px-4 py-3 text-center w-full max-w-[376px]">
               <p className="text-slate-400 text-sm">This is your service</p>
             </div>
           ) : (
-            <div className="flex items-stretch gap-3 mb-8">
+            <div className="order-7 flex items-stretch gap-3 mb-8">
               <button
                 onClick={handleContactSeller}
                 className="w-full max-w-[320px] bg-primary hover:bg-blue-400 text-white font-semibold py-3 rounded-[6px] transition-colors text-sm"
@@ -764,11 +765,11 @@ const ServiceDetail = () => {
             </div>
           )}
 
-          <hr className="border-slate-700/60 mb-8" />
+          <hr className="order-9 border-slate-700/60 mb-8" />
 
           {/* Locations */}
           {(post.primaryLocation || post.offeredRemotely || post.extraLocations?.length > 0) && (
-            <div className="mb-7">
+            <div className="order-10 mb-7">
               <h3 className="text-sm font-medium text-white mb-2">Locations Served</h3>
               <div className="text-slate-400 text-sm space-y-1">
                 {post.primaryLocation && <p>{post.primaryLocation}</p>}
@@ -784,19 +785,21 @@ const ServiceDetail = () => {
 
           {/* Real map */}
           {(post.primaryLocation || (post.extraLocations?.length > 0)) && (
-            <ServiceMap
-              primaryLocation={post.primaryLocation}
-              primaryLat={post.primaryLocationLat}
-              primaryLng={post.primaryLocationLng}
-              extraLocations={post.extraLocations ?? []}
-            />
+            <div className="order-11">
+              <ServiceMap
+                primaryLocation={post.primaryLocation}
+                primaryLat={post.primaryLocationLat}
+                primaryLng={post.primaryLocationLng}
+                extraLocations={post.extraLocations ?? []}
+              />
+            </div>
           )}
 
-          <hr className="border-slate-700/60 mb-8" />
+          <hr className="order-12 border-slate-700/60 mb-8" />
 
           {/* Languages */}
           {post.languages?.length > 0 && (
-            <div className="mb-7">
+            <div className="order-[13] mb-7">
               <h3 className="text-sm font-medium text-white mb-2">Languages Spoken</h3>
               <div className="text-slate-400 text-sm space-y-0.5">
                 {post.languages.map((lang) => (
@@ -807,15 +810,15 @@ const ServiceDetail = () => {
           )}
 
           {/* Offered Remotely */}
-          <div className="mb-7">
+          <div className="order-[14] mb-7">
             <h3 className="text-sm font-medium text-white mb-2">Offered Remotely</h3>
             <p className="text-slate-400 text-sm">{post.offeredRemotely ? 'Yes' : 'No'}</p>
           </div>
 
-          <hr className="border-slate-700/60 mb-8" />
+          <hr className="order-[15] border-slate-700/60 mb-8" />
 
           {/* Share */}
-          <div>
+          <div className="order-[16]">
             <h3 className="text-sm font-medium text-white mb-3">Share</h3>
             <div className="flex items-center gap-3">
               {/* Facebook */}
