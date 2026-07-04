@@ -1395,23 +1395,23 @@ const PostService = () => {
         {step < 9 && !isStep8WithPayment && (
           <>
             <div className="w-full h-px bg-slate-800 my-8" />
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
               {step === 1 ? (
-                <Link to="/seller-dashboard" className="px-6 py-2 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
+                <Link to="/seller-dashboard" className="w-full sm:w-auto text-center px-6 py-2.5 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
                   Cancel
                 </Link>
               ) : (
-                <button onClick={prevStep} className="px-6 py-2 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
+                <button onClick={prevStep} className="w-full sm:w-auto text-center px-6 py-2.5 rounded-lg border border-slate-700 text-white font-medium hover:bg-slate-800 transition-colors text-sm">
                   Back
                 </button>
               )}
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 {step < 8 && (
                   <button
                     onClick={() => saveStep(true)}
                     disabled={saving || publishing}
-                    className="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 font-medium hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                    className="w-full sm:w-auto text-center px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                   >
                     Save &amp; exit
                   </button>
@@ -1420,7 +1420,7 @@ const PostService = () => {
                 <button
                   onClick={step === 8 ? () => doPublish() : () => saveStep(false)}
                   disabled={saving || publishing}
-                  className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                 >
                   {step === 8 ? (
                     publishing
