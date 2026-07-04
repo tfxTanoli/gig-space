@@ -235,7 +235,7 @@ const BuyerDashboard = () => {
   const isMessagesTab = activeTab === 'Messages';
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
+    <div className="h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* Payment success toast */}
       {paymentSuccessToast && (
@@ -306,7 +306,7 @@ const BuyerDashboard = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800 shrink-0">
+        <header className="sticky top-0 z-30 h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800 shrink-0">
           {/* Mobile: logo */}
           <span className="md:hidden mr-3">
             <Logo className="h-6" />
@@ -374,6 +374,14 @@ const BuyerDashboard = () => {
                     >
                       <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
                       Affiliate Program
+                    </Link>
+                    <Link
+                      to="/seller-dashboard"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className="w-4 h-4 shrink-0 text-slate-500" />
+                      Switch to seller dashboard
                     </Link>
                   </div>
 

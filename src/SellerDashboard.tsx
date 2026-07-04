@@ -709,7 +709,7 @@ const handleTabChange = useCallback((tab: string) => {
   }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
+    <div className="h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* Post detail modal */}
       {selectedPost && (
@@ -786,7 +786,7 @@ const handleTabChange = useCallback((tab: string) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800">
+        <header className="sticky top-0 z-30 shrink-0 h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800">
           {/* Mobile: logo */}
           <span className="md:hidden mr-3">
             <Logo className="h-6" />
@@ -855,6 +855,14 @@ const handleTabChange = useCallback((tab: string) => {
                     >
                       <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
                       Affiliate Program
+                    </Link>
+                    <Link
+                      to="/buyer-dashboard"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4 shrink-0 text-slate-500" />
+                      Switch to buyer dashboard
                     </Link>
                   </div>
 
