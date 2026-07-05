@@ -118,7 +118,7 @@ const LandingPage = () => {
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* Shared starry background wrapper: header + hero */}
-      <div className="relative flex flex-col">
+      <div className="relative flex flex-col min-h-screen lg:min-h-0">
         <StarryBackground />
 
         {/* Header */}
@@ -173,13 +173,13 @@ const LandingPage = () => {
         {/* Hero Section */}
         <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-24 pb-12 md:pb-16 px-4 text-center relative">
           <div className="relative z-10 w-full flex flex-col items-center">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold gradient-heading mb-4 md:mb-6">
+            <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading tracking-tight mb-4 md:mb-6">
               Local talent. On demand.
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-12">
+            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-12 text-balance">
               {tagline || (
                 <>
-                  Hire talented pros for in-person services or remote experts for digital work.
+                  Hire talented pros for in-person services or remote experts for digital work.{' '}
                   <br className="hidden md:block"/>
                   One marketplace for everything you need.
                 </>

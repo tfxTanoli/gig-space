@@ -169,7 +169,7 @@ const AffiliateLanding = () => {
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* Shared starry background wrapper: header + hero */}
-      <div className="relative flex flex-col">
+      <div className="relative flex flex-col min-h-screen lg:min-h-0">
         <StarryBackground />
 
         {/* Header */}
@@ -235,14 +235,15 @@ const AffiliateLanding = () => {
         </header>
 
         {/* Hero */}
-        <section className="flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-28 px-4 text-center relative">
+        <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-28 px-4 text-center relative">
           <div className="relative z-10 flex flex-col items-center">
             <div className="inline-flex items-center border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold text-slate-300 mb-6 md:mb-8">The Gigspace affiliate program is now live!</div>
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
-              Earn Big Commissions for<br />Every Job Booked
+            <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight max-w-4xl mx-auto">
+              Earn Big Commissions for{' '}<br className="hidden md:block" />Every Job Booked
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed">
-              Get paid every time someone hires a service through your link.<br />
+            <p className="text-slate-300 text-sm md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
+              Get paid every time someone hires a service through your link.{' '}
+              <br className="hidden md:block" />
               Earn 50% of our platform fee on every completed job.
             </p>
             <Link

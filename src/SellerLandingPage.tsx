@@ -159,7 +159,7 @@ const SellerLandingPage = () => {
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
 
       {/* Shared starry background wrapper: header + hero */}
-      <div className="relative flex flex-col">
+      <div className="relative flex flex-col min-h-screen lg:min-h-0">
         <StarryBackground />
 
         {/* Header */}
@@ -220,11 +220,12 @@ const SellerLandingPage = () => {
               <span>Stripe integration is now live 💸</span>
             </div>
 
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
-              Get Discovered. Get Hired.<br/>Get Paid.
+            <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight max-w-4xl mx-auto">
+              Get Discovered. Get Hired.{' '}<br className="hidden md:block"/>Get Paid.
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed">
-              From home repairs to digital work and everything in between.<br />
+            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
+              From home repairs to digital work and everything in between.{' '}
+              <br className="hidden md:block" />
               Turn any skill into income and earn doing what you do best.
             </p>
 
