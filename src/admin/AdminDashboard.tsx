@@ -41,11 +41,9 @@ import AdminUserDetail from './components/AdminUserDetail';
 import AdminUserEditModal from './components/AdminUserEditModal';
 import AdminUserDeleteModal from './components/AdminUserDeleteModal';
 import AdminSettingsPage from './components/AdminSettingsPage';
-import AdminServiceViewModal from './components/AdminServiceViewModal';
 import AdminAffiliatesTable, { type AdminAffiliate } from './components/AdminAffiliatesTable';
 import AdminOrderViewModal from './components/AdminOrderViewModal';
 import AdminOrderEditModal from './components/AdminOrderEditModal';
-import AdminOrderDeleteModal from './components/AdminOrderDeleteModal';
 import AdminAffiliateViewModal from './components/AdminAffiliateViewModal';
 import AdminAffiliateEditModal from './components/AdminAffiliateEditModal';
 import AdminActivityFeed from './components/AdminActivityFeed';
@@ -209,13 +207,11 @@ const AdminDashboard = () => {
   // Subscription events for the dashboard activity feed (sourced from Stripe via backend).
   const [subEvents, setSubEvents] = useState<{ sellerName: string; amount: number; createdAt: number }[]>([]);
 
-  const [viewService,  setViewService]  = useState<AdminService | null>(null);
   const [editPost,     setEditPost]     = useState<AdminService | null>(null);
   const [createPost,   setCreatePost]   = useState(false);
 
   const [viewOrder,    setViewOrder]    = useState<AdminOrder | null>(null);
   const [editOrder,    setEditOrder]    = useState<AdminOrder | null>(null);
-  const [deleteOrder,  setDeleteOrder]  = useState<AdminOrder | null>(null);
   const [viewAffiliate,  setViewAffiliate]  = useState<AdminAffiliate | null>(null);
   const [editAffiliate,  setEditAffiliate]  = useState<AdminAffiliate | null>(null);
 
@@ -232,7 +228,6 @@ const AdminDashboard = () => {
     setServices((prev) => prev?.filter((s) => s.id !== id) ?? null);
 
   const handleOrderEditSuccess   = (updated: AdminOrder) => setOrders((prev) => prev?.map((o) => o.orderId === updated.orderId ? updated : o) ?? null);
-  const handleOrderDeleteSuccess = (orderId: string) => setOrders((prev) => prev?.filter((o) => o.orderId !== orderId) ?? null);
 
   const handleAffiliateEditSuccess = (updated: AdminAffiliate) =>
     setAffiliates((prev) => prev?.map((a) => a.uid === updated.uid ? updated : a) ?? null);
@@ -459,7 +454,6 @@ const AdminDashboard = () => {
             <AdminServicesTable
               services={filteredServices}
               loading={servicesLoading && services === null}
-              onView={setViewService}
               onEdit={setEditPost}
               onNew={() => setCreatePost(true)}
             />
@@ -632,8 +626,6 @@ const AdminDashboard = () => {
       {createUserOpen      && <AdminUserCreateModal      onClose={() => setCreateUserOpen(false)}      onSuccess={handleUserCreateSuccess} />}
       {createAffiliateOpen && <AdminAffiliateCreateModal onClose={() => setCreateAffiliateOpen(false)} onSuccess={handleAffiliateCreateSuccess} />}
 
-      {viewService && <AdminServiceViewModal service={viewService} onClose={() => setViewService(null)} />}
-
       {/* Edit post: use full drawer instead of modal */}
       {editPost && (
         <AdminPostEditDrawer
@@ -656,13 +648,6 @@ const AdminDashboard = () => {
           order={editOrder}
           onClose={() => setEditOrder(null)}
           onSuccess={handleOrderEditSuccess}
-        />
-      )}
-      {deleteOrder && (
-        <AdminOrderDeleteModal
-          order={deleteOrder}
-          onClose={() => setDeleteOrder(null)}
-          onSuccess={handleOrderDeleteSuccess}
         />
       )}
       {viewAffiliate && <AdminAffiliateViewModal affiliate={viewAffiliate} onClose={() => setViewAffiliate(null)} />}

@@ -111,7 +111,8 @@ const fmt = (n: number, isCurrency?: boolean) => {
 };
 
 const AdminStatsCards = ({ stats, loading }: Props) => (
-  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+  // auto-rows-fr keeps both rows the same height even when a card has a hint line.
+  <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-fr gap-4">
     {CARDS.map(({ key, label, hint, Icon, color, bg, isCurrency }) => {
       const hintText = !loading && stats && hint ? hint(stats) : '';
       return (

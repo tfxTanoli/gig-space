@@ -53,17 +53,22 @@ function LineChart({
   const plotH = H - PAD_T - PAD_B;
 
   const values = data.map((d) => d.value);
-  const max = Math.max(...values, 1);
+  const max = Math.max(...values, 0);
+
+  // Scale to an even integer ceiling so the mid tick is a whole number and the
+  // axis never repeats a value (e.g. max 1 used to render as "1, 1, 0").
+  const tickMax = max <= 1 ? 1 : Math.ceil(max / 2) * 2;
 
   const x = (i: number) => PAD_L + (data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW);
-  const y = (v: number) => PAD_T + (1 - v / max) * plotH;
+  const y = (v: number) => PAD_T + (1 - v / tickMax) * plotH;
 
   const pts = data.map((d, i) => ({ x: x(i), y: y(d.value) }));
   const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const fillPath = `${linePath} L${pts[pts.length - 1].x.toFixed(1)},${(PAD_T + plotH).toFixed(1)} L${pts[0].x.toFixed(1)},${(PAD_T + plotH).toFixed(1)} Z`;
 
-  // Three horizontal gridlines / Y-axis ticks: max, mid, 0.
-  const ticks = [max, max / 2, 0];
+  // Horizontal gridlines / Y-axis ticks — drop the mid tick when the range is
+  // too small for it to be a distinct integer.
+  const ticks = tickMax <= 1 ? [tickMax, 0] : [tickMax, tickMax / 2, 0];
 
   return (
     <div className="relative">

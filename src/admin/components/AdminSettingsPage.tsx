@@ -29,7 +29,6 @@ const credError = (err: unknown, fallback: string) => {
 
 interface GeneralSettings {
   platformName: string;
-  tagline: string;
   supportEmail: string;
   maintenanceMode: boolean;
 }
@@ -267,12 +266,18 @@ function CmsTab() {
       setFaqQ(''); setFaqA(''); setEditingFaq(null);
       setFaqSaved(true);
       setTimeout(() => setFaqSaved(false), 3000);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save FAQ');
     } finally { setFaqSaving(false); }
   };
 
   const deleteFaq = async (id: string) => {
-    await set(dbRef(database, `cms/faqs/${id}`), null);
-    setFaqs((prev) => prev.filter((f) => f.id !== id));
+    try {
+      await set(dbRef(database, `cms/faqs/${id}`), null);
+      setFaqs((prev) => prev.filter((f) => f.id !== id));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete FAQ');
+    }
   };
 
   const seedDefaults = async () => {
@@ -283,8 +288,12 @@ function CmsTab() {
       updates[id] = { question: f.question, answer: f.answer };
       seeded.push({ id, ...f });
     });
-    await update(dbRef(database, 'cms/faqs'), updates);
-    setFaqs((prev) => [...prev, ...seeded]);
+    try {
+      await update(dbRef(database, 'cms/faqs'), updates);
+      setFaqs((prev) => [...prev, ...seeded]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load default FAQs');
+    }
   };
 
   const saveText = async (key: 'terms' | 'privacy', value: string, setSaving: (v: boolean) => void, setSaved: (v: boolean) => void) => {
@@ -293,6 +302,8 @@ function CmsTab() {
       await set(dbRef(database, `cms/${key}`), value);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Save failed — check your connection and try again');
     } finally { setSaving(false); }
   };
 
@@ -650,7 +661,7 @@ const AdminSettingsPage = () => {
   const [fetchError, setFetchError] = useState('');
 
   const [general, setGeneral] = useState<GeneralSettings>({
-    platformName: 'Gigspace', tagline: '', supportEmail: '', maintenanceMode: false,
+    platformName: 'Gigspace', supportEmail: '', maintenanceMode: false,
   });
   const [fees, setFees] = useState<FeeSettings>({ platformFeePercent: 5, minimumWithdrawal: 10 });
   const [registration, setRegistration] = useState<RegistrationSettings>({
@@ -751,9 +762,6 @@ const AdminSettingsPage = () => {
           <SettingCard icon={Globe} iconColor="bg-blue-500/10 text-blue-400" title="Platform Information" description="General details shown across the platform" status={status.general} onSave={() => saveSection('general', general)}>
             <SettingRow label="Platform Name" hint="Displayed in the browser tab and emails" htmlFor="platformName" wide>
               <TextInput id="platformName" value={general.platformName} onChange={(v) => setGeneral((g) => ({ ...g, platformName: v }))} placeholder="Gigspace" />
-            </SettingRow>
-            <SettingRow label="Tagline" hint="Short description shown on the landing page hero" htmlFor="tagline" wide>
-              <TextInput id="tagline" value={general.tagline} onChange={(v) => setGeneral((g) => ({ ...g, tagline: v }))} placeholder="Find the perfect freelance service" />
             </SettingRow>
             <SettingRow label="Support Email" hint="Where users can reach your support team" htmlFor="supportEmail" wide>
               <TextInput id="supportEmail" type="email" value={general.supportEmail} onChange={(v) => setGeneral((g) => ({ ...g, supportEmail: v }))} placeholder="support@gigspace.com" />

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
-import { type User, onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
+import { type User, onAuthStateChanged, signOut, getRedirectResult, signInWithCustomToken } from 'firebase/auth';
 import { ref, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
-import { auth, database } from './firebase';
+import { auth, database, isImpersonating, endImpersonation, IMPERSONATION_FLAG, IMPERSONATION_NAME, IMPERSONATION_TOKEN } from './firebase';
 import { ensureUsernameIndexed } from './username';
 
 export interface UserProfile {
@@ -46,16 +46,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // collapsing the spinner before getRedirectResult has had a chance to run.
     let pendingRedirect = !!sessionStorage.getItem('authRedirectPending');
 
+    // True while an admin-impersonation custom-token sign-in is in flight —
+    // holds the spinner the same way so ProtectedRoute doesn't bounce off the
+    // initial signed-out state of the secondary Firebase app.
+    const impersonationToken = sessionStorage.getItem(IMPERSONATION_TOKEN);
+    let pendingImpersonation = isImpersonating && !!impersonationToken;
+
     // Fallback: if Firebase Auth doesn't resolve within 6s (e.g. blocked by
     // browser tracking prevention), treat session as unauthenticated so the
     // app doesn't stay blank forever.
     const fallback = setTimeout(() => {
       pendingRedirect = false;
+      pendingImpersonation = false;
       sessionStorage.removeItem('authRedirectPending');
       setLoading(false);
     }, 6000);
 
     const SESSION_TIMEOUT_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+    // Complete a pending admin impersonation: the custom token minted by the
+    // backend signs the impersonated user into this tab's secondary Firebase
+    // app. The admin's own session (default app) is never touched.
+    if (isImpersonating && impersonationToken) {
+      sessionStorage.removeItem(IMPERSONATION_TOKEN);
+      signInWithCustomToken(auth, impersonationToken).catch(() => {
+        // Token expired/invalid — drop back to the admin panel on next load.
+        sessionStorage.removeItem(IMPERSONATION_FLAG);
+        sessionStorage.removeItem(IMPERSONATION_NAME);
+        pendingImpersonation = false;
+        setUser(null);
+        setUserProfile(null);
+        setLoading(false);
+      });
+    }
 
     // Process any pending OAuth redirect result as early as possible —
     // before any child component mounts — so onAuthStateChanged receives the
@@ -89,17 +112,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       profileUnsub = null;
 
       if (!firebaseUser) {
-        // While a redirect is in flight, hold the spinner.
-        // getRedirectResult above will resolve and take over.
-        if (pendingRedirect) return;
+        // While a redirect or impersonation sign-in is in flight, hold the
+        // spinner — the pending sign-in will resolve and take over.
+        if (pendingRedirect || pendingImpersonation) return;
         setUser(null);
         setUserProfile(null);
         setLoading(false);
         return;
       }
 
-      // User signed in — redirect (if any) is complete.
+      // User signed in — redirect/impersonation (if any) is complete.
       pendingRedirect = false;
+      pendingImpersonation = false;
       sessionStorage.removeItem('authRedirectPending');
 
       // Enforce 48-hour session timeout based on the last sign-in time stored
@@ -123,8 +147,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Enforce admin deactivation: a deactivated account is signed out
         // immediately and cannot access Gigspace. The sign-in page reads the
-        // `authDeactivated` flag to explain why.
-        if (profile?.disabled) {
+        // `authDeactivated` flag to explain why. Admins impersonating a user
+        // are exempt so they can inspect deactivated accounts.
+        if (profile?.disabled && !isImpersonating) {
           sessionStorage.setItem('authDeactivated', '1');
           setUserProfile(null);
           signOut(auth);
@@ -201,6 +226,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const logout = useCallback(async () => {
+    // Signing out while impersonating just ends the impersonation — the admin
+    // returns to their panel, still signed in.
+    if (isImpersonating) {
+      endImpersonation();
+      return;
+    }
     if (user) {
       // Fire-and-forget — don't block sign-out on presence writes that may
       // hang when the RTDB connection is slow or offline.

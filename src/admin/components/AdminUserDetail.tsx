@@ -3,10 +3,8 @@ import {
   ArrowLeft, LogIn, Pencil, UserX, UserCheck, Package, DollarSign, CreditCard,
   MapPin, Loader2, ExternalLink, Wallet, ShoppingBag,
 } from 'lucide-react';
-import { signInWithCustomToken } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { auth } from '../../firebase';
+import { startImpersonation } from '../../firebase';
 import { adminGetUserStats, adminImpersonate, type AdminUserStats } from '../adminApi';
 import { type AdminUser } from './AdminUsersTable';
 
@@ -32,7 +30,6 @@ const StatCard = ({ icon: Icon, label, value, color = 'text-white' }: {
 );
 
 export default function AdminUserDetail({ user, onBack, onEdit, onDeactivate }: Props) {
-  const navigate = useNavigate();
   const [stats, setStats] = useState<AdminUserStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [impersonating, setImpersonating] = useState(false);
@@ -46,14 +43,17 @@ export default function AdminUserDetail({ user, onBack, onEdit, onDeactivate }: 
     return () => { cancelled = true; };
   }, [user.uid]);
 
+  // Enter the user's dashboard in this tab while the admin session stays signed
+  // in untouched — the floating banner's "Return to Admin" comes straight back.
   const handleImpersonate = async () => {
-    if (!window.confirm(`Sign in as ${user.name || 'this user'} for support?\n\nYou'll be signed out of admin and into their account.`)) return;
     setImpersonating(true);
     try {
       const { token } = await adminImpersonate(user.uid);
-      await signInWithCustomToken(auth, token);
-      toast.success(`Signed in as ${user.name || user.email}.`);
-      navigate('/', { replace: true });
+      const landing =
+        user.accountType === 'seller'    ? '/seller-dashboard' :
+        user.accountType === 'affiliate' ? '/affiliate-dashboard' :
+        '/buyer-dashboard';
+      startImpersonation(token, user.name || user.email, landing);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to impersonate');
       setImpersonating(false);
@@ -114,7 +114,7 @@ export default function AdminUserDetail({ user, onBack, onEdit, onDeactivate }: 
         <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : stats && (
         <>
-          {/* Stat cards */}
+          {/* Stat cards — sellers see business/earnings metrics, buyers see purchase metrics. */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
             {isSeller ? (
               <>
@@ -125,14 +125,11 @@ export default function AdminUserDetail({ user, onBack, onEdit, onDeactivate }: 
                 <StatCard icon={Wallet}      label="Lifetime Earnings" value={fmtUSD(stats.wallet.lifetimeEarnings)} />
                 <StatCard icon={Wallet}      label="Available"         value={fmtUSD(stats.wallet.availableBalance)} color="text-emerald-400" />
                 <StatCard icon={Wallet}      label="Pending"           value={fmtUSD(stats.wallet.pendingBalance)} color="text-yellow-400" />
-                <StatCard icon={ShoppingBag} label="Orders Placed"     value={stats.ordersAsBuyer} />
               </>
             ) : (
               <>
                 <StatCard icon={ShoppingBag} label="Orders Placed" value={stats.ordersAsBuyer} />
                 <StatCard icon={DollarSign}  label="Total Spent"   value={fmtUSD(stats.spentTotal)} color="text-emerald-400" />
-                <StatCard icon={Package}     label="Posts"         value={stats.postsCount} />
-                <StatCard icon={CreditCard}  label="Subscription /mo" value={stats.subscriptionCount ? fmtUSD(stats.subscriptionAmount) : '—'} color="text-blue-400" />
               </>
             )}
           </div>

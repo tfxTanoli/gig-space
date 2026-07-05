@@ -26,10 +26,19 @@ const PAYMENT_STATUSES = [
   { value: 'refunded', label: 'Refunded' },
 ];
 
+// Plain-language explanation of what each order status represents.
+const ORDER_STATUS_HELP: Record<string, string> = {
+  in_progress: 'The seller is actively working on the order.',
+  delivered:   'The seller has delivered the work and is waiting on the buyer to approve it.',
+  completed:   'The buyer approved the work — the order is finished and the seller\'s earnings move to their wallet.',
+  disputed:    'The buyer and seller disagree — review the conversation and resolve it below.',
+  cancelled:   'The order was called off before completion — no work is owed and the seller is not paid. Pair with Payment Status → Refunded to return the buyer\'s money.',
+};
+
 // Plain-language explanation of what each payment status represents.
 const PAYMENT_STATUS_HELP: Record<string, string> = {
   paid:     'Buyer has paid and the funds are held in escrow — not yet released to the seller.',
-  released: 'Escrow funds have been paid out to the seller (happens when an order is completed).',
+  released: 'Escrow funds have been paid out to the seller\'s wallet (normally happens automatically when an order is completed).',
   refunded: 'Funds were returned to the buyer. Set this when you side with the buyer on a dispute.',
 };
 
@@ -154,6 +163,9 @@ const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
+            {ORDER_STATUS_HELP[status] && (
+              <p className="text-xs text-slate-500 mt-1.5">{ORDER_STATUS_HELP[status]}</p>
+            )}
           </div>
 
           <div>

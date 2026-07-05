@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
-import { Eye, Pencil, UserX, UserCheck, Plus } from 'lucide-react';
+import { Eye, Pencil, UserX, UserCheck, Plus, Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import AdminPagination from './AdminPagination';
 
 export interface AdminAffiliate {
@@ -32,6 +33,39 @@ const fmtDate = (ts: number) =>
 
 const fmtUSD = (n: number) =>
   `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// The affiliate's unique share link — same URL their dashboard shows them.
+const referralLink = (code: string) => `${window.location.origin}?ref=${code}`;
+
+function ReferralLinkCell({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  if (!code) return <span className="text-slate-600 text-xs">—</span>;
+  const link = referralLink(code);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      toast.success('Referral link copied.');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Could not copy — select and copy the link manually.');
+    }
+  };
+  return (
+    <div className="flex items-center gap-1.5 max-w-[240px]">
+      <span className="text-slate-300 font-mono text-xs bg-slate-800 px-2 py-1 rounded truncate" title={link}>
+        {link.replace(/^https?:\/\//, '')}
+      </span>
+      <button
+        onClick={copy}
+        title="Copy referral link"
+        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors flex-shrink-0"
+      >
+        {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+      </button>
+    </div>
+  );
+}
 
 export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 100, onView, onEdit, onDeactivate, onNew }: Props) {
   const [page, setPage] = useState(0);
@@ -89,7 +123,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
           <thead>
             <tr className="text-slate-500 text-xs border-b border-slate-800 bg-background/60">
               <th className="text-left px-5 py-3.5 font-medium">Affiliate</th>
-              <th className="text-left px-5 py-3.5 font-medium">Referral Code</th>
+              <th className="text-left px-5 py-3.5 font-medium">Referral Link</th>
               <th className="text-left px-5 py-3.5 font-medium">Referrals</th>
               <th className="text-left px-5 py-3.5 font-medium">Lifetime Earnings</th>
               <th className="text-left px-5 py-3.5 font-medium">Available</th>
@@ -120,11 +154,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                 </td>
 
                 <td className="px-5 py-4">
-                  {a.referralCode ? (
-                    <span className="text-slate-300 font-mono text-xs bg-slate-800 px-2 py-1 rounded">{a.referralCode}</span>
-                  ) : (
-                    <span className="text-slate-600 text-xs">—</span>
-                  )}
+                  <ReferralLinkCell code={a.referralCode} />
                 </td>
 
                 <td className="px-5 py-4 text-slate-300">{a.totalReferrals.toLocaleString()}</td>

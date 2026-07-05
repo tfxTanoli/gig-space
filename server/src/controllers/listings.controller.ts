@@ -72,32 +72,55 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
     const { keyword, city } = (req.body ?? {}) as Record<string, string>;
     if (!keyword || !city) { res.status(400).json({ error: 'keyword and city are required' }); return; }
 
-    const resp = await fetch(TEXT_SEARCH_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': PLACES_KEY,
-        'X-Goog-FieldMask': [
-          'places.id', 'places.displayName', 'places.formattedAddress', 'places.rating',
-          'places.userRatingCount', 'places.photos', 'places.reviews',
-          'places.editorialSummary', 'places.primaryTypeDisplayName',
-          'places.websiteUri', 'places.addressComponents',
-        ].join(','),
-      },
-      body: JSON.stringify({ textQuery: `${keyword} in ${city}`, maxResultCount: 20 }),
-    });
+    // Google Places caps each page at 20 places; walk nextPageToken to pull the
+    // API's full result set (up to 60 per query — its hard maximum).
+    const places: Place[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < 3; page++) {
+      const resp = await fetch(TEXT_SEARCH_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': PLACES_KEY,
+          'X-Goog-FieldMask': [
+            'nextPageToken',
+            'places.id', 'places.displayName', 'places.formattedAddress', 'places.rating',
+            'places.userRatingCount', 'places.photos', 'places.reviews',
+            'places.editorialSummary', 'places.primaryTypeDisplayName',
+            'places.websiteUri', 'places.addressComponents',
+          ].join(','),
+        },
+        body: JSON.stringify({
+          textQuery: `${keyword} in ${city}`,
+          pageSize: 20,
+          ...(pageToken ? { pageToken } : {}),
+        }),
+      });
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      res.status(502).json({ error: `Google Places error (${resp.status}): ${text.slice(0, 300)}` });
-      return;
+      if (!resp.ok) {
+        const text = await resp.text();
+        if (page === 0) {
+          res.status(502).json({ error: `Google Places error (${resp.status}): ${text.slice(0, 300)}` });
+          return;
+        }
+        break; // keep whatever earlier pages returned
+      }
+
+      const data = (await resp.json()) as { places?: Place[]; nextPageToken?: string };
+      places.push(...(data.places ?? []));
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
     }
 
-    const data = (await resp.json()) as { places?: Place[] };
     // Only businesses with a website are imported — we scrape it for a description
     // and a contact email that powers "Message seller" on unclaimed listings.
-    const mapped = (data.places ?? [])
-      .filter((p) => !!p.websiteUri)
+    const seen = new Set<string>();
+    const mapped = places
+      .filter((p) => {
+        if (!p.websiteUri || seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      })
       .map((p) => ({
         placeId: p.id,
         name: p.displayName?.text ?? '',
@@ -291,6 +314,8 @@ interface GenBusiness {
   website?: string;
   logo?: string;
   email?: string;    // scraped at search time; generate reuses it
+  rating?: number;      // Google average rating (all reviews)
+  reviewCount?: number; // Google total review count — NOT just the ≤5 the API returns
   description?: string;
   type?: string;
   images?: string[];
@@ -324,8 +349,13 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       // Post images are the business's Google Business Profile photos (owner uploads).
       const images = Array.isArray(b.images) ? b.images : [];
       const reviews = Array.isArray(b.reviews) ? b.reviews : [];
-      const reviewCount = reviews.length;
-      const totalStars = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0);
+      // The Places API returns at most 5 review texts, but the business's REAL
+      // totals come from rating/userRatingCount — store those so the post shows
+      // e.g. "5.0 · 85 reviews" instead of counting the 5 snippets.
+      const reviewCount = Number(b.reviewCount) || reviews.length;
+      const avgRating = Number(b.rating)
+        || (reviews.length ? reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length : 0);
+      const totalStars = Math.round(avgRating * reviewCount);
       const location = b.location || b.address || '';
 
       await ref.set({

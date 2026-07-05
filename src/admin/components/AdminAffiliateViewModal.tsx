@@ -53,9 +53,9 @@ const AdminAffiliateViewModal = ({ affiliate, onClose }: Props) => {
           </div>
 
           <Field label="Username" value={affiliate.username || '—'} />
-          <Field label="Referral Code" value={
+          <Field label="Referral Link" value={
             affiliate.referralCode
-              ? <span className="font-mono text-xs bg-slate-800 px-2 py-1 rounded">{affiliate.referralCode}</span>
+              ? <span className="font-mono text-xs bg-slate-800 px-2 py-1 rounded break-all">{`${window.location.origin}?ref=${affiliate.referralCode}`.replace(/^https?:\/\//, '')}</span>
               : '—'
           } />
           <Field label="Total Referrals" value={affiliate.totalReferrals} />

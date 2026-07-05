@@ -2,7 +2,7 @@ import { lazy, Suspense, type ReactNode, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { ref as dbRef, get } from 'firebase/database';
 import { Toaster } from 'sonner'; // toast notifications
-import { database } from './firebase';
+import { database, isImpersonating, endImpersonation, IMPERSONATION_NAME } from './firebase';
 import { AuthProvider, useAuth } from './AuthContext';
 import { CategoriesProvider } from './CategoriesContext';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -125,11 +125,32 @@ function PlatformGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// Floating pill shown while an admin is impersonating a user. The admin's own
+// session is untouched in the background — "Return to Admin" reloads onto it.
+function ImpersonationBanner() {
+  if (!isImpersonating) return null;
+  const name = sessionStorage.getItem(IMPERSONATION_NAME) || 'user';
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-blue-600 text-white pl-4 pr-1.5 py-1.5 rounded-full shadow-2xl border border-blue-400/40 max-w-[calc(100vw-2rem)]">
+      <span className="text-xs font-medium truncate">
+        Impersonating <span className="font-semibold">{name}</span>
+      </span>
+      <button
+        onClick={endImpersonation}
+        className="bg-white/15 hover:bg-white/25 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors"
+      >
+        Return to Admin
+      </button>
+    </div>
+  );
+}
+
 function AppRoutes() {
   return (
     <>
       <ScrollToTop />
       <ReferralCapture />
+      <ImpersonationBanner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"                   element={<LandingPage />} />

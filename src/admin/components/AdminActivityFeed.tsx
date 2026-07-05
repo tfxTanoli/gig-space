@@ -16,7 +16,7 @@ interface Props {
 
 type ActivityItem =
   | { kind: 'signup';       name: string; ts: number }
-  | { kind: 'post';         title: string; seller: string; ts: number }
+  | { kind: 'post';         id: string; title: string; seller: string; ts: number }
   | { kind: 'order';        buyer: string; seller: string; amount: number; ts: number }
   | { kind: 'subscription'; seller: string; amount: number; ts: number };
 
@@ -58,7 +58,7 @@ export default function AdminActivityFeed({ users, services, orders, subscriptio
       .map((u): ActivityItem => ({ kind: 'signup', name: u.name || u.email, ts: u.createdAt })),
     ...services
       .filter((s) => (s.createdAt ?? 0) > 0)
-      .map((s): ActivityItem => ({ kind: 'post', title: s.title, seller: s.sellerName, ts: s.createdAt ?? 0 })),
+      .map((s): ActivityItem => ({ kind: 'post', id: s.id, title: s.title, seller: s.sellerName, ts: s.createdAt ?? 0 })),
     ...orders
       .filter((o) => o.createdAt > 0)
       .map((o): ActivityItem => ({ kind: 'order', buyer: o.buyerName, seller: o.sellerName, amount: o.amount, ts: o.createdAt })),
@@ -114,7 +114,16 @@ export default function AdminActivityFeed({ users, services, orders, subscriptio
                   )}
                   {item.kind === 'post' && (
                     <p className="text-sm text-white truncate">
-                      <span className="text-slate-400">{item.seller} · </span>{item.title}
+                      <span className="text-slate-400">{item.seller} · </span>
+                      <a
+                        href={`/service-detail?id=${item.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-blue-400 hover:underline transition-colors"
+                        title="Open post in a new tab"
+                      >
+                        {item.title}
+                      </a>
                     </p>
                   )}
                   {item.kind === 'order' && (
