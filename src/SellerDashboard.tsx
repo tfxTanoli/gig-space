@@ -52,6 +52,7 @@ import { cancelListingSubscription } from './stripe/paymentHelpers';
 import { database } from './firebase';
 import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
+import { useAppHeight } from './useAppHeight';
 import OrdersTab from './OrdersTab';
 import SettingsTab from './SettingsTab';
 import WalletTab from './components/WalletTab';
@@ -597,6 +598,8 @@ const SellerDashboard = () => {
   const [activeTab, setActiveTab] = useState('Home');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useAppHeight(shellRef);
   const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<ServicePost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -709,7 +712,7 @@ const handleTabChange = useCallback((tab: string) => {
   }, []);
 
   return (
-    <div className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
+    <div ref={shellRef} className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* Post detail modal */}
       {selectedPost && (

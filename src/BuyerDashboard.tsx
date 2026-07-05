@@ -25,6 +25,7 @@ import SettingsTab from './SettingsTab';
 import SavedTab from './SavedTab';
 import BillingTab from './components/BillingTab';
 import { useSavedServices } from './useSavedServices';
+import { useAppHeight } from './useAppHeight';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { database } from './firebase';
 
@@ -51,6 +52,8 @@ const BuyerDashboard = () => {
   const [paymentSuccessToast, setPaymentSuccessToast] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useAppHeight(shellRef);
   const unreadMessages = useUnreadMessages('buyer');
   const { savedIds } = useSavedServices();
   const savedCount = savedIds.size;
@@ -235,7 +238,7 @@ const BuyerDashboard = () => {
   const isMessagesTab = activeTab === 'Messages';
 
   return (
-    <div className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
+    <div ref={shellRef} className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* Payment success toast */}
       {paymentSuccessToast && (
