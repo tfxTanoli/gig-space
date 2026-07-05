@@ -59,6 +59,18 @@
   }
 }
 
+/* Stop iOS Safari from zooming in when a form field is focused. iOS zooms
+   whenever the focused control's font-size is under 16px, so pin every form
+   control to 16px on mobile (below the md breakpoint). Unlayered + !important
+   so it overrides Tailwind's text-sm/text-xs utilities on inputs. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 @keyframes twinkle {
   0%, 100% { opacity: 0.25; transform: scale(1); }
   50%       { opacity: 0.9;  transform: scale(1.3); }
