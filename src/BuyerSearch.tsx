@@ -946,7 +946,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
         </div>
 
         {/* Mobile search bar — shown only on small screens */}
-        <div className="md:hidden mt-3 flex items-center bg-surface-raised border border-slate-700 rounded-lg h-10">
+        <div className="md:hidden mt-3 mb-3 flex items-center bg-surface-raised border border-slate-700 rounded-lg h-10">
           <LocationSearch
             value={activeLocation}
             onChange={handleLocationChange}
