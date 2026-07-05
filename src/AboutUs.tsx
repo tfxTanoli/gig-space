@@ -127,29 +127,30 @@ const AboutUs = () => {
             )}
           </nav>
 
-          {/* Mobile hamburger */}
-          <button
-            className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
-            onClick={() => setMenuOpen(prev => !prev)}
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile: avatar + dropdown when logged in, hamburger nav otherwise */}
+          {user ? (
+            <div className="lg:hidden">
+              <HeaderUserMenu />
+            </div>
+          ) : (
+            <>
+              <button
+                className="lg:hidden text-white p-2 rounded-md hover:bg-slate-800 transition-colors"
+                onClick={() => setMenuOpen(prev => !prev)}
+                aria-label="Toggle menu"
+              >
+                {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
 
-          {/* Mobile dropdown */}
-          {menuOpen && (
-            <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
-              {user ? (
-                <HeaderUserMenu />
-              ) : (
-                <>
+              {menuOpen && (
+                <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-t border-slate-700/50 shadow-xl z-50 px-6 py-4 flex flex-col space-y-4 text-sm font-medium">
                   <Link to="/signin" className="text-slate-300 hover:text-white transition-colors py-2" onClick={() => setMenuOpen(false)}>Log in</Link>
                   <Link to="/signup" className="flex items-center justify-center text-slate-300 hover:text-white px-4 py-3 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
                     Sign up <ArrowRight className="ml-2 w-4 h-4" />
                   </Link>
-                </>
+                </div>
               )}
-            </div>
+            </>
           )}
         </header>
 
