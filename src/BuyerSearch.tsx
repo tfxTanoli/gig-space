@@ -406,6 +406,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
   const filterBarRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const categoryNavRef = useRef<HTMLElement>(null);
   const urlSyncRef = useRef('');
   const flyoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const totalPagesRef = useRef(1);
@@ -468,6 +469,25 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const clearCategory = useCallback(() => {
     setActiveCategory('');
     setActiveSubcategory('');
+  }, []);
+
+  // Tapping a category opens its subcategory flyout (touch has no hover).
+  // Categories without subcategories select the whole category directly.
+  const handleCategoryClick = useCallback((cat: string) => {
+    if (subcategoryMap[cat]?.length) {
+      showFlyout(cat);
+    } else {
+      selectCategory(cat);
+    }
+  }, [subcategoryMap, selectCategory, showFlyout]);
+
+  // Select the whole category (used by the flyout's "All …" row). Unlike
+  // selectCategory this never toggles off, so it always applies the category.
+  const selectWholeCategory = useCallback((cat: string) => {
+    setActiveCategory(cat);
+    setActiveSubcategory('');
+    setHoveredCategory(null);
+    if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
   }, []);
 
   const applyBudget = useCallback(() => {
@@ -557,6 +577,18 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [openDropdown]);
+
+  // Close the subcategory flyout when tapping outside the category nav.
+  useEffect(() => {
+    if (!hoveredCategory) return;
+    const handler = (e: MouseEvent) => {
+      if (categoryNavRef.current && !categoryNavRef.current.contains(e.target as Node)) {
+        setHoveredCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [hoveredCategory]);
 
   const handleLogout = useCallback(async () => {
     setShowMenu(false);
@@ -942,7 +974,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
       </header>
 
       {/* Category Nav */}
-      <nav className="w-full border-b border-slate-800 relative flex flex-col">
+      <nav ref={categoryNavRef} className="w-full border-b border-slate-800 relative flex flex-col">
         <div className="flex items-center w-full">
           {canScrollLeft && (
             <button
@@ -966,10 +998,13 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                   onMouseLeave={hideFlyout}
                 >
                   <button
-                    onClick={() => selectCategory(cat.value)}
-                    className={`transition-colors py-1 cursor-pointer ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
+                    onClick={() => handleCategoryClick(cat.value)}
+                    className={`flex items-center gap-1 transition-colors py-1 cursor-pointer ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
                   >
                     {cat.label}
+                    {subcategoryMap[cat.value]?.length ? (
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${hoveredCategory === cat.value ? 'rotate-180' : ''}`} />
+                    ) : null}
                   </button>
                 </li>
               ))}
@@ -989,25 +1024,22 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
         {/* Subcategory flyout — Fiverr-style list panel */}
         {hoveredCategory && subcategoryMap[hoveredCategory] && (
           <div
-            className="absolute left-0 right-0 top-full bg-surface border-b border-slate-700 shadow-2xl z-40"
+            className="absolute left-0 right-0 top-full bg-surface border-b border-slate-700 shadow-2xl z-40 max-h-[70vh] overflow-y-auto"
             onMouseEnter={keepFlyout}
             onMouseLeave={hideFlyout}
           >
-            <div className="px-6 lg:px-12 py-5">
-              <div className="mb-3 pb-3 border-b border-slate-800">
-                <h3 className="text-white font-semibold text-sm">
-                  {getCategoryLabel(hoveredCategory)}
-                </h3>
-              </div>
-              <div
-                className={`grid gap-x-10 ${
-                  subcategoryMap[hoveredCategory].length > 16
-                    ? 'grid-cols-3'
-                    : subcategoryMap[hoveredCategory].length > 8
-                    ? 'grid-cols-2'
-                    : 'grid-cols-1'
+            <div className="px-4 md:px-6 lg:px-12 py-5">
+              {/* "All …" selects the whole category */}
+              <button
+                onClick={() => selectWholeCategory(hoveredCategory)}
+                className={`flex items-center gap-2 w-full text-left mb-3 pb-3 border-b border-slate-800 transition-colors ${
+                  activeCategory === hoveredCategory && !activeSubcategory ? 'text-primary' : 'text-white hover:text-primary'
                 }`}
               >
+                <span className="font-semibold text-sm">All {getCategoryLabel(hoveredCategory)}</span>
+                <ArrowRight className="w-4 h-4 shrink-0 opacity-70" />
+              </button>
+              <div className="grid gap-x-6 md:gap-x-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {subcategoryMap[hoveredCategory].map((sub) => (
                   <button
                     key={sub.value}
