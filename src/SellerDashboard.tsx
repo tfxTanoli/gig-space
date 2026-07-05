@@ -709,7 +709,7 @@ const handleTabChange = useCallback((tab: string) => {
   }, []);
 
   return (
-    <div className="h-dvh overflow-hidden bg-background flex text-white font-sans">
+    <div className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* Post detail modal */}
       {selectedPost && (
