@@ -311,7 +311,7 @@ const BuyerDashboard = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800 shrink-0">
           {/* Mobile: logo */}
-          <span className="md:hidden mr-3">
+          <span className="md:hidden mr-3 flex items-center">
             <Logo className="h-6" />
           </span>
           <div className="flex-1" />
