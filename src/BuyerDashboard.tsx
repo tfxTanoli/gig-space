@@ -461,12 +461,12 @@ const BuyerDashboard = () => {
             <button
               key={item.name}
               onClick={() => setActiveTab(item.name)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 relative transition-colors ${
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-0.5 py-2.5 relative transition-colors ${
                 isActive ? 'text-primary' : 'text-slate-500'
               }`}
             >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              <Icon className="w-5 h-5 shrink-0" />
+              <span className="text-[9px] font-medium leading-tight w-full text-center truncate">{item.name}</span>
               {item.name === 'Messages' && unreadMessages > 0 && (
                 <span className="absolute top-1.5 right-1/4 translate-x-1/2 text-[9px] font-bold bg-amber-950 text-amber-500 min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center">
                   {unreadMessages > 9 ? '9+' : unreadMessages}
