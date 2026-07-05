@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Home, Settings, RefreshCw, FileText, Menu, X } from 'lucide-react';
+import { Home, Settings, RefreshCw, FileText } from 'lucide-react';
 
 const PayoutsIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -15,6 +15,7 @@ const PayoutsIcon = ({ className }: { className?: string }) => (
 
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
+import { useAppHeight } from './useAppHeight';
 import NotificationBell from './notifications/NotificationBell';
 import HeaderUserMenu from './HeaderUserMenu';
 import AffiliateHomeTab from './affiliate/AffiliateHomeTab';
@@ -34,7 +35,8 @@ const TABS: Array<{ name: TabName; Icon: React.ComponentType<{ className?: strin
 const AffiliateDashboard = () => {
   const { logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useAppHeight(shellRef);
 
   const tabParam = searchParams.get('tab') as TabName | null;
   const validTab = TABS.find(t => t.name === tabParam)?.name ?? 'Home';
@@ -49,7 +51,6 @@ const AffiliateDashboard = () => {
 
   const navigateTab = (tab: TabName) => {
     setActiveTab(tab);
-    setMobileOpen(false);
   };
 
   const renderTab = () => {
@@ -61,7 +62,7 @@ const AffiliateDashboard = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex text-white font-sans">
+    <div ref={shellRef} className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* ── Sidebar (desktop) ─────────────────────────────────────────────── */}
       <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
@@ -118,17 +119,10 @@ const AffiliateDashboard = () => {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
-        <header className="h-16 flex items-center justify-between px-6 bg-background border-b border-slate-800 shrink-0">
-          <button
-            className="md:hidden text-slate-400 hover:text-white mr-3"
-            onClick={() => setMobileOpen(v => !v)}
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-
+        <header className="sticky top-0 z-30 shrink-0 h-16 flex items-center justify-between px-4 md:px-6 bg-background border-b border-slate-800">
           {/* Mobile logo */}
-          <span className="md:hidden">
-            <Logo className="h-5" />
+          <span className="md:hidden mr-3 flex items-center">
+            <Logo className="h-6" />
           </span>
 
           <div className="flex-1" />
@@ -147,50 +141,30 @@ const AffiliateDashboard = () => {
           </div>
         </header>
 
-        {/* Mobile nav drawer */}
-        {mobileOpen && (
-          <div className="md:hidden bg-surface border-b border-slate-800 px-4 py-3 space-y-1 shrink-0">
-            {TABS.map(({ name, Icon }) => (
-              <button
-                key={name}
-                onClick={() => navigateTab(name)}
-                className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === name
-                    ? 'bg-blue-600/10 text-primary'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <Icon className="w-5 h-5 mr-3" />
-                {name}
-              </button>
-            ))}
-            <div className="border-t border-slate-800 mt-2 pt-2 space-y-1">
-              <Link
-                to="/seller-dashboard"
-                className="w-full flex items-center px-4 py-3 text-sm text-slate-400 hover:text-white transition-colors"
-              >
-                <RefreshCw className="w-5 h-5 mr-3" />
-                Switch to seller dashboard
-              </Link>
-              <button
-                onClick={logout}
-                className="w-full flex items-center px-4 py-3 text-sm text-slate-400 hover:text-red-500 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Sign out
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Tab content */}
-        <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden overscroll-contain">
           {renderTab()}
         </main>
       </div>
+
+      {/* ── Mobile bottom nav ─────────────────────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface border-t border-slate-800 flex items-center z-40">
+        {TABS.map(({ name, Icon }) => {
+          const active = activeTab === name;
+          return (
+            <button
+              key={name}
+              onClick={() => navigateTab(name)}
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-0.5 py-2.5 transition-colors ${
+                active ? 'text-primary' : 'text-slate-500'
+              }`}
+            >
+              <Icon className="w-5 h-5 shrink-0" />
+              <span className="text-[9px] font-medium leading-tight w-full text-center truncate">{name}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 };
