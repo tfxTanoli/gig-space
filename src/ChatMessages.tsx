@@ -1225,7 +1225,7 @@ export default function ChatMessages({
               )}
 
               {/* Input bar */}
-              <div className="p-3 border-t border-slate-800 flex items-end gap-2 bg-surface shrink-0">
+              <div className="p-3 border-t border-slate-800 flex items-end gap-1.5 bg-surface shrink-0">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1236,10 +1236,10 @@ export default function ChatMessages({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-10 px-3 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-colors shrink-0 flex items-center justify-center"
+                  className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0 flex items-center justify-center"
                   title="Attach file"
                 >
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-[18px] h-[18px]" />
                 </button>
 
                 {/* Create Offer button — seller only, when a conversation is open */}
@@ -1247,10 +1247,10 @@ export default function ChatMessages({
                   <button
                     type="button"
                     onClick={openOfferModal}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0"
+                    className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0 flex items-center justify-center"
                     title="Create offer"
                   >
-                    <Tag className="w-5 h-5" />
+                    <Tag className="w-[18px] h-[18px]" />
                   </button>
                 )}
 
@@ -1260,15 +1260,15 @@ export default function ChatMessages({
                   onChange={(e) => { setInputText(e.target.value); autoResizeInput(e.target); }}
                   onKeyDown={handleKeyDown}
                   placeholder={imageFile ? 'Add a caption…' : 'Type a message…'}
-                  className="flex-1 bg-background border border-slate-600 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
+                  className="flex-1 min-w-0 bg-background border border-slate-600 rounded-xl px-3 py-2 text-base md:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
                   rows={1}
-                  style={{ minHeight: '40px' }}
+                  style={{ minHeight: '36px' }}
                 />
                 <button
                   type="button"
                   onClick={sendMessage}
                   disabled={sending || (!inputText.trim() && !imageFile)}
-                  className="h-10 px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0 flex items-center justify-center"
+                  className="h-9 w-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors shrink-0 flex items-center justify-center"
                   title="Send"
                 >
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
