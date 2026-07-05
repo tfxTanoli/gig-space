@@ -108,7 +108,7 @@ const AboutUs = () => {
         <StarryBackground />
 
         {/* Header */}
-        <header className="relative z-10 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+        <header className="relative z-20 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
           <div className="flex items-center">
             <Logo className="h-6" />
           </div>
