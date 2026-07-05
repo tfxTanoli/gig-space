@@ -390,6 +390,9 @@ export default function ChatMessages({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      // On mobile, Enter inserts a newline (send via the button instead);
+      // on desktop, Enter sends and Shift+Enter adds a newline.
+      if (window.matchMedia('(pointer: coarse)').matches) return;
       e.preventDefault();
       sendMessage();
     }
