@@ -405,7 +405,7 @@ const BuyerDashboard = () => {
           className={`flex-1 flex flex-col min-h-0 ${
             isMessagesTab
               ? 'overflow-hidden'
-              : 'p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden'
+              : 'p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden overscroll-contain'
           }`}
         >
           {activeTab === 'Home' && (

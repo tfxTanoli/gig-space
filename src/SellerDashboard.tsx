@@ -881,7 +881,7 @@ const handleTabChange = useCallback((tab: string) => {
           </div>
         </header>
 
-        <main ref={mainRef} className={`flex-1 flex flex-col overflow-x-hidden ${activeTab === 'Messages' ? 'min-h-0 overflow-hidden' : 'p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'}`}>
+        <main ref={mainRef} className={`flex-1 flex flex-col overflow-x-hidden ${activeTab === 'Messages' ? 'min-h-0 overflow-hidden' : 'p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto overscroll-contain'}`}>
 
           {/* HOME TAB */}
           {activeTab === 'Home' && (
