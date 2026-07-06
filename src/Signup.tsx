@@ -1,10 +1,12 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Logo from './Logo';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { ref as dbRef, get } from 'firebase/database';
 import { auth, database } from './firebase';
 import { useAuth } from './AuthContext';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const b64url = (buf: Uint8Array) =>
   btoa(String.fromCharCode(...buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -50,6 +52,12 @@ const Signup = () => {
   // This fires for popup sign-in, email sign-up, and redirect returns.
   useEffect(() => {
     if (authLoading || !user) return;
+    // Fresh email/password signups must clear the 6-digit OTP gate before
+    // reaching account setup. Google sign-ins are already verified and skip it.
+    if (sessionStorage.getItem('otpPending')) {
+      navigate(next ? `/verify-email?next=${encodeURIComponent(next)}` : '/verify-email');
+      return;
+    }
     if (!userProfile?.accountType) {
       navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
     } else {
@@ -73,17 +81,22 @@ const Signup = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    // Set BEFORE creating the account so the nav effect routes to the OTP gate
+    // the moment auth state updates (rather than straight to /account-type).
+    sessionStorage.setItem('otpPending', '1');
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      // Send a verification email so the account can earn its "Verified" badge.
-      // Non-fatal if it fails — the user can resend later.
-      try {
-        await sendEmailVerification(cred.user);
-      } catch {
-        // ignore — account is created regardless
-      }
-      // useEffect above handles navigation once onAuthStateChanged fires
+      // Send the branded 6-digit verification code. Fire-and-forget — the verify
+      // screen has a Resend button if it doesn't arrive.
+      cred.user.getIdToken().then((token) =>
+        fetch(`${API_URL}/api/auth/send-verification-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        })
+      ).catch(() => { /* user can resend on the verify screen */ });
+      // useEffect above handles navigation to /verify-email once auth state fires
     } catch (err: any) {
+      sessionStorage.removeItem('otpPending');
       setError(getErrorMessage(err.code));
       setLoading(false);
     }
