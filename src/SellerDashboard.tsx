@@ -216,8 +216,12 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
   );
 });
 
-/* ── Analytics Chart ── */
+/* ── Analytics Chart ──
+   Mirrors the admin dashboard graphs: gradient fill under the lines, real
+   Y-axis values, hover tooltip with each day's numbers, and week-over-week
+   % change badges. */
 const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; clicks: number }> }) => {
+  const [hover, setHover] = useState<number | null>(null);
   const today = new Date();
   const days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(today);
@@ -230,19 +234,46 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
     return { date, views: found?.views ?? 0, clicks: found?.clicks ?? 0 };
   });
 
-  const maxVal = Math.max(1, ...filled.map((d) => Math.max(d.views, d.clicks)));
+  const maxVal = Math.max(0, ...filled.map((d) => Math.max(d.views, d.clicks)));
+  // Even integer ceiling so the Y axis never repeats a value (e.g. "1, 1, 0").
+  const tickMax = maxVal <= 1 ? 1 : Math.ceil(maxVal / 2) * 2;
   const totalViews = filled.reduce((s, d) => s + d.views, 0);
   const totalClicks = filled.reduce((s, d) => s + d.clicks, 0);
   const hasData = totalViews > 0 || totalClicks > 0;
 
-  const xOf = (i: number) => ((i / 29) * 100).toFixed(2);
-  const yOf = (v: number) => (38 - (v / maxVal) * 34).toFixed(2);
+  // Week-over-week change: last 7 days vs the 7 days before.
+  const trendOf = (key: 'views' | 'clicks') => {
+    const sum = (from: number, to: number) => filled.slice(from, to).reduce((s, d) => s + d[key], 0);
+    const last = sum(23, 30);
+    const prev = sum(16, 23);
+    if (prev === 0 && last === 0) return { text: '0%', up: true };
+    if (prev === 0)               return { text: 'New', up: true };
+    const t = ((last - prev) / prev) * 100;
+    return { text: `${t >= 0 ? '+' : ''}${t.toFixed(0)}%`, up: t >= 0 };
+  };
+  const viewsTrend  = trendOf('views');
+  const clicksTrend = trendOf('clicks');
+
+  const xOf = (i: number) => (i / 29) * 100;
+  const yOf = (v: number) => 38 - (v / tickMax) * 34;
 
   const linePath = (key: 'views' | 'clicks') =>
-    filled.map((d, i) => `${i === 0 ? 'M' : 'L'}${xOf(i)},${yOf(d[key])}`).join(' ');
+    filled.map((d, i) => `${i === 0 ? 'M' : 'L'}${xOf(i).toFixed(2)},${yOf(d[key]).toFixed(2)}`).join(' ');
 
   const areaPath = (key: 'views' | 'clicks') =>
-    `${linePath(key)} L100,40 L0,40 Z`;
+    `${linePath(key)} L100,38 L0,38 Z`;
+
+  const fmtDay = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  const trendBadge = (t: { text: string; up: boolean }) => (
+    <span
+      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${t.up ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}
+      title="Change vs. previous week"
+    >
+      {t.text}
+    </span>
+  );
 
   return (
     <div className="bg-surface border border-slate-800 rounded-xl p-5">
@@ -255,10 +286,12 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shrink-0" />
             Views <span className="text-white font-semibold ml-1">{totalViews.toLocaleString()}</span>
+            {trendBadge(viewsTrend)}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shrink-0" />
             Clicks <span className="text-white font-semibold ml-1">{totalClicks.toLocaleString()}</span>
+            {trendBadge(clicksTrend)}
           </span>
         </div>
       </div>
@@ -269,27 +302,83 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
           <div className="flex gap-2">
             {/* Y-axis labels */}
             <div className="flex flex-col justify-between text-[9px] text-slate-600 shrink-0 w-6 text-right pt-[3px] pb-[3px]">
-              <span>{fmtY(maxVal)}</span>
-              <span>{fmtY(Math.round(maxVal / 2))}</span>
+              <span>{fmtY(tickMax)}</span>
+              <span>{tickMax <= 1 ? '' : fmtY(tickMax / 2)}</span>
               <span>0</span>
             </div>
             {/* Chart */}
-            <div className="flex-1 relative">
+            <div
+              className="flex-1 relative"
+              onMouseMove={(e) => {
+                if (!hasData) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const i = Math.round(((e.clientX - rect.left) / rect.width) * 29);
+                setHover(Math.min(29, Math.max(0, i)));
+              }}
+              onMouseLeave={() => setHover(null)}
+            >
               <svg viewBox="0 0 100 40" className="w-full h-24" preserveAspectRatio="none">
-                <line x1="0" y1={yOf(maxVal * 0.25)} x2="100" y2={yOf(maxVal * 0.25)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-                <line x1="0" y1={yOf(maxVal * 0.5)}  x2="100" y2={yOf(maxVal * 0.5)}  stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-                <line x1="0" y1={yOf(maxVal * 0.75)} x2="100" y2={yOf(maxVal * 0.75)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <defs>
+                  <linearGradient id="seller-grad-views" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#3B82F6" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="seller-grad-clicks" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#F59E0B" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1={yOf(tickMax * 0.25)} x2="100" y2={yOf(tickMax * 0.25)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1={yOf(tickMax * 0.5)}  x2="100" y2={yOf(tickMax * 0.5)}  stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1={yOf(tickMax * 0.75)} x2="100" y2={yOf(tickMax * 0.75)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
                 {hasData ? (
                   <>
-                    <path d={areaPath('views')} fill="rgba(59,130,246,0.08)" />
-                    <path d={areaPath('clicks')} fill="rgba(245,158,11,0.06)" />
+                    <path d={areaPath('views')} fill="url(#seller-grad-views)" />
+                    <path d={areaPath('clicks')} fill="url(#seller-grad-clicks)" />
                     <path d={linePath('views')} fill="none" stroke="#3B82F6" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
                     <path d={linePath('clicks')} fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                    {hover !== null && (
+                      <line
+                        x1={xOf(hover)} y1={yOf(tickMax)} x2={xOf(hover)} y2={38}
+                        stroke="#64748b" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" opacity="0.6"
+                      />
+                    )}
                   </>
                 ) : (
                   <path d="M0,20 L100,20" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" vectorEffect="non-scaling-stroke" />
                 )}
               </svg>
+
+              {/* Hover dots — HTML so they stay round despite the stretched SVG */}
+              {hasData && hover !== null && (
+                <>
+                  <span
+                    className="absolute w-2 h-2 rounded-full bg-blue-500 border border-slate-900 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                    style={{ left: `${xOf(hover)}%`, top: `${(yOf(filled[hover].views) / 40) * 100}%` }}
+                  />
+                  <span
+                    className="absolute w-2 h-2 rounded-full bg-amber-500 border border-slate-900 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                    style={{ left: `${xOf(hover)}%`, top: `${(yOf(filled[hover].clicks) / 40) * 100}%` }}
+                  />
+                  {/* Tooltip */}
+                  <div
+                    className="absolute pointer-events-none z-10 px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 shadow-lg whitespace-nowrap"
+                    style={{
+                      left: `${Math.min(85, Math.max(8, xOf(hover)))}%`,
+                      top: '-4px',
+                      transform: 'translate(-50%, -100%)',
+                    }}
+                  >
+                    <p className="text-[10px] text-slate-400 leading-tight">{fmtDay(filled[hover].date)}</p>
+                    <p className="text-xs font-semibold text-white leading-tight">
+                      <span className="text-blue-400">{filled[hover].views.toLocaleString()}</span> views
+                      <span className="text-slate-600 mx-1">·</span>
+                      <span className="text-amber-400">{filled[hover].clicks.toLocaleString()}</span> clicks
+                    </p>
+                  </div>
+                </>
+              )}
+
               {!hasData && (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
                   <p className="text-xs text-slate-600 text-center">No data yet — views and clicks appear after buyers visit your posts</p>

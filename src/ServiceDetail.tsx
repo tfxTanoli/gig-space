@@ -61,6 +61,11 @@ interface ServicePost {
   claimedBy?: string | null;
   website?: string;
   contactEmail?: string;
+  placeId?: string;
+  /* Real Google totals — the Places API only returns ≤5 review texts, so the
+     loaded review list undercounts. */
+  reviewCount?: number;
+  totalStars?: number;
 }
 
 /* ─── Map helpers ─── */
@@ -263,10 +268,19 @@ const ServiceDetail = () => {
   const isOwnService = !!(user && post && user.uid === post.sellerId);
   const viewTrackedRef = useRef(false);
 
-  const isNewSeller = !reviewsLoading && reviews.length === 0;
-  const avgRating = reviews.length > 0
-    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-    : 0;
+  // Generated (Google) posts carry the business's real Google totals — show
+  // those instead of counting the ≤5 review texts the Places API hands over.
+  const googleTotals = post?.isGenerated && (post.reviewCount ?? 0) > 0
+    ? { count: post.reviewCount as number, avg: (post.totalStars ?? 0) / (post.reviewCount as number) }
+    : null;
+
+  const isNewSeller = !reviewsLoading && reviews.length === 0 && !googleTotals;
+  const avgRating = googleTotals
+    ? googleTotals.avg
+    : reviews.length > 0
+      ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+      : 0;
+  const reviewTotal = googleTotals?.count ?? reviews.length;
 
   // Build ordered media list (images + optional video)
   const mediaItems: MediaItem[] = (() => {
@@ -707,7 +721,7 @@ const ServiceDetail = () => {
                     onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
                     className="text-blue-400 text-sm hover:underline cursor-pointer"
                   >
-                    See all {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                    See all {reviewTotal.toLocaleString()} review{reviewTotal !== 1 ? 's' : ''}
                   </button>
                 </div>
               )}
@@ -878,13 +892,15 @@ const ServiceDetail = () => {
 
         {reviewsLoading ? (
           <p className="text-slate-500 text-sm">Loading reviews…</p>
-        ) : reviews.length === 0 ? (
+        ) : reviews.length === 0 && !googleTotals ? (
           <span className="text-slate-500 text-sm">No reviews yet</span>
         ) : (() => {
-          const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+          const avg = googleTotals ? googleTotals.avg : reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+          // Star breakdown comes from the loaded review texts; a generated post
+          // can have Google totals with no review texts, so guard the division.
           const breakdown = [5, 4, 3, 2, 1].map((star) => ({
             star,
-            pct: Math.round((reviews.filter((r) => r.rating === star).length / reviews.length) * 100),
+            pct: reviews.length === 0 ? 0 : Math.round((reviews.filter((r) => r.rating === star).length / reviews.length) * 100),
           }));
           return (
             <div className="flex flex-col lg:flex-row items-start gap-10 lg:gap-[136px]">
@@ -894,8 +910,28 @@ const ServiceDetail = () => {
                   <FilledStars count={avg} size={20} />
                 </div>
                 <p className="text-slate-400 text-sm mb-5">
-                  Based on {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                  Based on {reviewTotal.toLocaleString()} review{reviewTotal !== 1 ? 's' : ''}
                 </p>
+                {googleTotals && reviewTotal > reviews.length && (
+                  <p className="text-slate-500 text-xs -mt-3 mb-5">
+                    {reviews.length > 0
+                      ? `Showing the ${reviews.length} most helpful Google review${reviews.length !== 1 ? 's' : ''}.`
+                      : 'Reviews for this business live on Google.'}
+                    {post.placeId && (
+                      <>
+                        {' '}
+                        <a
+                          href={`https://search.google.com/local/reviews?placeid=${post.placeId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          View all {reviewTotal.toLocaleString()} on Google
+                        </a>
+                      </>
+                    )}
+                  </p>
+                )}
                 <div className="space-y-2.5">
                   {breakdown.map(({ star, pct }) => (
                     <div key={star} className="flex items-center gap-2.5">

@@ -56,18 +56,32 @@ const SkeletonRow = ({ cols }: { cols: number }) => (
   </tr>
 );
 
+const SELECT_CLASS =
+  'bg-surface-raised border border-slate-700/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors';
+
 const AdminOrdersTable = ({ orders, loading, pageSize = 100, onView, onEdit }: Props) => {
   const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); }, [orders.length]);
-  const visible    = orders.slice(page * pageSize, (page + 1) * pageSize);
+  const [statusFilter, setStatusFilter] = useState('all');
+  useEffect(() => { setPage(0); }, [orders.length, statusFilter]);
+
+  const filtered   = statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter);
+  const visible    = filtered.slice(page * pageSize, (page + 1) * pageSize);
   const hasActions = onView || onEdit;
   const headers    = ['Order ID', 'Buyer', 'Seller', 'Service', 'Status', 'Amount', ...(hasActions ? ['Actions'] : [])];
 
   return (
     <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Orders</h3>
-        {!loading && <span className="text-xs text-slate-500">{orders.length.toLocaleString()} total</span>}
+      <div className="px-5 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-semibold text-white">Orders</h3>
+          {!loading && <span className="text-xs text-slate-500">{filtered.length.toLocaleString()} total</span>}
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filter by status">
+          <option value="all">All statuses</option>
+          {Object.entries(STATUS_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="overflow-x-auto">
@@ -142,13 +156,13 @@ const AdminOrdersTable = ({ orders, loading, pageSize = 100, onView, onEdit }: P
           </tbody>
         </table>
 
-        {!loading && orders.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <p className="text-center text-slate-500 text-sm py-8">No orders found</p>
         )}
       </div>
 
       {!loading && (
-        <AdminPagination page={page} pageSize={pageSize} total={orders.length} onPageChange={setPage} />
+        <AdminPagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
       )}
     </div>
   );

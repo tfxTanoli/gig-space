@@ -1,14 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Search, MapPin, Star, ExternalLink, Pencil, Trash2, Sparkles, Loader2, CheckSquare, Square, Megaphone,
+  Search, MapPin, Star, ExternalLink, Pencil, Trash2, Sparkles, Loader2, CheckSquare, Square,
 } from 'lucide-react';
 import { ref as dbRef, get, update, remove } from 'firebase/database';
 import { toast } from 'sonner';
 import { database } from '../../firebase';
 import { useCategories } from '../../CategoriesContext';
 import { LANGUAGES } from '../../data/languages';
+import { searchLocations, type LocationResult } from '../../photon';
 import { adminSearchListings, adminGenerateListings, type ListingBusiness } from '../adminApi';
 import AdminPostEditDrawer from './AdminPostEditDrawer';
+import AdminPagination from './AdminPagination';
 import { type AdminService } from './AdminServicesTable';
 
 type GenListing = AdminService & {
@@ -50,11 +52,80 @@ function parseGen(id: string, s: Record<string, unknown>): GenListing {
   };
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  draft:  'bg-slate-700 text-slate-300',
-  active: 'bg-emerald-500/10 text-emerald-400',
-  paused: 'bg-yellow-500/10 text-yellow-400',
+// Single status per listing: Draft (not published) → Unclaimed (live, awaiting
+// owner) → Claimed (owner took it over).
+type GenStatus = 'draft' | 'unclaimed' | 'claimed';
+const genStatusOf = (g: GenListing): GenStatus =>
+  g.claimStatus === 'claimed' ? 'claimed' : g.status === 'draft' ? 'draft' : 'unclaimed';
+
+const GEN_STATUS_BADGE: Record<GenStatus, { label: string; cls: string }> = {
+  draft:     { label: 'Draft',     cls: 'bg-slate-700 text-slate-300' },
+  unclaimed: { label: 'Unclaimed', cls: 'bg-yellow-500/10 text-yellow-400' },
+  claimed:   { label: 'Claimed',   cls: 'bg-blue-500/10 text-blue-400' },
 };
+
+// City field with the same Photon-powered auto-suggest the buyer search uses.
+function CityAutosuggest({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [suggestions, setSuggestions] = useState<LocationResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const skipNextFetch = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (skipNextFetch.current) { skipNextFetch.current = false; return; }
+    const q = value.trim();
+    if (q.length < 2) { setSuggestions([]); setLoading(false); return; }
+    setLoading(true);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const found = await searchLocations(q, controller.signal);
+      if (!controller.signal.aborted) {
+        setSuggestions(found);
+        setOpen(found.length > 0);
+        setLoading(false);
+      }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [value]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
+        placeholder="e.g. Los Angeles, California"
+        className={`w-full ${SELECT_CLASS}`}
+      />
+      {loading && <Loader2 className="w-4 h-4 text-slate-500 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />}
+      {open && suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-30 max-h-56 overflow-y-auto py-1">
+          {suggestions.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => { skipNextFetch.current = true; onChange(s.label); setOpen(false); setSuggestions([]); }}
+              className="w-full flex items-start gap-2 text-left px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <MapPin className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminListingsTab() {
   const { categoryOptions, subcategoryMap } = useCategories();
@@ -75,6 +146,13 @@ export default function AdminListingsTab() {
   // ── Generated listings ──
   const [generated, setGenerated] = useState<GenListing[] | null>(null);
   const [editService, setEditService] = useState<GenListing | null>(null);
+
+  // ── Generated-listings table filters + pagination ──
+  const GEN_PAGE_SIZE = 20;
+  const [genPage, setGenPage] = useState(0);
+  const [genLocFilter, setGenLocFilter] = useState('');
+  const [genCatFilter, setGenCatFilter] = useState('all');
+  const [genStatusFilter, setGenStatusFilter] = useState<'all' | GenStatus>('all');
 
   const loadGenerated = async () => {
     try {
@@ -153,6 +231,16 @@ export default function AdminListingsTab() {
   const genCount = generated?.length ?? 0;
   const unclaimed = useMemo(() => (generated ?? []).filter((g) => g.claimStatus !== 'claimed').length, [generated]);
 
+  // Filtered + paginated view of the generated listings table.
+  const genFiltered = useMemo(() => (generated ?? []).filter((g) => {
+    if (genLocFilter.trim() && !(g.primaryLocation ?? '').toLowerCase().includes(genLocFilter.trim().toLowerCase())) return false;
+    if (genCatFilter !== 'all' && g.category !== genCatFilter) return false;
+    if (genStatusFilter !== 'all' && genStatusOf(g) !== genStatusFilter) return false;
+    return true;
+  }), [generated, genLocFilter, genCatFilter, genStatusFilter]);
+  useEffect(() => { setGenPage(0); }, [genLocFilter, genCatFilter, genStatusFilter, generated?.length]);
+  const genVisible = genFiltered.slice(genPage * GEN_PAGE_SIZE, (genPage + 1) * GEN_PAGE_SIZE);
+
   return (
     <>
       <div className="mb-6">
@@ -160,17 +248,11 @@ export default function AdminListingsTab() {
         <p className="text-slate-500 text-sm mt-0.5">Generate marketplace posts from public business data (Google Places)</p>
       </div>
 
-      {/* ── Search & generate panel ── */}
+      {/* ── Search & generate panel ──
+           Field order mirrors the admin workflow: pick where the posts will be
+           filed (category → subcategory) first, then what/where to search. */}
       <div className="bg-surface rounded-xl border border-slate-800 p-5 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Service / keyword</label>
-            <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. plumber, web designer" className={`w-full ${SELECT_CLASS}`} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">City</label>
-            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Staten Island, NY" className={`w-full ${SELECT_CLASS}`} />
-          </div>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Category</label>
             <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }} className={`w-full ${SELECT_CLASS}`}>
@@ -184,6 +266,14 @@ export default function AdminListingsTab() {
               <option value="">{category ? 'Select subcategory…' : 'Choose a category first'}</option>
               {subOptions.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Service / keyword</label>
+            <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. plumber, web designer" className={`w-full ${SELECT_CLASS}`} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">City</label>
+            <CityAutosuggest value={city} onChange={setCity} />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Language</label>
@@ -238,9 +328,13 @@ export default function AdminListingsTab() {
                       <p className="text-white font-medium text-sm">{b.name}</p>
                       <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{b.location || b.address || '—'}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                        {b.rating > 0 && <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{b.rating.toFixed(1)} ({b.reviewCount})</span>}
+                        {b.rating > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            {b.rating.toFixed(1)} ({b.reviewCount.toLocaleString()} review{b.reviewCount !== 1 ? 's' : ''})
+                          </span>
+                        )}
                         <span>{b.images.length} photo{b.images.length !== 1 ? 's' : ''}</span>
-                        <span>{b.reviews.length} review{b.reviews.length !== 1 ? 's' : ''}</span>
                         {b.website && (
                           <a
                             href={b.website}
@@ -269,87 +363,120 @@ export default function AdminListingsTab() {
 
       {/* ── Generated listings ── */}
       <div className="mt-5 bg-surface rounded-xl border border-slate-800 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Generated Listings</h3>
-          {generated !== null && (
-            <span className="text-xs text-slate-500">{genCount} total · {unclaimed} unclaimed</span>
-          )}
+        <div className="px-5 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-white">Generated Listings</h3>
+            {generated !== null && (
+              <span className="text-xs text-slate-500">{genCount} total · {unclaimed} unclaimed</span>
+            )}
+          </div>
+          {/* Filters: location search, category, status */}
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={genLocFilter}
+              onChange={(e) => setGenLocFilter(e.target.value)}
+              placeholder="Filter by location…"
+              className="bg-surface-raised border border-slate-700/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-500 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
+              aria-label="Filter by location"
+            />
+            <select
+              value={genCatFilter}
+              onChange={(e) => setGenCatFilter(e.target.value)}
+              className="bg-surface-raised border border-slate-700/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
+              aria-label="Filter by category"
+            >
+              <option value="all">All categories</option>
+              {categoryOptions.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+            <select
+              value={genStatusFilter}
+              onChange={(e) => setGenStatusFilter(e.target.value as 'all' | GenStatus)}
+              className="bg-surface-raised border border-slate-700/50 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-colors"
+              aria-label="Filter by status"
+            >
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="unclaimed">Unclaimed</option>
+              <option value="claimed">Claimed</option>
+            </select>
+          </div>
         </div>
 
         {generated === null ? (
           <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
-        ) : generated.length === 0 ? (
-          <p className="text-center text-slate-500 text-sm py-12">No generated listings yet. Search above to create some.</p>
+        ) : genFiltered.length === 0 ? (
+          <p className="text-center text-slate-500 text-sm py-12">
+            {generated.length === 0 ? 'No generated listings yet. Search above to create some.' : 'No listings match those filters.'}
+          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[720px]">
-              <thead>
-                <tr className="border-b border-slate-800">
-                  {['Business', 'Location', 'Contact', 'Category', 'Status', 'Claim', 'Actions'].map((h) => (
-                    <th key={h} className={`px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide ${h === 'Actions' ? 'text-right' : 'text-left'}`}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {generated.map((g) => (
-                  <tr key={g.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2.5">
-                        {g.sellerPhotoURL ? (
-                          <img src={g.sellerPhotoURL} alt="" title="Business favicon (post avatar)" className="w-7 h-7 rounded-full bg-white object-contain flex-shrink-0" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700/60 flex-shrink-0" />
-                        )}
-                        <span className="text-white font-medium truncate max-w-[180px]">{g.title || '—'}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-slate-400 text-xs max-w-[180px] truncate">{g.primaryLocation || '—'}</td>
-                    <td className="px-5 py-3 text-xs max-w-[200px]">
-                      {g.contactEmail ? (
-                        <a href={`mailto:${g.contactEmail}`} className="block text-blue-400 hover:underline truncate">{g.contactEmail}</a>
-                      ) : (
-                        <span className="text-slate-600">no email found</span>
-                      )}
-                      {g.website && (
-                        <a href={g.website} target="_blank" rel="noopener noreferrer" className="block text-slate-500 hover:text-slate-300 hover:underline truncate mt-0.5">
-                          {g.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
-                        </a>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500 text-xs capitalize">{g.category || '—'}</td>
-                    <td className="px-5 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_BADGE[g.status] ?? 'bg-slate-700 text-slate-400'}`}>{g.status}</span>
-                    </td>
-                    <td className="px-5 py-3">
-                      {g.claimStatus === 'claimed' ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400">Claimed</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-xs text-slate-500"><Megaphone className="w-3 h-3" />Unclaimed</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => window.open(`/service-detail?id=${g.id}`, '_blank', 'noopener,noreferrer')} title="Open" className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors">
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => setEditService(g)} title="Edit" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        {g.status !== 'active' && (
-                          <button onClick={() => publish(g.id)} title="Publish" className="px-2 py-1 rounded-lg text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 transition-colors">
-                            Publish
-                          </button>
-                        )}
-                        <button onClick={() => del(g.id)} title="Delete" className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800">
+                    {['Business', 'Location', 'Contact', 'Category', 'Status', 'Actions'].map((h) => (
+                      <th key={h} className={`px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide ${h === 'Actions' ? 'text-right' : 'text-left'}`}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {genVisible.map((g) => {
+                    const badge = GEN_STATUS_BADGE[genStatusOf(g)];
+                    return (
+                      <tr key={g.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2.5">
+                            {g.sellerPhotoURL ? (
+                              <img src={g.sellerPhotoURL} alt="" title="Business favicon (post avatar)" className="w-7 h-7 rounded-full bg-white object-contain flex-shrink-0" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700/60 flex-shrink-0" />
+                            )}
+                            <span className="text-white font-medium truncate max-w-[180px]">{g.title || '—'}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-slate-400 text-xs max-w-[140px] truncate">{g.primaryLocation || '—'}</td>
+                        <td className="px-5 py-3 text-xs max-w-[180px]">
+                          {g.contactEmail ? (
+                            <a href={`mailto:${g.contactEmail}`} className="block text-blue-400 hover:underline truncate">{g.contactEmail}</a>
+                          ) : (
+                            <span className="text-slate-600">no email found</span>
+                          )}
+                          {g.website && (
+                            <a href={g.website} target="_blank" rel="noopener noreferrer" className="block text-slate-500 hover:text-slate-300 hover:underline truncate mt-0.5">
+                              {g.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                            </a>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-slate-500 text-xs capitalize">{g.category || '—'}</td>
+                        <td className="px-5 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.cls}`}>{badge.label}</span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => window.open(`/service-detail?id=${g.id}`, '_blank', 'noopener,noreferrer')} title="Open" className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => setEditService(g)} title="Edit" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            {g.status !== 'active' && (
+                              <button onClick={() => publish(g.id)} title="Publish" className="px-2 py-1 rounded-lg text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 transition-colors">
+                                Publish
+                              </button>
+                            )}
+                            <button onClick={() => del(g.id)} title="Delete" className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <AdminPagination page={genPage} pageSize={GEN_PAGE_SIZE} total={genFiltered.length} onPageChange={setGenPage} />
+          </>
         )}
       </div>
 

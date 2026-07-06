@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
-import { Eye, Pencil, Plus, ExternalLink } from 'lucide-react';
+import { Eye, Pencil, Plus } from 'lucide-react';
+import { useCategories } from '../../CategoriesContext';
 import AdminPagination from './AdminPagination';
 
 const SELECT_CLASS =
@@ -42,7 +43,6 @@ interface Props {
   services: AdminService[];
   loading: boolean;
   pageSize?: number;
-  onView?:   (s: AdminService) => void;
   onEdit?:   (s: AdminService) => void;
   onDelete?: (s: AdminService) => void;
   onNew?:    () => void;
@@ -58,17 +58,15 @@ const SkeletonRow = ({ cols }: { cols: number }) => (
   </tr>
 );
 
-const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit, onNew }: Props) => {
+const AdminServicesTable = ({ services, loading, pageSize = 100, onEdit, onNew }: Props) => {
+  // Filter lists the platform's real categories (Settings-managed), not whatever
+  // stale values happen to exist on old posts.
+  const { categoryOptions, getCategoryLabel } = useCategories();
   const [page, setPage] = useState(0);
   const [catFilter,    setCatFilter]    = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priceFilter,  setPriceFilter]  = useState('all');
   useEffect(() => { setPage(0); }, [services.length, catFilter, statusFilter, priceFilter]);
-
-  const categories = useMemo(
-    () => Array.from(new Set(services.map((s) => s.category).filter(Boolean) as string[])).sort(),
-    [services],
-  );
   const statuses = useMemo(
     () => Array.from(new Set(services.map((s) => s.status || 'active'))).sort(),
     [services],
@@ -95,7 +93,7 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
         <div className="flex flex-wrap items-center gap-2">
           <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filter by category">
             <option value="all">All categories</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            {categoryOptions.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           <select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filter by price">
             {Object.keys(PRICE_BANDS).map((k) => <option key={k} value={k}>{PRICE_LABELS[k]}</option>)}
@@ -156,7 +154,7 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
                     </td>
 
                     {/* Category */}
-                    <td className="px-5 py-3 text-slate-500 text-xs capitalize">{s.category || '—'}</td>
+                    <td className="px-5 py-3 text-slate-500 text-xs">{s.category ? getCategoryLabel(s.category) : '—'}</td>
 
                     {/* Status */}
                     <td className="px-5 py-3">
@@ -176,16 +174,11 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onView, onEdit,
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => window.open(`/service-detail?id=${s.id}`, '_blank', 'noopener,noreferrer')}
-                          title="Open post in new tab"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                          title="Open live post in new tab"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
-                        {onView && (
-                          <button onClick={() => onView(s)} title="Quick view" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors">
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                         {onEdit && (
                           <button onClick={() => onEdit(s)} title="Edit" className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors">
                             <Pencil className="w-3.5 h-3.5" />
