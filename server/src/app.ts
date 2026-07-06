@@ -1288,6 +1288,9 @@ app.post('/api/auth/verify-code', requireAuth, async (req: AuthRequest, res: Res
     }
 
     await db.ref(`verificationCodes/${uid}`).remove();
+    // Passing the OTP verifies ownership of the email — mark the account verified
+    // so it earns its "Verified" badge (AuthContext mirrors this into the DB).
+    try { await admin.auth().updateUser(uid, { emailVerified: true }); } catch { /* non-fatal */ }
     res.json({ verified: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
