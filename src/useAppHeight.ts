@@ -18,9 +18,20 @@ export function useAppHeight<T extends HTMLElement>(ref: RefObject<T | null>) {
     apply();
     window.addEventListener('resize', apply);
     window.addEventListener('orientationchange', apply);
+
+    // Lock the document scroll so the app shell shows a single scrollbar (the
+    // inner content area's) instead of a second, page-level one beside it.
+    // Restored on unmount, so other window-scrolling pages are unaffected.
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+
     return () => {
       window.removeEventListener('resize', apply);
       window.removeEventListener('orientationchange', apply);
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
     };
   }, [ref]);
 }
