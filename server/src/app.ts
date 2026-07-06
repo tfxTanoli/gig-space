@@ -1352,6 +1352,36 @@ app.post('/api/auth/verify-code', requireAuth, async (req: AuthRequest, res: Res
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Returns a valid Stripe customer id, (re)creating one if none is stored or the
+// stored id no longer exists in THIS Stripe account — e.g. the keys were switched
+// between accounts/modes, or the customer was deleted. Without this check, Stripe
+// throws "No such customer: cus_..." on checkout/subscription.
+async function getOrCreateStripeCustomer(
+  uid: string,
+  userData: { email?: string; name?: string; stripeCustomerId?: string } | null,
+): Promise<string> {
+  let customerId = userData?.stripeCustomerId;
+  if (customerId) {
+    try {
+      const existing = await stripe.customers.retrieve(customerId);
+      if ((existing as Stripe.DeletedCustomer).deleted) customerId = undefined;
+    } catch (e: unknown) {
+      if ((e as { code?: string })?.code === 'resource_missing') customerId = undefined;
+      else throw e;
+    }
+  }
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      ...(userData?.email ? { email: userData.email } : {}),
+      ...(userData?.name  ? { name:  userData.name  } : {}),
+      metadata: { firebaseUid: uid },
+    });
+    customerId = customer.id;
+    await db.ref(`users/${uid}/stripeCustomerId`).set(customerId);
+  }
+  return customerId;
+}
+
 // POST /api/payment-methods/setup-intent
 // Creates/retrieves a Stripe Customer for the user and returns a SetupIntent
 // client secret so the frontend can mount a PaymentElement to save a card.
@@ -1362,16 +1392,7 @@ app.post('/api/payment-methods/setup-intent', requireAuth, async (req: AuthReque
     const userSnap = await db.ref(`users/${uid}`).get();
     const userData = userSnap.val() as { email?: string; name?: string; stripeCustomerId?: string } | null;
 
-    let customerId = userData?.stripeCustomerId;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        ...(userData?.email ? { email: userData.email } : {}),
-        ...(userData?.name  ? { name:  userData.name  } : {}),
-        metadata: { firebaseUid: uid },
-      });
-      customerId = customer.id;
-      await db.ref(`users/${uid}/stripeCustomerId`).set(customerId);
-    }
+    const customerId = await getOrCreateStripeCustomer(uid, userData);
 
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
@@ -1634,16 +1655,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       email?: string; name?: string; stripeCustomerId?: string;
     } | null;
 
-    let customerId = userData?.stripeCustomerId;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        ...(userData?.email ? { email: userData.email } : {}),
-        ...(userData?.name  ? { name:  userData.name  } : {}),
-        metadata: { firebaseUid: uid },
-      });
-      customerId = customer.id;
-      await db.ref(`users/${uid}/stripeCustomerId`).set(customerId);
-    }
+    const customerId = await getOrCreateStripeCustomer(uid, userData);
 
     // 2. Get or create the recurring $5/month Price ───────────────────────────
     let priceId: string | undefined = process.env.STRIPE_EXTRA_LOCATION_PRICE_ID || undefined;
