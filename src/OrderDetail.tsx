@@ -265,15 +265,16 @@ export default function OrderDetail({
         });
       }
       showToastMsg('Delivery accepted! Payment released to seller.');
-      // Notify the seller that the buyer accepted their delivery
+      // Notify the seller that the buyer approved their delivery
       sendNotification(order.sellerId, {
-        type: 'offer_accepted',
+        type: 'order_approved',
         title: `${userProfile?.name ?? 'Buyer'} accepted your delivery`,
         body: order.serviceTitle,
         senderId: user!.uid,
         senderName: userProfile?.name ?? '',
         senderPhotoURL: userProfile?.photoURL ?? '',
         orderId: order.id,
+        serviceTitle: order.serviceTitle,
         dashboardType: 'seller',
       }).catch(console.error);
     } catch (err) {

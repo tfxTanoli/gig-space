@@ -20,6 +20,7 @@ import {
   buildVerifyEmailEmail,
   buildVerificationCodeEmail,
   buildPaymentReceivedSellerEmail,
+  buildOrderPlacedBuyerEmail,
   buildRefundIssuedBuyerEmail,
 } from './email';
 
@@ -794,6 +795,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   } catch { /* non-fatal */ }
 
+  // Confirm the order to the buyer
+  try {
+    const buyerRecord = await admin.auth().getUser(buyerId);
+    if (buyerRecord.email) {
+      const buyerFirstName = (buyerRecord.displayName || 'there').split(' ')[0];
+      await sendTransactionalEmail(
+        buyerRecord.email,
+        'Your Gigspace order has been placed',
+        buildOrderPlacedBuyerEmail(buyerFirstName, serviceTitle)
+      );
+    }
+  } catch { /* non-fatal */ }
+
   if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
     try {
       const checkoutFeeAmt = parseInt(platformFeeCents, 10) / 100;
@@ -934,6 +948,19 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
         sellerRecord.email,
         "You've received a new payment on Gigspace!",
         buildPaymentReceivedSellerEmail(sellerFirstName, serviceTitle)
+      );
+    }
+  } catch { /* non-fatal */ }
+
+  // Confirm the order to the buyer
+  try {
+    const buyerRecord = await admin.auth().getUser(buyerId);
+    if (buyerRecord.email) {
+      const buyerFirstName = (buyerRecord.displayName || 'there').split(' ')[0];
+      await sendTransactionalEmail(
+        buyerRecord.email,
+        'Your Gigspace order has been placed',
+        buildOrderPlacedBuyerEmail(buyerFirstName, serviceTitle)
       );
     }
   } catch { /* non-fatal */ }
