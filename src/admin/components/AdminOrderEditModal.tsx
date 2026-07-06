@@ -27,19 +27,22 @@ const PAYMENT_STATUSES = [
 ];
 
 // Plain-language explanation of what each order status represents.
+// NOTE: these describe the normal buyer/seller-driven flow. Changing status or
+// payment status from THIS modal only updates the order/payment records — it
+// does not move any money (no escrow release, payout, or Stripe refund).
 const ORDER_STATUS_HELP: Record<string, string> = {
   in_progress: 'The seller is actively working on the order.',
   delivered:   'The seller has delivered the work and is waiting on the buyer to approve it.',
-  completed:   'The buyer approved the work — the order is finished and the seller\'s earnings move to their wallet.',
+  completed:   'Normally set when the buyer approves delivery, which also moves the seller\'s earnings from pending to their wallet. Setting it here manually only updates the record — it does not move any funds.',
   disputed:    'The buyer and seller disagree — review the conversation and resolve it below.',
-  cancelled:   'The order was called off before completion — no work is owed and the seller is not paid. Pair with Payment Status → Refunded to return the buyer\'s money.',
+  cancelled:   'The order was called off before completion. This only updates the record — it does not refund the buyer or adjust the seller\'s wallet.',
 };
 
 // Plain-language explanation of what each payment status represents.
 const PAYMENT_STATUS_HELP: Record<string, string> = {
   paid:     'Buyer has paid and the funds are held in escrow — not yet released to the seller.',
-  released: 'Escrow funds have been paid out to the seller\'s wallet (normally happens automatically when an order is completed).',
-  refunded: 'Funds were returned to the buyer. Set this when you side with the buyer on a dispute.',
+  released: 'Marks the payment as released in admin records only. This does not move funds — real payout happens automatically when the buyer approves delivery.',
+  refunded: 'Marks the payment as refunded in admin records only. This does not trigger a Stripe refund — process the actual refund in Stripe first, then set this to keep the record in sync.',
 };
 
 const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
@@ -185,7 +188,7 @@ const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
           {status === 'disputed' && (
             <div className="flex items-start gap-2 text-xs text-blue-300 bg-blue-500/10 rounded-lg px-3 py-2.5 border border-blue-500/20">
               <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-              <span>To resolve a dispute, set the status to <strong>In Progress</strong> if you side with the buyer (seller keeps working), or <strong>Completed</strong> if you side with the seller (escrow is released). Use Payment Status → <strong>Refunded</strong> to return funds to the buyer.</span>
+              <span>To resolve a dispute, set the status to <strong>In Progress</strong> if you side with the buyer (seller keeps working), or <strong>Completed</strong> if you side with the seller. This only updates the record — it does not move money, so process any actual payout or refund in Stripe directly, then set Payment Status here to match.</span>
             </div>
           )}
 

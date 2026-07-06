@@ -37,7 +37,7 @@ const fmtUSD = (n: number) =>
 // The affiliate's unique share link — same URL their dashboard shows them.
 const referralLink = (code: string) => `${window.location.origin}?ref=${code}`;
 
-function ReferralLinkCell({ code }: { code: string }) {
+export function ReferralLinkCell({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   if (!code) return <span className="text-slate-600 text-xs">—</span>;
   const link = referralLink(code);
