@@ -799,7 +799,7 @@ const ServiceDetail = () => {
 
           {/* Real map */}
           {(post.primaryLocation || (post.extraLocations?.length > 0)) && (
-            <div className="order-11">
+            <div className="order-11 mb-8">
               <ServiceMap
                 primaryLocation={post.primaryLocation}
                 primaryLat={post.primaryLocationLat}
