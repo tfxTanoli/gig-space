@@ -205,20 +205,37 @@ const TABS: { key: SettingsTab; label: string }[] = [
 
 // ─── CMS Tab ──────────────────────────────────────────────────────────────────
 
-// The default FAQs shipped on the seller/affiliate landing pages — offered as a
-// one-click seed so the admin can edit/delete them from the panel.
-const DEFAULT_FAQS: { question: string; answer: string }[] = [
+// FAQs are split by audience: the seller landing page reads cms/faqs and the
+// affiliate landing page reads cms/affiliateFaqs, so editing one no longer
+// changes the other. Each list has its own default seed matching its page.
+const SELLER_DEFAULT_FAQS: { question: string; answer: string }[] = [
   { question: 'What can I sell?', answer: 'You can offer any service that falls inside our diverse categories ranging from digital professional services to localized trade work.' },
   { question: 'How much money can I make?', answer: 'Your earning potential is entirely up to you. You set your own prices and determine how much work you want to take on.' },
   { question: 'How much does it cost?', answer: 'Joining and setting up your primary listing is completely free. We charge a flat platform fee on completed orders and optional subscriptions for multiple local reach.' },
+  { question: 'How much time will I need to invest?', answer: 'It is highly flexible. You can freelance part-time or scale it to a full-time business. Setup usually takes under 15 minutes.' },
+  { question: 'How do I price my service?', answer: 'We recommend reviewing similar services to gauge local/remote market rates. You can always adjust your prices as your profile grows.' },
   { question: 'How do I get paid?', answer: 'Payments are securely held in escrow and released to you upon project approval. You can withdraw directly to your bank account.' },
-  { question: 'Who can become a Gigspace affiliate?', answer: 'Anyone can become an affiliate — content creators, bloggers, business owners, or anyone with a network — and earn commissions by referring new sellers to Gigspace.' },
-  { question: 'How do affiliate commissions work?', answer: 'Share your unique referral link. When a seller signs up through it, you earn a percentage of the platform fee on that seller’s sales.' },
+];
+
+const AFFILIATE_DEFAULT_FAQS: { question: string; answer: string }[] = [
+  { question: 'Who can become a Gigspace affiliate?', answer: "Anyone can become a Gigspace affiliate. Whether you're a content creator, blogger, business owner, or just someone with a network, you can earn commissions by referring new clients to Gigspace." },
+  { question: 'Do I need to be a Gigspace customer?', answer: "No, you don't need to be a Gigspace customer to join the affiliate program. Simply sign up for a free affiliate account and start sharing your unique referral link." },
+  { question: 'How do I join the program?', answer: 'Click the "Become an Affiliate" button, create your free account, and you\'ll get instant access to your unique referral link and a real-time tracking dashboard.' },
+  { question: 'What promotion methods are accepted?', answer: 'You can promote Gigspace through social media, blogs, email newsletters, YouTube, podcasts, or any platform where you have an audience. Spam and misleading promotions are not permitted.' },
+  { question: 'How do I track my referrals?', answer: 'Your affiliate dashboard provides real-time tracking of clicks, referrals, and earnings so you can see exactly how your link is performing at all times.' },
+  { question: 'How do I get paid?', answer: 'Commissions are paid out once the referred job is completed and payment is released. You can withdraw your earnings directly to your bank account.' },
+];
+
+type FaqAudience = 'seller' | 'affiliate';
+const FAQ_AUDIENCES: { key: FaqAudience; label: string; path: string; hint: string; defaults: { question: string; answer: string }[] }[] = [
+  { key: 'seller',    label: 'Seller FAQs',    path: 'cms/faqs',          hint: 'Shown on the seller landing page',    defaults: SELLER_DEFAULT_FAQS },
+  { key: 'affiliate', label: 'Affiliate FAQs', path: 'cms/affiliateFaqs', hint: 'Shown on the affiliate landing page', defaults: AFFILIATE_DEFAULT_FAQS },
 ];
 
 function CmsTab() {
   const { user } = useAuth();
-  const [faqs,    setFaqs]    = useState<FaqItem[]>([]);
+  const [audience, setAudience] = useState<FaqAudience>('seller');
+  const [faqsByAudience, setFaqsByAudience] = useState<Record<FaqAudience, FaqItem[]>>({ seller: [], affiliate: [] });
   const [terms,   setTerms]   = useState('');
   const [privacy, setPrivacy] = useState('');
   const [loading, setLoading] = useState(true);
@@ -234,15 +251,24 @@ function CmsTab() {
   const [faqQ, setFaqQ] = useState('');
   const [faqA, setFaqA] = useState('');
 
+  const activeCfg = FAQ_AUDIENCES.find((a) => a.key === audience)!;
+  const faqs = faqsByAudience[audience];
+  const setFaqs = (updater: (prev: FaqItem[]) => FaqItem[]) =>
+    setFaqsByAudience((prev) => ({ ...prev, [audience]: updater(prev[audience]) }));
+
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    const toList = (v: unknown) =>
+      v && typeof v === 'object'
+        ? Object.entries(v as Record<string, { question: string; answer: string }>).map(([id, f]) => ({ id, ...f }))
+        : [];
     (async () => {
       try {
         const snap = await get(dbRef(database, 'cms'));
         if (cancelled) return;
         const d = snap.val() ?? {};
-        if (d.faqs) setFaqs(Object.entries(d.faqs as Record<string, { question: string; answer: string }>).map(([id, v]) => ({ id, ...v })));
+        setFaqsByAudience({ seller: toList(d.faqs), affiliate: toList(d.affiliateFaqs) });
         if (d.terms)   setTerms(d.terms);
         if (d.privacy) setPrivacy(d.privacy);
       } catch (err) {
@@ -257,17 +283,22 @@ function CmsTab() {
     return () => { cancelled = true; };
   }, [user]);
 
+  // Switching audience clears any half-finished add/edit so it can't be saved to the wrong list.
+  const switchAudience = (key: FaqAudience) => {
+    setAudience(key); setEditingFaq(null); setFaqQ(''); setFaqA('');
+  };
+
   const saveFaq = async () => {
     if (!faqQ.trim() || !faqA.trim()) return;
     setFaqSaving(true);
     try {
       if (editingFaq) {
-        await update(dbRef(database, `cms/faqs/${editingFaq.id}`), { question: faqQ.trim(), answer: faqA.trim() });
+        await update(dbRef(database, `${activeCfg.path}/${editingFaq.id}`), { question: faqQ.trim(), answer: faqA.trim() });
         setFaqs((prev) => prev.map((f) => f.id === editingFaq.id ? { ...f, question: faqQ.trim(), answer: faqA.trim() } : f));
       } else {
-        const newRef = dbRef(database, `cms/faqs/${Date.now()}`);
-        await set(newRef, { question: faqQ.trim(), answer: faqA.trim() });
-        setFaqs((prev) => [...prev, { id: String(Date.now()), question: faqQ.trim(), answer: faqA.trim() }]);
+        const id = String(Date.now());
+        await set(dbRef(database, `${activeCfg.path}/${id}`), { question: faqQ.trim(), answer: faqA.trim() });
+        setFaqs((prev) => [...prev, { id, question: faqQ.trim(), answer: faqA.trim() }]);
       }
       setFaqQ(''); setFaqA(''); setEditingFaq(null);
       setFaqSaved(true);
@@ -279,7 +310,7 @@ function CmsTab() {
 
   const deleteFaq = async (id: string) => {
     try {
-      await set(dbRef(database, `cms/faqs/${id}`), null);
+      await set(dbRef(database, `${activeCfg.path}/${id}`), null);
       setFaqs((prev) => prev.filter((f) => f.id !== id));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete FAQ');
@@ -289,13 +320,13 @@ function CmsTab() {
   const seedDefaults = async () => {
     const updates: Record<string, { question: string; answer: string }> = {};
     const seeded: FaqItem[] = [];
-    DEFAULT_FAQS.forEach((f, i) => {
+    activeCfg.defaults.forEach((f, i) => {
       const id = `${Date.now()}${i}`;
       updates[id] = { question: f.question, answer: f.answer };
       seeded.push({ id, ...f });
     });
     try {
-      await update(dbRef(database, 'cms/faqs'), updates);
+      await update(dbRef(database, activeCfg.path), updates);
       setFaqs((prev) => [...prev, ...seeded]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to load default FAQs');
@@ -325,13 +356,29 @@ function CmsTab() {
 
       {/* FAQs */}
       <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-4">
-          <div className="w-9 h-9 rounded-xl bg-yellow-500/10 text-yellow-400 flex items-center justify-center">
-            <FileText style={{ width: '1.1rem', height: '1.1rem' }} />
+        <div className="px-6 py-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-9 h-9 rounded-xl bg-yellow-500/10 text-yellow-400 flex items-center justify-center">
+              <FileText style={{ width: '1.1rem', height: '1.1rem' }} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">FAQs</h3>
+              <p className="text-xs text-slate-500 mt-0.5">{activeCfg.hint}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-white">FAQs</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Manage frequently asked questions</p>
+          {/* Audience switch — seller vs affiliate FAQs are separate lists. */}
+          <div className="flex gap-1 bg-surface-raised border border-slate-800 rounded-lg p-1">
+            {FAQ_AUDIENCES.map((a) => (
+              <button
+                key={a.key}
+                onClick={() => switchAudience(a.key)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  audience === a.key ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {a.label}
+              </button>
+            ))}
           </div>
         </div>
         <div className="px-6 py-5 space-y-4">

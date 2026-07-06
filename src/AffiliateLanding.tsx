@@ -8,11 +8,13 @@ import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 
-// Reads admin-managed FAQs from the CMS, falling back to the provided defaults.
+// Reads admin-managed affiliate FAQs from the CMS, falling back to the provided
+// defaults. Affiliate FAQs live at cms/affiliateFaqs, separate from the seller
+// landing page's cms/faqs, so the two can be edited independently.
 function useCmsFaqs(defaults: { question: string; answer: string }[]) {
   const [faqs, setFaqs] = useState(defaults);
   useEffect(() => {
-    get(dbRef(database, 'cms/faqs')).then((snap) => {
+    get(dbRef(database, 'cms/affiliateFaqs')).then((snap) => {
       const v = snap.val();
       if (v && typeof v === 'object') {
         const list = Object.values(v as Record<string, { question?: string; answer?: string }>)
