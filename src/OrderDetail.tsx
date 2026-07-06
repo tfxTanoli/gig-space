@@ -618,7 +618,9 @@ export default function OrderDetail({
       />
 
       {/* ── Page content ── */}
-      <div className="flex flex-col gap-5 min-h-0">
+      {/* shrink-0 so this column keeps its natural height and <main> scrolls,
+          instead of flexbox compressing the cards (which clipped their content). */}
+      <div className="flex flex-col gap-5 shrink-0">
 
         {/* Back */}
         <button
@@ -630,7 +632,7 @@ export default function OrderDetail({
         </button>
 
         {/* ── Order info card ── */}
-        <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden shrink-0">
 
           {/* Top: image + meta */}
           <div className="flex flex-col sm:flex-row gap-4 p-5">
@@ -924,7 +926,7 @@ export default function OrderDetail({
         )}
 
         {/* ── Order chat ── */}
-        <div className="bg-surface border border-slate-800 rounded-xl flex flex-col overflow-hidden">
+        <div className="bg-surface border border-slate-800 rounded-xl flex flex-col overflow-hidden shrink-0">
           <div className="px-5 py-3.5 border-b border-slate-800 shrink-0">
             <h3 className="text-white text-sm font-semibold">Order chat</h3>
             <p className="text-slate-500 text-xs mt-0.5">
@@ -1047,7 +1049,7 @@ function PaymentInfoCard({
   const st = paymentStatus ?? 'paid';
 
   return (
-    <div className="bg-surface border border-slate-800 rounded-xl p-5">
+    <div className="bg-surface border border-slate-800 rounded-xl p-5 shrink-0">
       <div className="flex items-center gap-2 mb-4">
         <ShieldCheck className="w-4 h-4 text-blue-400" />
         <h4 className="text-white text-sm font-semibold">Payment (Escrow)</h4>
