@@ -165,10 +165,17 @@ export default function OrderDetail({
   }, [order.id]);
 
   useEffect(() => {
-    if (!messagesEndRef.current) return;
-    messagesEndRef.current.scrollIntoView({
-      behavior: isFirstLoad.current ? 'auto' : 'smooth',
-    });
+    const end = messagesEndRef.current;
+    if (!end) return;
+    // Scroll only the chat's own scroll container — scrollIntoView() would also
+    // scroll the window and yank the order details (and action buttons) out of view.
+    const container = end.parentElement;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: isFirstLoad.current ? 'auto' : 'smooth',
+      });
+    }
     isFirstLoad.current = false;
   }, [messages]);
 
