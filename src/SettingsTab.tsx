@@ -240,6 +240,13 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
       toast.success('Password updated successfully.');
+      // Fire-and-forget "password updated" confirmation email
+      user.getIdToken().then((token) =>
+        fetch(`${import.meta.env.VITE_API_URL || ''}/api/email/password-updated`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        })
+      ).catch(() => { /* non-fatal — password was still updated */ });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
