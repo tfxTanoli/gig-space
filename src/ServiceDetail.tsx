@@ -506,7 +506,7 @@ const ServiceDetail = () => {
       <header className="bg-background border-b border-slate-800/70 px-4 md:px-6 lg:px-12">
         <div className="h-16 flex items-center justify-between">
           <Logo className="h-6 shrink-0" />
-          <div className="flex items-center gap-3 md:gap-5">
+          <div className="flex items-center gap-4 md:gap-6">
             {user ? (
               <>
                 <Link
