@@ -74,10 +74,9 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
 
     // Google Places caps each page at 20 places; walk nextPageToken to pull the
     // API's full result set (up to 60 per query — its hard maximum).
-    const places: Place[] = [];
-    let pageToken: string | undefined;
-    for (let page = 0; page < 3; page++) {
-      const resp = await fetch(TEXT_SEARCH_URL, {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const fetchPage = (token?: string) =>
+      fetch(TEXT_SEARCH_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,9 +92,26 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
         body: JSON.stringify({
           textQuery: `${keyword} in ${city}`,
           pageSize: 20,
-          ...(pageToken ? { pageToken } : {}),
+          ...(token ? { pageToken: token } : {}),
         }),
       });
+
+    const places: Place[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < 3; page++) {
+      if (pageToken) {
+        // A freshly-issued nextPageToken isn't valid yet — Google needs a short
+        // delay before it activates, otherwise the follow-up request 400s and
+        // that page's results are silently dropped.
+        await sleep(2000);
+      }
+      let resp = await fetchPage(pageToken);
+      if (!resp.ok && pageToken) {
+        // Likely hit the token-not-ready window — wait longer and retry once
+        // before giving up on this page.
+        await sleep(2000);
+        resp = await fetchPage(pageToken);
+      }
 
       if (!resp.ok) {
         const text = await resp.text();
