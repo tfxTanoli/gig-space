@@ -2,7 +2,7 @@
 import { X } from 'lucide-react';
 import { ref as dbRef, update } from 'firebase/database';
 import { database } from '../../firebase';
-import type { AdminAffiliate } from './AdminAffiliatesTable';
+import { ReferralLinkCell, type AdminAffiliate } from './AdminAffiliatesTable';
 
 interface Props {
   affiliate: AdminAffiliate;
@@ -60,11 +60,16 @@ export default function AdminAffiliateEditModal({ affiliate, onClose, onSuccess 
           {error && <p className="text-red-400 text-xs">{error}</p>}
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Referral Code</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Referral Link</label>
+            <ReferralLinkCell code={referralCode} />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Referral Code <span className="text-slate-600">(internal — changes the link above)</span></label>
             <input
               value={referralCode}
               onChange={(e) => setReferralCode(e.target.value)}
-              className="w-full bg-background border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full bg-background border border-slate-700 rounded-lg px-3 py-2 text-slate-400 text-sm focus:outline-none focus:border-blue-500 font-mono"
               placeholder="referralcode"
             />
           </div>

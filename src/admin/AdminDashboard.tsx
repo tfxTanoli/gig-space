@@ -206,6 +206,8 @@ const AdminDashboard = () => {
   const [createAffiliateOpen, setCreateAffiliateOpen] = useState(false);
   // Subscription events for the dashboard activity feed (sourced from Stripe via backend).
   const [subEvents, setSubEvents] = useState<{ sellerName: string; amount: number; createdAt: number }[]>([]);
+  // Active count + MRR for the stat cards — same active-status definition as AdminSubscriptionsTab.
+  const [subSummary, setSubSummary] = useState({ activeCount: 0, mrr: 0 });
 
   const [editPost,     setEditPost]     = useState<AdminService | null>(null);
   const [createPost,   setCreatePost]   = useState(false);
@@ -335,7 +337,11 @@ const AdminDashboard = () => {
       case 'Home':
         loadUsers(); loadServices(); loadOrders(); loadAffiliates();
         adminGetSubscriptions()
-          .then(({ subscriptions }) => setSubEvents(subscriptions.map((s) => ({ sellerName: s.sellerName, amount: s.amount, createdAt: s.createdAt }))))
+          .then(({ subscriptions }) => {
+            setSubEvents(subscriptions.map((s) => ({ sellerName: s.sellerName, amount: s.amount, createdAt: s.createdAt })));
+            const activeSubs = subscriptions.filter((s) => s.status === 'active' || s.status === 'trialing' || s.status === 'past_due');
+            setSubSummary({ activeCount: activeSubs.length, mrr: activeSubs.reduce((sum, s) => sum + s.amount, 0) });
+          })
           .catch(() => { /* non-fatal — backend may be unreachable */ });
         break;
       case 'Users':      loadUsers();      break;
@@ -358,11 +364,11 @@ const AdminDashboard = () => {
       totalServices:        services.length,
       totalOrders:          orders.length,
       totalRevenue:         orders.filter((o) => o.status === 'completed').reduce((s, o) => s + o.amount, 0),
-      activeSubscribers:    0,
-      subscriptionRevenue:  0,
+      activeSubscribers:    subSummary.activeCount,
+      subscriptionRevenue:  subSummary.mrr,
       totalAffiliates:      affiliates?.length ?? 0,
     };
-  }, [users, services, orders, affiliates]);
+  }, [users, services, orders, affiliates, subSummary]);
 
   const statsLoading = stats === null && (usersLoading || servicesLoading || ordersLoading || users === null);
 

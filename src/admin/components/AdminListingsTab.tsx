@@ -415,7 +415,7 @@ export default function AdminListingsTab() {
                 <thead>
                   <tr className="border-b border-slate-800">
                     {['Business', 'Location', 'Contact', 'Category', 'Status', 'Actions'].map((h) => (
-                      <th key={h} className={`px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide ${h === 'Actions' ? 'text-right' : 'text-left'}`}>{h}</th>
+                      <th key={h} className={`px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide ${h === 'Actions' ? 'text-right sticky right-0 bg-surface' : 'text-left'}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -451,7 +451,7 @@ export default function AdminListingsTab() {
                         <td className="px-5 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.cls}`}>{badge.label}</span>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-5 py-3 sticky right-0 bg-surface">
                           <div className="flex items-center justify-end gap-1">
                             <button onClick={() => window.open(`/service-detail?id=${g.id}`, '_blank', 'noopener,noreferrer')} title="Open" className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors">
                               <ExternalLink className="w-3.5 h-3.5" />

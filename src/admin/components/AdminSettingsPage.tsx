@@ -222,6 +222,7 @@ function CmsTab() {
   const [terms,   setTerms]   = useState('');
   const [privacy, setPrivacy] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [faqSaving, setFaqSaving]     = useState(false);
   const [termsSaving, setTermsSaving] = useState(false);
   const [privSaving, setPrivSaving]   = useState(false);
@@ -244,6 +245,11 @@ function CmsTab() {
         if (d.faqs) setFaqs(Object.entries(d.faqs as Record<string, { question: string; answer: string }>).map(([id, v]) => ({ id, ...v })));
         if (d.terms)   setTerms(d.terms);
         if (d.privacy) setPrivacy(d.privacy);
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError('Failed to load CMS content — check your connection and reload the page.');
+          toast.error(err instanceof Error ? err.message : 'Failed to load CMS content');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -311,6 +317,12 @@ function CmsTab() {
 
   return (
     <div className="space-y-5">
+      {loadError && (
+        <div className="flex items-center gap-2 text-sm text-amber-400 bg-amber-500/10 rounded-lg px-4 py-3 border border-amber-500/20">
+          <Info className="w-4 h-4 flex-shrink-0" />{loadError}
+        </div>
+      )}
+
       {/* FAQs */}
       <div className="bg-surface rounded-xl border border-slate-800 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-4">

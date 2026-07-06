@@ -133,7 +133,7 @@ function ImpersonationBanner() {
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-blue-600 text-white pl-4 pr-1.5 py-1.5 rounded-full shadow-2xl border border-blue-400/40 max-w-[calc(100vw-2rem)]">
       <span className="text-xs font-medium truncate">
-        Impersonating <span className="font-semibold">{name}</span>
+        Support mode — viewing as <span className="font-semibold">{name}</span>
       </span>
       <button
         onClick={endImpersonation}
