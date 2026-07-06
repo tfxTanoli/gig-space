@@ -1164,9 +1164,22 @@ app.post('/api/auth/send-password-reset', async (req: Request, res: Response) =>
       firstName = (userRecord.displayName || 'there').split(' ')[0];
     } catch { /* user not found — still generate link so we don't expose existence */ }
 
-    const resetLink = await admin.auth().generatePasswordResetLink(email, {
-      url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
-    });
+    // If FRONTEND_URL isn't an authorized Firebase domain, generating a link
+    // WITH a continue URL throws auth/unauthorized-continue-uri — which would
+    // silently kill the email. Fall back to a link without the continue redirect.
+    let resetLink: string;
+    try {
+      resetLink = await admin.auth().generatePasswordResetLink(email, {
+        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
+      });
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
+        resetLink = await admin.auth().generatePasswordResetLink(email);
+      } else {
+        throw e;
+      }
+    }
 
     await sendTransactionalEmail(
       email,
@@ -1245,9 +1258,21 @@ app.post('/api/auth/send-email-verification', requireAuth, async (req: AuthReque
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
     const firstName = (userRecord.displayName || 'there').split(' ')[0];
 
-    const verifyLink = await admin.auth().generateEmailVerificationLink(userRecord.email, {
-      url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-verified`,
-    });
+    // See send-password-reset: fall back to a link without the continue URL if
+    // FRONTEND_URL isn't an authorized Firebase domain (else no email is sent).
+    let verifyLink: string;
+    try {
+      verifyLink = await admin.auth().generateEmailVerificationLink(userRecord.email, {
+        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-verified`,
+      });
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
+        verifyLink = await admin.auth().generateEmailVerificationLink(userRecord.email);
+      } else {
+        throw e;
+      }
+    }
 
     await sendTransactionalEmail(
       userRecord.email,
