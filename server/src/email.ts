@@ -280,12 +280,8 @@ export function buildWelcomeAffiliateEmail(): string {
 }
 
 export function buildPasswordResetEmail(firstName: string, resetLink: string): string {
-  const keyIcon = `<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" fill="#1D293D"/>
-<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" stroke="#314158"/>
-<path d="M12.586 27.4142C12.2109 27.7891 12.0001 28.2978 12 28.8282V31.0002C12 31.2654 12.1054 31.5197 12.2929 31.7073C12.4804 31.8948 12.7348 32.0002 13 32.0002H16C16.2652 32.0002 16.5196 31.8948 16.7071 31.7073C16.8946 31.5197 17 31.2654 17 31.0002V30.0002C17 29.7349 17.1054 29.4806 17.2929 29.2931C17.4804 29.1055 17.7348 29.0002 18 29.0002H19C19.2652 29.0002 19.5196 28.8948 19.7071 28.7073C19.8946 28.5197 20 28.2654 20 28.0002V27.0002C20 26.7349 20.1054 26.4806 20.2929 26.2931C20.4804 26.1055 20.7348 26.0002 21 26.0002H21.172C21.7024 26 22.211 25.7893 22.586 25.4142L23.4 24.6002C24.7898 25.0843 26.3028 25.0825 27.6915 24.5949C29.0801 24.1074 30.2622 23.163 31.0444 21.9163C31.8265 20.6696 32.1624 19.1943 31.9971 17.7319C31.8318 16.2695 31.1751 14.9064 30.1344 13.8657C29.0937 12.825 27.7307 12.1683 26.2683 12.003C24.8058 11.8378 23.3306 12.1737 22.0839 12.9558C20.8372 13.7379 19.8928 14.92 19.4052 16.3087C18.9177 17.6973 18.9159 19.2103 19.4 20.6002L12.586 27.4142Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M26.5 18C26.7761 18 27 17.7761 27 17.5C27 17.2239 26.7761 17 26.5 17C26.2239 17 26 17.2239 26 17.5C26 17.7761 26.2239 18 26.5 18Z" fill="white" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const keyIcon = `<img src="${ASSET_URL}/email-key-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
       <tr>
@@ -512,19 +508,8 @@ export function buildVerifyEmailEmail(firstName: string, verifyLink: string): st
 }
 
 export function buildVerificationCodeEmail(_firstName: string, code: string): string {
-  const fingerprintIcon = `<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" fill="#1D293D"/>
-<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" stroke="#314158"/>
-<path d="M22 20C21.4696 20 20.9609 20.2107 20.5858 20.5858C20.2107 20.9609 20 21.4696 20 22C20 23.02 19.9 24.51 19.74 26" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M24 23.1201C24 25.5001 24 29.5001 23 32.0001" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M27.29 31.02C27.41 30.42 27.72 28.72 27.79 28" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M12 22C12 19.9012 12.6604 17.8556 13.8876 16.1529C15.1148 14.4502 16.8466 13.1769 18.8377 12.5132C20.8288 11.8495 22.9783 11.8291 24.9817 12.4549C26.985 13.0807 28.7407 14.3209 30 16" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M12 26H12.01" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M31.8 26C32 24 31.931 20.646 31.8 20" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M15 29.5C15.5 28 16 25 16 22C15.999 21.3189 16.114 20.6425 16.34 20" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M18.65 32C18.86 31.34 19.1 30.68 19.22 30" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M19 16.7999C19.9124 16.2732 20.9474 15.9959 22.001 15.9961C23.0545 15.9963 24.0894 16.2738 25.0017 16.8009C25.9139 17.328 26.6713 18.0859 27.1976 18.9986C27.7239 19.9112 28.0007 20.9464 28 21.9999V23.9999" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const fingerprintIcon = `<img src="${ASSET_URL}/email-fingerprint-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
       <tr>
