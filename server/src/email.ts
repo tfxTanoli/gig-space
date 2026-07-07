@@ -321,17 +321,23 @@ export function buildPasswordUpdatedEmail(firstName: string): string {
 }
 
 export function buildOfferReceivedEmail(firstName: string, serviceTitle: string): string {
+  // Reuses the green tick icon (same as password-updated) — hosted PNG.
+  const offerIcon = `<img src="${ASSET_URL}/email-tick-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('New offer received!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${offerIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">New offer received!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p("You've received a new offer for:")}
     ${serviceBlock(serviceTitle)}
     ${p('Review the details and respond directly from your dashboard.')}
     ${ctaButton('View offer', `${APP_URL}/buyer-dashboard?tab=Messages`)}
-    ${divider()}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
-  return shell('#14532d', '✅', body);
+  return shellPlain(body);
 }
 
 export function buildOfferAcceptedSellerEmail(firstName: string, serviceTitle: string): string {
@@ -621,7 +627,7 @@ function buildNotificationEmail(payload: EmailPayload, recipientName: string): {
   switch (payload.type) {
     case 'offer':
       return {
-        subject: 'New offer received!',
+        subject: 'You received a new offer on Gigspace',
         html: buildOfferReceivedEmail(firstName, serviceTitle),
       };
     case 'offer_accepted':

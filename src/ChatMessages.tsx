@@ -484,6 +484,7 @@ export default function ChatMessages({
           senderPhotoURL: userProfile.photoURL || '',
           conversationId: selectedConvId,
           serviceId: selectedService.id,
+          serviceTitle: selectedService.title,
           dashboardType: 'buyer',
         }).catch(console.error);
       }
