@@ -218,7 +218,6 @@ const FINGERPRINT_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="n
   <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 1 1 8 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0 0 15.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 0 0 8 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const STOP_ICON = `&#128683;`;
 
 // ── Template builders ──────────────────────────────────────────────────────────
 
@@ -557,16 +556,22 @@ export function buildAffiliateCommissionEmail(firstName: string, commissionAmoun
 }
 
 export function buildAccountDeactivatedEmail(firstName: string): string {
+  // Reuses the red prohibited icon (same as subscription-canceled) — hosted PNG.
+  const deactivatedIcon = `<img src="${ASSET_URL}/email-canceled-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Your account is deactivated')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${deactivatedIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Your account is deactivated</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('Your Gigspace account has been deactivated.')}
     ${p('If you believe this was done in error or would like additional information, please contact support.')}
     ${ctaButton('Contact support', 'mailto:support@gigspace.co')}
-    ${divider()}
     ${signOff('Thanks,\nThe Gigspace Team')}
   `;
-  return shell('#7f1d1d', STOP_ICON, body);
+  return shellPlain(body);
 }
 
 export function buildVerifyEmailEmail(firstName: string, verifyLink: string): string {

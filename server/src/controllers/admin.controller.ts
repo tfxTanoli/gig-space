@@ -4,6 +4,17 @@ import { type AdminRequest } from '../middleware/verifyAdmin';
 import { sendTransactionalEmail, buildAccountDeactivatedEmail } from '../email';
 import { stripe } from '../stripeClient';
 
+// Resolve a user's first name for emails — the real name lives in the DB
+// (users/{uid}/name); Firebase Auth displayName is often empty.
+async function firstNameForUid(uid: string, displayName?: string | null): Promise<string> {
+  try {
+    const snap = await admin.database().ref(`users/${uid}/name`).get();
+    const full = ((snap.val() as string | null) || displayName || '').trim();
+    if (full) return full.split(' ')[0];
+  } catch { /* ignore */ }
+  return 'there';
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export interface PlatformSettings {
@@ -222,7 +233,7 @@ export async function deleteUser(req: AdminRequest, res: Response): Promise<void
     try {
       const userRecord = await admin.auth().getUser(uid);
       if (userRecord.email) {
-        const firstName = (userRecord.displayName || 'there').split(' ')[0];
+        const firstName = await firstNameForUid(uid, userRecord.displayName);
         await sendTransactionalEmail(
           userRecord.email,
           'Your Gigspace account has been deactivated',
@@ -514,7 +525,7 @@ export async function setUserDisabled(req: AdminRequest, res: Response): Promise
       try {
         const rec = await admin.auth().getUser(uid);
         if (rec.email) {
-          const firstName = (rec.displayName || 'there').split(' ')[0];
+          const firstName = await firstNameForUid(uid, rec.displayName);
           await sendTransactionalEmail(
             rec.email,
             'Your Gigspace account has been deactivated',
