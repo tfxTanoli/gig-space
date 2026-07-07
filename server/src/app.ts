@@ -786,7 +786,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   try {
     const sellerRecord = await admin.auth().getUser(sellerId);
     if (sellerRecord.email) {
-      const sellerFirstName = (sellerRecord.displayName || 'there').split(' ')[0];
+      const sellerFirstName = await getFirstNameByUid(sellerId, sellerRecord.displayName);
       await sendTransactionalEmail(
         sellerRecord.email,
         "You've received a new payment on Gigspace!",
@@ -943,7 +943,7 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
   try {
     const sellerRecord = await admin.auth().getUser(sellerId);
     if (sellerRecord.email) {
-      const sellerFirstName = (sellerRecord.displayName || 'there').split(' ')[0];
+      const sellerFirstName = await getFirstNameByUid(sellerId, sellerRecord.displayName);
       await sendTransactionalEmail(
         sellerRecord.email,
         "You've received a new payment on Gigspace!",

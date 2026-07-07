@@ -449,17 +449,23 @@ export function buildRevisionRequestedEmail(firstName: string, serviceTitle: str
 }
 
 export function buildPaymentReceivedSellerEmail(firstName: string, serviceTitle: string): string {
+  // Hosted PNG (not inline SVG/emoji box) — renders consistently in Gmail/Outlook.
+  const paymentIcon = `<img src="${ASSET_URL}/email-payment-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Payment received!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${paymentIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Payment received!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p("You've received a payment for the following order:")}
     ${serviceBlock(serviceTitle)}
     ${p('Your earnings have been updated in your dashboard and are now available for withdrawal.')}
     ${ctaButton('View earnings', `${APP_URL}/seller-dashboard?tab=Earnings`)}
-    ${divider()}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', '🪅', body);
+  return shellPlain(body);
 }
 
 export function buildRefundIssuedBuyerEmail(firstName: string, serviceTitle: string): string {
