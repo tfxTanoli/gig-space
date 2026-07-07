@@ -340,6 +340,7 @@ export default function OrderDetail({
         senderPhotoURL: order.sellerPhoto || '',
         orderId: order.id,
         serviceId: order.serviceId,
+        serviceTitle: order.serviceTitle,
         dashboardType: 'buyer',
       }).catch(console.error);
 
