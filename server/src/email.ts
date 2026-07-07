@@ -278,17 +278,24 @@ export function buildWelcomeBuyerEmail(): string {
 }
 
 export function buildWelcomeAffiliateEmail(): string {
+  // Hosted PNG (not inline SVG/emoji box) — renders consistently in Gmail/Outlook.
+  const welcomeIcon = `<img src="${ASSET_URL}/email-welcome-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Welcome to the Gigspace Affiliate Program!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${welcomeIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Welcome to the Gigspace Affiliate Program!</td>
+      </tr>
+    </table>
     ${p('You can now start earning commissions by referring buyers and sellers to the platform. Every time a service is completed through your referral, you earn 50% of our platform fee.')}
     ${p('Your affiliate dashboard gives you access to:')}
     ${bulletList(['Your referral link and codes', 'Commission tracking', 'Earnings and payout history', 'Performance analytics'])}
     ${preCta('&#128071; Ready to start earning?')}
     ${ctaButton('Get your affiliate link', `${APP_URL}/affiliate-dashboard`)}
-    ${divider()}
+    ${p('If you have any questions, our support team is just an email away.')}
     ${signOff('Thanks for being part of the Gigspace team!')}
   `;
-  return shell('#1e2640', '👋', body);
+  return shellPlain(body);
 }
 
 export function buildPasswordResetEmail(firstName: string, resetLink: string): string {
