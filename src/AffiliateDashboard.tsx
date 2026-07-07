@@ -97,14 +97,14 @@ const AffiliateDashboard = () => {
         <div className="p-4 border-t border-slate-800 space-y-1">
           <Link
             to="/seller-dashboard"
-            className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            className="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <RefreshCw className="w-5 h-5 mr-3" />
             Switch to seller dashboard
           </Link>
           <button
             onClick={logout}
-            className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-400 hover:text-red-500 transition-colors"
+            className="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
