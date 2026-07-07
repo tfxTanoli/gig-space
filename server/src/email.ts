@@ -212,11 +212,6 @@ function bulletList(items: string[]): string {
 
 // ── SVG icons used in icon boxes ───────────────────────────────────────────────
 
-const EDIT_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
-  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
 const REFUND_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
   <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   <line x1="1" y1="10" x2="23" y2="10" stroke="#d1d5db" stroke-width="2"/>
@@ -434,17 +429,23 @@ export function buildOrderApprovedSellerEmail(firstName: string, serviceTitle: s
 }
 
 export function buildRevisionRequestedEmail(firstName: string, serviceTitle: string): string {
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const editIcon = `<img src="${ASSET_URL}/email-edit-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Revision Requested')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${editIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Revision Requested</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('A revision has been requested for the following project:')}
     ${serviceBlock(serviceTitle)}
     ${p('Please review their feedback and make any requested changes before resubmitting your work.')}
     ${ctaButton('Login to dashboard', `${APP_URL}/seller-dashboard?tab=Orders`)}
-    ${divider()}
     ${signOff('Thank you,\nThe Gigspace Team')}
   `;
-  return shell('#7c2d12', EDIT_SVG, body);
+  return shellPlain(body);
 }
 
 export function buildPaymentReceivedSellerEmail(firstName: string, serviceTitle: string): string {

@@ -769,6 +769,7 @@ export default function OrderDetail({
                       senderPhotoURL: order.buyerPhoto || '',
                       orderId: order.id,
                       serviceId: order.serviceId,
+                      serviceTitle: order.serviceTitle,
                       dashboardType: 'seller',
                     }).catch(console.error);
                   }}
