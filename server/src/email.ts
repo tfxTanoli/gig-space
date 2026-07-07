@@ -354,17 +354,23 @@ export function buildOfferReceivedEmail(firstName: string, serviceTitle: string)
 }
 
 export function buildOfferAcceptedSellerEmail(firstName: string, serviceTitle: string): string {
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const handshakeIcon = `<img src="${ASSET_URL}/email-handshake-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('New offer received!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${handshakeIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Your offer was accepted!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
-    ${p("You've received a new offer for:")}
+    ${p('Great news &#8212; your offer for the following project was accepted:')}
     ${serviceBlock(serviceTitle)}
-    ${p('Review the details and respond directly from your dashboard.')}
-    ${ctaButton('View offer', `${APP_URL}/seller-dashboard?tab=Orders`)}
-    ${divider()}
+    ${p('You can now continue the order process directly from your dashboard.')}
+    ${ctaButton('View order', `${APP_URL}/seller-dashboard?tab=Orders`)}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
-  return shell('#14532d', '✅', body);
+  return shellPlain(body);
 }
 
 export function buildOrderPlacedBuyerEmail(firstName: string, serviceTitle: string): string {

@@ -130,6 +130,7 @@ const BuyerDashboard = () => {
             sendNotification(pending.sellerId, {
               type: 'offer_accepted',
               title: 'Your offer was accepted',
+              serviceTitle: pending.serviceTitle,
               body: `${userProfile?.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
               senderId: user.uid,
               senderName: userProfile?.name || '',
@@ -182,6 +183,7 @@ const BuyerDashboard = () => {
             sendNotification(pending.sellerId, {
               type: 'offer_accepted',
               title: 'Your offer was accepted',
+              serviceTitle: pending.serviceTitle,
               body: `${userProfile?.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
               senderId: user.uid,
               senderName: userProfile?.name || '',

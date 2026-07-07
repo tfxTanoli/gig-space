@@ -1098,7 +1098,8 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
 
     const userRecord = await admin.auth().getUser(recipientUid);
     const recipientEmail = userRecord.email;
-    const recipientName = userRecord.displayName || 'there';
+    // Prefer the DB name (users/{uid}/name) — Firebase Auth displayName is often empty.
+    const recipientName = await getFirstNameByUid(recipientUid, userRecord.displayName);
 
     if (!recipientEmail) {
       res.json({ sent: false, reason: 'no_email' });
