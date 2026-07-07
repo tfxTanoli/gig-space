@@ -102,6 +102,62 @@ function shell(iconBoxBg: string, iconContent: string, bodyHtml: string): string
 </html>`;
 }
 
+// Same outer card + logo + footer as shell(), but WITHOUT the standalone icon
+// box — lets a template place its own icon (e.g. inline beside the heading).
+function shellPlain(bodyHtml: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+</head>
+<body style="margin:0;padding:0;background-color:#0d1224;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d1224;padding:48px 16px 40px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
+
+          <!-- ── CARD ── -->
+          <tr>
+            <td style="background-color:#111827;border-radius:16px;padding:40px 40px 36px;border:1px solid #1f2937;">
+
+              <!-- Logo inside card — centered -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-bottom:32px;">
+                    <a href="${APP_URL}" target="_blank" style="text-decoration:none;display:inline-block;">
+                      ${GIGSPACE_LOGO_IMG}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Body content -->
+              ${bodyHtml}
+
+            </td>
+          </tr>
+
+          <!-- ── FOOTER ── -->
+          <tr>
+            <td align="center" style="padding-top:28px;">
+              <p style="margin:0;font-size:13px;color:#4b5563;">
+                Too many emails? <a href="${APP_URL}/unsubscribe" target="_blank" style="color:#4b5563;text-decoration:underline;">Unsubscribe</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`;
+}
+
 // ── Reusable HTML building blocks ──────────────────────────────────────────────
 function h(text: string): string {
   return `<h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#ffffff;line-height:1.35;">${text}</h1>`;
@@ -449,21 +505,33 @@ export function buildVerifyEmailEmail(firstName: string, verifyLink: string): st
   return shell('#1e2640', FINGERPRINT_SVG, body);
 }
 
-export function buildVerificationCodeEmail(firstName: string, code: string): string {
-  const codeBlock = `
-<div style="margin:20px 0 24px;text-align:center;">
-  <span style="display:inline-block;background-color:#1f2937;border:1px solid #374151;border-radius:10px;padding:16px 32px;font-size:32px;font-weight:700;letter-spacing:8px;color:#ffffff;font-family:'Courier New',Courier,monospace;">${code}</span>
-</div>`;
+export function buildVerificationCodeEmail(_firstName: string, code: string): string {
+  const fingerprintIcon = `<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" fill="#1D293D"/>
+<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" stroke="#314158"/>
+<path d="M22 20C21.4696 20 20.9609 20.2107 20.5858 20.5858C20.2107 20.9609 20 21.4696 20 22C20 23.02 19.9 24.51 19.74 26" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M24 23.1201C24 25.5001 24 29.5001 23 32.0001" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M27.29 31.02C27.41 30.42 27.72 28.72 27.79 28" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 22C12 19.9012 12.6604 17.8556 13.8876 16.1529C15.1148 14.4502 16.8466 13.1769 18.8377 12.5132C20.8288 11.8495 22.9783 11.8291 24.9817 12.4549C26.985 13.0807 28.7407 14.3209 30 16" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 26H12.01" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M31.8 26C32 24 31.931 20.646 31.8 20" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M15 29.5C15.5 28 16 25 16 22C15.999 21.3189 16.114 20.6425 16.34 20" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M18.65 32C18.86 31.34 19.1 30.68 19.22 30" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M19 16.7999C19.9124 16.2732 20.9474 15.9959 22.001 15.9961C23.0545 15.9963 24.0894 16.2738 25.0017 16.8009C25.9139 17.328 26.6713 18.0859 27.1976 18.9986C27.7239 19.9112 28.0007 20.9464 28 21.9999V23.9999" stroke="white" stroke-opacity="0.9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
   const body = `
-    ${h('Your Gigspace verification code')}
-    ${p(`Hi ${firstName},`)}
-    ${p('Use the verification code below to complete your action on Gigspace. This code expires in 10 minutes.')}
-    ${codeBlock}
-    ${p("If you didn't request this code, please ignore this email.")}
-    ${divider()}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${fingerprintIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;">Here is your verification code:</td>
+      </tr>
+    </table>
+    <p style="margin:0 0 20px;font-size:34px;line-height:1;font-weight:700;letter-spacing:12px;color:#3b82f6;">${code}</p>
+    ${p('Please make sure you never share this code with anyone.')}
+    ${p(`${bold('Note:')} The code will expire in 15 minutes.`)}
     ${signOff('Cheers,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', FINGERPRINT_SVG, body);
+  return shellPlain(body);
 }
 
 // ── Notification email dispatcher ─────────────────────────────────────────────

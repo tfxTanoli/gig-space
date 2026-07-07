@@ -1306,7 +1306,7 @@ app.post('/api/auth/send-verification-code', requireAuth, async (req: AuthReques
     const code = String(Math.floor(100000 + Math.random() * 900000));
     await db.ref(`verificationCodes/${uid}`).set({
       code,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes (matches email copy)
     });
 
     await sendTransactionalEmail(
