@@ -1781,7 +1781,7 @@ app.post('/api/subscriptions/cancel-listing-subscription', requireAuth, async (r
       const uid = req.uid!;
       const sellerRecord = await admin.auth().getUser(uid);
       if (sellerRecord.email) {
-        const firstName = (sellerRecord.displayName || 'there').split(' ')[0];
+        const firstName = await getFirstNameByUid(uid, sellerRecord.displayName);
         await sendTransactionalEmail(
           sellerRecord.email,
           'Your post on Gigspace has been downgraded',

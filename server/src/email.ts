@@ -502,17 +502,23 @@ export function buildPostUpgradedEmail(firstName: string, subscriptionPrice: str
 }
 
 export function buildPostDowngradedEmail(firstName: string): string {
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const canceledIcon = `<img src="${ASSET_URL}/email-canceled-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Your subscription is canceled')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${canceledIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Your subscription is canceled</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('Your Gigspace subscription has been canceled successfully.')}
     ${p("You'll continue to have access to your subscription benefits until the end of your current billing period.")}
     ${p('After that, your listings will move to the free plan and may appear less frequently in buyer search results.')}
     ${ctaButton('Manage subscription', `${APP_URL}/seller-dashboard?tab=Settings`)}
-    ${divider()}
     ${signOff('Thanks,\nThe Gigspace Team')}
   `;
-  return shell('#7f1d1d', STOP_ICON, body);
+  return shellPlain(body);
 }
 
 export function buildPaymentFailedEmail(firstName: string): string {
