@@ -238,17 +238,23 @@ const STOP_ICON = `&#128683;`;
 // ── Template builders ──────────────────────────────────────────────────────────
 
 export function buildWelcomeSellerEmail(): string {
+  // Hosted PNG (not inline SVG/emoji box) — renders consistently in Gmail/Outlook.
+  const welcomeIcon = `<img src="${ASSET_URL}/email-welcome-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Welcome to Gigspace. We&#39;re glad you&#39;re here!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${welcomeIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Welcome to Gigspace. We&#39;re glad you&#39;re here!</td>
+      </tr>
+    </table>
     ${p('Your account is ready. Now lets create your first post so buyers can find you.')}
     ${p('Once your post is live, it will be visible to people searching for services in your area. You can edit it anytime, create additional posts for other services, or expand to more locations whenever you&#39;re ready.')}
     ${preCta('&#128071; Click below to create your first post.')}
     ${ctaButton('Create post', `${APP_URL}/seller-dashboard`)}
     ${p('If you have any questions, our support team is just an email away.')}
-    ${divider()}
     ${signOff('Cheers,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', '👋', body);
+  return shellPlain(body);
 }
 
 export function buildWelcomeBuyerEmail(): string {
