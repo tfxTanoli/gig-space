@@ -321,15 +321,22 @@ export function buildPasswordResetEmail(firstName: string, resetLink: string): s
 }
 
 export function buildPasswordUpdatedEmail(firstName: string): string {
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const tickIcon = `<img src="${ASSET_URL}/email-tick-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
+  const contactUs = `<a href="mailto:support@gigspace.co" style="color:#ffffff;text-decoration:underline;">contact us</a>`;
   const body = `
-    ${h('Password updated!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${tickIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Password updated!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
-    ${p(`Your Gigspace password has been changed successfully. If you did not initiate this change, please ${bold('contact us')} immediately to ensure the security of your account.`)}
+    ${p(`Your Gigspace password has been changed successfully. If you did not initiate this change, please ${contactUs} immediately to ensure the security of your account.`)}
     ${p('Your security is our top priority!')}
-    ${divider()}
     ${signOff('Stay safe,\nThe Gigspace Team')}
   `;
-  return shell('#14532d', '✅', body);
+  return shellPlain(body);
 }
 
 export function buildOfferReceivedEmail(firstName: string, serviceTitle: string): string {

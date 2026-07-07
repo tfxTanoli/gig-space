@@ -1207,12 +1207,23 @@ app.post('/api/auth/send-password-reset', async (req: Request, res: Response) =>
 // POST /api/email/password-updated  (requires auth)
 // Sends a "your password was changed" confirmation email.
 // ─────────────────────────────────────────────────────────────────────────────
+// Resolve a user's first name for emails. The real name lives in the DB
+// (users/{uid}/name); Firebase Auth displayName is often empty.
+async function getFirstNameByUid(uid: string, fallbackDisplayName?: string | null): Promise<string> {
+  try {
+    const snap = await db.ref(`users/${uid}/name`).get();
+    const full = ((snap.val() as string | null) || fallbackDisplayName || '').trim();
+    if (full) return full.split(' ')[0];
+  } catch { /* ignore */ }
+  return 'there';
+}
+
 app.post('/api/email/password-updated', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const uid = req.uid!;
     const userRecord = await admin.auth().getUser(uid);
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
-    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+    const firstName = await getFirstNameByUid(uid, userRecord.displayName);
     await sendTransactionalEmail(
       userRecord.email,
       'Your Gigspace password has been updated',
@@ -1239,7 +1250,7 @@ app.post('/api/email/password-updated-public', async (req: Request, res: Respons
     let firstName = 'there';
     try {
       const userRecord = await admin.auth().getUserByEmail(email);
-      firstName = (userRecord.displayName || 'there').split(' ')[0];
+      firstName = await getFirstNameByUid(userRecord.uid, userRecord.displayName);
     } catch { /* user not found — still send */ }
 
     await sendTransactionalEmail(
