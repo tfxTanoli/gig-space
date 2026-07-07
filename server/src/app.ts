@@ -1088,11 +1088,19 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
         serviceId?: string;
         serviceTitle?: string;
         commissionAmount?: string;
+        dashboardType?: 'seller' | 'buyer';
       };
     };
 
     if (!recipientUid || !payload?.type || !payload?.title) {
       res.status(400).json({ error: 'recipientUid and payload (type, title) are required' });
+      return;
+    }
+
+    // The buyer's payment-success notification reuses type 'offer_accepted'
+    // (a seller-only email). Never email an offer_accepted to the buyer side.
+    if (payload.type === 'offer_accepted' && payload.dashboardType === 'buyer') {
+      res.json({ sent: false, reason: 'buyer_side_offer_accepted' });
       return;
     }
 
