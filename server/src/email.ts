@@ -214,9 +214,6 @@ function bulletList(items: string[]): string {
 
 
 
-const FINGERPRINT_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
-  <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 1 1 8 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0 0 15.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 0 0 8 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
 
 
 // ── Template builders ──────────────────────────────────────────────────────────
@@ -575,18 +572,25 @@ export function buildAccountDeactivatedEmail(firstName: string): string {
 }
 
 export function buildVerifyEmailEmail(firstName: string, verifyLink: string): string {
+  // Reuses the fingerprint icon (same as the verification-code email) — hosted PNG.
+  const fingerprintIcon = `<img src="${ASSET_URL}/email-fingerprint-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
+  const contactSupport = `<a href="mailto:support@gigspace.co" style="color:#ffffff;text-decoration:underline;">contact support</a>`;
   const body = `
-    ${h('Verify your new email address')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${fingerprintIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Verify your new email address</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('You recently updated the email address associated with your Gigspace account.')}
     ${p('To confirm this change, please use the button below.')}
     ${ctaButton('Verify email address', verifyLink)}
     ${p('Once confirmed, your account will keep its blue checkmark and remain eligible for the &#8220;Verified&#8221; search filter.')}
-    ${p(`If you didn't make this change, you can ignore this email or ${bold('contact support')}.`)}
-    ${divider()}
+    ${p(`If you didn't make this change, you can ignore this email or ${contactSupport}.`)}
     ${signOff('Cheers,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', FINGERPRINT_SVG, body);
+  return shellPlain(body);
 }
 
 export function buildVerificationCodeEmail(_firstName: string, code: string): string {

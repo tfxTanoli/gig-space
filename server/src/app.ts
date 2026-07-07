@@ -1136,7 +1136,7 @@ app.post('/api/email/welcome', requireAuth, async (req: AuthRequest, res: Respon
     }
     const userRecord = await admin.auth().getUser(uid);
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
-    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+    const firstName = await getFirstNameByUid(uid, userRecord.displayName);
 
     let subject: string;
     let html: string;
@@ -1284,7 +1284,7 @@ app.post('/api/auth/send-email-verification', requireAuth, async (req: AuthReque
     const uid = req.uid!;
     const userRecord = await admin.auth().getUser(uid);
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
-    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+    const firstName = await getFirstNameByUid(uid, userRecord.displayName);
 
     // See send-password-reset: fall back to a link without the continue URL if
     // FRONTEND_URL isn't an authorized Firebase domain (else no email is sent).
@@ -1324,7 +1324,7 @@ app.post('/api/auth/send-verification-code', requireAuth, async (req: AuthReques
     const uid = req.uid!;
     const userRecord = await admin.auth().getUser(uid);
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
-    const firstName = (userRecord.displayName || 'there').split(' ')[0];
+    const firstName = await getFirstNameByUid(uid, userRecord.displayName);
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     await db.ref(`verificationCodes/${uid}`).set({
