@@ -984,15 +984,20 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
+  // A gig checkout only writes a payments record on SUCCESS, so a failed
+  // attempt usually has no record yet — fall back to the PaymentIntent's
+  // metadata (set in create-payment-intent) so the buyer is still notified.
   const snap = await db.ref('payments')
     .orderByChild('stripePaymentIntentId').equalTo(paymentIntent.id).limitToFirst(1).get();
-  if (!snap.exists()) return;
-  const paymentId = Object.keys(snap.val())[0];
-  const payment = snap.val()[paymentId] as { buyerId?: string; sellerId?: string } | null;
-  await db.ref(`payments/${paymentId}`).update({ status: 'failed' });
+  let payment: { buyerId?: string; sellerId?: string } | null = null;
+  if (snap.exists()) {
+    const paymentId = Object.keys(snap.val())[0];
+    payment = snap.val()[paymentId] as { buyerId?: string; sellerId?: string } | null;
+    await db.ref(`payments/${paymentId}`).update({ status: 'failed' });
+  }
 
   // Send payment failed email to the buyer (they're the one who needs to update billing)
-  const targetUid = payment?.buyerId || payment?.sellerId;
+  const targetUid = payment?.buyerId || payment?.sellerId || paymentIntent.metadata?.buyerId;
   if (targetUid) {
     try {
       const userRecord = await admin.auth().getUser(targetUid);
