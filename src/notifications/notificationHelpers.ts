@@ -32,6 +32,8 @@ export interface NotificationPayload {
   commissionAmount?: string;
   /** Which dashboard this notification belongs to. Filters it out of the other dashboard's bell. */
   dashboardType?: 'seller' | 'buyer';
+  /** When true, only writes the in-app notification and sends no email. */
+  skipEmail?: boolean;
 }
 
 /**
@@ -43,10 +45,11 @@ export async function sendNotification(
   payload: NotificationPayload
 ): Promise<void> {
   // ── In-app notification (Firebase Realtime Database) ─────────────────────
+  const { skipEmail, ...notifData } = payload;
   const notifId = push(ref(database, `notifications/${recipientUid}`)).key!;
   await update(ref(database), {
     [`notifications/${recipientUid}/${notifId}`]: {
-      ...payload,
+      ...notifData,
       isRead: false,
       createdAt: Date.now(),
     },
@@ -54,6 +57,7 @@ export async function sendNotification(
   });
 
   // ── Email notification (fire-and-forget — never blocks the caller) ────────
+  if (skipEmail) return;
   auth.currentUser?.getIdToken().then((token) => {
     fetch(`${API_URL}/api/notifications/email`, {
       method: 'POST',

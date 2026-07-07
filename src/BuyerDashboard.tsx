@@ -109,6 +109,7 @@ const BuyerDashboard = () => {
         sendNotification(user.uid, {
           type: 'offer_accepted',
           title: 'Payment successful',
+          skipEmail: true, // in-app only — buyer already gets the "order placed" email
           body: 'Your payment was processed. Your order is now in progress.',
           senderId: user.uid,
           senderName: userProfile?.name || '',
@@ -166,6 +167,7 @@ const BuyerDashboard = () => {
         sendNotification(user.uid, {
           type: 'offer_accepted',
           title: 'Payment successful',
+          skipEmail: true, // in-app only — buyer already gets the "order placed" email
           body: 'Your payment was processed. Your order is now in progress.',
           senderId: user.uid,
           senderName: userProfile?.name || '',
