@@ -212,10 +212,6 @@ function bulletList(items: string[]): string {
 
 // ── SVG icons used in icon boxes ───────────────────────────────────────────────
 
-const KEY_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
-  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
 const EDIT_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -284,8 +280,19 @@ export function buildWelcomeAffiliateEmail(): string {
 }
 
 export function buildPasswordResetEmail(firstName: string, resetLink: string): string {
+  const keyIcon = `<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" fill="#1D293D"/>
+<path d="M8 0.5H36C40.1421 0.5 43.5 3.85786 43.5 8V36C43.5 40.1421 40.1421 43.5 36 43.5H8C3.85786 43.5 0.5 40.1421 0.5 36V8C0.5 3.85786 3.85786 0.5 8 0.5Z" stroke="#314158"/>
+<path d="M12.586 27.4142C12.2109 27.7891 12.0001 28.2978 12 28.8282V31.0002C12 31.2654 12.1054 31.5197 12.2929 31.7073C12.4804 31.8948 12.7348 32.0002 13 32.0002H16C16.2652 32.0002 16.5196 31.8948 16.7071 31.7073C16.8946 31.5197 17 31.2654 17 31.0002V30.0002C17 29.7349 17.1054 29.4806 17.2929 29.2931C17.4804 29.1055 17.7348 29.0002 18 29.0002H19C19.2652 29.0002 19.5196 28.8948 19.7071 28.7073C19.8946 28.5197 20 28.2654 20 28.0002V27.0002C20 26.7349 20.1054 26.4806 20.2929 26.2931C20.4804 26.1055 20.7348 26.0002 21 26.0002H21.172C21.7024 26 22.211 25.7893 22.586 25.4142L23.4 24.6002C24.7898 25.0843 26.3028 25.0825 27.6915 24.5949C29.0801 24.1074 30.2622 23.163 31.0444 21.9163C31.8265 20.6696 32.1624 19.1943 31.9971 17.7319C31.8318 16.2695 31.1751 14.9064 30.1344 13.8657C29.0937 12.825 27.7307 12.1683 26.2683 12.003C24.8058 11.8378 23.3306 12.1737 22.0839 12.9558C20.8372 13.7379 19.8928 14.92 19.4052 16.3087C18.9177 17.6973 18.9159 19.2103 19.4 20.6002L12.586 27.4142Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M26.5 18C26.7761 18 27 17.7761 27 17.5C27 17.2239 26.7761 17 26.5 17C26.2239 17 26 17.2239 26 17.5C26 17.7761 26.2239 18 26.5 18Z" fill="white" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
   const body = `
-    ${h('Reset your password')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${keyIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;">Reset your password</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('We received a request to reset your Gigspace password.')}
     ${p('If you made this request, just click the button below to create a new password. This link will expire in 1 hour.')}
@@ -293,10 +300,9 @@ export function buildPasswordResetEmail(firstName: string, resetLink: string): s
     ${p(`Here are some ${bold('tips')} for creating a strong password:`)}
     ${bulletList(['Use a mix of letters, numbers, and symbols.', 'Avoid common words and phrases.', "Don't reuse passwords from other sites."])}
     ${p("If you didn't request a password reset, you can safely ignore this email &#8212; your current password will remain unchanged.")}
-    ${divider()}
     ${signOff('Stay safe,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', KEY_SVG, body);
+  return shellPlain(body);
 }
 
 export function buildPasswordUpdatedEmail(firstName: string): string {

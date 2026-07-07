@@ -1162,11 +1162,14 @@ app.post('/api/auth/send-password-reset', async (req: Request, res: Response) =>
     const { email } = req.body as { email?: string };
     if (!email) { res.status(400).json({ error: 'email is required' }); return; }
 
-    // Look up user to get display name
+    // Look up the user's real name. It's stored in the DB (users/{uid}/name);
+    // Firebase Auth displayName is often empty, so prefer the DB value.
     let firstName = 'there';
     try {
       const userRecord = await admin.auth().getUserByEmail(email);
-      firstName = (userRecord.displayName || 'there').split(' ')[0];
+      const nameSnap = await db.ref(`users/${userRecord.uid}/name`).get();
+      const fullName = ((nameSnap.val() as string | null) || userRecord.displayName || '').trim();
+      if (fullName) firstName = fullName.split(' ')[0];
     } catch { /* user not found — still generate link so we don't expose existence */ }
 
     // If FRONTEND_URL isn't an authorized Firebase domain, generating a link
