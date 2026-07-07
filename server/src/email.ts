@@ -483,16 +483,22 @@ export function buildRefundIssuedBuyerEmail(firstName: string, serviceTitle: str
 }
 
 export function buildPostUpgradedEmail(firstName: string, subscriptionPrice: string, nextBillingDate: string): string {
+  // Hosted PNG (not inline SVG/emoji box) — renders consistently in Gmail/Outlook.
+  const rocketIcon = `<img src="${ASSET_URL}/email-rocket-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Your subscription is now active!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${rocketIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Your subscription is now active!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('Your seller subscription is now active. Your services will now begin appearing in more potential buyer search results.')}
     ${pWhite(`${bold('Amount:')} ${subscriptionPrice}/month<br/>${bold('Next billing date:')} ${nextBillingDate}`)}
     ${ctaButton('Manage subscription', `${APP_URL}/seller-dashboard?tab=Settings`)}
-    ${divider()}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', '🚀', body);
+  return shellPlain(body);
 }
 
 export function buildPostDowngradedEmail(firstName: string): string {

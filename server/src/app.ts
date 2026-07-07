@@ -1742,7 +1742,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
     try {
       const sellerRecord = await admin.auth().getUser(uid);
       if (sellerRecord.email) {
-        const firstName = (sellerRecord.displayName || 'there').split(' ')[0];
+        const firstName = await getFirstNameByUid(uid, sellerRecord.displayName);
         const price = `$${(extraLocationCount * 5).toFixed(2)}`;
         const nextDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         await sendTransactionalEmail(
