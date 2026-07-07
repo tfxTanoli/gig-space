@@ -1058,7 +1058,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     try {
       const buyerRecord = await admin.auth().getUser(payment.buyerId);
       if (buyerRecord.email) {
-        const firstName = (buyerRecord.displayName || 'there').split(' ')[0];
+        const firstName = await getFirstNameByUid(payment.buyerId, buyerRecord.displayName);
         await sendTransactionalEmail(
           buyerRecord.email,
           'Your order on Gigspace has been refunded',

@@ -212,12 +212,6 @@ function bulletList(items: string[]): string {
 
 // ── SVG icons used in icon boxes ───────────────────────────────────────────────
 
-const REFUND_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
-  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="1" y1="10" x2="23" y2="10" stroke="#d1d5db" stroke-width="2"/>
-  <path d="M9 15l-2-2 2-2" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M7 13h4a2 2 0 0 0 0-4" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
 
 const CARD_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
   <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -469,17 +463,23 @@ export function buildPaymentReceivedSellerEmail(firstName: string, serviceTitle:
 }
 
 export function buildRefundIssuedBuyerEmail(firstName: string, serviceTitle: string): string {
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const refundIcon = `<img src="${ASSET_URL}/email-refund-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Your refund has been issued')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${refundIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Your refund has been issued</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('A refund has been issued for the following order:')}
     ${serviceBlock(serviceTitle)}
     ${p('Please allow a few business days for the refund to appear on your original payment method.')}
     ${ctaButton('View order', `${APP_URL}/buyer-dashboard?tab=Orders`)}
-    ${divider()}
     ${signOff('Thanks for being a loyal customer,\nThe Gigspace Team')}
   `;
-  return shell('#14532d', REFUND_SVG, body);
+  return shellPlain(body);
 }
 
 export function buildPostUpgradedEmail(firstName: string, subscriptionPrice: string, nextBillingDate: string): string {
