@@ -1002,7 +1002,7 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     try {
       const userRecord = await admin.auth().getUser(targetUid);
       if (userRecord.email) {
-        const firstName = (userRecord.displayName || 'there').split(' ')[0];
+        const firstName = await getFirstNameByUid(targetUid, userRecord.displayName);
         await sendTransactionalEmail(
           userRecord.email,
           'Your most recent payment has failed',

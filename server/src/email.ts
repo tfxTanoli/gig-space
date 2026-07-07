@@ -213,10 +213,6 @@ function bulletList(items: string[]): string {
 // ── SVG icons used in icon boxes ───────────────────────────────────────────────
 
 
-const CARD_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
-  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="1" y1="10" x2="23" y2="10" stroke="#d1d5db" stroke-width="2"/>
-</svg>`;
 
 const FINGERPRINT_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:auto;">
   <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 1 1 8 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0 0 15.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 0 0 8 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -522,16 +518,22 @@ export function buildPostDowngradedEmail(firstName: string): string {
 }
 
 export function buildPaymentFailedEmail(firstName: string): string {
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const cardIcon = `<img src="${ASSET_URL}/email-card-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Please update your payment info')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${cardIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Please update your payment info</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('We were unable to process your recent payment.')}
     ${p('Please update your billing information to avoid interruptions to your account.')}
     ${ctaButton('Update billing', `${APP_URL}/seller-dashboard?tab=Settings`)}
-    ${divider()}
     ${signOff('Thanks,\nThe Gigspace Team')}
   `;
-  return shell('#7c2d12', CARD_SVG, body);
+  return shellPlain(body);
 }
 
 export function buildAffiliateCommissionEmail(firstName: string, commissionAmount: string): string {
