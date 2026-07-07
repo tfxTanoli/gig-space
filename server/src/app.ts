@@ -799,10 +799,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   try {
     const buyerRecord = await admin.auth().getUser(buyerId);
     if (buyerRecord.email) {
-      const buyerFirstName = (buyerRecord.displayName || 'there').split(' ')[0];
+      const buyerFirstName = await getFirstNameByUid(buyerId, buyerRecord.displayName);
       await sendTransactionalEmail(
         buyerRecord.email,
-        'Your Gigspace order has been placed',
+        'Your order has been placed',
         buildOrderPlacedBuyerEmail(buyerFirstName, serviceTitle)
       );
     }
@@ -956,10 +956,10 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
   try {
     const buyerRecord = await admin.auth().getUser(buyerId);
     if (buyerRecord.email) {
-      const buyerFirstName = (buyerRecord.displayName || 'there').split(' ')[0];
+      const buyerFirstName = await getFirstNameByUid(buyerId, buyerRecord.displayName);
       await sendTransactionalEmail(
         buyerRecord.email,
-        'Your Gigspace order has been placed',
+        'Your order has been placed',
         buildOrderPlacedBuyerEmail(buyerFirstName, serviceTitle)
       );
     }

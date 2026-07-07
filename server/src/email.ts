@@ -374,17 +374,23 @@ export function buildOfferAcceptedSellerEmail(firstName: string, serviceTitle: s
 }
 
 export function buildOrderPlacedBuyerEmail(firstName: string, serviceTitle: string): string {
+  // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
+  const packageIcon = `<img src="${ASSET_URL}/email-package-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('New offer received!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${packageIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Your order has been placed!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
-    ${p("You've received a new offer for:")}
+    ${p('Your order has been successfully placed for:')}
     ${serviceBlock(serviceTitle)}
-    ${p('Review the details and respond directly from your dashboard.')}
-    ${ctaButton('View offer', `${APP_URL}/buyer-dashboard?tab=Orders`)}
-    ${divider()}
+    ${p('The seller has been notified and will begin working on your project shortly.')}
+    ${ctaButton('View order', `${APP_URL}/buyer-dashboard?tab=Orders`)}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
-  return shell('#14532d', '✅', body);
+  return shellPlain(body);
 }
 
 export function buildWorkDeliveredBuyerEmail(firstName: string, serviceTitle: string): string {
@@ -577,7 +583,7 @@ function buildNotificationEmail(payload: EmailPayload, recipientName: string): {
       };
     case 'order_placed':
       return {
-        subject: 'Your Gigspace order has been placed',
+        subject: 'Your order has been placed',
         html: buildOrderPlacedBuyerEmail(firstName, serviceTitle),
       };
     case 'delivery':
