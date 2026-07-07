@@ -815,7 +815,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       if (checkoutCommission > 0) {
         const affRecord = await admin.auth().getUser(affiliateId);
         if (affRecord.email) {
-          const affFirstName = (affRecord.displayName || 'there').split(' ')[0];
+          const affFirstName = await getFirstNameByUid(affiliateId, affRecord.displayName);
           await sendTransactionalEmail(
             affRecord.email,
             'You earned a new Gigspace Affiliate commission!',
@@ -971,7 +971,7 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       if (affCommission > 0) {
         const affRecord = await admin.auth().getUser(affiliateId);
         if (affRecord.email) {
-          const affFirstName = (affRecord.displayName || 'there').split(' ')[0];
+          const affFirstName = await getFirstNameByUid(affiliateId, affRecord.displayName);
           await sendTransactionalEmail(
             affRecord.email,
             'You earned a new Gigspace Affiliate commission!',

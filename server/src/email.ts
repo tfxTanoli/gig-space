@@ -537,17 +537,23 @@ export function buildPaymentFailedEmail(firstName: string): string {
 }
 
 export function buildAffiliateCommissionEmail(firstName: string, commissionAmount: string): string {
+  // Reuses the payment (money-with-wings) icon — same as the Figma frame.
+  const commissionIcon = `<img src="${ASSET_URL}/email-payment-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('You earned some commission!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${commissionIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">You earned some commission!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('You earned a new affiliate commission from a completed order on Gigspace.')}
     ${pWhite(`${bold('Commission Amount:')} ${commissionAmount}`)}
     ${p('Your earnings dashboard has been updated and is available for withdrawal.')}
     ${ctaButton('View earnings', `${APP_URL}/affiliate-dashboard`)}
-    ${divider()}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', '🪅', body);
+  return shellPlain(body);
 }
 
 export function buildAccountDeactivatedEmail(firstName: string): string {
