@@ -414,17 +414,23 @@ export function buildWorkDeliveredBuyerEmail(firstName: string, serviceTitle: st
 }
 
 export function buildOrderApprovedSellerEmail(firstName: string, serviceTitle: string): string {
+  // Hosted PNG (not inline SVG/emoji box) — renders consistently in Gmail/Outlook.
+  const celebrateIcon = `<img src="${ASSET_URL}/email-celebrate-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
   const body = `
-    ${h('Congrats! They loved your work!')}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:14px;line-height:1;">${celebrateIcon}</td>
+        <td style="vertical-align:middle;font-size:18px;font-weight:700;color:#ffffff;line-height:1.35;">Congrats! They loved your work!</td>
+      </tr>
+    </table>
     ${p(`Hi ${firstName},`)}
     ${p('Your order has been accepted for the following project:')}
     ${serviceBlock(serviceTitle)}
     ${p('Your funds will become available for withdrawal after the escrow processing period (typically 3&#8211;5 business days).')}
     ${ctaButton('Login to dashboard', `${APP_URL}/seller-dashboard?tab=Orders`)}
-    ${divider()}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
-  return shell('#1e2640', '🎉', body);
+  return shellPlain(body);
 }
 
 export function buildRevisionRequestedEmail(firstName: string, serviceTitle: string): string {
