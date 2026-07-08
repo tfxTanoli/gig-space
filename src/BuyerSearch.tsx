@@ -893,7 +893,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           <div className="flex items-center gap-4 md:gap-6 ml-auto shrink-0">
             {user && (
               <>
-                <Link to="/post-service" className="text-xs md:text-sm font-medium hover:text-primary transition-colors text-slate-300 whitespace-nowrap">
+                <Link to="/post-service" className="text-sm md:text-base font-medium hover:text-primary transition-colors text-slate-300 whitespace-nowrap">
                   Create New Post
                 </Link>
               </>

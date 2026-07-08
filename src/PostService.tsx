@@ -43,6 +43,34 @@ type MediaItem =
   | { kind: 'existing'; url: string }
   | { kind: 'new'; file: File; previewUrl: string };
 
+// Downscale/recompress large images in the browser before upload so a single
+// multi-megapixel phone photo doesn't take many seconds to upload. Falls back
+// to the original file on any failure or for formats we shouldn't touch (gif).
+async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
+  if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
+  if (file.size < 500 * 1024) return file; // already small enough
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { bitmap.close(); return file; }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', quality),
+    );
+    // Never upload a file larger than the original.
+    return blob && blob.size < file.size ? blob : file;
+  } catch {
+    return file;
+  }
+}
+
 interface Step8PaymentSectionProps {
   extraLocationCount: number;
   serviceId: string;
@@ -486,16 +514,25 @@ const PostService = () => {
 
   // ── Upload all media ───────────────────────────────────────────────────────
   const uploadAllMedia = async (): Promise<{ imageUrls: string[]; videoUrl: string | null }> => {
-    const imageUrls: string[] = [];
-    for (const item of mediaItems) {
-      if (item.kind === 'existing') {
-        imageUrls.push(item.url);
-      } else {
-        const ref = storageRef(storage, `serviceImages/${user!.uid}/${Date.now()}_${item.file.name}`);
-        await uploadBytes(ref, item.file);
-        imageUrls.push(await getDownloadURL(ref));
-      }
-    }
+    // Compress + upload all new images in parallel (Promise.all preserves order).
+    const imageUrls: string[] = await Promise.all(
+      mediaItems.map(async (item, i) => {
+        if (item.kind === 'existing') return item.url;
+        const blob = await compressImage(item.file);
+        const contentType = blob.type || item.file.type || 'image/jpeg';
+        const ext =
+          contentType === 'image/jpeg' ? 'jpg' :
+          contentType === 'image/png' ? 'png' :
+          contentType === 'image/webp' ? 'webp' :
+          (item.file.name.split('.').pop() || 'jpg');
+        const ref = storageRef(
+          storage,
+          `serviceImages/${user!.uid}/${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}.${ext}`,
+        );
+        await uploadBytes(ref, blob, { contentType });
+        return getDownloadURL(ref);
+      }),
+    );
     let videoUrl: string | null = existingVideoURL || null;
     if (videoFile) {
       const ref = storageRef(storage, `serviceVideos/${user!.uid}/${Date.now()}_${videoFile.name}`);
@@ -679,7 +716,7 @@ const PostService = () => {
                   <button
                     type="button"
                     onClick={() => setCategoryOpen((v) => !v)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-base md:text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors"
                   >
                     <span className={selectedCatLabel ? 'text-slate-200' : (categoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedCatLabel ?? 'Category'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${categoryOpen ? 'rotate-180' : ''}`} />
@@ -706,7 +743,7 @@ const PostService = () => {
                     type="button"
                     disabled={!category}
                     onClick={() => setSubcategoryOpen((v) => !v)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-base md:text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className={selectedSubLabel ? 'text-slate-200' : (subcategoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedSubLabel ?? 'Subcategory'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${subcategoryOpen ? 'rotate-180' : ''}`} />
@@ -745,7 +782,7 @@ const PostService = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-base md:text-sm"
               />
               <div className="text-right text-slate-500 text-xs mt-1">{title.length}/80 max</div>
             </div>
@@ -792,7 +829,7 @@ const PostService = () => {
                   document.execCommand('insertText', false, text);
                   setDescriptionLength(descriptionRef.current?.textContent?.length ?? 0);
                 }}
-                className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-base md:text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 style={{ resize: 'vertical', overflow: 'auto', outline: 'none' }}
               />
               <div className={`text-right text-xs mt-1 ${descriptionLength > 1000 ? 'text-red-400' : 'text-slate-500'}`}>
@@ -830,7 +867,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMin ? parseInt(priceMin).toLocaleString() : ''}
                       onChange={(e) => setPriceMin(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-base md:text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -844,7 +881,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMax ? parseInt(priceMax).toLocaleString() : ''}
                       onChange={(e) => setPriceMax(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-base md:text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -1067,7 +1104,7 @@ const PostService = () => {
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
                       placeholder="Search for a city or country…"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-base md:text-sm text-white"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
@@ -1104,7 +1141,7 @@ const PostService = () => {
               <div className={`flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
                 <div>
                   <p className={`text-sm font-medium ${!primaryLocationIsCountry ? 'text-slate-500' : 'text-white'}`}>Remote service</p>
-                  <p className="text-slate-400 text-xs">
+                  <p className="text-slate-400 text-sm">
                     {primaryLocationIsCountry
                       ? 'Toggle on if this service is offered online/remotely'
                       : 'Select a country as your primary location to enable'}
@@ -1141,7 +1178,7 @@ const PostService = () => {
                     onKeyDown={handleAddExtraLocation}
                     onFocus={() => setExtraLocationDropdownOpen(true)}
                     placeholder="Type a location and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-base md:text-sm"
                   />
                 </div>
                 {extraLocationDropdownOpen && extraLocationSuggestions.length > 0 && (
@@ -1191,7 +1228,7 @@ const PostService = () => {
                     onKeyDown={handleLanguageKeyDown}
                     onFocus={() => setLanguageDropdownOpen(true)}
                     placeholder="Type a language and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-base md:text-sm"
                   />
                 </div>
                 {languageDropdownOpen && filteredLanguages.length > 0 && (

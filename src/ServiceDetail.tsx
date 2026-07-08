@@ -511,7 +511,7 @@ const ServiceDetail = () => {
               <>
                 <Link
                   to="/post-service"
-                  className="text-xs md:text-sm font-medium text-slate-300 hover:text-primary transition-colors whitespace-nowrap"
+                  className="text-sm md:text-base font-medium text-slate-300 hover:text-primary transition-colors whitespace-nowrap"
                 >
                   Create New Post
                 </Link>
