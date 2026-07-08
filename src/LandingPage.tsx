@@ -164,9 +164,11 @@ const LandingPage = () => {
         <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-24 pb-12 md:pb-16 px-4 text-center relative">
           <div className="relative z-10 w-full flex flex-col items-center">
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading tracking-tight mb-4 md:mb-6">
-              Local talent. On demand.
+              Local talent.{' '}
+              <br className="md:hidden" />
+              On demand.
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-12 text-balance">
+            <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto mb-8 md:mb-12 text-balance">
               Hire talented pros for in-person services or remote experts for digital work.{' '}
               <br className="hidden md:block"/>
               One marketplace for everything you need.
@@ -175,7 +177,7 @@ const LandingPage = () => {
             {/* Search Bar — two separate fields on mobile, combined pill on desktop */}
             <div className="w-full max-w-3xl flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-0 md:bg-surface-raised md:p-2 md:rounded-xl md:border md:border-slate-700/50 md:shadow-xl">
               {/* Location dropdown — its own field on mobile */}
-              <div className="w-full md:basis-2/5 md:shrink-0 bg-surface-raised rounded-xl border border-slate-700/50 shadow-lg md:bg-transparent md:rounded-none md:border-none md:shadow-none">
+              <div className="w-full md:basis-2/5 md:shrink-0 bg-surface-raised rounded-xl border border-slate-700/50 shadow-lg p-1.5 md:p-0 md:bg-transparent md:rounded-none md:border-none md:shadow-none">
                 <LocationSearch value={heroLocation} onChange={(label) => setHeroLocation(label)} variant="hero" />
               </div>
 

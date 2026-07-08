@@ -243,7 +243,7 @@ const AffiliateLanding = () => {
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight max-w-4xl mx-auto">
               Earn Big Commissions for{' '}<br className="hidden md:block" />Every Job Booked
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
+            <p className="text-slate-300 text-base md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
               Get paid every time someone hires a service through your link.{' '}
               <br className="hidden md:block" />
               Earn 50% of our platform fee on every completed job.
