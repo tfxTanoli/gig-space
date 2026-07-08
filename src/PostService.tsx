@@ -320,7 +320,7 @@ const PostService = () => {
         setSubcategory(String(d.subcategory ?? ''));
         setTitle(String(d.title ?? ''));
         setDescription(String(d.description ?? ''));
-        setPriceMin(String(d.priceMin ?? ''));
+        setPriceMin(d.priceMin ? String(d.priceMin) : '');
         setPriceMax(d.priceMax ? String(d.priceMax) : '');
         setPriceType((d.priceType as 'per_project' | 'per_hour') ?? 'per_project');
         setMediaItems(Array.isArray(d.images) ? (d.images as string[]).map((url) => ({ kind: 'existing' as const, url })) : []);
@@ -376,6 +376,14 @@ const PostService = () => {
       .finally(() => setLoadingEdit(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Clear the "upload at least one image or video" error as soon as the
+  // requirement is met, instead of waiting for the user to hit Continue again.
+  useEffect(() => {
+    if (step !== 4 || stepError !== 'Please upload at least one image or video.') return;
+    const hasVideo = !!(videoPreviewURL || existingVideoURL);
+    if (mediaItems.length > 0 || hasVideo) setStepError('');
+  }, [step, stepError, mediaItems, videoPreviewURL, existingVideoURL]);
 
   // ── Media handlers ─────────────────────────────────────────────────────────
   const handleMediaSelect = (e: ChangeEvent<HTMLInputElement>) => {
