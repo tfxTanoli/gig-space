@@ -161,8 +161,36 @@ const AffiliateLanding = () => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  const scrollCats = (dir: 'left' | 'right') =>
-    catScrollRef.current?.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' });
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 1);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    updateScrollButtons();
+    el.addEventListener('scroll', updateScrollButtons, { passive: true });
+    window.addEventListener('resize', updateScrollButtons);
+    return () => {
+      el.removeEventListener('scroll', updateScrollButtons);
+      window.removeEventListener('resize', updateScrollButtons);
+    };
+  }, []);
+
+  const scrollCats = (dir: 'left' | 'right') => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    const amount = Math.max(el.clientWidth * 0.8, 200);
+    const max = el.scrollWidth - el.clientWidth;
+    const target = Math.max(0, Math.min(max, el.scrollLeft + (dir === 'left' ? -amount : amount)));
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
 
   const ctaHref = user ? '/affiliate-dashboard' : '/signup?next=/affiliate-dashboard';
   const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
@@ -336,13 +364,15 @@ const AffiliateLanding = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => scrollCats('left')}
-              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors"
+              disabled={!canScrollLeft}
+              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <ChevronLeft className="w-4 h-4 text-slate-400" />
             </button>
             <button
               onClick={() => scrollCats('right')}
-              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors"
+              disabled={!canScrollRight}
+              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>

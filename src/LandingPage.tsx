@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Car, Palette, Home, Package, Code, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, Menu, X, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
@@ -101,8 +101,36 @@ const LandingPage = () => {
     navigate(`/search${qs ? `?${qs}` : ''}`);
   };
 
-  const scrollCats = (dir: 'left' | 'right') =>
-    catScrollRef.current?.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' });
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 1);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    updateScrollButtons();
+    el.addEventListener('scroll', updateScrollButtons, { passive: true });
+    window.addEventListener('resize', updateScrollButtons);
+    return () => {
+      el.removeEventListener('scroll', updateScrollButtons);
+      window.removeEventListener('resize', updateScrollButtons);
+    };
+  }, []);
+
+  const scrollCats = (dir: 'left' | 'right') => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    const amount = Math.max(el.clientWidth * 0.8, 200);
+    const max = el.scrollWidth - el.clientWidth;
+    const target = Math.max(0, Math.min(max, el.scrollLeft + (dir === 'left' ? -amount : amount)));
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
@@ -212,13 +240,15 @@ const LandingPage = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => scrollCats('left')}
-              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              disabled={!canScrollLeft}
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => scrollCats('right')}
-              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              disabled={!canScrollRight}
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
