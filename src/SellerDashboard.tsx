@@ -349,35 +349,56 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
                 )}
               </svg>
 
-              {/* Hover dots — HTML so they stay round despite the stretched SVG */}
-              {hasData && hover !== null && (
-                <>
-                  <span
-                    className="absolute w-2 h-2 rounded-full bg-blue-500 border border-slate-900 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ left: `${xOf(hover)}%`, top: `${(yOf(filled[hover].views) / 40) * 100}%` }}
-                  />
-                  <span
-                    className="absolute w-2 h-2 rounded-full bg-amber-500 border border-slate-900 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ left: `${xOf(hover)}%`, top: `${(yOf(filled[hover].clicks) / 40) * 100}%` }}
-                  />
-                  {/* Tooltip */}
-                  <div
-                    className="absolute pointer-events-none z-10 px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 shadow-lg whitespace-nowrap"
-                    style={{
-                      left: `${Math.min(85, Math.max(8, xOf(hover)))}%`,
-                      top: '-4px',
-                      transform: 'translate(-50%, -100%)',
-                    }}
-                  >
-                    <p className="text-[10px] text-slate-400 leading-tight">{fmtDay(filled[hover].date)}</p>
-                    <p className="text-xs font-semibold text-white leading-tight">
-                      <span className="text-blue-400">{filled[hover].views.toLocaleString()}</span> views
-                      <span className="text-slate-600 mx-1">·</span>
-                      <span className="text-amber-400">{filled[hover].clicks.toLocaleString()}</span> clicks
-                    </p>
-                  </div>
-                </>
-              )}
+              {/* Hover dots + tooltip — HTML so they stay round/crisp despite the
+                 stretched SVG. Mirrors the admin graph: the card hugs the hovered
+                 point with a downward caret, rather than floating at the top. */}
+              {hasData && hover !== null && (() => {
+                const px = xOf(hover);
+                // Anchor to the higher of the two points so the card clears both lines.
+                const upperPct = (yOf(Math.max(filled[hover].views, filled[hover].clicks)) / 40) * 100;
+                // Clamp the card so it can't spill past the chart edges; the caret
+                // stays at the true x (its own element) so it still points at the day.
+                const cardLeft = Math.min(90, Math.max(10, px));
+                return (
+                  <>
+                    <span
+                      className="absolute w-2 h-2 rounded-full bg-blue-500 border border-slate-900 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                      style={{ left: `${px}%`, top: `${(yOf(filled[hover].views) / 40) * 100}%` }}
+                    />
+                    <span
+                      className="absolute w-2 h-2 rounded-full bg-amber-500 border border-slate-900 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                      style={{ left: `${px}%`, top: `${(yOf(filled[hover].clicks) / 40) * 100}%` }}
+                    />
+                    {/* Tooltip card, floating just above the higher point */}
+                    <div
+                      className="absolute pointer-events-none z-10 px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 shadow-lg whitespace-nowrap"
+                      style={{
+                        left: `${cardLeft}%`,
+                        top: `calc(${upperPct}% - 9px)`,
+                        transform: 'translate(-50%, -100%)',
+                      }}
+                    >
+                      <p className="text-[10px] text-slate-400 leading-tight">{fmtDay(filled[hover].date)}</p>
+                      <p className="text-xs font-semibold text-white leading-tight">
+                        <span className="text-blue-400">{filled[hover].views.toLocaleString()}</span> views
+                        <span className="text-slate-600 mx-1">·</span>
+                        <span className="text-amber-400">{filled[hover].clicks.toLocaleString()}</span> clicks
+                      </p>
+                    </div>
+                    {/* Downward caret pointing at the hovered day */}
+                    <span
+                      className="absolute z-10 w-0 h-0 -translate-x-1/2 pointer-events-none"
+                      style={{
+                        left: `${px}%`,
+                        top: `calc(${upperPct}% - 9px)`,
+                        borderLeft: '4px solid transparent',
+                        borderRight: '4px solid transparent',
+                        borderTop: '5px solid #0f172a',
+                      }}
+                    />
+                  </>
+                );
+              })()}
 
               {!hasData && (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
