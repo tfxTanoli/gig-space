@@ -511,23 +511,23 @@ const ServiceDetail = () => {
               <>
                 <Link
                   to="/post-service"
-                  className="text-sm font-medium text-slate-300 hover:text-primary transition-colors hidden md:block"
+                  className="text-xs md:text-sm font-medium text-slate-300 hover:text-primary transition-colors whitespace-nowrap"
                 >
                   Create New Post
                 </Link>
                 <HeaderUserMenu />
               </>
             ) : (
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4 md:gap-6">
                 <Link
                   to="/signin"
-                  className="text-slate-300 hover:text-white text-sm font-medium transition-colors hidden md:block"
+                  className="text-slate-300 hover:text-white text-sm font-medium transition-colors"
                 >
                   Log in
                 </Link>
                 <Link
                   to="/signup"
-                  className="hidden md:flex items-center text-slate-300 hover:text-white text-sm font-medium px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors"
+                  className="flex items-center text-slate-300 hover:text-white text-sm font-medium px-4 py-2 border border-slate-700 rounded-full hover:bg-slate-800 transition-colors"
                 >
                   Sign up <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>

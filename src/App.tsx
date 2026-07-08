@@ -74,9 +74,23 @@ function ScrollToTop() {
     // Disable browser's native scroll restoration so our handler always wins,
     // including on back/forward navigation.
     window.history.scrollRestoration = 'manual';
+    // iOS Safari can restore a stale scroll offset from the back-forward cache
+    // when the tab is reopened, leaving the header scrolled up under the status
+    // bar. Force back to the top whenever the page is shown (incl. bfcache).
+    const onPageShow = () => window.scrollTo(0, 0);
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
   useEffect(() => {
+    // Routes are lazy-loaded, so on navigation the Suspense fallback paints
+    // first and a plain scrollTo lands on it, not the real page — iOS then
+    // mounts the actual content already scrolled down. Reset immediately and
+    // again after the next two frames, once the new route has painted.
     window.scrollTo(0, 0);
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() => window.scrollTo(0, 0)),
+    );
+    return () => cancelAnimationFrame(id);
   }, [pathname]);
   return null;
 }
