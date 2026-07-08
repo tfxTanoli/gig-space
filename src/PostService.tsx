@@ -551,7 +551,7 @@ const PostService = () => {
       if (title.trim().length < 20) { setStepError('Title must be at least 20 characters.'); return false; }
       const descText = descriptionRef.current?.textContent?.trim() ?? description.replace(/<[^>]*>/g, '').trim();
       if (descText.length < 150) { setStepError('Please add a description (at least 150 characters).'); return false; }
-      if (descText.length > 1000) { setStepError('Description must be 1,000 characters or less.'); return false; }
+      if (descText.length > 5000) { setStepError('Description must be 5,000 characters or less.'); return false; }
     }
     if (step === 3) {
       const min = parseInt(priceMin);
@@ -832,8 +832,8 @@ const PostService = () => {
                 className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-base md:text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 style={{ resize: 'vertical', overflow: 'auto', outline: 'none' }}
               />
-              <div className={`text-right text-xs mt-1 ${descriptionLength > 1000 ? 'text-red-400' : 'text-slate-500'}`}>
-                {descriptionLength}/1,000 max
+              <div className={`text-right text-xs mt-1 ${descriptionLength > 5000 ? 'text-red-400' : 'text-slate-500'}`}>
+                {descriptionLength.toLocaleString('en-US')}/5,000 max
               </div>
             </div>
           </div>
