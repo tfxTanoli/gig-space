@@ -100,7 +100,7 @@ const LocationSearch = ({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute left-0 top-full mt-2 w-[22rem] max-w-[calc(100vw-2rem)] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
           {/* Search input */}
           <div className="p-2 border-b border-slate-800">
             <div className="flex items-center bg-slate-700 border border-slate-700 rounded-lg px-3 h-9">
