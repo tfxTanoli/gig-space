@@ -12,7 +12,9 @@ export const STRIPE_APPEARANCE = {
     fontSizeBase: '16px',
   },
   rules: {
-    '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '10px 16px' },
+    // padding + lineHeight + 1px border on each side = 36px, matching the
+    // h-9 inputs used elsewhere in the app.
+    '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 16px', lineHeight: '18px' },
     '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
     '.Label': { color: '#cbd5e1', fontSize: '13px' },
     '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155' },
