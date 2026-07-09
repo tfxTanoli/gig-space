@@ -88,7 +88,7 @@ const LocationSearch = ({
       // text-base on mobile so this trigger matches the sibling search input,
       // which index.css floors at 16px to stop iOS zoom-on-focus. It's a button,
       // not an input, so that rule can't reach it. Desktop keeps text-sm.
-      : 'px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-base md:text-sm h-full bg-surface-raised hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
+      : 'px-4 flex items-center cursor-pointer text-slate-300 text-base md:text-sm h-full bg-surface-raised hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
 
   return (
     <div
@@ -101,6 +101,15 @@ const LocationSearch = ({
         </span>
         <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-auto" />
       </button>
+
+      {/* Separates the location field from the search input, matching the hero
+          bar on the landing page. A full-height `border-r border-slate-700` used
+          to sit on the trigger, but slate-700 (#334155) is all but identical to
+          the bar's own surface-raised (#314158) background, so it never read as
+          a divider. Short, centred and one step lighter, like the hero's. */}
+      {variant === 'header' && (
+        <span aria-hidden className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-px h-5 bg-slate-600" />
+      )}
 
       {open && (
         <div className="absolute left-0 top-full mt-2 w-[22rem] max-w-[calc(100vw-2rem)] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
