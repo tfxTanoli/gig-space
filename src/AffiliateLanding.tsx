@@ -161,8 +161,36 @@ const AffiliateLanding = () => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  const scrollCats = (dir: 'left' | 'right') =>
-    catScrollRef.current?.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' });
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 1);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    updateScrollButtons();
+    el.addEventListener('scroll', updateScrollButtons, { passive: true });
+    window.addEventListener('resize', updateScrollButtons);
+    return () => {
+      el.removeEventListener('scroll', updateScrollButtons);
+      window.removeEventListener('resize', updateScrollButtons);
+    };
+  }, []);
+
+  const scrollCats = (dir: 'left' | 'right') => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    const amount = Math.max(el.clientWidth * 0.8, 200);
+    const max = el.scrollWidth - el.clientWidth;
+    const target = Math.max(0, Math.min(max, el.scrollLeft + (dir === 'left' ? -amount : amount)));
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
 
   const ctaHref = user ? '/affiliate-dashboard' : '/signup?next=/affiliate-dashboard';
   const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
@@ -243,7 +271,7 @@ const AffiliateLanding = () => {
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight max-w-4xl mx-auto">
               Earn Big Commissions for{' '}<br className="hidden md:block" />Every Job Booked
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
+            <p className="text-slate-300 text-base md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
               Get paid every time someone hires a service through your link.{' '}
               <br className="hidden md:block" />
               Earn 50% of our platform fee on every completed job.
@@ -330,26 +358,28 @@ const AffiliateLanding = () => {
       </section>
 
       {/* Popular Service Categories */}
-      <section className="px-4 md:px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="text-xl font-bold gradient-heading">Popular Service Categories</h2>
-          <div className="flex items-center gap-2">
+      <section className="px-4 md:px-6 lg:px-12 py-10 md:py-16">
+        <div className="flex justify-between items-center mb-6 md:mb-10 max-w-7xl mx-auto">
+          <h2 className="text-base md:text-lg font-semibold text-slate-300">Popular Service Categories</h2>
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => scrollCats('left')}
-              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors"
+              disabled={!canScrollLeft}
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
-              <ChevronLeft className="w-4 h-4 text-slate-400" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => scrollCats('right')}
-              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors"
+              disabled={!canScrollRight}
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
-              <ChevronRight className="w-4 h-4 text-slate-400" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div ref={catScrollRef} className="overflow-x-auto scrollbar-hide">
+        <div ref={catScrollRef} className="overflow-x-auto scrollbar-hide max-w-7xl mx-auto">
           <div className="flex flex-nowrap gap-6 md:gap-10 pb-2 pt-4">
           {categories.map(({ name, Icon }, i) => (
             <Link
@@ -357,10 +387,10 @@ const AffiliateLanding = () => {
               to={`/search?category=${encodeURIComponent(name)}`}
               className="flex flex-col items-center group cursor-pointer flex-shrink-0 px-2"
             >
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
-                <Icon className="w-8 h-8 md:w-10 md:h-10 text-primary" strokeWidth={1.5} />
+              <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-surface-raised flex items-center justify-center mb-2.5 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
+                <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary" strokeWidth={1.5} />
               </div>
-              <span className="text-base font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
+              <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
                 {name}
               </span>
             </Link>

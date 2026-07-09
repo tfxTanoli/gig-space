@@ -84,7 +84,7 @@ const LocationSearch = ({
 
   const triggerClass =
     variant === 'hero'
-      ? 'flex items-center justify-between w-full px-4 py-2 text-slate-300 hover:text-white transition-colors whitespace-nowrap'
+      ? 'flex items-center justify-between w-full px-4 py-2.5 md:py-2 text-slate-300 hover:text-white transition-colors whitespace-nowrap'
       : 'px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-sm h-full bg-surface-raised hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
 
   return (
@@ -93,14 +93,14 @@ const LocationSearch = ({
       className={variant === 'hero' ? 'relative w-full md:w-auto' : 'relative shrink-0 h-full'}
     >
       <button type="button" onClick={() => setOpen((v) => !v)} className={triggerClass}>
-        <span className={`${variant === 'hero' ? 'text-sm mr-2 max-w-[200px]' : 'mr-2 max-w-[120px] md:max-w-[200px]'} truncate`}>
+        <span className={`${variant === 'hero' ? 'text-base md:text-sm mr-2 max-w-[200px]' : 'mr-2 max-w-[120px] md:max-w-[200px]'} truncate`}>
           {displayLabel}
         </span>
         <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-auto" />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute left-0 top-full mt-2 w-[22rem] max-w-[calc(100vw-2rem)] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
           {/* Search input */}
           <div className="p-2 border-b border-slate-800">
             <div className="flex items-center bg-slate-700 border border-slate-700 rounded-lg px-3 h-9">
@@ -111,7 +111,7 @@ const LocationSearch = ({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search a city, state, or country"
-                className="flex-1 bg-transparent px-2 text-base md:text-sm text-slate-200 focus:outline-none placeholder-slate-400"
+                className="gs-compact-mobile flex-1 bg-transparent px-2 text-sm text-slate-200 focus:outline-none placeholder-slate-400"
               />
               {loading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />}
             </div>

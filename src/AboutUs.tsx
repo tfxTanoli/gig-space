@@ -164,7 +164,7 @@ const AboutUs = () => {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-heading mb-4 md:mb-6 leading-tight tracking-tight">
               Changing the way people<br />work together
             </h1>
-            <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
               From home services to digital work, Gigspace brings people together to collaborate, create, and accomplish any project big or small.
             </p>
           </div>

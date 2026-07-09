@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Car, Palette, Home, Package, Code, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, Menu, X, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
@@ -101,8 +101,36 @@ const LandingPage = () => {
     navigate(`/search${qs ? `?${qs}` : ''}`);
   };
 
-  const scrollCats = (dir: 'left' | 'right') =>
-    catScrollRef.current?.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' });
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 1);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    updateScrollButtons();
+    el.addEventListener('scroll', updateScrollButtons, { passive: true });
+    window.addEventListener('resize', updateScrollButtons);
+    return () => {
+      el.removeEventListener('scroll', updateScrollButtons);
+      window.removeEventListener('resize', updateScrollButtons);
+    };
+  }, []);
+
+  const scrollCats = (dir: 'left' | 'right') => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    const amount = Math.max(el.clientWidth * 0.8, 200);
+    const max = el.scrollWidth - el.clientWidth;
+    const target = Math.max(0, Math.min(max, el.scrollLeft + (dir === 'left' ? -amount : amount)));
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
@@ -164,9 +192,11 @@ const LandingPage = () => {
         <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-24 pb-12 md:pb-16 px-4 text-center relative">
           <div className="relative z-10 w-full flex flex-col items-center">
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading tracking-tight mb-4 md:mb-6">
-              Local talent. On demand.
+              Local talent.{' '}
+              <br className="md:hidden" />
+              On demand.
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-12 text-balance">
+            <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto mb-8 md:mb-12 text-balance">
               Hire talented pros for in-person services or remote experts for digital work.{' '}
               <br className="hidden md:block"/>
               One marketplace for everything you need.
@@ -175,7 +205,7 @@ const LandingPage = () => {
             {/* Search Bar — two separate fields on mobile, combined pill on desktop */}
             <div className="w-full max-w-3xl flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-0 md:bg-surface-raised md:p-2 md:rounded-xl md:border md:border-slate-700/50 md:shadow-xl">
               {/* Location dropdown — its own field on mobile */}
-              <div className="w-full md:basis-2/5 md:shrink-0 bg-surface-raised rounded-xl border border-slate-700/50 shadow-lg md:bg-transparent md:rounded-none md:border-none md:shadow-none">
+              <div className="w-full md:basis-2/5 md:shrink-0 bg-surface-raised rounded-xl border border-slate-700/50 shadow-lg p-1.5 md:p-0 md:bg-transparent md:rounded-none md:border-none md:shadow-none">
                 <LocationSearch value={heroLocation} onChange={(label) => setHeroLocation(label)} variant="hero" />
               </div>
 
@@ -210,13 +240,15 @@ const LandingPage = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => scrollCats('left')}
-              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              disabled={!canScrollLeft}
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => scrollCats('right')}
-              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              disabled={!canScrollRight}
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

@@ -43,6 +43,34 @@ type MediaItem =
   | { kind: 'existing'; url: string }
   | { kind: 'new'; file: File; previewUrl: string };
 
+// Downscale/recompress large images in the browser before upload so a single
+// multi-megapixel phone photo doesn't take many seconds to upload. Falls back
+// to the original file on any failure or for formats we shouldn't touch (gif).
+async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
+  if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
+  if (file.size < 500 * 1024) return file; // already small enough
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { bitmap.close(); return file; }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', quality),
+    );
+    // Never upload a file larger than the original.
+    return blob && blob.size < file.size ? blob : file;
+  } catch {
+    return file;
+  }
+}
+
 interface Step8PaymentSectionProps {
   extraLocationCount: number;
   serviceId: string;
@@ -296,7 +324,7 @@ const PostService = () => {
         setSubcategory(String(d.subcategory ?? ''));
         setTitle(String(d.title ?? ''));
         setDescription(String(d.description ?? ''));
-        setPriceMin(String(d.priceMin ?? ''));
+        setPriceMin(d.priceMin ? String(d.priceMin) : '');
         setPriceMax(d.priceMax ? String(d.priceMax) : '');
         setPriceType((d.priceType as 'per_project' | 'per_hour') ?? 'per_project');
         setMediaItems(Array.isArray(d.images) ? (d.images as string[]).map((url) => ({ kind: 'existing' as const, url })) : []);
@@ -361,6 +389,14 @@ const PostService = () => {
       .finally(() => setLoadingEdit(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Clear the "upload at least one image or video" error as soon as the
+  // requirement is met, instead of waiting for the user to hit Continue again.
+  useEffect(() => {
+    if (step !== 4 || stepError !== 'Please upload at least one image or video.') return;
+    const hasVideo = !!(videoPreviewURL || existingVideoURL);
+    if (mediaItems.length > 0 || hasVideo) setStepError('');
+  }, [step, stepError, mediaItems, videoPreviewURL, existingVideoURL]);
 
   // ── Media handlers ─────────────────────────────────────────────────────────
   const handleMediaSelect = (e: ChangeEvent<HTMLInputElement>) => {
@@ -499,16 +535,25 @@ const PostService = () => {
 
   // ── Upload all media ───────────────────────────────────────────────────────
   const uploadAllMedia = async (): Promise<{ imageUrls: string[]; videoUrl: string | null }> => {
-    const imageUrls: string[] = [];
-    for (const item of mediaItems) {
-      if (item.kind === 'existing') {
-        imageUrls.push(item.url);
-      } else {
-        const ref = storageRef(storage, `serviceImages/${user!.uid}/${Date.now()}_${item.file.name}`);
-        await uploadBytes(ref, item.file);
-        imageUrls.push(await getDownloadURL(ref));
-      }
-    }
+    // Compress + upload all new images in parallel (Promise.all preserves order).
+    const imageUrls: string[] = await Promise.all(
+      mediaItems.map(async (item, i) => {
+        if (item.kind === 'existing') return item.url;
+        const blob = await compressImage(item.file);
+        const contentType = blob.type || item.file.type || 'image/jpeg';
+        const ext =
+          contentType === 'image/jpeg' ? 'jpg' :
+          contentType === 'image/png' ? 'png' :
+          contentType === 'image/webp' ? 'webp' :
+          (item.file.name.split('.').pop() || 'jpg');
+        const ref = storageRef(
+          storage,
+          `serviceImages/${user!.uid}/${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}.${ext}`,
+        );
+        await uploadBytes(ref, blob, { contentType });
+        return getDownloadURL(ref);
+      }),
+    );
     let videoUrl: string | null = existingVideoURL || null;
     if (videoFile) {
       const ref = storageRef(storage, `serviceVideos/${user!.uid}/${Date.now()}_${videoFile.name}`);
@@ -527,7 +572,7 @@ const PostService = () => {
       if (title.trim().length < 20) { setStepError('Title must be at least 20 characters.'); return false; }
       const descText = descriptionRef.current?.textContent?.trim() ?? description.replace(/<[^>]*>/g, '').trim();
       if (descText.length < 150) { setStepError('Please add a description (at least 150 characters).'); return false; }
-      if (descText.length > 1000) { setStepError('Description must be 1,000 characters or less.'); return false; }
+      if (descText.length > 5000) { setStepError('Description must be 5,000 characters or less.'); return false; }
     }
     if (step === 3) {
       const min = parseInt(priceMin);
@@ -785,7 +830,7 @@ const PostService = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
               />
               <div className="text-right text-slate-500 text-xs mt-1">{title.length}/80 max</div>
             </div>
@@ -835,8 +880,8 @@ const PostService = () => {
                 className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 style={{ resize: 'vertical', overflow: 'auto', outline: 'none' }}
               />
-              <div className={`text-right text-xs mt-1 ${descriptionLength > 1000 ? 'text-red-400' : 'text-slate-500'}`}>
-                {descriptionLength}/1,000 max
+              <div className={`text-right text-xs mt-1 ${descriptionLength > 5000 ? 'text-red-400' : 'text-slate-500'}`}>
+                {descriptionLength.toLocaleString('en-US')}/5,000 max
               </div>
             </div>
           </div>
@@ -870,7 +915,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMin ? parseInt(priceMin).toLocaleString() : ''}
                       onChange={(e) => setPriceMin(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -884,7 +929,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMax ? parseInt(priceMax).toLocaleString() : ''}
                       onChange={(e) => setPriceMax(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -1107,7 +1152,7 @@ const PostService = () => {
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
                       placeholder="Search for a city or country…"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
+                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
@@ -1141,10 +1186,10 @@ const PostService = () => {
               )}
 
               {/* Remote toggle — only enabled when a country is selected */}
-              <div className={`flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
-                <div>
+              <div className={`flex items-center justify-between gap-4 p-4 bg-slate-800 border border-slate-700 rounded-lg ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
+                <div className="min-w-0">
                   <p className={`text-sm font-medium ${!primaryLocationIsCountry ? 'text-slate-500' : 'text-white'}`}>Remote service</p>
-                  <p className="text-slate-400 text-xs">
+                  <p className="text-slate-400 text-sm">
                     {primaryLocationIsCountry
                       ? 'Toggle on if this service is offered online/remotely'
                       : 'Select a country as your primary location to enable'}
@@ -1154,7 +1199,7 @@ const PostService = () => {
                   type="button"
                   disabled={!primaryLocationIsCountry}
                   onClick={() => setOfferedRemotely((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'} ${!primaryLocationIsCountry ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'} ${!primaryLocationIsCountry ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${offeredRemotely ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -1181,7 +1226,7 @@ const PostService = () => {
                     onKeyDown={handleAddExtraLocation}
                     onFocus={() => setExtraLocationDropdownOpen(true)}
                     placeholder="Type a location and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {extraLocationDropdownOpen && extraLocationSuggestions.length > 0 && (
@@ -1231,7 +1276,7 @@ const PostService = () => {
                     onKeyDown={handleLanguageKeyDown}
                     onFocus={() => setLanguageDropdownOpen(true)}
                     placeholder="Type a language and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {languageDropdownOpen && filteredLanguages.length > 0 && (

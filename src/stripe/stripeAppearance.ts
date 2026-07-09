@@ -7,12 +7,16 @@ export const STRIPE_APPEARANCE = {
     colorTextSecondary: '#94a3b8',
     borderRadius: '8px',
     fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
-    fontSizeBase: '14px',
+    // 16px matches our other form inputs and prevents iOS Safari from
+    // zooming in when a card field is focused.
+    fontSizeBase: '16px',
   },
   rules: {
-    '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 12px' },
+    // padding + lineHeight + 1px border on each side = 36px, matching the
+    // h-9 inputs used elsewhere in the app.
+    '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 16px', lineHeight: '18px' },
     '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
-    '.Label': { color: '#cbd5e1', fontSize: '12px' },
+    '.Label': { color: '#cbd5e1', fontSize: '13px' },
     '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155' },
     '.Tab--selected': { backgroundColor: '#1e293b', border: '1px solid #3b82f6', boxShadow: 'none' },
     '.Tab:focus': { boxShadow: 'none' },

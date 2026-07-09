@@ -221,9 +221,9 @@ const SellerLandingPage = () => {
             </div>
 
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight max-w-4xl mx-auto">
-              Get Discovered. Get Hired.{' '}<br className="hidden md:block"/>Get Paid.
+              Get Discovered. Get Hired.{' '}<br/>Get Paid.
             </h1>
-            <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
+            <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
               From home repairs to digital work and everything in between.{' '}
               <br className="hidden md:block" />
               Turn any skill into income and earn doing what you do best.

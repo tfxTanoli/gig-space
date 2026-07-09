@@ -201,8 +201,9 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
           )}
         </Link>
         <button
-          onClick={() => onToggleSave(post.id)}
-          className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(post.id); }}
+          className="absolute top-2 right-2 z-10 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
           title={isSaved ? 'Remove from saved' : 'Save service'}
         >
           <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-primary text-primary' : 'text-white'}`} />
@@ -415,6 +416,13 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
+  // Hover-capable (desktop) vs touch. On touch we ignore the phantom
+  // mouseenter/leave events so a tap doesn't open-then-instantly-close the flyout.
+  const canHover = useMemo(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(hover: hover)').matches,
+    [],
+  );
+
   const updateScrollArrows = useCallback(() => {
     const el = categoryScrollRef.current;
     if (!el) return;
@@ -477,11 +485,19 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   // Categories without subcategories select the whole category directly.
   const handleCategoryClick = useCallback((cat: string) => {
     if (subcategoryMap[cat]?.length) {
-      showFlyout(cat);
+      // On touch, tapping the already-open category again closes its flyout.
+      // (On hover devices the flyout is driven by mouseenter/leave, so a click
+      // here must never toggle it closed — that caused an instant open→close.)
+      if (!canHover && hoveredCategory === cat) {
+        setHoveredCategory(null);
+        if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
+      } else {
+        showFlyout(cat);
+      }
     } else {
       selectCategory(cat);
     }
-  }, [subcategoryMap, selectCategory, showFlyout]);
+  }, [subcategoryMap, selectCategory, showFlyout, hoveredCategory, canHover]);
 
   // Select the whole category (used by the flyout's "All …" row). Unlike
   // selectCategory this never toggles off, so it always applies the category.
@@ -717,7 +733,14 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
     if (hasMore && page >= totalPagesRef.current - 1) void loadMore();
   }, [hasMore, loadMore]);
 
-  const handleToggleSave = useCallback((id: string) => toggleSave(id), [toggleSave]);
+  const handleToggleSave = useCallback((id: string) => {
+    // Saving requires an account; send guests to sign in and bring them back.
+    if (!user) {
+      navigate(`/signin?next=${encodeURIComponent(`/service-detail?id=${id}`)}`);
+      return;
+    }
+    toggleSave(id);
+  }, [user, navigate, toggleSave]);
 
   const languageOptions: string[] = Array.from(
     new Set(posts.flatMap((p) => p.languages ?? []).filter(Boolean)),
@@ -858,10 +881,10 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
               />
               <button
                 onClick={commitSearch}
-                className="flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+                className="group flex items-center justify-center shrink-0"
               >
                 <svg width="36" height="40" viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect y="6" width="30" height="28" rx="4" fill="#2B7FFF"/>
+                  <rect y="6" width="30" height="28" rx="4" className="fill-[#2B7FFF] group-hover:fill-blue-400 transition-colors"/>
                   <path d="M14.1667 25.3333C17.8486 25.3333 20.8333 22.3486 20.8333 18.6667C20.8333 14.9848 17.8486 12 14.1667 12C10.4848 12 7.5 14.9848 7.5 18.6667C7.5 22.3486 10.4848 25.3333 14.1667 25.3333Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M22.5003 27.0003L18.917 23.417" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -872,7 +895,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           <div className="flex items-center gap-4 md:gap-6 ml-auto shrink-0">
             {user && !isAdmin && (
               <>
-                <Link to="/post-service" className="text-xs md:text-sm font-medium hover:text-primary transition-colors text-slate-300 whitespace-nowrap">
+                <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 whitespace-nowrap">
                   Create New Post
                 </Link>
               </>
@@ -947,7 +970,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4 md:gap-6">
                 <Link to="/signin" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
                   Log in
                 </Link>
@@ -972,14 +995,14 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
-            className="flex-1 bg-transparent px-3 text-base md:text-sm text-white focus:outline-none placeholder-slate-500 min-w-0"
+            className="flex-1 bg-transparent px-3 text-sm text-white focus:outline-none placeholder-slate-500 min-w-0"
           />
           <button
             onClick={commitSearch}
-            className="flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+            className="group flex items-center justify-center shrink-0"
           >
             <svg width="36" height="40" viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect y="6" width="30" height="28" rx="4" fill="#2B7FFF"/>
+              <rect y="6" width="30" height="28" rx="4" className="fill-[#2B7FFF] group-hover:fill-blue-400 transition-colors"/>
               <path d="M14.1667 25.3333C17.8486 25.3333 20.8333 22.3486 20.8333 18.6667C20.8333 14.9848 17.8486 12 14.1667 12C10.4848 12 7.5 14.9848 7.5 18.6667C7.5 22.3486 10.4848 25.3333 14.1667 25.3333Z" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M22.5003 27.0003L18.917 23.417" stroke="white" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -1008,8 +1031,8 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
             <ul className="flex items-center gap-5 text-sm text-slate-400 whitespace-nowrap font-medium min-w-max w-full justify-between">
               {categoryOptions.map((cat) => (
                 <li key={cat.value}
-                  onMouseEnter={() => subcategoryMap[cat.value] && showFlyout(cat.value)}
-                  onMouseLeave={hideFlyout}
+                  onMouseEnter={() => canHover && subcategoryMap[cat.value] && showFlyout(cat.value)}
+                  onMouseLeave={() => canHover && hideFlyout()}
                 >
                   <button
                     onClick={() => handleCategoryClick(cat.value)}
@@ -1039,8 +1062,8 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
         {hoveredCategory && subcategoryMap[hoveredCategory] && (
           <div
             className="absolute left-0 right-0 top-full bg-surface border-b border-slate-700 shadow-2xl z-40 max-h-[70vh] overflow-y-auto"
-            onMouseEnter={keepFlyout}
-            onMouseLeave={hideFlyout}
+            onMouseEnter={() => canHover && keepFlyout()}
+            onMouseLeave={() => canHover && hideFlyout()}
           >
             <div className="px-4 md:px-6 lg:px-12 py-5">
               {/* "All …" selects the whole category */}
@@ -1167,7 +1190,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                     onChange={(e) => setBudgetInput(e.target.value.replace(/\D/g, ''))}
                     onKeyDown={(e) => e.key === 'Enter' && applyBudget()}
                     placeholder="Any"
-                    className="flex-1 bg-transparent px-2 text-base md:text-sm text-white focus:outline-none placeholder-slate-400"
+                    className="gs-compact-mobile flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-400"
                   />
                 </div>
                 <div className="flex items-center justify-between mt-4">
