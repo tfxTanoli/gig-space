@@ -3,7 +3,7 @@ import {
   Globe, DollarSign, UserPlus, Save,
   CheckCircle2, AlertTriangle, Loader2,
   Info, FileText, Shield, Plus, Pencil, Trash2, X,
-  Mail, KeyRound, Clock, Users,
+  Mail, KeyRound, Clock, Users, List, ListOrdered,
 } from 'lucide-react';
 import {
   EmailAuthProvider, reauthenticateWithCredential, updatePassword, verifyBeforeUpdateEmail,
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { ref as dbRef, get, update, set } from 'firebase/database';
 import { database, auth } from '../../firebase';
 import { useAuth } from '../../AuthContext';
+import { sanitizeHtml } from '../../utils/sanitize';
 import { adminGetAdmins, adminInviteAdmin, adminRevokeAdmin, type AdminInvite } from '../adminApi';
 
 // Map a Firebase reauth error to a friendly message.
@@ -232,6 +233,98 @@ const FAQ_AUDIENCES: { key: FaqAudience; label: string; path: string; hint: stri
   { key: 'affiliate', label: 'Affiliate FAQs', path: 'cms/affiliateFaqs', hint: 'Shown on the affiliate landing page', defaults: AFFILIATE_DEFAULT_FAQS },
 ];
 
+// ─── Rich text editor (CMS Terms / Privacy) ──────────────────────────────────
+// Lightweight contentEditable editor with bold / italic / underline / bullet /
+// numbered-list controls and a native drag handle (bottom edge) to resize.
+
+// Legacy CMS content was saved as plain text — convert it for the editor.
+const textToHtml = (v: string) =>
+  /<\/?[a-z][^>]*>/i.test(v)
+    ? v
+    : v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+
+const RICH_TEXT_COMMANDS = ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList'];
+
+function RichTextEditor({
+  value, onChange, placeholder,
+}: { value: string; onChange: (html: string) => void; placeholder: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<Set<string>>(new Set());
+
+  // Sync the incoming value into the (uncontrolled) editable div — on the async
+  // CMS load finishing, but never while the admin is typing in it.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || document.activeElement === el) return;
+    const html = textToHtml(value);
+    if (el.innerHTML !== html) el.innerHTML = html;
+  }, [value]);
+
+  const updateActive = () => {
+    const s = new Set<string>();
+    RICH_TEXT_COMMANDS.forEach((cmd) => {
+      try { if (document.queryCommandState(cmd)) s.add(cmd); } catch { /* unsupported */ }
+    });
+    setActive(s);
+  };
+
+  // A cleared contentEditable keeps a stray <br> — normalize that to '' so the
+  // public pages correctly fall back to their default copy.
+  const emit = () => {
+    const el = ref.current;
+    if (!el) return;
+    onChange((el.textContent ?? '').trim() ? sanitizeHtml(el.innerHTML) : '');
+  };
+
+  const exec = (cmd: string) => {
+    ref.current?.focus();
+    document.execCommand(cmd, false, undefined);
+    emit();
+    updateActive();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-1 bg-slate-900 border border-b-0 border-slate-700/50 rounded-t-lg px-2 py-1.5">
+        {[
+          { label: <strong>B</strong>, cmd: 'bold', tip: 'Bold' },
+          { label: <em>I</em>, cmd: 'italic', tip: 'Italic' },
+          { label: <u>U</u>, cmd: 'underline', tip: 'Underline' },
+          { label: <List className="w-4 h-4" />, cmd: 'insertUnorderedList', tip: 'Bullet list' },
+          { label: <ListOrdered className="w-4 h-4" />, cmd: 'insertOrderedList', tip: 'Numbered list' },
+        ].map(({ label, cmd, tip }) => (
+          <button
+            key={cmd}
+            type="button"
+            title={tip}
+            onMouseDown={(e) => { e.preventDefault(); exec(cmd); }}
+            className={`px-2.5 py-1 rounded hover:text-white hover:bg-slate-700 transition-colors text-sm font-mono select-none ${active.has(cmd) ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        data-placeholder={placeholder}
+        onInput={emit}
+        onBlur={emit}
+        onKeyUp={updateActive}
+        onMouseUp={updateActive}
+        onPaste={(e) => {
+          e.preventDefault();
+          document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+          emit();
+        }}
+        className="w-full min-h-[240px] bg-surface-raised border border-slate-700/50 rounded-b-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 empty:before:content-[attr(data-placeholder)] before:text-slate-500 before:pointer-events-none"
+        style={{ resize: 'vertical', overflow: 'auto' }}
+      />
+    </div>
+  );
+}
+
 function CmsTab() {
   const { user } = useAuth();
   const [audience, setAudience] = useState<FaqAudience>('seller');
@@ -336,7 +429,8 @@ function CmsTab() {
   const saveText = async (key: 'terms' | 'privacy', value: string, setSaving: (v: boolean) => void, setSaved: (v: boolean) => void) => {
     setSaving(true);
     try {
-      await set(dbRef(database, `cms/${key}`), value);
+      // Stamp the edit time so the public page can show a real "Last updated" date.
+      await update(dbRef(database, 'cms'), { [key]: value, [`${key}UpdatedAt`]: Date.now() });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -431,7 +525,7 @@ function CmsTab() {
           </div>
         </div>
         <div className="px-6 py-5">
-          <textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows={10} placeholder="Enter your Terms & Conditions…" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
+          <RichTextEditor value={terms} onChange={setTerms} placeholder="Enter your Terms & Conditions…" />
         </div>
         <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
           {termsSaved ? <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Saved</span> : <span />}
@@ -453,7 +547,7 @@ function CmsTab() {
           </div>
         </div>
         <div className="px-6 py-5">
-          <textarea value={privacy} onChange={(e) => setPrivacy(e.target.value)} rows={10} placeholder="Enter your Privacy Policy…" className="w-full bg-surface-raised border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors resize-none" />
+          <RichTextEditor value={privacy} onChange={setPrivacy} placeholder="Enter your Privacy Policy…" />
         </div>
         <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
           {privSaved ? <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Saved</span> : <span />}

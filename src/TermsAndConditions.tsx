@@ -6,15 +6,23 @@ import { database } from './firebase';
 import Logo from './Logo';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
+import { sanitizeHtml } from './utils/sanitize';
 
 const TermsAndConditions = () => {
   const { user } = useAuth();
   // Admin-managed content from the CMS overrides the default copy when present.
   const [cmsContent, setCmsContent] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   useEffect(() => {
-    get(dbRef(database, 'cms/terms')).then((snap) => {
-      const v = snap.val();
-      if (typeof v === 'string' && v.trim()) setCmsContent(v);
+    Promise.all([
+      get(dbRef(database, 'cms/terms')),
+      get(dbRef(database, 'cms/termsUpdatedAt')),
+    ]).then(([contentSnap, tsSnap]) => {
+      const v = contentSnap.val();
+      // The CMS editor stores HTML — only treat it as content if it has visible text.
+      if (typeof v === 'string' && v.replace(/<[^>]*>/g, '').trim()) setCmsContent(v);
+      const ts = tsSnap.val();
+      if (typeof ts === 'number' && ts > 0) setUpdatedAt(ts);
     }).catch(() => {});
   }, []);
 
@@ -47,10 +55,21 @@ const TermsAndConditions = () => {
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight tracking-tight">
           Terms &amp; Conditions
         </h1>
-        <p className="text-slate-500 text-sm mb-12">Last updated: {new Date().getFullYear()}</p>
+        <p className="text-slate-500 text-sm mb-12">
+          Last updated: {updatedAt
+            ? new Date(updatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : new Date().getFullYear()}
+        </p>
 
         {cmsContent ? (
-          <div className="text-slate-300 leading-relaxed text-[15px] whitespace-pre-wrap">{cmsContent}</div>
+          /<\/?[a-z][^>]*>/i.test(cmsContent) ? (
+            <div
+              className="text-slate-300 leading-relaxed text-[15px] [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-3 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(cmsContent) }}
+            />
+          ) : (
+            <div className="text-slate-300 leading-relaxed text-[15px] whitespace-pre-wrap">{cmsContent}</div>
+          )
         ) : (
         <div className="space-y-10 text-slate-400 leading-relaxed text-[15px]">
           <div>

@@ -15,6 +15,7 @@ import {
   X,
   ArrowRight,
   MapPin,
+  Shield,
 } from 'lucide-react';
 import Logo from './Logo';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
@@ -358,8 +359,9 @@ const PaginationBar = ({
 
 const BuyerSearch = () => {
   const { user, userProfile, logout } = useAuth();
+  const isAdmin = userProfile?.role === 'admin';
   const isSeller = userProfile?.accountType === 'seller';
-  const dashboardPath = isSeller ? '/seller-dashboard' : '/buyer-dashboard';
+  const dashboardPath = isAdmin ? '/admin-dashboard' : isSeller ? '/seller-dashboard' : '/buyer-dashboard';
   const messagesPath = isSeller ? '/seller-dashboard?tab=Messages' : '/buyer-dashboard?tab=Messages';
   const settingsPath = isSeller ? '/seller-dashboard?tab=Settings' : '/buyer-dashboard?tab=Settings';
   const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
@@ -891,7 +893,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           </div>
 
           <div className="flex items-center gap-4 md:gap-6 ml-auto shrink-0">
-            {user && (
+            {user && !isAdmin && (
               <>
                 <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 whitespace-nowrap">
                   Create New Post
@@ -918,29 +920,41 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                       <p className="text-slate-500 text-xs truncate mt-0.5">
                         {user?.email ?? ''}
                       </p>
+                      {isAdmin && (
+                        <span className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-semibold uppercase tracking-wide">
+                          <Shield className="w-3 h-3" /> Admin
+                        </span>
+                      )}
                     </div>
 
                     <div className="py-1">
                       <Link to={dashboardPath} onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                        <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
-                        Dashboard
+                        {isAdmin
+                          ? <Shield className="w-4 h-4 shrink-0 text-slate-500" />
+                          : <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />}
+                        {isAdmin ? 'Admin Panel' : 'Dashboard'}
                       </Link>
-                      <Link to={messagesPath} onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                        <MessagesIcon className="w-4 h-4 shrink-0 text-slate-500" />
-                        Messages
-                      </Link>
-                      <Link to="/buyer-dashboard?tab=Saved" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                        <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
-                        Saved Services
-                      </Link>
-                      <Link to={settingsPath} onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                        <Settings className="w-4 h-4 shrink-0 text-slate-500" />
-                        Settings
-                      </Link>
-                      <Link to="/affiliate" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-                        <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
-                        Affiliate Program
-                      </Link>
+                      {/* Buyer/seller items — admins get their own panel, not these. */}
+                      {!isAdmin && (
+                        <>
+                          <Link to={messagesPath} onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                            <MessagesIcon className="w-4 h-4 shrink-0 text-slate-500" />
+                            Messages
+                          </Link>
+                          <Link to="/buyer-dashboard?tab=Saved" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                            <Bookmark className="w-4 h-4 shrink-0 text-slate-500" />
+                            Saved Services
+                          </Link>
+                          <Link to={settingsPath} onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                            <Settings className="w-4 h-4 shrink-0 text-slate-500" />
+                            Settings
+                          </Link>
+                          <Link to="/affiliate" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                            <BadgeDollarSign className="w-4 h-4 shrink-0 text-slate-500" />
+                            Affiliate Program
+                          </Link>
+                        </>
+                      )}
                     </div>
 
                     <div className="border-t border-slate-700 py-1">
