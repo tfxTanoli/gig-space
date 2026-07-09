@@ -85,7 +85,10 @@ const LocationSearch = ({
   const triggerClass =
     variant === 'hero'
       ? 'flex items-center justify-between w-full px-4 py-2.5 md:py-2 text-slate-300 hover:text-white transition-colors whitespace-nowrap'
-      : 'px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-sm h-full bg-surface-raised hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
+      // text-base on mobile so this trigger matches the sibling search input,
+      // which index.css floors at 16px to stop iOS zoom-on-focus. It's a button,
+      // not an input, so that rule can't reach it. Desktop keeps text-sm.
+      : 'px-4 border-r border-slate-700 flex items-center cursor-pointer text-slate-300 text-base md:text-sm h-full bg-surface-raised hover:text-white transition-colors whitespace-nowrap rounded-l-lg';
 
   return (
     <div
