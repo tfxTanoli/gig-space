@@ -111,7 +111,7 @@ const LocationSearch = ({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search a city, state, or country"
-                className="flex-1 bg-transparent px-2 text-base md:text-sm text-slate-200 focus:outline-none placeholder-slate-400"
+                className="flex-1 bg-transparent px-2 text-sm text-slate-200 focus:outline-none placeholder-slate-400"
               />
               {loading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />}
             </div>
