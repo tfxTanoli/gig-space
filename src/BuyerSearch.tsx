@@ -16,6 +16,7 @@ import {
   ArrowRight,
   MapPin,
   Shield,
+  SlidersHorizontal,
 } from 'lucide-react';
 import Logo from './Logo';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
@@ -122,6 +123,16 @@ const RadioFooter = ({ onClear, onApply }: { onClear: () => void; onApply: () =>
       Apply
     </button>
   </div>
+);
+
+// One labelled block inside the mobile filter drawer. The drawer applies every
+// choice immediately (no pending/Apply step) so results update behind the sheet,
+// which is why it reuses Opt/RadioOpt but never RadioFooter.
+const DrawerSection = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section className="py-5 border-b border-slate-800 last:border-b-0">
+    <h3 className="px-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
+    {children}
+  </section>
 );
 
 interface ServicePost {
@@ -394,6 +405,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const [remoteFilter, setRemoteFilter] = useState<RemoteOption>('');
   const [onlineFilter, setOnlineFilter] = useState<OnlineOption>('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
@@ -454,6 +466,24 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
     window.addEventListener('resize', updateScrollArrows);
     return () => window.removeEventListener('resize', updateScrollArrows);
   }, [updateScrollArrows]);
+
+  // While the filter drawer is up: lock the page behind it, close on Escape, and
+  // close if the viewport crosses into md — the sheet is md:hidden, so leaving it
+  // "open" there would strand the scroll lock with nothing visible to dismiss.
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') setFiltersOpen(false); };
+    const onResize = () => { if (window.innerWidth >= 768) setFiltersOpen(false); };
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [filtersOpen]);
 
   const toggleDropdown = useCallback(
     (name: string) => {
@@ -556,6 +586,33 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
     setOnlineFilter('');
     setOpenDropdown(null);
   }, []);
+
+  // Clears only what the drawer exposes. Deliberately narrower than
+  // clearAllFilters, which also drops the search term, location and category —
+  // wiping those from a sheet titled "Filters" would be a surprise.
+  const clearDrawerFilters = useCallback(() => {
+    setSearchRadius(0);
+    setPendingRadius(0);
+    setBudgetMax(null);
+    setBudgetInput('');
+    setMinRating(0);
+    setVerifiedFilter('');
+    setPendingVerified('');
+    setSelectedLanguages([]);
+    setRemoteFilter('');
+    setPendingRemote('');
+    setOnlineFilter('');
+    setPendingOnline('');
+  }, []);
+
+  const activeFilterCount =
+    (searchRadius > 0 ? 1 : 0) +
+    (budgetMax != null ? 1 : 0) +
+    (minRating > 0 ? 1 : 0) +
+    (verifiedFilter !== '' ? 1 : 0) +
+    (remoteFilter !== '' ? 1 : 0) +
+    (onlineFilter !== '' ? 1 : 0) +
+    selectedLanguages.length;
 
   const hasActiveFilters =
     activeSearch !== '' || activeLocation !== '' || activeSubcategory !== '' ||
@@ -1130,7 +1187,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
             className="-mx-4 md:mx-0 px-4 md:px-0 overflow-x-auto md:overflow-visible scrollbar-hide"
             onScroll={() => setOpenDropdown(null)}
           >
-            <div className="flex items-center gap-4 md:gap-6 min-w-max md:min-w-0 md:flex-wrap">
+            <div className="flex items-center gap-4 md:gap-6 md:flex-wrap">
               {/* Sort */}
               <FilterDropdown
                 label={sortBy === 'newest' ? 'Sort' : sortBy === 'oldest' ? 'Oldest first' : sortBy === 'price_asc' ? 'Price: Low → High' : 'Price: High → Low'}
@@ -1145,9 +1202,31 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                 <Opt label="Price: High → Low"  selected={sortBy === 'price_desc'} onClick={() => { setSortBy('price_desc'); setOpenDropdown(null); }} />
               </FilterDropdown>
 
-              <div className="w-px h-5 bg-slate-700 shrink-0" />
+              <div className="hidden md:block w-px h-5 bg-slate-700 shrink-0" />
 
-          <div className="flex items-center gap-4 md:gap-6 ml-auto">
+              {/* Mobile: every filter below lives in a drawer instead. The row used
+                  to scroll horizontally with no affordance that it did. */}
+              <button
+                type="button"
+                onClick={() => { setOpenDropdown(null); setFiltersOpen(true); }}
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+                className={`md:hidden ml-auto flex items-center gap-2 shrink-0 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                  activeFilterCount > 0
+                    ? 'border-primary text-white font-semibold'
+                    : 'border-slate-700 text-slate-300 hover:text-white'
+                }`}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-primary text-white text-xs font-semibold">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+          <div className="hidden md:flex items-center gap-4 md:gap-6 ml-auto">
             {/* Radius — only shown for city/ZIP/address-level locations */}
             {locationType === 'precise' && (
               <FilterDropdown
@@ -1430,6 +1509,139 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
         </div>
         <p>© Gigspace, LLC. All rights reserved.</p>
       </footer>
+
+      {/* Mobile filter drawer — the md+ dropdown row stays exactly as it was. */}
+      {filtersOpen && (
+        <div className="md:hidden fixed inset-0 z-[60] flex flex-col justify-end" role="dialog" aria-modal="true" aria-label="Filters">
+          <button
+            type="button"
+            aria-label="Close filters"
+            onClick={() => setFiltersOpen(false)}
+            className="absolute inset-0 bg-black/60"
+          />
+
+          <div className="relative flex flex-col max-h-[85vh] bg-surface border-t border-slate-700 rounded-t-2xl">
+            <div className="shrink-0 flex items-center justify-between px-4 py-4 border-b border-slate-800">
+              <h2 className="text-base font-semibold text-white">Filters</h2>
+              <button type="button" onClick={() => setFiltersOpen(false)} className="p-1 -mr-1 text-slate-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              {/* Radius — same precise-location gate as the desktop dropdown. */}
+              {locationType === 'precise' && (
+                <DrawerSection title="Radius">
+                  {[0, 1, 5, 10, 25, 50, 100].map((mi) => (
+                    <RadioOpt
+                      key={mi}
+                      label={mi === 0 ? 'Any distance' : `Within ${mi} mi`}
+                      selected={searchRadius === mi}
+                      onClick={() => { setSearchRadius(mi); setPendingRadius(mi); }}
+                    />
+                  ))}
+                </DrawerSection>
+              )}
+
+              <DrawerSection title="Budget">
+                <div className="px-4">
+                  <label className="block text-xs text-slate-400 mb-2">Up to</label>
+                  <div className="flex items-center bg-slate-700 border border-slate-600 rounded-lg px-3 h-10">
+                    <span className="text-slate-500 text-sm">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={budgetInput}
+                      onChange={(e) => setBudgetInput(e.target.value.replace(/\D/g, ''))}
+                      onKeyDown={(e) => e.key === 'Enter' && applyBudget()}
+                      onBlur={applyBudget}
+                      placeholder="Any"
+                      className="flex-1 bg-transparent px-2 text-sm text-white focus:outline-none placeholder-slate-400"
+                    />
+                  </div>
+                </div>
+              </DrawerSection>
+
+              <DrawerSection title="Rating">
+                <Opt label="Any rating" selected={minRating === 0} onClick={() => setMinRating(0)} />
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setMinRating(n)}
+                    className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${minRating === n ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                  >
+                    <span className="flex">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`w-3.5 h-3.5 ${i < n ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'}`} />
+                      ))}
+                    </span>
+                    <span className="text-xs">&amp; up</span>
+                  </button>
+                ))}
+              </DrawerSection>
+
+              <DrawerSection title="Verified">
+                <RadioOpt label="Any"           selected={verifiedFilter === ''}    onClick={() => { setVerifiedFilter('');    setPendingVerified(''); }} />
+                <RadioOpt label="Verified only" selected={verifiedFilter === 'yes'} onClick={() => { setVerifiedFilter('yes'); setPendingVerified('yes'); }} />
+                <RadioOpt label="Not verified"  selected={verifiedFilter === 'no'}  onClick={() => { setVerifiedFilter('no');  setPendingVerified('no'); }} />
+              </DrawerSection>
+
+              <DrawerSection title="Remote">
+                <RadioOpt label="All"            selected={remoteFilter === ''}          onClick={() => { setRemoteFilter('');          setPendingRemote(''); }} />
+                <RadioOpt label="Remote only"    selected={remoteFilter === 'remote'}    onClick={() => { setRemoteFilter('remote');    setPendingRemote('remote'); }} />
+                <RadioOpt label="In-person only" selected={remoteFilter === 'in_person'} onClick={() => { setRemoteFilter('in_person'); setPendingRemote('in_person'); }} />
+              </DrawerSection>
+
+              <DrawerSection title="Language">
+                {languageOptions.length === 0 ? (
+                  <p className="px-4 py-3 text-xs text-slate-500 italic">No languages listed</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto overscroll-contain">
+                    {languageOptions.map((lang) => {
+                      const checked = selectedLanguages.includes(lang);
+                      return (
+                        <button
+                          key={lang}
+                          onClick={() => toggleLanguage(lang)}
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                        >
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-primary border-primary' : 'border-slate-600'}`}>
+                            {checked && <Check className="w-3 h-3 text-white" />}
+                          </span>
+                          {lang}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </DrawerSection>
+
+              <DrawerSection title="Online Now">
+                <RadioOpt label="Any"        selected={onlineFilter === ''}       onClick={() => { setOnlineFilter('');       setPendingOnline(''); }} />
+                <RadioOpt label="Online now" selected={onlineFilter === 'online'} onClick={() => { setOnlineFilter('online'); setPendingOnline('online'); }} />
+              </DrawerSection>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-3 px-4 py-4 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={clearDrawerFilters}
+                disabled={activeFilterCount === 0}
+                className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm font-medium hover:text-white hover:bg-slate-800 disabled:opacity-40 transition-colors"
+              >
+                Clear all
+              </button>
+              <button
+                type="button"
+                onClick={() => { applyBudget(); setFiltersOpen(false); }}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-primary hover:bg-blue-400 text-white text-sm font-semibold transition-colors"
+              >
+                Show {displayedPosts.length} {displayedPosts.length === 1 ? 'result' : 'results'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
