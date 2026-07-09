@@ -14,6 +14,7 @@ import HeaderUserMenu from './HeaderUserMenu';
 import { ref, onValue, get } from 'firebase/database';
 import { database } from './firebase';
 import { useCategories } from './CategoriesContext';
+import { useAuth } from './AuthContext';
 
 const filters = [
   "Budget", "Rating", "Verified", "Remote", "Language", "Online Now"
@@ -53,6 +54,7 @@ function formatPrice(post: ServicePost) {
 
 const BuyerSearchFiltered = () => {
   const { categoryOptions } = useCategories();
+  const { userProfile } = useAuth();
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category') ?? '';
 
@@ -139,9 +141,11 @@ const BuyerSearchFiltered = () => {
           <button className="text-slate-400 hover:text-white transition-colors relative">
             <Bell className="w-5 h-5" />
           </button>
-          <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
-            Create New Post
-          </Link>
+          {userProfile?.role !== 'admin' && (
+            <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 hidden sm:block">
+              Create New Post
+            </Link>
+          )}
           <HeaderUserMenu />
         </div>
       </header>

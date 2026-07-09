@@ -251,7 +251,7 @@ function fmtPrice(n: number) {
 const ServiceDetail = () => {
   const [searchParams] = useSearchParams();
   const postId = searchParams.get('id');
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigate = useNavigate();
   const { getCategoryLabel, getSubcategoryLabel } = useCategories();
 
@@ -268,9 +268,12 @@ const ServiceDetail = () => {
   const isOwnService = !!(user && post && user.uid === post.sellerId);
   const viewTrackedRef = useRef(false);
 
-  // Generated (Google) posts carry the business's real Google totals — show
-  // those instead of counting the ≤5 review texts the Places API hands over.
-  const googleTotals = post?.isGenerated && (post.reviewCount ?? 0) > 0
+  // Generated (Google) posts — and posts claimed from one (marked by placeId) —
+  // carry the business's real Google totals in reviewCount/totalStars. Show those
+  // instead of counting the ≤5 review texts the Places API hands over. On claimed
+  // posts, new Gigspace reviews increment the same aggregates (OrderDetail), so
+  // the count and stars blend Google + Gigspace automatically.
+  const googleTotals = post && (post.isGenerated || post.placeId) && (post.reviewCount ?? 0) > 0
     ? { count: post.reviewCount as number, avg: (post.totalStars ?? 0) / (post.reviewCount as number) }
     : null;
 
@@ -304,16 +307,32 @@ const ServiceDetail = () => {
     // business on claiming their free Gigspace listing. No login needed for this.
     if (post.isGenerated && post.claimStatus !== 'claimed' && post.contactEmail) {
       const postUrl = `${window.location.origin}/service-detail?id=${post.id}`;
-      const subject = `New customer inquiry via Gigspace — ${post.title}`;
+      const claimUrl = `${window.location.origin}/post-service?claim=${post.id}`;
+      // "an excavation project" vs "a cleaning services project" — lowercase the
+      // subcategory (falling back to category) so the email reads as human-written.
+      const rawCat = getCategoryLabel(post.category);
+      const catLabel = rawCat !== post.category ? rawCat : humanize(post.category);
+      const rawSub = post.subcategory ? getSubcategoryLabel(post.category, post.subcategory) : null;
+      const subLabel = rawSub != null
+        ? (rawSub !== post.subcategory ? rawSub : humanize(post.subcategory))
+        : null;
+      const projectType = (subLabel || catLabel || '').trim().toLowerCase();
+      const article = /^[aeiou]/.test(projectType) ? 'an' : 'a';
+      const projectPhrase = projectType ? `${article} ${projectType} project` : 'a project';
+      const subject = `Interested in discussing ${projectPhrase}`;
       const body =
         `Hi ${post.sellerName || 'there'},\n\n` +
-        `I found your business on Gigspace and I'm interested in your services.\n\n` +
-        `[Write your message here]\n\n` +
-        `---\n` +
-        `This message was sent by a customer who found your free listing on Gigspace:\n` +
+        `I found your business on Gigspace and I'm interested in discussing ${projectPhrase} with you.\n\n` +
+        `I've been comparing several businesses to find the best fit, and Gigspace makes it easy for me to keep all of my conversations, quotes, and projects organized in one place.\n\n` +
+        `You can claim your Gigspace business profile to:\n\n` +
+        `- Discuss the details of my project with me\n` +
+        `- Send me a quote and receive payment through the app\n` +
+        `- Allow me to leave a review once the job is complete\n\n` +
+        `View your post:\n` +
         `${postUrl}\n\n` +
-        `Are you the owner of this business? Claim your free listing to chat with customers directly and win more work:\n` +
-        `${window.location.origin}/post-service?claim=${post.id}`;
+        `Claim your business profile:\n` +
+        `${claimUrl}\n\n` +
+        `I look forward to connecting with you!`;
       window.location.href = `mailto:${post.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       return;
     }
@@ -509,12 +528,14 @@ const ServiceDetail = () => {
           <div className="flex items-center gap-4 md:gap-6">
             {user ? (
               <>
-                <Link
-                  to="/post-service"
-                  className="text-sm font-medium text-slate-300 hover:text-primary transition-colors hidden md:block"
-                >
-                  Create New Post
-                </Link>
+                {userProfile?.role !== 'admin' && (
+                  <Link
+                    to="/post-service"
+                    className="text-sm font-medium text-slate-300 hover:text-primary transition-colors hidden md:block"
+                  >
+                    Create New Post
+                  </Link>
+                )}
                 <HeaderUserMenu />
               </>
             ) : (
@@ -912,26 +933,6 @@ const ServiceDetail = () => {
                 <p className="text-slate-400 text-sm mb-5">
                   Based on {reviewTotal.toLocaleString()} review{reviewTotal !== 1 ? 's' : ''}
                 </p>
-                {googleTotals && reviewTotal > reviews.length && (
-                  <p className="text-slate-500 text-xs -mt-3 mb-5">
-                    {reviews.length > 0
-                      ? `Showing the ${reviews.length} most helpful Google review${reviews.length !== 1 ? 's' : ''}.`
-                      : 'Reviews for this business live on Google.'}
-                    {post.placeId && (
-                      <>
-                        {' '}
-                        <a
-                          href={`https://search.google.com/local/reviews?placeid=${post.placeId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
-                        >
-                          View all {reviewTotal.toLocaleString()} on Google
-                        </a>
-                      </>
-                    )}
-                  </p>
-                )}
                 <div className="space-y-2.5">
                   {breakdown.map(({ star, pct }) => (
                     <div key={star} className="flex items-center gap-2.5">

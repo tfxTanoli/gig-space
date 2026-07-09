@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, BadgeDollarSign, Settings, RefreshCw } from 'lucide-react';
+import { LogOut, LayoutDashboard, BadgeDollarSign, Settings, RefreshCw, Shield } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { CurrentUserAvatar } from './UserAvatar';
 
@@ -78,6 +78,11 @@ const HeaderUserMenu = () => {
           <div className="px-4 py-3 border-b border-slate-800">
             <p className="text-white text-sm font-semibold truncate">{displayName}</p>
             <p className="text-slate-500 text-xs truncate mt-0.5">{user?.email ?? ''}</p>
+            {isAdmin && (
+              <span className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-semibold uppercase tracking-wide">
+                <Shield className="w-3 h-3" /> Admin
+              </span>
+            )}
           </div>
 
           <div className="py-1">
@@ -86,8 +91,10 @@ const HeaderUserMenu = () => {
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
             >
-              <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />
-              Dashboard
+              {isAdmin
+                ? <Shield className="w-4 h-4 shrink-0 text-slate-500" />
+                : <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-500" />}
+              {isAdmin ? 'Admin Panel' : 'Dashboard'}
             </Link>
 
             {(isSeller || isBuyer) && (

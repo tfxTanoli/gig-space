@@ -151,6 +151,10 @@ const PostService = () => {
   // When claiming an admin-generated (Google) listing, we prefill from it but
   // publish a brand-new post under this seller, then mark the original claimed.
   const [claimId, setClaimId] = useState<string | null>(null);
+  // The business's real Google totals, carried onto the new post so its rating
+  // survives the claim. New Gigspace reviews increment the same aggregates
+  // (OrderDetail), blending Google + Gigspace counts and stars.
+  const [claimBaseline, setClaimBaseline] = useState<{ reviewCount: number; totalStars: number; placeId: string } | null>(null);
 
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState('');
@@ -331,6 +335,15 @@ const PostService = () => {
         const d = snap.val() as Record<string, unknown>;
         // Only generated, unclaimed listings can be claimed.
         if (!d.isGenerated || d.claimStatus === 'claimed') { navigate(`/service-detail?id=${cid}`); return; }
+
+        const baseCount = Number(d.reviewCount) || 0;
+        if (baseCount > 0) {
+          setClaimBaseline({
+            reviewCount: baseCount,
+            totalStars: Number(d.totalStars) || 0,
+            placeId: String(d.placeId ?? ''),
+          });
+        }
 
         setCategory(String(d.category ?? ''));
         setSubcategory(String(d.subcategory ?? ''));
@@ -580,6 +593,15 @@ const PostService = () => {
       subscriptionId: subscriptionId ?? null,
       status,
       updatedAt: Date.now(),
+      // Claiming a Google listing: seed the new post with the business's real
+      // Google rating (placeId marks the post as carrying a Google baseline).
+      ...(claimId && claimBaseline
+        ? {
+            reviewCount: claimBaseline.reviewCount,
+            totalStars: claimBaseline.totalStars,
+            placeId: claimBaseline.placeId,
+          }
+        : {}),
     };
   };
 
@@ -593,9 +615,11 @@ const PostService = () => {
       const payload = await buildPayload('draft');
 
       if (editId) {
-        await set(dbRef(database, `services/${editId}`), { ...payload, status: 'active', createdAt: originalCreatedAt });
+        // update() (not set) so counters the form doesn't manage — views, clicks,
+        // reviewCount, totalStars — survive the edit.
+        await update(dbRef(database, `services/${editId}`), { ...payload, status: 'active', createdAt: originalCreatedAt });
       } else if (draftId) {
-        await set(dbRef(database, `services/${draftId}`), { ...payload, createdAt: originalCreatedAt });
+        await update(dbRef(database, `services/${draftId}`), { ...payload, createdAt: originalCreatedAt });
       } else {
         const now = Date.now();
         const newRef = push(dbRef(database, 'services'));
@@ -631,18 +655,34 @@ const PostService = () => {
     try {
       const payload = await buildPayload('active', subscriptionId);
       const currentPostId = editId ?? draftId;
+      let publishedId = currentPostId;
       if (currentPostId) {
-        await set(dbRef(database, `services/${currentPostId}`), { ...payload, createdAt: originalCreatedAt || Date.now() });
+        // update() (not set) so counters the form doesn't manage — views, clicks,
+        // reviewCount, totalStars — survive the edit.
+        await update(dbRef(database, `services/${currentPostId}`), { ...payload, createdAt: originalCreatedAt || Date.now() });
       } else {
         const newPostRef = push(dbRef(database, 'services'));
         await set(newPostRef, { ...payload, createdAt: Date.now() });
         if (newPostRef.key) await set(dbRef(database, `users/${user.uid}/posts/${newPostRef.key}`), true);
+        publishedId = newPostRef.key;
       }
 
       // If this publish came from claiming a generated listing, mark the original
       // as claimed and unpublish it so the claim banner no longer shows and there
       // is no public duplicate of the seller's new post.
       if (claimId && claimId !== currentPostId) {
+        // Bring the Google review texts along so the new post keeps the business's
+        // review history; future Gigspace reviews append to the same list.
+        if (publishedId && publishedId !== claimId) {
+          try {
+            const revSnap = await get(dbRef(database, `serviceReviews/${claimId}`));
+            if (revSnap.exists()) {
+              await update(dbRef(database, `serviceReviews/${publishedId}`), revSnap.val());
+            }
+          } catch {
+            // Non-fatal: the post is already live; it just starts without the copied texts.
+          }
+        }
         await update(dbRef(database, `services/${claimId}`), {
           claimStatus: 'claimed',
           claimedBy: user.uid,

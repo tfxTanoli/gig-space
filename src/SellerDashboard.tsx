@@ -266,12 +266,13 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
   const fmtDay = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+  // Spell out the comparison window so the % isn't a mystery number.
   const trendBadge = (t: { text: string; up: boolean }) => (
     <span
-      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${t.up ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}
-      title="Change vs. previous week"
+      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${t.up ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}
+      title="Last 7 days vs. the 7 days before"
     >
-      {t.text}
+      {t.text === 'New' ? 'New this week' : `${t.text} vs last week`}
     </span>
   );
 
@@ -301,7 +302,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
         return (
           <div className="flex gap-2">
             {/* Y-axis labels */}
-            <div className="flex flex-col justify-between text-[9px] text-slate-600 shrink-0 w-6 text-right pt-[3px] pb-[3px]">
+            <div className="flex flex-col justify-between text-[11px] text-slate-400 shrink-0 w-9 text-right pt-[3px] pb-[3px]">
               <span>{fmtY(tickMax)}</span>
               <span>{tickMax <= 1 ? '' : fmtY(tickMax / 2)}</span>
               <span>0</span>
@@ -317,7 +318,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
               }}
               onMouseLeave={() => setHover(null)}
             >
-              <svg viewBox="0 0 100 40" className="w-full h-24" preserveAspectRatio="none">
+              <svg viewBox="0 0 100 40" className="w-full h-48" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="seller-grad-views" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor="#3B82F6" stopOpacity="0.25" />
@@ -410,7 +411,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
         );
       })()}
 
-      <div className="flex justify-between text-[10px] text-slate-600 mt-1.5 pl-8">
+      <div className="flex justify-between text-[11px] text-slate-400 mt-1.5 pl-11">
         {[0, 7, 14, 21, 29].map((i) => (
           <span key={i}>{filled[i]?.date.slice(5)}</span>
         ))}
