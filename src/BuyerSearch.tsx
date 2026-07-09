@@ -135,6 +135,31 @@ const DrawerSection = ({ title, children }: { title: string; children: ReactNode
   </section>
 );
 
+// A DrawerSection whose options stay collapsed behind a trigger showing the
+// current value. Used for the two filters whose options are long enough that an
+// inline list made it hard to see what was actually selected.
+const DrawerAccordion = ({
+  title, summary, open, onToggle, children,
+}: {
+  title: string; summary: ReactNode; open: boolean; onToggle: () => void; children: ReactNode;
+}) => (
+  <section className="py-5 border-b border-slate-800 last:border-b-0">
+    <h3 className="px-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
+    <div className="px-4">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full h-10 flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-200 hover:border-slate-600 transition-colors"
+      >
+        <span className="flex items-center gap-1.5 min-w-0 truncate">{summary}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+    {open && <div className="mt-2">{children}</div>}
+  </section>
+);
+
 interface ServicePost {
   id: string;
   sellerId: string;
@@ -406,6 +431,8 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const [onlineFilter, setOnlineFilter] = useState<OnlineOption>('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Which collapsible section inside the filter drawer is expanded (one at a time).
+  const [drawerSection, setDrawerSection] = useState<'rating' | 'language' | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
@@ -1208,7 +1235,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                   to scroll horizontally with no affordance that it did. */}
               <button
                 type="button"
-                onClick={() => { setOpenDropdown(null); setFiltersOpen(true); }}
+                onClick={() => { setOpenDropdown(null); setDrawerSection(null); setFiltersOpen(true); }}
                 aria-haspopup="dialog"
                 aria-expanded={filtersOpen}
                 className={`md:hidden ml-auto flex items-center gap-2 shrink-0 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
@@ -1562,23 +1589,49 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                 </div>
               </DrawerSection>
 
-              <DrawerSection title="Rating">
-                <Opt label="Any rating" selected={minRating === 0} onClick={() => setMinRating(0)} />
-                {[5, 4, 3, 2, 1].map((n) => (
+              <DrawerAccordion
+                title="Rating"
+                open={drawerSection === 'rating'}
+                onToggle={() => setDrawerSection((s) => (s === 'rating' ? null : 'rating'))}
+                summary={
+                  minRating === 0 ? (
+                    <span className="text-slate-400">Any rating</span>
+                  ) : (
+                    <>
+                      <span className="flex">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`w-3.5 h-3.5 ${i < minRating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'}`} />
+                        ))}
+                      </span>
+                      <span className="text-xs">&amp; up</span>
+                    </>
+                  )
+                }
+              >
+                {[0, 5, 4, 3, 2, 1].map((n) => (
                   <button
                     key={n}
-                    onClick={() => setMinRating(n)}
-                    className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${minRating === n ? 'text-white bg-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                    onClick={() => { setMinRating(n); setDrawerSection(null); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-slate-300 hover:text-white hover:bg-slate-800"
                   >
-                    <span className="flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-3.5 h-3.5 ${i < n ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'}`} />
-                      ))}
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${minRating === n ? 'border-blue-400' : 'border-slate-500'}`}>
+                      {minRating === n && <span className="w-2 h-2 rounded-full bg-blue-400" />}
                     </span>
-                    <span className="text-xs">&amp; up</span>
+                    {n === 0 ? (
+                      'Any rating'
+                    ) : (
+                      <>
+                        <span className="flex">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < n ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'}`} />
+                          ))}
+                        </span>
+                        <span className="text-xs">&amp; up</span>
+                      </>
+                    )}
                   </button>
                 ))}
-              </DrawerSection>
+              </DrawerAccordion>
 
               <DrawerSection title="Verified">
                 <RadioOpt label="Any"           selected={verifiedFilter === ''}    onClick={() => { setVerifiedFilter('');    setPendingVerified(''); }} />
@@ -1592,10 +1645,20 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                 <RadioOpt label="In-person only" selected={remoteFilter === 'in_person'} onClick={() => { setRemoteFilter('in_person'); setPendingRemote('in_person'); }} />
               </DrawerSection>
 
-              <DrawerSection title="Language">
+              <DrawerAccordion
+                title="Language"
+                open={drawerSection === 'language'}
+                onToggle={() => setDrawerSection((s) => (s === 'language' ? null : 'language'))}
+                summary={
+                  selectedLanguages.length === 0
+                    ? <span className="text-slate-400">Any language</span>
+                    : <span className="truncate">{selectedLanguages.join(', ')}</span>
+                }
+              >
                 {languageOptions.length === 0 ? (
                   <p className="px-4 py-3 text-xs text-slate-500 italic">No languages listed</p>
                 ) : (
+                  // Multi-select: tapping a row never collapses the list.
                   <div className="max-h-64 overflow-y-auto overscroll-contain">
                     {languageOptions.map((lang) => {
                       const checked = selectedLanguages.includes(lang);
@@ -1603,7 +1666,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                         <button
                           key={lang}
                           onClick={() => toggleLanguage(lang)}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                         >
                           <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-primary border-primary' : 'border-slate-600'}`}>
                             {checked && <Check className="w-3 h-3 text-white" />}
@@ -1614,7 +1677,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                     })}
                   </div>
                 )}
-              </DrawerSection>
+              </DrawerAccordion>
 
               <DrawerSection title="Online Now">
                 <RadioOpt label="Any"        selected={onlineFilter === ''}       onClick={() => { setOnlineFilter('');       setPendingOnline(''); }} />
