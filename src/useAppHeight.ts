@@ -11,44 +11,88 @@ import { useEffect, type RefObject } from 'react';
  */
 export function useAppHeight<T extends HTMLElement>(ref: RefObject<T | null>) {
   useEffect(() => {
+    const html = document.documentElement;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevScrollRestoration = history.scrollRestoration;
+
+    // Stop the browser from re-applying the scroll offset it saved before the
+    // tab was backgrounded/reloaded. It restores that offset *after* our reset
+    // runs, which is one of the ways the header ends up under the status bar.
+    // These screens lock scrolling anyway, so there is nothing to restore.
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
     const apply = () => {
       const el = ref.current;
       if (el) el.style.height = `${window.innerHeight}px`;
     };
 
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-
-    // iOS Safari can auto-scroll the page by the address-bar's height right
-    // after load/restore (as part of collapsing the toolbar). If that offset
-    // gets locked in before we reset it, the app shell's top — including the
-    // sticky header — ends up permanently hidden behind the status bar, since
-    // locking document/body overflow below removes any way to scroll back.
-    const resetAndLock = () => {
-      window.scrollTo(0, 0);
-      apply();
-      document.documentElement.style.overflow = 'hidden';
+    const lock = () => {
+      html.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
     };
 
-    resetAndLock();
-    // iOS sometimes performs its toolbar-collapse scroll a frame after paint —
-    // catch it before the user can notice.
-    const raf = requestAnimationFrame(resetAndLock);
+    const unlock = () => {
+      html.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+    };
+
+    // iOS Safari can auto-scroll the page by the address-bar's height right
+    // after load/restore (as part of collapsing the toolbar). If that offset
+    // gets locked in, the app shell's top — including the sticky header — ends
+    // up permanently hidden behind the status bar, since the lock below removes
+    // any way to scroll back.
+    //
+    // The unlock/lock dance matters: while overflow is hidden the document is
+    // not scrollable, so scrollTo() silently does nothing. Every reset after
+    // the first would be a no-op if we scrolled without unlocking first.
+    const resetAndLock = () => {
+      unlock();
+      window.scrollTo(0, 0);
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+      apply();
+      lock();
+    };
+
+    // iOS performs its toolbar-collapse scroll asynchronously, and not always on
+    // the same frame — retry across a few ticks rather than betting on one.
+    const timers: number[] = [];
+    let raf = 0;
+    const resetSoon = () => {
+      resetAndLock();
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(resetAndLock);
+      timers.forEach(clearTimeout);
+      timers.length = 0;
+      timers.push(
+        window.setTimeout(resetAndLock, 100),
+        window.setTimeout(resetAndLock, 300),
+      );
+    };
+
+    // `pageshow` covers a fresh load and a bfcache restore, but NOT returning to
+    // a tab that stayed alive in memory — closing and reopening the browser
+    // usually takes that path, and only fires `visibilitychange`.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') resetSoon();
+    };
+
+    resetSoon();
 
     window.addEventListener('resize', apply);
     window.addEventListener('orientationchange', apply);
-    // Reopening a backgrounded/bfcached tab can restore a stale scroll offset
-    // and viewport size — recompute both when the page becomes visible again.
-    window.addEventListener('pageshow', resetAndLock);
+    window.addEventListener('pageshow', resetSoon);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       cancelAnimationFrame(raf);
+      timers.forEach(clearTimeout);
       window.removeEventListener('resize', apply);
       window.removeEventListener('orientationchange', apply);
-      window.removeEventListener('pageshow', resetAndLock);
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
+      window.removeEventListener('pageshow', resetSoon);
+      document.removeEventListener('visibilitychange', onVisibility);
+      if ('scrollRestoration' in history) history.scrollRestoration = prevScrollRestoration;
+      unlock();
     };
   }, [ref]);
 }
