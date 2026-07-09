@@ -69,6 +69,14 @@
   select {
     font-size: 16px !important;
   }
+
+  /* Explicit opt-out for the handful of fields sized smaller than the 16px
+     floor at the user's request (Post Service form, search/budget filter,
+     username field). Matches the blanket rule's specificity so this wins by
+     source order; these fields intentionally re-enable iOS zoom-on-focus. */
+  input.gs-compact-mobile[type="text"] {
+    font-size: 14px !important;
+  }
 }
 
 @keyframes twinkle {

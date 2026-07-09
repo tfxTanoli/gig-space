@@ -358,28 +358,28 @@ const AffiliateLanding = () => {
       </section>
 
       {/* Popular Service Categories */}
-      <section className="px-4 md:px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="text-xl font-bold gradient-heading">Popular Service Categories</h2>
-          <div className="flex items-center gap-2">
+      <section className="px-4 md:px-6 lg:px-12 py-10 md:py-16">
+        <div className="flex justify-between items-center mb-6 md:mb-10 max-w-7xl mx-auto">
+          <h2 className="text-base md:text-lg font-semibold text-slate-300">Popular Service Categories</h2>
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => scrollCats('left')}
               disabled={!canScrollLeft}
-              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
-              <ChevronLeft className="w-4 h-4 text-slate-400" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => scrollCats('right')}
               disabled={!canScrollRight}
-              className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
             >
-              <ChevronRight className="w-4 h-4 text-slate-400" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div ref={catScrollRef} className="overflow-x-auto scrollbar-hide">
+        <div ref={catScrollRef} className="overflow-x-auto scrollbar-hide max-w-7xl mx-auto">
           <div className="flex flex-nowrap gap-6 md:gap-10 pb-2 pt-4">
           {categories.map(({ name, Icon }, i) => (
             <Link
@@ -387,10 +387,10 @@ const AffiliateLanding = () => {
               to={`/search?category=${encodeURIComponent(name)}`}
               className="flex flex-col items-center group cursor-pointer flex-shrink-0 px-2"
             >
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-raised flex items-center justify-center mb-3 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
-                <Icon className="w-8 h-8 md:w-10 md:h-10 text-primary" strokeWidth={1.5} />
+              <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-surface-raised flex items-center justify-center mb-2.5 transition-transform transform group-hover:scale-105 group-hover:bg-surface-raised-hover">
+                <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary" strokeWidth={1.5} />
               </div>
-              <span className="text-base font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
+              <span className="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">
                 {name}
               </span>
             </Link>

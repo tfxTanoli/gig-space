@@ -790,7 +790,7 @@ const PostService = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
               />
               <div className="text-right text-slate-500 text-xs mt-1">{title.length}/80 max</div>
             </div>
@@ -875,7 +875,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMin ? parseInt(priceMin).toLocaleString() : ''}
                       onChange={(e) => setPriceMin(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -889,7 +889,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMax ? parseInt(priceMax).toLocaleString() : ''}
                       onChange={(e) => setPriceMax(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -1112,7 +1112,7 @@ const PostService = () => {
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
                       placeholder="Search for a city or country…"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
+                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
@@ -1146,8 +1146,8 @@ const PostService = () => {
               )}
 
               {/* Remote toggle — only enabled when a country is selected */}
-              <div className={`flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
-                <div>
+              <div className={`flex items-center justify-between gap-4 p-4 bg-slate-800 border border-slate-700 rounded-lg ${!primaryLocationIsCountry ? 'opacity-60' : ''}`}>
+                <div className="min-w-0">
                   <p className={`text-sm font-medium ${!primaryLocationIsCountry ? 'text-slate-500' : 'text-white'}`}>Remote service</p>
                   <p className="text-slate-400 text-sm">
                     {primaryLocationIsCountry
@@ -1159,7 +1159,7 @@ const PostService = () => {
                   type="button"
                   disabled={!primaryLocationIsCountry}
                   onClick={() => setOfferedRemotely((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'} ${!primaryLocationIsCountry ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${offeredRemotely ? 'bg-blue-600' : 'bg-slate-700'} ${!primaryLocationIsCountry ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${offeredRemotely ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -1186,7 +1186,7 @@ const PostService = () => {
                     onKeyDown={handleAddExtraLocation}
                     onFocus={() => setExtraLocationDropdownOpen(true)}
                     placeholder="Type a location and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {extraLocationDropdownOpen && extraLocationSuggestions.length > 0 && (
@@ -1236,7 +1236,7 @@ const PostService = () => {
                     onKeyDown={handleLanguageKeyDown}
                     onFocus={() => setLanguageDropdownOpen(true)}
                     placeholder="Type a language and press Enter to add"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {languageDropdownOpen && filteredLanguages.length > 0 && (
