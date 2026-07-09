@@ -14,12 +14,13 @@ export const STRIPE_APPEARANCE = {
   rules: {
     // padding + lineHeight + 1px border on each side = 36px, matching the
     // h-9 inputs used elsewhere in the app.
-    '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 16px', lineHeight: '18px' },
+    '.Input': { border: '1px solid #334155', backgroundColor: '#1e293b', padding: '8px 16px', lineHeight: '18px', boxShadow: 'none' },
     '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
     '.Label': { color: '#cbd5e1', fontSize: '13px' },
-    '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155' },
+    '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#1e293b', border: '1px solid #334155', boxShadow: 'none' },
     '.Tab--selected': { backgroundColor: '#1e293b', border: '1px solid #3b82f6', boxShadow: 'none' },
     '.Tab:focus': { boxShadow: 'none' },
+    '.Block': { boxShadow: 'none' },
   } as Record<string, Record<string, string>>,
 };
 
