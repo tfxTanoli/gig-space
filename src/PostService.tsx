@@ -256,6 +256,15 @@ const PostService = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // ── Land every step at the top of the page ─────────────────────────────────
+  // Back / Save-and-continue swap the step body in place, so without this the
+  // new step renders at whatever scroll offset the previous one was left at and
+  // the header sits above the fold. Instant, not smooth: the outgoing step's
+  // content is already gone, so animating up through it reads as a jump anyway.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [step]);
+
   // ── Sync description contenteditable on step enter ─────────────────────────
   useEffect(() => {
     if (step !== 2 || !descriptionRef.current) return;
@@ -830,7 +839,7 @@ const PostService = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-                className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 px-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
               />
               <div className="text-right text-slate-500 text-xs mt-1">{title.length}/80 max</div>
             </div>
@@ -915,7 +924,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMin ? parseInt(priceMin).toLocaleString() : ''}
                       onChange={(e) => setPriceMin(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -929,7 +938,7 @@ const PostService = () => {
                       inputMode="numeric"
                       value={priceMax ? parseInt(priceMax).toLocaleString() : ''}
                       onChange={(e) => setPriceMax(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white pl-8 pr-12 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">USD</span>
                   </div>
@@ -1152,7 +1161,7 @@ const PostService = () => {
                       onKeyDown={handlePrimaryLocationKeyDown}
                       onFocus={() => setPrimaryLocationDropdownOpen(true)}
                       placeholder="Search for a city or country…"
-                      className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm text-white"
                     />
                   </div>
                   {primaryLocationDropdownOpen && primaryLocationSuggestions.length > 0 && (
@@ -1226,7 +1235,7 @@ const PostService = () => {
                     onKeyDown={handleAddExtraLocation}
                     onFocus={() => setExtraLocationDropdownOpen(true)}
                     placeholder="Type a location and press Enter to add"
-                    className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {extraLocationDropdownOpen && extraLocationSuggestions.length > 0 && (
@@ -1276,7 +1285,7 @@ const PostService = () => {
                     onKeyDown={handleLanguageKeyDown}
                     onFocus={() => setLanguageDropdownOpen(true)}
                     placeholder="Type a language and press Enter to add"
-                    className="gs-compact-mobile w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-300 pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
                   />
                 </div>
                 {languageDropdownOpen && filteredLanguages.length > 0 && (

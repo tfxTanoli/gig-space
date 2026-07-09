@@ -62,20 +62,16 @@
 /* Stop iOS Safari from zooming in when a form field is focused. iOS zooms
    whenever the focused control's font-size is under 16px, so pin every form
    control to 16px on mobile (below the md breakpoint). Unlayered + !important
-   so it overrides Tailwind's text-sm/text-xs utilities on inputs. */
+   so it overrides Tailwind's text-sm/text-xs utilities on inputs.
+   contenteditable is included: iOS zooms on those too (Post Service description).
+   No field opts out of this floor — Stripe's iframes are matched separately in
+   src/stripe/stripeAppearance.ts. */
 @media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
-  select {
+  select,
+  [contenteditable]:not([contenteditable="false"]) {
     font-size: 16px !important;
-  }
-
-  /* Explicit opt-out for the handful of fields sized smaller than the 16px
-     floor at the user's request (Post Service form, search/budget filter,
-     username field). Matches the blanket rule's specificity so this wins by
-     source order; these fields intentionally re-enable iOS zoom-on-focus. */
-  input.gs-compact-mobile[type="text"] {
-    font-size: 14px !important;
   }
 }
 
