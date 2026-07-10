@@ -321,9 +321,6 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
     const platformFeeCents = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
     const sellerAmountCents = amountInCents - platformFeeCents;
 
-    const walletSnap = await db.ref(`wallets/${sellerId}/stripeConnectedAccountId`).get();
-    const connectedAccountId = walletSnap.val() as string | null;
-
     const piParams: Stripe.PaymentIntentCreateParams = {
       amount: amountInCents,
       currency: 'usd',
@@ -343,11 +340,18 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
       },
     };
 
-    if (connectedAccountId) {
-      piParams.application_fee_amount = platformFeeCents;
-      piParams.transfer_data = { destination: connectedAccountId };
-    }
-
+    // Escrow model: the buyer's charge is captured on the PLATFORM account and
+    // held there. The seller is credited in their wallet (pendingBalance, then
+    // availableBalance once the buyer approves delivery) and funds only leave the
+    // platform via an explicit Connect transfer at withdrawal time — see
+    // POST /api/withdraw.
+    //
+    // We deliberately do NOT set transfer_data.destination / application_fee_amount
+    // here. Doing so would make this a destination charge that instantly routes the
+    // seller's cut to their Connect account at payment time, which (a) breaks escrow
+    // — funds are gone before delivery is approved or a refund can be issued — and
+    // (b) double-pays the seller, who is also credited in-wallet and can then
+    // withdraw the same money a second time. Keep all payouts on the withdrawal path.
     const pi = await stripe.paymentIntents.create(piParams);
     res.json({ clientSecret: pi.client_secret });
   } catch (err) {
@@ -1686,7 +1690,10 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
     const customerId = await getOrCreateStripeCustomer(uid, userData);
 
     // 2. Get or create the recurring $5/month Price ───────────────────────────
-    let priceId: string | undefined = process.env.STRIPE_EXTRA_LOCATION_PRICE_ID || undefined;
+    // .trim() guards against a stray leading/trailing space in the env value
+    // (e.g. "STRIPE_EXTRA_LOCATION_PRICE_ID= price_..."), which Stripe would
+    // otherwise reject as "No such price".
+    let priceId: string | undefined = process.env.STRIPE_EXTRA_LOCATION_PRICE_ID?.trim() || undefined;
 
     if (!priceId) {
       const cachedSnap = await db.ref('settings/stripe/extraLocationPriceId').get();
