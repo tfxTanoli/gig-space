@@ -72,17 +72,26 @@ export function useAppHeight<T extends HTMLElement>(ref: RefObject<T | null>) {
 
     // `pageshow` covers a fresh load and a bfcache restore, but NOT returning to
     // a tab that stayed alive in memory — closing and reopening the browser
-    // usually takes that path, and only fires `visibilitychange`.
+    // usually takes that path, and only fires `visibilitychange` (and `focus`).
     const onVisibility = () => {
       if (document.visibilityState === 'visible') resetSoon();
     };
+
+    // The visual viewport is what iOS actually shifts when it shows/hides the
+    // toolbar or the tab is restored — its `resize` fires *after* innerHeight has
+    // settled, so re-pinning here catches the final value the timed retries above
+    // can miss. `apply` alone (no scroll reset) keeps it cheap enough to run on
+    // every viewport change.
+    const vv = window.visualViewport;
 
     resetSoon();
 
     window.addEventListener('resize', apply);
     window.addEventListener('orientationchange', apply);
     window.addEventListener('pageshow', resetSoon);
+    window.addEventListener('focus', resetSoon);
     document.addEventListener('visibilitychange', onVisibility);
+    vv?.addEventListener('resize', apply);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -90,7 +99,9 @@ export function useAppHeight<T extends HTMLElement>(ref: RefObject<T | null>) {
       window.removeEventListener('resize', apply);
       window.removeEventListener('orientationchange', apply);
       window.removeEventListener('pageshow', resetSoon);
+      window.removeEventListener('focus', resetSoon);
       document.removeEventListener('visibilitychange', onVisibility);
+      vv?.removeEventListener('resize', apply);
       if ('scrollRestoration' in history) history.scrollRestoration = prevScrollRestoration;
       unlock();
     };

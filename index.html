@@ -3,14 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover exposes env(safe-area-inset-*) so fixed/sticky UI can
+         clear the iOS status bar / notch instead of hiding behind it. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Match the browser/status-bar chrome to the app background on mobile. -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>Gigspace</title>
+
+    <!-- Warm up the connections the first paint depends on so auth/db/storage
+         requests don't pay TLS setup on the critical path. -->
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://gigspace-208b4-default-rtdb.firebaseio.com" crossorigin />
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin />
+
+    <!-- Fonts, loaded non-render-blocking: preload the stylesheet then flip it to
+         a real stylesheet on load. Text paints immediately in the system fallback
+         and swaps to Inter when ready, instead of blocking first paint. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    </noscript>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Instant first-paint spinner. React's createRoot replaces #root's
+         contents on mount, so this disappears the moment the app boots — it just
+         fills the gap between the (render-blocking) CSS painting and the JS
+         bundle finishing, instead of showing an empty dark screen. -->
+    <div id="root">
+      <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a">
+        <div style="width:2rem;height:2rem;border:2px solid #3b82f6;border-top-color:transparent;border-radius:9999px;animation:appboot-spin .7s linear infinite"></div>
+      </div>
+    </div>
+    <style>@keyframes appboot-spin{to{transform:rotate(360deg)}}</style>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

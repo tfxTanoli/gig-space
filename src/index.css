@@ -102,6 +102,16 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Pad a sticky/top header by the iOS status-bar / notch height so its content
+     never sits behind the clock & indicators. env() resolves to 0 on desktop and
+     on non-fullscreen browsers, so this is a no-op everywhere it isn't needed.
+     min-height keeps the 4rem row intact *below* the inset instead of the inset
+     eating into it (border-box would otherwise shrink the visible header). */
+  .safe-header {
+    padding-top: env(safe-area-inset-top, 0px);
+    min-height: calc(4rem + env(safe-area-inset-top, 0px));
+  }
+
   /* Hide scrollbar while preserving scroll behaviour */
   .scrollbar-hide {
     -ms-overflow-style: none;
