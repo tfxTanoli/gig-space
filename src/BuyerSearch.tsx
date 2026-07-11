@@ -813,7 +813,13 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
 
   const handlePageSelect = useCallback((page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Jump instantly rather than smooth-scroll: paging to Next can trigger
+    // loadMore(), and the new cards' images shift the document height as they
+    // lazy-load. That height change makes the browser's scroll-anchoring cancel
+    // an in-flight smooth animation, so it never reaches the top (Previous never
+    // loads more, which is why only Next was affected). An instant jump lands at
+    // 0 before any of that and has nothing above it to anchor against.
+    window.scrollTo({ top: 0, behavior: 'auto' });
     if (hasMore && page >= totalPagesRef.current - 1) void loadMore();
   }, [hasMore, loadMore]);
 

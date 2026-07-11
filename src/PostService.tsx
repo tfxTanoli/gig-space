@@ -1413,7 +1413,7 @@ const PostService = () => {
                   ? 'Your changes have been saved. Buyers can now see the updated listing.'
                   : 'Sellers who share their posts on social media get up to 3× more views. Share yours now!'}
               </p>
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,noreferrer')} className="flex items-center justify-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-sm font-medium">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3"><circle cx="10" cy="10" r="10" fill="#1877F2"/><path d="M13.214 12.75l.365-2.375H11.3V8.75c0-.65.318-1.282 1.338-1.282H13.7V5.44s-.87-.19-1.7-.19c-1.876 0-3.1 1.137-3.1 3.196v1.929H6.75v2.375H8.9V18.5c.362.057.732.087 1.1.087s.738-.03 1.1-.087V12.75h2.114z" fill="white"/></svg>
                   Share to Facebook
