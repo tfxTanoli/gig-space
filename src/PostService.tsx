@@ -1369,6 +1369,11 @@ const PostService = () => {
                   mode: 'payment',
                   amount: extraLocations.length * 500,
                   currency: 'usd',
+                  // The subscription saves the card for off-session renewals
+                  // (save_default_payment_method), so its PaymentIntent has
+                  // setup_future_usage=off_session — Elements must match it or
+                  // confirmPayment throws a setup_future_usage mismatch.
+                  setupFutureUsage: 'off_session',
                   paymentMethodTypes: ['card', 'us_bank_account'],
                   appearance: STRIPE_APPEARANCE,
                   fonts: STRIPE_FONTS,
