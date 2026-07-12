@@ -1,7 +1,12 @@
 ﻿import { Resend } from 'resend';
 
 const FROM = 'Gigspace <team@gigspace.co>';
-const APP_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+// FRONTEND_URL may be a comma-separated list of allowed origins (see app.ts's
+// CORS setup, e.g. "https://gig-space.vercel.app,https://gig-space-lbk7.vercel.app").
+// Emails need one canonical URL for their buttons, so use the first origin —
+// using the raw value here previously produced a malformed, unclickable href
+// like "https://a.com,https://b.com/seller-dashboard" in every email.
+const APP_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
 // Email images must load from a PUBLIC URL — localhost is unreachable by email clients,
 // and most clients (Gmail/Outlook) block SVG, so we use a hosted PNG.
 // Defaults to the production site; override with EMAIL_ASSET_URL if assets live elsewhere.
@@ -454,7 +459,7 @@ export function buildPaymentReceivedSellerEmail(firstName: string, serviceTitle:
     ${p("You've received a payment for the following order:")}
     ${serviceBlock(serviceTitle)}
     ${p('Your earnings have been updated in your dashboard and are now available for withdrawal.')}
-    ${ctaButton('View earnings', `${APP_URL}/seller-dashboard?tab=Earnings`)}
+    ${ctaButton('View earnings', `${APP_URL}/seller-dashboard?tab=Payouts`)}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
   return shellPlain(body);
@@ -532,7 +537,7 @@ export function buildPaymentFailedEmail(firstName: string): string {
     ${p(`Hi ${firstName},`)}
     ${p('We were unable to process your recent payment.')}
     ${p('Please update your billing information to avoid interruptions to your account.')}
-    ${ctaButton('Update billing', `${APP_URL}/seller-dashboard?tab=Settings`)}
+    ${ctaButton('Update billing', `${APP_URL}/buyer-dashboard?tab=Billing`)}
     ${signOff('Thanks,\nThe Gigspace Team')}
   `;
   return shellPlain(body);
@@ -552,7 +557,7 @@ export function buildAffiliateCommissionEmail(firstName: string, commissionAmoun
     ${p('You earned a new affiliate commission from a completed order on Gigspace.')}
     ${pWhite(`${bold('Commission Amount:')} ${commissionAmount}`)}
     ${p('Your earnings dashboard has been updated and is available for withdrawal.')}
-    ${ctaButton('View earnings', `${APP_URL}/affiliate-dashboard`)}
+    ${ctaButton('View earnings', `${APP_URL}/affiliate-dashboard?tab=Payouts`)}
     ${signOff('Congrats,\nThe Gigspace Team')}
   `;
   return shellPlain(body);

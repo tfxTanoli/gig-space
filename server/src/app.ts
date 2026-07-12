@@ -67,6 +67,10 @@ const app = express();
 // e.g. FRONTEND_URL=https://gig-space.vercel.app,https://gig-space-lbk7.vercel.app
 const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 const ALLOWED_ORIGINS = rawFrontendUrl.split(',').map(u => u.trim()).filter(Boolean);
+// The first configured origin is the canonical one to use for redirect/continue
+// URLs (Firebase action links, etc.) — those need a single URL, not the full
+// CORS allow-list.
+const PRIMARY_FRONTEND_URL = ALLOWED_ORIGINS[0] || 'http://localhost:5173';
 
 // Hardcoded fallbacks — overridden at runtime by settings/fees in Firebase
 const PLATFORM_FEE_PERCENT_DEFAULT = 5;
@@ -1172,7 +1176,7 @@ app.post('/api/auth/send-password-reset', async (req: Request, res: Response) =>
     let resetLink: string;
     try {
       resetLink = await admin.auth().generatePasswordResetLink(email, {
-        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
+        url: `${PRIMARY_FRONTEND_URL}/login`,
       });
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
@@ -1283,7 +1287,7 @@ app.post('/api/auth/send-email-verification', requireAuth, async (req: AuthReque
     let verifyLink: string;
     try {
       verifyLink = await admin.auth().generateVerifyAndChangeEmailLink(userRecord.email, newEmail, {
-        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/signin`,
+        url: `${PRIMARY_FRONTEND_URL}/signin`,
       });
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;

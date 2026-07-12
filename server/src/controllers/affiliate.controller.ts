@@ -4,7 +4,10 @@ import { type Response } from 'express';
 import { type AuthRequest } from '../middleware/requireAuth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+// FRONTEND_URL may be a comma-separated list of allowed origins (see app.ts's
+// CORS setup) — Stripe Connect return/refresh URLs need one canonical URL,
+// so use the first origin (the raw value produced a malformed href).
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
 const MINIMUM_WITHDRAWAL = 10;
 
 interface AffiliateData {
