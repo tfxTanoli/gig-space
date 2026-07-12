@@ -231,6 +231,8 @@ const PostService = () => {
 
   // Step 6 — Extra Locations
   const [extraLocations, setExtraLocations] = useState<string[]>([]);
+  // Existing listing subscription (when editing) — preserved so edits don't drop it.
+  const [existingSubscriptionId, setExistingSubscriptionId] = useState<string | null>(null);
   const [extraLocationInput, setExtraLocationInput] = useState('');
   const [extraLocationSuggestions, setExtraLocationSuggestions] = useState<LocationResult[]>([]);
   const [extraLocationLoading, setExtraLocationLoading] = useState(false);
@@ -342,6 +344,7 @@ const PostService = () => {
         setExtraLocations(Array.isArray(d.extraLocations) ? (d.extraLocations as string[]) : []);
         const loadedPrimaryLocation = String(d.primaryLocation ?? '');
         setPrimaryLocation(loadedPrimaryLocation);
+        setExistingSubscriptionId(typeof d.subscriptionId === 'string' ? d.subscriptionId : null);
         setOfferedRemotely(Boolean(d.offeredRemotely ?? false));
         // Whether the primary location is a country gates the Remote toggle. A recognised
         // country name always qualifies (self-healing for older posts, and for posts whose
@@ -623,6 +626,8 @@ const PostService = () => {
       if (coords) { primaryLocationLat = coords.lat; primaryLocationLng = coords.lng; }
     }
 
+    const effectiveSubscriptionId = subscriptionId ?? existingSubscriptionId ?? null;
+
     return {
       sellerId: user!.uid,
       sellerName: userProfile!.name,
@@ -643,8 +648,11 @@ const PostService = () => {
       primaryLocationLng,
       primaryLocationIsCountry,
       offeredRemotely,
-      extraLocations,
-      subscriptionId: subscriptionId ?? null,
+      // Extra (paid) locations only stick on an ACTIVE post backed by a listing
+      // subscription — otherwise they'd be free. Kept on drafts so the seller's
+      // selections survive until they pay at the final step.
+      extraLocations: (status === 'active' && !effectiveSubscriptionId) ? [] : extraLocations,
+      subscriptionId: effectiveSubscriptionId,
       status,
       updatedAt: Date.now(),
       // Claiming a Google listing: seed the new post with the business's real
@@ -666,12 +674,15 @@ const PostService = () => {
     setSaving(true);
     setStepError('');
     try {
-      const payload = await buildPayload('draft');
+      // Editing keeps the post active; a brand-new post stays a draft until the
+      // final publish. buildPayload enforces the extra-location paywall per status,
+      // so extra locations without a subscription are stripped from an active post.
+      const payload = await buildPayload(editId ? 'active' : 'draft');
 
       if (editId) {
         // update() (not set) so counters the form doesn't manage — views, clicks,
         // reviewCount, totalStars — survive the edit.
-        await update(dbRef(database, `services/${editId}`), { ...payload, status: 'active', createdAt: originalCreatedAt });
+        await update(dbRef(database, `services/${editId}`), { ...payload, createdAt: originalCreatedAt });
       } else if (draftId) {
         await update(dbRef(database, `services/${draftId}`), { ...payload, createdAt: originalCreatedAt });
       } else {
