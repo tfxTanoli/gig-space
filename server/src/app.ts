@@ -425,6 +425,9 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
       [`orders/${orderId}/completedAt`]: now,
       [`orders/${orderId}/paymentStatus`]: 'released',
     };
+    // Captured for the "funds released" emails sent after the DB update below.
+    let releasedSellerId: string | null = null;
+    let releasedCommission: { affiliateId: string; amount: number } | null = null;
 
     if (order.paymentId) {
       const paymentSnap = await db.ref(`payments/${order.paymentId}`).get();
@@ -447,6 +450,7 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
             description: `Funds released for "${order.serviceTitle || 'order'}"`,
             createdAt: now,
           };
+          releasedSellerId = sellerId;
         }
       }
     }
@@ -471,10 +475,41 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
         updates[`affiliates/${affId}/availableBalance`] = admin.database.ServerValue.increment(commissionAmount);
         updates[`affiliates/${affId}/lifetimeEarnings`] = admin.database.ServerValue.increment(commissionAmount);
         updates[`affiliates/${affId}/updatedAt`]        = now;
+        releasedCommission = { affiliateId: affId, amount: commissionAmount };
       }
     }
 
     await db.ref().update(updates);
+
+    // ── Transactional emails (fire-and-forget) — escrow is released and funds
+    // are now available for withdrawal, so THIS is when we notify about payment.
+    if (releasedSellerId) {
+      try {
+        const sellerRecord = await admin.auth().getUser(releasedSellerId);
+        if (sellerRecord.email) {
+          const firstName = await getFirstNameByUid(releasedSellerId, sellerRecord.displayName);
+          await sendTransactionalEmail(
+            sellerRecord.email,
+            "You've received a new payment on Gigspace!",
+            buildPaymentReceivedSellerEmail(firstName, order.serviceTitle || 'your order')
+          );
+        }
+      } catch { /* non-fatal */ }
+    }
+    if (releasedCommission) {
+      try {
+        const affRecord = await admin.auth().getUser(releasedCommission.affiliateId);
+        if (affRecord.email) {
+          const firstName = await getFirstNameByUid(releasedCommission.affiliateId, affRecord.displayName);
+          await sendTransactionalEmail(
+            affRecord.email,
+            'You earned a new Gigspace Affiliate commission!',
+            buildAffiliateCommissionEmail(firstName, `$${releasedCommission.amount.toFixed(2)}`)
+          );
+        }
+      } catch { /* non-fatal */ }
+    }
+
     res.json({ success: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
@@ -787,19 +822,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`Order ${orderId} created for session ${session.id}`);
 
   // ── Transactional emails (fire-and-forget) ───────────────────────────────────
-  try {
-    const sellerRecord = await admin.auth().getUser(sellerId);
-    if (sellerRecord.email) {
-      const sellerFirstName = await getFirstNameByUid(sellerId, sellerRecord.displayName);
-      await sendTransactionalEmail(
-        sellerRecord.email,
-        "You've received a new payment on Gigspace!",
-        buildPaymentReceivedSellerEmail(sellerFirstName, serviceTitle)
-      );
-    }
-  } catch { /* non-fatal */ }
-
-  // Confirm the order to the buyer
+  // NOTE: the payment-received (seller) and affiliate-commission emails fire on
+  // delivery APPROVAL (/api/orders/approve-delivery) — that's when escrow is
+  // released and the funds actually become available for withdrawal. At order
+  // creation the money is only held in escrow (pending), so we only confirm the
+  // order to the buyer here.
   try {
     const buyerRecord = await admin.auth().getUser(buyerId);
     if (buyerRecord.email) {
@@ -811,24 +838,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       );
     }
   } catch { /* non-fatal */ }
-
-  if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
-    try {
-      const checkoutFeeAmt = parseInt(platformFeeCents, 10) / 100;
-      const checkoutCommission = parseFloat((checkoutFeeAmt * 0.5).toFixed(2));
-      if (checkoutCommission > 0) {
-        const affRecord = await admin.auth().getUser(affiliateId);
-        if (affRecord.email) {
-          const affFirstName = await getFirstNameByUid(affiliateId, affRecord.displayName);
-          await sendTransactionalEmail(
-            affRecord.email,
-            'You earned a new Gigspace Affiliate commission!',
-            buildAffiliateCommissionEmail(affFirstName, `$${checkoutCommission.toFixed(2)}`)
-          );
-        }
-      }
-    } catch { /* non-fatal */ }
-  }
 }
 
 async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
@@ -944,19 +953,8 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
   console.log(`Order ${orderId} created for PaymentIntent ${pi.id}`);
 
   // ── Transactional emails (fire-and-forget) ───────────────────────────────────
-  try {
-    const sellerRecord = await admin.auth().getUser(sellerId);
-    if (sellerRecord.email) {
-      const sellerFirstName = await getFirstNameByUid(sellerId, sellerRecord.displayName);
-      await sendTransactionalEmail(
-        sellerRecord.email,
-        "You've received a new payment on Gigspace!",
-        buildPaymentReceivedSellerEmail(sellerFirstName, serviceTitle)
-      );
-    }
-  } catch { /* non-fatal */ }
-
-  // Confirm the order to the buyer
+  // Payment-received (seller) and affiliate-commission emails fire on delivery
+  // APPROVAL (/api/orders/approve-delivery), when escrow is released — not here.
   try {
     const buyerRecord = await admin.auth().getUser(buyerId);
     if (buyerRecord.email) {
@@ -968,23 +966,6 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       );
     }
   } catch { /* non-fatal */ }
-
-  if (affiliateId && affiliateId !== sellerId && affiliateId !== buyerId) {
-    try {
-      const affCommission = parseFloat((platformFeeAmt * 0.5).toFixed(2));
-      if (affCommission > 0) {
-        const affRecord = await admin.auth().getUser(affiliateId);
-        if (affRecord.email) {
-          const affFirstName = await getFirstNameByUid(affiliateId, affRecord.displayName);
-          await sendTransactionalEmail(
-            affRecord.email,
-            'You earned a new Gigspace Affiliate commission!',
-            buildAffiliateCommissionEmail(affFirstName, `$${affCommission.toFixed(2)}`)
-          );
-        }
-      }
-    } catch { /* non-fatal */ }
-  }
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
