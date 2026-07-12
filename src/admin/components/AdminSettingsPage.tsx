@@ -6,7 +6,7 @@ import {
   Mail, KeyRound, Clock, Users, List, ListOrdered,
 } from 'lucide-react';
 import {
-  EmailAuthProvider, reauthenticateWithCredential, updatePassword, verifyBeforeUpdateEmail,
+  EmailAuthProvider, reauthenticateWithCredential, updatePassword,
 } from 'firebase/auth';
 import { toast } from 'sonner';
 import { ref as dbRef, get, update, set } from 'firebase/database';
@@ -584,13 +584,24 @@ function AdminCredentialsCard() {
     try {
       const credential = EmailAuthProvider.credential(current.email, emailPw);
       await reauthenticateWithCredential(current, credential);
-      // Firebase sends a confirmation link to the new address; the change applies once clicked.
-      await verifyBeforeUpdateEmail(current, email);
+
+      // Sends our branded Resend template (not Firebase's default email); the
+      // change applies once the recipient clicks the link in it.
+      const token = await current.getIdToken();
+      const verifyRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/send-email-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ newEmail: email }),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok) throw new Error(verifyData.error || 'Failed to send verification email.');
+
       await update(dbRef(database, `users/${current.uid}`), { email, emailVerified: false });
       setEmailPw('');
       toast.success(`Verification email sent to ${email}. Click the link to confirm the change.`);
     } catch (err) {
-      toast.error(credError(err, 'Failed to update email. Please try again.'));
+      const fallback = err instanceof Error && err.message ? err.message : 'Failed to update email. Please try again.';
+      toast.error(credError(err, fallback));
     } finally { setEmailSaving(false); }
   };
 

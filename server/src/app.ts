@@ -1267,33 +1267,46 @@ app.post('/api/email/password-updated-public', async (req: Request, res: Respons
 app.post('/api/auth/send-email-verification', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const uid = req.uid!;
+    const { newEmail } = req.body as { newEmail?: string };
+    if (!newEmail) { res.status(400).json({ error: 'newEmail is required' }); return; }
+
     const userRecord = await admin.auth().getUser(uid);
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
     const firstName = await getFirstNameByUid(uid, userRecord.displayName);
 
+    // generateVerifyAndChangeEmailLink both confirms ownership of newEmail AND
+    // swaps the account's primary email to it once the link is opened —
+    // generateEmailVerificationLink (used elsewhere) only re-confirms the
+    // CURRENT email and does not change it, so it's wrong for this flow.
     // See send-password-reset: fall back to a link without the continue URL if
     // FRONTEND_URL isn't an authorized Firebase domain (else no email is sent).
     let verifyLink: string;
     try {
-      verifyLink = await admin.auth().generateEmailVerificationLink(userRecord.email, {
-        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-verified`,
+      verifyLink = await admin.auth().generateVerifyAndChangeEmailLink(userRecord.email, newEmail, {
+        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/signin`,
       });
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
       if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
-        verifyLink = await admin.auth().generateEmailVerificationLink(userRecord.email);
+        verifyLink = await admin.auth().generateVerifyAndChangeEmailLink(userRecord.email, newEmail);
       } else {
         throw e;
       }
     }
 
+    // Sent to the NEW address — that's the one whose ownership needs confirming.
     await sendTransactionalEmail(
-      userRecord.email,
+      newEmail,
       'Verify your updated email address',
       buildVerifyEmailEmail(firstName, verifyLink)
     );
     res.json({ sent: true });
   } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === 'auth/email-already-exists') {
+      res.status(409).json({ error: 'That email address is already in use.' });
+      return;
+    }
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/auth/send-email-verification error:', msg);
     res.status(500).json({ error: msg });

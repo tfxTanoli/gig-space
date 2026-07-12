@@ -8,7 +8,6 @@ import {
   reauthenticateWithCredential,
   reauthenticateWithPopup,
   updatePassword,
-  verifyBeforeUpdateEmail,
 } from 'firebase/auth';
 import { ref, update, get } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -187,7 +186,18 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
         try {
           const credential = EmailAuthProvider.credential(user.email, emailConfirmPassword);
           await reauthenticateWithCredential(user, credential);
-          await verifyBeforeUpdateEmail(user, trimEmail);
+
+          // Sends our branded Resend template (not Firebase's default email) and
+          // generates a link that verifies + swaps the primary email once clicked.
+          const token = await user.getIdToken();
+          const verifyRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/send-email-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ newEmail: trimEmail }),
+          });
+          const verifyData = await verifyRes.json().catch(() => ({}));
+          if (!verifyRes.ok) throw new Error(verifyData.error || 'Failed to send verification email.');
+
           // Update DB immediately but mark as unverified pending confirmation
           dbUpdates.email = trimEmail;
           dbUpdates.emailVerified = false;
@@ -206,6 +216,8 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
           setProfileMsg(
             isWrongPassword
               ? 'Current password is incorrect.'
+              : err instanceof Error && err.message
+              ? err.message
               : 'Failed to update email. Please try again.',
           );
           setProfileSaving(false);
