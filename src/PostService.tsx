@@ -1380,11 +1380,14 @@ const PostService = () => {
                   mode: 'payment',
                   amount: extraLocations.length * 500,
                   currency: 'usd',
-                  // The subscription saves the card for off-session renewals
-                  // (save_default_payment_method), so its PaymentIntent has
-                  // setup_future_usage=off_session — Elements must match it or
-                  // confirmPayment throws a setup_future_usage mismatch.
-                  setupFutureUsage: 'off_session',
+                  // Do NOT set setupFutureUsage here. The subscription's first-invoice
+                  // PaymentIntent is created with setup_future_usage=null — the card is
+                  // saved for off-session renewals via
+                  // payment_settings.save_default_payment_method='on_subscription', not
+                  // via setup_future_usage. Elements is in deferred mode and must match
+                  // that PI exactly, so forcing 'off_session' here makes confirmPayment
+                  // throw: "The provided setup_future_usage (off_session) does not match
+                  // the expected setup_future_usage (null)."
                   paymentMethodTypes: ['card', 'us_bank_account'],
                   appearance: STRIPE_APPEARANCE,
                   fonts: STRIPE_FONTS,
