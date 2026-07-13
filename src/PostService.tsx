@@ -1380,14 +1380,17 @@ const PostService = () => {
                   mode: 'payment',
                   amount: extraLocations.length * 500,
                   currency: 'usd',
-                  // Do NOT set setupFutureUsage here. The subscription's first-invoice
-                  // PaymentIntent is created with setup_future_usage=null — the card is
-                  // saved for off-session renewals via
-                  // payment_settings.save_default_payment_method='on_subscription', not
-                  // via setup_future_usage. Elements is in deferred mode and must match
-                  // that PI exactly, so forcing 'off_session' here makes confirmPayment
-                  // throw: "The provided setup_future_usage (off_session) does not match
-                  // the expected setup_future_usage (null)."
+                  // The subscription is created with payment_settings.
+                  // save_default_payment_method='on_subscription' (server/src/app.ts,
+                  // create-listing-subscription), which makes Stripe stamp
+                  // setup_future_usage='off_session' onto the first-invoice PaymentIntent
+                  // — verified live: the confirm 400's error payload embeds the PI with
+                  // setup_future_usage:"off_session". In that error, "provided" is the
+                  // PI and "expected" is this Elements config. Deferred Elements must
+                  // match the PI exactly, so this option is REQUIRED; removing it brings
+                  // back "The provided setup_future_usage (off_session) does not match
+                  // the expected setup_future_usage (null)" at Publish.
+                  setupFutureUsage: 'off_session',
                   paymentMethodTypes: ['card', 'us_bank_account'],
                   appearance: STRIPE_APPEARANCE,
                   fonts: STRIPE_FONTS,
