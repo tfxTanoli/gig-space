@@ -283,7 +283,8 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
           <h3 className="text-sm font-semibold text-white">Post Analytics</h3>
           <p className="text-xs text-slate-500 mt-0.5">Last 30 days across all posts</p>
         </div>
-        <div className="flex items-center gap-5 text-xs text-slate-400">
+        {/* Mobile: Clicks stacks under Views; side by side from sm up. */}
+        <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:gap-5 text-xs text-slate-400">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shrink-0" />
             Views <span className="text-white font-semibold ml-1">{totalViews.toLocaleString()}</span>
@@ -300,16 +301,17 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
       {(() => {
         const fmtY = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
         return (
-          <div className="flex gap-2">
-            {/* Y-axis labels */}
-            <div className="flex flex-col justify-between text-[11px] text-slate-400 shrink-0 w-9 text-right pt-[3px] pb-[3px]">
+          <div className="grid grid-cols-[auto_1fr] gap-x-2">
+            {/* Y-axis labels — auto-width column so the axis hugs the card edge
+               (no dead space before it, especially on mobile) */}
+            <div className="flex flex-col justify-between text-[11px] text-slate-400 text-right pt-[3px] pb-[3px]">
               <span>{fmtY(tickMax)}</span>
               <span>{tickMax <= 1 ? '' : fmtY(tickMax / 2)}</span>
               <span>0</span>
             </div>
             {/* Chart */}
             <div
-              className="flex-1 relative"
+              className="relative"
               onMouseMove={(e) => {
                 if (!hasData) return;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -407,15 +409,17 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
                 </div>
               )}
             </div>
+
+            {/* X-axis labels — second grid column so they sit exactly under the chart */}
+            <div />
+            <div className="flex justify-between text-[11px] text-slate-400 mt-1.5">
+              {[0, 7, 14, 21, 29].map((i) => (
+                <span key={i}>{filled[i]?.date.slice(5)}</span>
+              ))}
+            </div>
           </div>
         );
       })()}
-
-      <div className="flex justify-between text-[11px] text-slate-400 mt-1.5 pl-11">
-        {[0, 7, 14, 21, 29].map((i) => (
-          <span key={i}>{filled[i]?.date.slice(5)}</span>
-        ))}
-      </div>
     </div>
   );
 };
