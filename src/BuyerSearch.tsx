@@ -1050,7 +1050,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                     <div className="border-t border-slate-700 py-1">
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-500 hover:bg-slate-800/80 transition-colors cursor-pointer"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-4 h-4 shrink-0" />
                         Sign Out

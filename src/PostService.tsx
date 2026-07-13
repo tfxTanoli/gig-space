@@ -25,7 +25,7 @@ import HeaderUserMenu from './HeaderUserMenu';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, push, set, get, update } from 'firebase/database';
-import { storage, database } from './firebase';
+import { storage, database, auth } from './firebase';
 import { useAuth } from './AuthContext';
 import { useCategories } from './CategoriesContext';
 import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
@@ -35,6 +35,7 @@ import { LANGUAGES } from './data/languages';
 import { sanitizeHtml } from './utils/sanitize';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const TOTAL_STEPS = 9;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -748,12 +749,21 @@ const PostService = () => {
             // Non-fatal: the post is already live; it just starts without the copied texts.
           }
         }
-        await update(dbRef(database, `services/${claimId}`), {
-          claimStatus: 'claimed',
-          claimedBy: user.uid,
-          status: 'paused',
-          updatedAt: Date.now(),
-        });
+        // The original listing has no owner (sellerId is ''), so RTDB rules deny
+        // this write from the client — the backend does it with the Admin SDK.
+        // Non-fatal on failure: the seller's own post is already live above.
+        try {
+          const token = await auth.currentUser?.getIdToken();
+          if (!token) throw new Error('Not authenticated');
+          const resp = await fetch(`${API_URL}/api/listings/mark-claimed`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ claimId }),
+          });
+          if (!resp.ok) throw new Error(`Server error ${resp.status}`);
+        } catch {
+          // The original keeps its claim banner until an admin pauses it manually.
+        }
       }
 
       setStep(9);

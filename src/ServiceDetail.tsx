@@ -300,7 +300,7 @@ const ServiceDetail = () => {
   const prev = () => setActiveIdx((p) => (p === 0 ? mediaItems.length - 1 : p - 1));
   const next = () => setActiveIdx((p) => (p === mediaItems.length - 1 ? 0 : p + 1));
 
-  const handleContactSeller = () => {
+  const handleContactSeller = async () => {
     if (!post) return;
     // Unclaimed generated listings have no seller account to chat with — open the
     // buyer's mail client instead, pre-filled with an email that also pitches the
@@ -338,6 +338,22 @@ const ServiceDetail = () => {
     }
     if (!user) { navigate('/signin'); return; }
     if (isOwnService) return;
+    // Admins have no buyer chat — the Messages redirect would just bounce them to
+    // the admin panel. Open an email to the seller instead.
+    if (userProfile?.role === 'admin') {
+      let sellerEmail = post.contactEmail || '';
+      if (!sellerEmail && post.sellerId) {
+        try {
+          const snap = await get(ref(database, `users/${post.sellerId}/email`));
+          sellerEmail = typeof snap.val() === 'string' ? snap.val() : '';
+        } catch { /* fall through — no address reachable */ }
+      }
+      if (sellerEmail) {
+        const subject = `Regarding your Gigspace post "${post.title}"`;
+        window.location.href = `mailto:${sellerEmail}?subject=${encodeURIComponent(subject)}`;
+      }
+      return;
+    }
     const today = new Date().toISOString().slice(0, 10);
     update(ref(database), {
       [`services/${post.id}/clicks`]: increment(1),

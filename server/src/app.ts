@@ -1829,6 +1829,40 @@ app.post('/api/auth/claim-admin', requireAuth, async (req: AuthRequest, res: Res
   }
 });
 
+// ─── Mark a generated listing as claimed ─────────────────────────────────────
+// Called by the seller right after they publish their own copy of a generated
+// (Google) listing. Generated listings have no owner (sellerId is ''), so RTDB
+// rules deny this write from the client — the Admin SDK does it here instead,
+// after verifying the target really is an unclaimed generated listing.
+app.post('/api/listings/mark-claimed', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.uid as string;
+    const claimId = typeof req.body?.claimId === 'string' ? req.body.claimId.trim() : '';
+    if (!claimId || /[.#$/[\]]/.test(claimId)) {
+      res.status(400).json({ error: 'claimId is required' });
+      return;
+    }
+
+    const snap = await db.ref(`services/${claimId}`).get();
+    if (!snap.exists()) { res.status(404).json({ error: 'Listing not found' }); return; }
+    const svc = snap.val() as { isGenerated?: boolean; claimStatus?: string };
+    if (svc.isGenerated !== true) { res.status(400).json({ error: 'Not a generated listing' }); return; }
+    if (svc.claimStatus === 'claimed') { res.json({ success: true, alreadyClaimed: true }); return; }
+
+    await db.ref(`services/${claimId}`).update({
+      claimStatus: 'claimed',
+      claimedBy: uid,
+      status: 'paused',
+      updatedAt: Date.now(),
+    });
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/listings/mark-claimed error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─── Admin routes (secured — verifyAdmin middleware handles auth + role check) ─
 app.use('/api/admin', adminRouter);
 
