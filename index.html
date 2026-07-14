@@ -12,6 +12,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>Gigspace</title>
 
+    <!-- iOS "Add to Home Screen" web apps draw under the status bar, but
+         env(safe-area-inset-top) is 0 on non-notch iPhones (Apple only defines a
+         top inset for notched devices) — so the env()-only padding silently did
+         nothing there and the header sat under the clock. navigator.standalone is
+         true *only* for these home-screen apps; flag it on <html> before first
+         paint so CSS can floor the inset to the 20px status-bar height for them
+         while regular Safari/desktop keep a 0 inset (no unwanted gap). -->
+    <script>
+      if (window.navigator.standalone === true)
+        document.documentElement.classList.add('ios-standalone');
+    </script>
+
     <!-- Warm up the connections the first paint depends on so auth/db/storage
          requests don't pay TLS setup on the critical path. -->
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
