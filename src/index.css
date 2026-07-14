@@ -20,6 +20,20 @@
   html {
     overflow-x: hidden;
     scrollbar-gutter: stable;
+
+    /* Height of the iOS status bar to keep top-anchored UI clear of. env()
+       covers notched devices; it is 0 on non-notch iPhones and off-device, so
+       the floor below is what actually clears the bar there. */
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Only iOS home-screen ("Add to Home Screen") apps render under the status
+     bar, and only there is env() unreliable (0 on non-notch devices). Floor the
+     inset to the 20px status-bar height for them — max() keeps the larger real
+     inset on notched devices (~47px). Regular Safari and desktop never get the
+     .ios-standalone flag, so their inset stays 0 and no gap appears. */
+  html.ios-standalone {
+    --safe-top: max(env(safe-area-inset-top, 0px), 20px);
   }
 
   /* Prevent browser autofill from overriding dark input backgrounds */
@@ -37,6 +51,11 @@
     @apply bg-background text-white min-h-screen font-sans;
     scroll-behavior: smooth;
     overflow-x: hidden;
+    /* Push every normal document-scroll page (search, service detail, post
+       service, landing, auth, legal…) below the status bar in one place, so no
+       page's header can end up behind it. 0 everywhere it isn't needed. The
+       fixed-height dashboard shells opt out via .app-shell below. */
+    padding-top: var(--safe-top);
   }
 
   /* Global form field text colours */
@@ -102,14 +121,24 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Pad a sticky/top header by the iOS status-bar / notch height so its content
-     never sits behind the clock & indicators. env() resolves to 0 on desktop and
-     on non-fullscreen browsers, so this is a no-op everywhere it isn't needed.
-     min-height keeps the 4rem row intact *below* the inset instead of the inset
-     eating into it (border-box would otherwise shrink the visible header). */
+  /* The dashboards are fixed-height app shells (h-dvh + overflow-hidden, height
+     re-pinned to innerHeight in useAppHeight); they can't take the body's top
+     padding without their bottom nav falling off-screen. Cancel it with a
+     matching negative margin so the shell fills the viewport edge-to-edge, and
+     let its sticky header carry the inset via .safe-header instead. --safe-top is
+     0 when no inset is needed, so this is a no-op on desktop/regular browsers. */
+  .app-shell {
+    margin-top: calc(-1 * var(--safe-top));
+  }
+
+  /* Pad a sticky/top header by the status-bar / notch height so its content
+     never sits behind the clock & indicators. min-height keeps the 4rem row
+     intact *below* the inset instead of the inset eating into it (border-box
+     would otherwise shrink the visible header). The header background fills the
+     inset strip too, so it reads as one clean bar under the status bar. */
   .safe-header {
-    padding-top: env(safe-area-inset-top, 0px);
-    min-height: calc(4rem + env(safe-area-inset-top, 0px));
+    padding-top: var(--safe-top);
+    min-height: calc(4rem + var(--safe-top));
   }
 
   /* Hide scrollbar while preserving scroll behaviour */

@@ -62,7 +62,7 @@ const AffiliateDashboard = () => {
   };
 
   return (
-    <div ref={shellRef} className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
+    <div ref={shellRef} className="app-shell h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* ── Sidebar (desktop) ─────────────────────────────────────────────── */}
       <aside className="w-72 bg-surface flex-col shrink-0 border-r border-slate-800 hidden md:flex">
