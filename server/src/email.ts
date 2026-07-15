@@ -52,9 +52,9 @@ function shell(iconBoxBg: string, iconContent: string, bodyHtml: string): string
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 </head>
-<body style="margin:0;padding:0;background-color:#0d1224;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d1224;padding:48px 16px 40px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;padding:48px 16px 40px;">
     <tr>
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
@@ -117,9 +117,9 @@ function shellPlain(bodyHtml: string): string {
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 </head>
-<body style="margin:0;padding:0;background-color:#0d1224;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d1224;padding:48px 16px 40px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;padding:48px 16px 40px;">
     <tr>
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
@@ -190,7 +190,7 @@ function ctaButton(label: string, url: string): string {
   <tr>
     <td style="background-color:#3b82f6;border-radius:8px;">
       <a href="${url}" target="_blank"
-         style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;">
+         style="display:inline-block;height:36px;line-height:36px;padding:0 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;">
         ${label} &rarr;
       </a>
     </td>
@@ -203,7 +203,7 @@ function divider(): string {
 }
 
 function signOff(text: string): string {
-  return `<p style="margin:20px 0 0;font-size:15px;line-height:1.7;color:#ffffff;">${text.replace(/\n/g, '<br/>')}</p>`;
+  return `<p style="margin:20px 0 0;font-size:15px;line-height:1.7;color:#9ca3af;">${text.replace(/\n/g, '<br/>')}</p>`;
 }
 
 function preCta(text: string): string {
