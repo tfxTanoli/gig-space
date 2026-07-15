@@ -4,9 +4,7 @@ import { Camera, Shield, Eye, EyeOff, Loader2, CheckCircle, AlertCircle, Trash2 
 import {
   updateProfile,
   EmailAuthProvider,
-  GoogleAuthProvider,
   reauthenticateWithCredential,
-  reauthenticateWithPopup,
   updatePassword,
 } from 'firebase/auth';
 import { ref, update, get } from 'firebase/database';
@@ -306,7 +304,10 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
     setDeleteMsg(null);
 
     try {
-      // Re-authenticate before deletion
+      // Re-authenticate email/password users before deletion — this is a
+      // popup-free password check. Google (and other federated) users don't
+      // need an interactive reauth popup: deletion is performed server-side by
+      // the Admin SDK, which verifies the freshly-refreshed ID token below.
       if (isEmailProvider) {
         if (!deletePassword) {
           setDeleteMsg('Enter your current password to confirm.');
@@ -316,12 +317,11 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
         if (!user.email) throw new Error('No email on account');
         const credential = EmailAuthProvider.credential(user.email, deletePassword);
         await reauthenticateWithCredential(user, credential);
-      } else {
-        const provider = new GoogleAuthProvider();
-        await reauthenticateWithPopup(user, provider);
       }
 
-      const token = await user.getIdToken();
+      // Force a token refresh so the server verifies a currently-valid session
+      // (a disabled/revoked account will fail here rather than being deleted).
+      const token = await user.getIdToken(true);
       const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/account/delete`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
