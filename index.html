@@ -21,8 +21,44 @@
          can floor the inset to the 20px status-bar height. Gated to iPhone/iPod
          only: iPad/desktop/Android keep a 0 inset and gain no unwanted gap. -->
     <script>
-      if (/iPhone|iPod/.test(window.navigator.userAgent))
-        document.documentElement.classList.add('ios-phone');
+      (function () {
+        var root = document.documentElement;
+        if (/iPhone|iPod/.test(window.navigator.userAgent)) root.classList.add('ios-phone');
+
+        // Capture the real top inset and remember the largest value ever seen.
+        // The dashboards lock scrolling (overflow:hidden on <html>) to run as a
+        // fixed app shell, and iOS then reports env(safe-area-inset-top) as 0 —
+        // which drops a notch / Dynamic-Island header back under the status bar
+        // (the CSS floor is only 20px, ~24px short of a 44px notch). env() is
+        // still correct on the scrollable browse/detail pages and at first load,
+        // so measure there and keep the max: the dashboard then reuses the true
+        // notch height even when its own env() reads 0. Non-notch iPhones never
+        // report an inset, so they keep relying on the 20px floor in CSS.
+        var max = 0;
+        function measure() {
+          var probe = measure.el;
+          if (!probe) return;
+          var h = probe.getBoundingClientRect().height;
+          if (h > max) { max = h; root.style.setProperty('--safe-top-measured', max + 'px'); }
+        }
+        function init() {
+          var probe = document.createElement('div');
+          probe.style.cssText =
+            'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
+          document.body.appendChild(probe);
+          measure.el = probe;
+          measure();
+          // env settles a frame or two after load / bfcache restore / toolbar
+          // transitions — re-measure on the events that mark those moments.
+          window.addEventListener('resize', measure, { passive: true });
+          window.addEventListener('orientationchange', measure);
+          window.addEventListener('pageshow', measure);
+          if (window.visualViewport)
+            window.visualViewport.addEventListener('resize', measure, { passive: true });
+        }
+        if (document.body) init();
+        else document.addEventListener('DOMContentLoaded', init);
+      })();
     </script>
 
     <!-- Warm up the connections the first paint depends on so auth/db/storage

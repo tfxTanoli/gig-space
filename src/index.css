@@ -21,19 +21,21 @@
     overflow-x: hidden;
     scrollbar-gutter: stable;
 
-    /* Height of the iOS status bar to keep top-anchored UI clear of. env()
-       covers notched devices; it is 0 on non-notch iPhones and off-device, so
-       the floor below is what actually clears the bar there. */
-    --safe-top: env(safe-area-inset-top, 0px);
+    /* Height of the status bar to keep top-anchored UI clear of. env() covers
+       notched devices, but it is 0 on non-notch iPhones and drops to 0 on the
+       dashboards (their overflow:hidden app shell makes iOS stop reporting it).
+       --safe-top-measured is the largest inset JS has observed (see index.html)
+       and holds the true notch height across those env() dropouts. */
+    --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-top-measured, 0px));
   }
 
   /* On iPhone the page top is under the status bar (bottom address bar in modern
      Safari; no chrome in standalone), and env() is unreliable there — 0 on
      non-notch iPhones. Floor the inset to the 20px status-bar height; max() keeps
-     the larger real inset on notched devices (~47px). Only iPhone/iPod get the
-     .ios-phone flag, so iPad/desktop/Android keep a 0 inset and no gap appears. */
+     the larger real/measured inset on notched devices (~47px). Only iPhone/iPod
+     get .ios-phone, so iPad/desktop/Android keep a 0 inset and no gap appears. */
   html.ios-phone {
-    --safe-top: max(env(safe-area-inset-top, 0px), 20px);
+    --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-top-measured, 0px), 20px);
   }
 
   /* Prevent browser autofill from overriding dark input backgrounds */
