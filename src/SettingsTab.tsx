@@ -322,13 +322,13 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
       }
 
       const token = await user.getIdToken();
-      const res = await fetch('/api/account/delete', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/account/delete`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
 
       if (!res.ok) {
-        const body = await res.json() as { error?: string };
+        const body = await res.json().catch(() => ({})) as { error?: string };
         const errMsg = body.error ?? 'Failed to delete account';
         if (res.status === 400 && errMsg.toLowerCase().includes('active order')) {
           toast.error(
