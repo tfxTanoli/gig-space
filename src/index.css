@@ -27,12 +27,12 @@
     --safe-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Only iOS home-screen ("Add to Home Screen") apps render under the status
-     bar, and only there is env() unreliable (0 on non-notch devices). Floor the
-     inset to the 20px status-bar height for them — max() keeps the larger real
-     inset on notched devices (~47px). Regular Safari and desktop never get the
-     .ios-standalone flag, so their inset stays 0 and no gap appears. */
-  html.ios-standalone {
+  /* On iPhone the page top is under the status bar (bottom address bar in modern
+     Safari; no chrome in standalone), and env() is unreliable there — 0 on
+     non-notch iPhones. Floor the inset to the 20px status-bar height; max() keeps
+     the larger real inset on notched devices (~47px). Only iPhone/iPod get the
+     .ios-phone flag, so iPad/desktop/Android keep a 0 inset and no gap appears. */
+  html.ios-phone {
     --safe-top: max(env(safe-area-inset-top, 0px), 20px);
   }
 
