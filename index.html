@@ -12,16 +12,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>Gigspace</title>
 
-    <!-- iOS "Add to Home Screen" web apps draw under the status bar, but
-         env(safe-area-inset-top) is 0 on non-notch iPhones (Apple only defines a
-         top inset for notched devices) — so the env()-only padding silently did
-         nothing there and the header sat under the clock. navigator.standalone is
-         true *only* for these home-screen apps; flag it on <html> before first
-         paint so CSS can floor the inset to the 20px status-bar height for them
-         while regular Safari/desktop keep a 0 inset (no unwanted gap). -->
+    <!-- On iPhone the top of the page sits directly under the status bar: modern
+         Safari puts its address bar at the BOTTOM, and home-screen apps have no
+         chrome at all. env(safe-area-inset-top) is meant to cover this, but Apple
+         reports it as 0 on non-notch iPhones (SE/8-class) — so the env()-only
+         padding silently did nothing and the logo/hamburger stayed under the
+         clock. Flag every iPhone/iPod here (covers Safari *and* standalone) so CSS
+         can floor the inset to the 20px status-bar height. Gated to iPhone/iPod
+         only: iPad/desktop/Android keep a 0 inset and gain no unwanted gap. -->
     <script>
-      if (window.navigator.standalone === true)
-        document.documentElement.classList.add('ios-standalone');
+      if (/iPhone|iPod/.test(window.navigator.userAgent))
+        document.documentElement.classList.add('ios-phone');
     </script>
 
     <!-- Warm up the connections the first paint depends on so auth/db/storage
