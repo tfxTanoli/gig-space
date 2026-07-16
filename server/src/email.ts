@@ -52,16 +52,16 @@ function shell(iconBoxBg: string, iconContent: string, bodyHtml: string): string
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 </head>
-<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;padding:48px 16px 40px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#020617;padding:48px 16px 40px;">
     <tr>
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
 
           <!-- ── CARD ── -->
           <tr>
-            <td style="background-color:#111827;border-radius:16px;padding:40px 40px 36px;border:1px solid #1f2937;">
+            <td style="background-color:#0f172a;border-radius:16px;padding:40px 40px 36px;border:1px solid #1e293b;">
 
               <!-- Logo inside card — centered -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -117,16 +117,16 @@ function shellPlain(bodyHtml: string): string {
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 </head>
-<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;padding:48px 16px 40px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#020617;padding:48px 16px 40px;">
     <tr>
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
 
           <!-- ── CARD ── -->
           <tr>
-            <td style="background-color:#111827;border-radius:16px;padding:40px 40px 36px;border:1px solid #1f2937;">
+            <td style="background-color:#0f172a;border-radius:16px;padding:40px 40px 36px;border:1px solid #1e293b;">
 
               <!-- Logo inside card — centered -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -178,6 +178,12 @@ function pWhite(text: string): string {
 
 function bold(text: string): string {
   return `<strong style="color:#ffffff;">${text}</strong>`;
+}
+
+// Bold without changing color — inherits the surrounding text color (e.g. the
+// muted gray of p()). Use when a word should stand out by weight only.
+function boldSame(text: string): string {
+  return `<strong>${text}</strong>`;
 }
 
 function serviceBlock(title: string): string {
@@ -298,7 +304,7 @@ export function buildPasswordResetEmail(firstName: string, resetLink: string): s
     ${p('We received a request to reset your Gigspace password.')}
     ${p('If you made this request, just click the button below to create a new password. This link will expire in 1 hour.')}
     ${ctaButton('Reset password', resetLink)}
-    ${p(`Here are some ${bold('tips')} for creating a strong password:`)}
+    ${p(`Here are some ${boldSame('tips')} for creating a strong password:`)}
     ${bulletList(['Use a mix of letters, numbers, and symbols.', 'Avoid common words and phrases.', "Don't reuse passwords from other sites."])}
     ${p("If you didn't request a password reset, you can safely ignore this email &#8212; your current password will remain unchanged.")}
     ${signOff('Stay safe,\nThe Gigspace Team')}
@@ -309,7 +315,7 @@ export function buildPasswordResetEmail(firstName: string, resetLink: string): s
 export function buildPasswordUpdatedEmail(firstName: string): string {
   // Hosted PNG (not inline SVG) — Gmail/Outlook strip inline <svg>.
   const tickIcon = `<img src="${ASSET_URL}/email-tick-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
-  const contactUs = `<a href="mailto:support@gigspace.co" style="color:#ffffff;text-decoration:underline;">contact us</a>`;
+  const contactUs = `<a href="mailto:support@gigspace.co" style="color:#9ca3af;text-decoration:underline;">contact us</a>`;
   const body = `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
       <tr>
@@ -496,7 +502,7 @@ export function buildPostUpgradedEmail(firstName: string, subscriptionPrice: str
       </tr>
     </table>
     ${p(`Hi ${firstName},`)}
-    ${p('Your seller subscription is now active. Your services will now begin appearing in more potential buyer search results.')}
+    ${p('Your seller subscription is now active. Your services will now begin appearing in more buyer search results.')}
     ${pWhite(`${bold('Amount:')} ${subscriptionPrice}/month<br/>${bold('Next billing date:')} ${nextBillingDate}`)}
     ${ctaButton('Manage subscription', `${APP_URL}/seller-dashboard?tab=Settings`)}
     ${signOff('Congrats,\nThe Gigspace Team')}
@@ -585,7 +591,7 @@ export function buildAccountDeactivatedEmail(firstName: string): string {
 export function buildVerifyEmailEmail(firstName: string, verifyLink: string): string {
   // Reuses the fingerprint icon (same as the verification-code email) — hosted PNG.
   const fingerprintIcon = `<img src="${ASSET_URL}/email-fingerprint-icon.png" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;" />`;
-  const contactSupport = `<a href="mailto:support@gigspace.co" style="color:#ffffff;text-decoration:underline;">contact support</a>`;
+  const contactSupport = `<a href="mailto:support@gigspace.co" style="color:#9ca3af;text-decoration:underline;">contact support</a>`;
   const body = `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
       <tr>
@@ -616,7 +622,7 @@ export function buildVerificationCodeEmail(_firstName: string, code: string): st
     </table>
     <p style="margin:0 0 20px;font-size:34px;line-height:1;font-weight:700;letter-spacing:12px;color:#3b82f6;">${code}</p>
     ${p('Please make sure you never share this code with anyone.')}
-    ${p(`${bold('Note:')} The code will expire in 15 minutes.`)}
+    ${p(`${boldSame('Note:')} The code will expire in 15 minutes.`)}
     ${signOff('Cheers,\nThe Gigspace Team')}
   `;
   return shellPlain(body);
