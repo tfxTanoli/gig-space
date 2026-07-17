@@ -126,7 +126,7 @@ export default function ChatMessages({
 
   const [otherUserInfo, setOtherUserInfo] = useState<{ username: string; lastSeen: number | null; online: boolean } | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const isFirstMsgLoad = useRef(true);
@@ -281,10 +281,21 @@ export default function ChatMessages({
   }, [selectedConvId, conversations, mode]);
 
   // ── Auto-scroll ──
+  // Scroll the message list itself rather than calling scrollIntoView() on the
+  // bottom marker: scrollIntoView walks up and scrolls *every* scrollable
+  // ancestor, and on iOS Safari it also shifts the visual viewport — which drags
+  // the whole app shell up and parks the dashboard header behind the status bar.
+  // Setting scrollTop here keeps the scroll inside this container.
   useEffect(() => {
-    if (!messagesEndRef.current) return;
-    messagesEndRef.current.scrollIntoView({ behavior: isFirstMsgLoad.current ? 'auto' : 'smooth' });
-    isFirstMsgLoad.current = false;
+    const list = messagesScrollRef.current;
+    if (!list) return;
+    const top = list.scrollHeight;
+    if (isFirstMsgLoad.current) {
+      list.scrollTop = top;
+      isFirstMsgLoad.current = false;
+    } else {
+      list.scrollTo({ top, behavior: 'smooth' });
+    }
   }, [messages]);
 
   const autoResizeInput = (el: HTMLTextAreaElement) => {
@@ -946,7 +957,7 @@ export default function ChatMessages({
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-5">
+              <div ref={messagesScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-5">
                 {messages.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center">
                     <p className="text-slate-500 text-sm">No messages yet — say hello!</p>
@@ -1171,7 +1182,7 @@ export default function ChatMessages({
                     );
                   })
                 )}
-                <div ref={messagesEndRef} />
+                <div />
               </div>
 
               {/* Service context preview strip */}
