@@ -1,6 +1,6 @@
 ﻿import { Resend } from 'resend';
 
-const FROM = 'Gigspace <team@gigspace.co>';
+const FROM = 'Gigspace <notifications@gigspace.co>';
 // FRONTEND_URL may be a comma-separated list of allowed origins (see app.ts's
 // CORS setup, e.g. "https://gig-space.vercel.app,https://gig-space-lbk7.vercel.app").
 // Emails need one canonical URL for their buttons, so use the first origin —
