@@ -924,6 +924,7 @@ export default function OrderDetail({
           <PaymentInfoCard
             price={order.price}
             paymentStatus={order.paymentStatus}
+            paymentId={order.paymentId}
           />
         )}
 
@@ -1021,17 +1022,46 @@ export default function OrderDetail({
 }
 
 // ── Payment info card ────────────────────────────────────────────────────────
-const PLATFORM_FEE_PERCENT = 5;
+// Only used for legacy orders whose payment record predates the stored fee
+// fields. The live rate is set in admin (settings/fees/platformFeePercent) and
+// the server stamps the resolved values onto payments/$id at charge time, so
+// never recompute from a constant here — it silently drifts when the rate changes.
+const LEGACY_PLATFORM_FEE_PERCENT = 5;
 
 function PaymentInfoCard({
   price,
   paymentStatus,
+  paymentId,
 }: {
   price: number;
   paymentStatus?: string;
+  paymentId: string;
 }) {
-  const platformFee = +(price * (PLATFORM_FEE_PERCENT / 100)).toFixed(2);
-  const sellerEarnings = +(price - platformFee).toFixed(2);
+  const [fee, setFee] = useState<{ percent: number; amount: number; sellerAmount: number } | null>(null);
+
+  useEffect(() => {
+    const unsub = onValue(ref(database, `payments/${paymentId}`), (snap) => {
+      const p = snap.val() as {
+        platformFeePercent?: number;
+        platformFeeAmount?: number;
+        sellerAmount?: number;
+      } | null;
+      setFee(
+        typeof p?.platformFeePercent === 'number' && typeof p?.sellerAmount === 'number'
+          ? {
+              percent: p.platformFeePercent,
+              amount: p.platformFeeAmount ?? +(price - p.sellerAmount).toFixed(2),
+              sellerAmount: p.sellerAmount,
+            }
+          : null,
+      );
+    });
+    return () => unsub();
+  }, [paymentId, price]);
+
+  const platformFeePercent = fee?.percent ?? LEGACY_PLATFORM_FEE_PERCENT;
+  const platformFee = fee?.amount ?? +(price * (LEGACY_PLATFORM_FEE_PERCENT / 100)).toFixed(2);
+  const sellerEarnings = fee?.sellerAmount ?? +(price - platformFee).toFixed(2);
 
   const statusStyles: Record<string, string> = {
     paid:     'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -1061,7 +1091,7 @@ function PaymentInfoCard({
       </div>
       <div className="space-y-2.5">
         <Row label="Order amount" value={`$${price.toFixed(2)}`} />
-        <Row label={`Platform fee (${PLATFORM_FEE_PERCENT}%)`} value={`-$${platformFee.toFixed(2)}`} muted />
+        <Row label={`Platform fee (${platformFeePercent}%)`} value={`-$${platformFee.toFixed(2)}`} muted />
         <div className="h-px bg-slate-800" />
         <Row label="Seller earnings" value={`$${sellerEarnings.toFixed(2)}`} bold />
       </div>
