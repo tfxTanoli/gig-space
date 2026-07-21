@@ -65,7 +65,7 @@ const FilterDropdown = ({
     const panelWidth = panelRef.current?.offsetWidth ?? 180;
     const margin = 8;
     let left = align === 'left' ? rect.left : rect.right - panelWidth;
-    left = Math.min(Math.max(left, margin), window.innerWidth - panelWidth - margin);
+    left = Math.max(Math.min(left, window.innerWidth - panelWidth - margin), margin);
     setCoords({ top: rect.bottom + 8, left });
   }, [isOpen, align]);
 
@@ -83,7 +83,7 @@ const FilterDropdown = ({
         <div
           ref={panelRef}
           style={coords ?? undefined}
-          className={`fixed ${coords ? '' : (align === 'left' ? 'left-0 top-full mt-2' : 'right-0 top-full mt-2')} min-w-[180px] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50`}
+          className={`fixed flex flex-col ${coords ? '' : (align === 'left' ? 'left-0 top-full mt-2' : 'right-0 top-full mt-2')} min-w-[180px] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50`}
         >
           {children}
         </div>
