@@ -14,7 +14,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
 import { useCategories } from './CategoriesContext';
-import { geocodeLocation } from './photon';
+import { geocodeLocation, isCountryName } from './photon';
 import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -85,6 +85,14 @@ interface MapPin {
   lat: number;
   lng: number;
   label: string;
+  isCountry?: boolean;
+}
+
+// A country-level pin (e.g. a remote seller who only picked "United States")
+// has no meaningful street-level location, so zoom out to show the whole
+// country instead of whatever point OSM picked as its centroid.
+function zoomForPin(pin: MapPin): number {
+  return pin.isCountry ? 4 : 11;
 }
 
 function FitBounds({ pins }: { pins: MapPin[] }) {
@@ -92,7 +100,7 @@ function FitBounds({ pins }: { pins: MapPin[] }) {
   useEffect(() => {
     if (pins.length === 0) return;
     if (pins.length === 1) {
-      map.setView([pins[0].lat, pins[0].lng], 11);
+      map.setView([pins[0].lat, pins[0].lng], zoomForPin(pins[0]));
     } else {
       const bounds = L.latLngBounds(pins.map((p) => [p.lat, p.lng]));
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 7 });
@@ -119,15 +127,15 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
       const result: MapPin[] = [];
 
       if (primaryLat != null && primaryLng != null) {
-        result.push({ lat: primaryLat, lng: primaryLng, label: primaryLocation });
+        result.push({ lat: primaryLat, lng: primaryLng, label: primaryLocation, isCountry: isCountryName(primaryLocation) });
       } else if (primaryLocation) {
         const geo = await geocodeLocation(primaryLocation);
-        if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: primaryLocation });
+        if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: primaryLocation, isCountry: geo.isCountry });
       }
 
       for (const loc of extraLocations) {
         const geo = await geocodeLocation(loc);
-        if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: loc });
+        if (geo) result.push({ lat: geo.lat, lng: geo.lng, label: loc, isCountry: geo.isCountry });
       }
 
       if (!cancelled) {
@@ -154,7 +162,7 @@ const ServiceMap = ({ primaryLocation, primaryLat, primaryLng, extraLocations }:
     <div className="rounded-xl overflow-hidden mb-5 border border-slate-700/40" style={{ height: 280 }}>
       <MapContainer
         center={center}
-        zoom={11}
+        zoom={zoomForPin(pins[0])}
         scrollWheelZoom={false}
         zoomControl={true}
         style={{ width: '100%', height: '100%' }}

@@ -117,11 +117,11 @@ export async function searchLocations(
 }
 
 // Module-level geocode cache shared across all calls.
-export const geocodeCache = new Map<string, { lat: number; lng: number; locationType: 'precise' | 'broad' } | null>();
+export const geocodeCache = new Map<string, { lat: number; lng: number; locationType: 'precise' | 'broad'; isCountry: boolean } | null>();
 
 export async function geocodeLocation(
   location: string,
-): Promise<{ lat: number; lng: number; locationType: 'precise' | 'broad' } | null> {
+): Promise<{ lat: number; lng: number; locationType: 'precise' | 'broad'; isCountry: boolean } | null> {
   if (geocodeCache.has(location)) return geocodeCache.get(location)!;
 
   try {
@@ -137,7 +137,8 @@ export async function geocodeLocation(
     const [lng, lat] = feature.geometry.coordinates;
     const osmValue = feature.properties?.osm_value ?? '';
     const locationType: 'precise' | 'broad' = BROAD_VALUES.has(osmValue) ? 'broad' : 'precise';
-    const result = { lat, lng, locationType };
+    const isCountry = osmValue === 'country' || isCountryName(location);
+    const result = { lat, lng, locationType, isCountry };
     geocodeCache.set(location, result);
     return result;
   } catch {
