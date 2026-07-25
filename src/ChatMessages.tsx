@@ -451,6 +451,20 @@ export default function ChatMessages({
     setOfferStep(2);
   };
 
+  const handleOfferPriceChange = (rawInput: string) => {
+    const digitsOnly = rawInput.replace(/,/g, '');
+    if (digitsOnly === '' || /^\d*\.?\d*$/.test(digitsOnly)) {
+      setOfferPrice(digitsOnly);
+    }
+  };
+
+  const formatOfferPriceDisplay = (value: string) => {
+    if (!value) return '';
+    const [intPart, decPart] = value.split('.');
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+  };
+
   const sendOffer = async () => {
     if (!user || !userProfile || !selectedConvId || !selectedService) return;
     const price = parseFloat(offerPrice);
@@ -770,7 +784,7 @@ export default function ChatMessages({
                     onChange={(e) => setOfferDescription(e.target.value)}
                     placeholder="Describe what's included in this offer…"
                     rows={3}
-                    className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-3 rounded-xl focus:outline-none focus:border-primary transition-colors placeholder-slate-500 resize-none"
+                    className="w-full bg-background border border-slate-600 text-white text-sm px-4 py-3 rounded-xl focus:outline-none focus:border-primary transition-colors placeholder-slate-500 resize-y min-h-[80px] max-h-64"
                   />
                 </div>
 
@@ -783,12 +797,12 @@ export default function ChatMessages({
                     <div className="flex items-center flex-1 bg-background border border-slate-600 rounded-xl overflow-hidden focus-within:border-primary transition-colors">
                       <span className="text-slate-500 pl-4 pr-1 text-sm select-none">$</span>
                       <input
-                        type="number"
-                        value={offerPrice}
-                        onChange={(e) => setOfferPrice(e.target.value)}
+                        type="text"
+                        inputMode="decimal"
+                        value={formatOfferPriceDisplay(offerPrice)}
+                        onChange={(e) => handleOfferPriceChange(e.target.value)}
                         className="flex-1 bg-transparent text-white text-sm py-2.5 pr-4 focus:outline-none"
                         placeholder="0"
-                        min="1"
                       />
                     </div>
                     <select
