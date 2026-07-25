@@ -137,6 +137,8 @@ app.post(
         await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
       } else if (event.type === 'charge.refunded') {
         await handleChargeRefunded(event.data.object as Stripe.Charge);
+      } else if (event.type === 'account.updated') {
+        await handleAccountUpdated(event.data.object as Stripe.Account);
       }
     } catch (err) {
       console.error(`Error handling ${event.type}:`, err);
@@ -596,8 +598,12 @@ app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Respons
       }
 
       stripeAccountId = account.id;
-      await db.ref(`wallets/${sellerId}`).update({
-        stripeConnectedAccountId: stripeAccountId, updatedAt: Date.now(),
+      await db.ref().update({
+        [`wallets/${sellerId}/stripeConnectedAccountId`]: stripeAccountId,
+        [`wallets/${sellerId}/updatedAt`]: Date.now(),
+        // Reverse lookup so the account.updated webhook can find the owning
+        // seller without an unindexed scan over every wallet.
+        [`connectedAccountOwners/${stripeAccountId}`]: sellerId,
       });
     }
 
@@ -1056,6 +1062,21 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       }
     } catch { /* non-fatal */ }
   }
+}
+
+async function handleAccountUpdated(account: Stripe.Account) {
+  const ownerSnap = await db.ref(`connectedAccountOwners/${account.id}`).get();
+  const sellerId = ownerSnap.val() as string | null;
+  // Accounts created before this reverse index existed won't resolve here;
+  // /api/connect/status still reflects them correctly via a live Stripe call.
+  if (!sellerId) return;
+
+  await db.ref(`wallets/${sellerId}`).update({
+    payoutsEnabled: !!account.payouts_enabled,
+    chargesEnabled: !!account.charges_enabled,
+    detailsSubmitted: !!account.details_submitted,
+    stripeAccountUpdatedAt: Date.now(),
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
