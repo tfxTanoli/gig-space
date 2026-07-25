@@ -6,6 +6,8 @@ import type {
   WithdrawResponse,
   StripeConnectStatus,
   SavedPaymentMethod,
+  BillingAddress,
+  TaxBreakdown,
 } from './types';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -157,15 +159,33 @@ export async function removePaymentMethod(pmId: string): Promise<void> {
 }
 
 /**
+ * Quotes subtotal/tax/total for the extra-location subscription against a
+ * given billing address, without creating any Stripe object — used to show
+ * the tax breakdown in the checkout summary before the seller commits to paying.
+ */
+export async function previewSubscriptionTax(payload: {
+  extraLocationCount: number;
+  address: BillingAddress;
+}): Promise<TaxBreakdown> {
+  return apiFetch<TaxBreakdown>(
+    '/api/subscriptions/preview-tax',
+    payload as unknown as Record<string, unknown>,
+  );
+}
+
+/**
  * Creates a Stripe subscription for extra listing locations ($5/month each).
  * Backend must implement POST /api/subscriptions/create-listing-subscription.
- * Returns a PaymentIntent client secret and the new subscription ID.
+ * Returns a PaymentIntent client secret, the new subscription ID, and the
+ * actual subtotal/tax/total Stripe calculated for the given billing address.
  */
 export async function createListingSubscription(payload: {
   extraLocationCount: number;
   serviceId: string;
-}): Promise<{ clientSecret: string; subscriptionId: string }> {
-  return apiFetch<{ clientSecret: string; subscriptionId: string }>(
+  address: BillingAddress;
+  name?: string;
+}): Promise<{ clientSecret: string; subscriptionId: string } & TaxBreakdown> {
+  return apiFetch<{ clientSecret: string; subscriptionId: string } & TaxBreakdown>(
     '/api/subscriptions/create-listing-subscription',
     payload as unknown as Record<string, unknown>,
   );
