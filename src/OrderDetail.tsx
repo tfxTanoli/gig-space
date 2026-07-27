@@ -348,6 +348,13 @@ export default function OrderDetail({
       setDeliveryNote('');
       setSelectedFiles([]);
       showToastMsg('Delivery submitted successfully!');
+    } catch (err) {
+      console.error('Delivery submission failed:', err);
+      setDeliveryError(
+        selectedFiles.length
+          ? "Couldn't upload your attachments. Please try again, or send the delivery as a message without files."
+          : "Couldn't submit your delivery. Please try again."
+      );
     } finally {
       setUploading(false);
       setUploadProgress(0);
