@@ -949,19 +949,22 @@ export default function OrderDetail({
               messages.map((msg) => {
                 const isMe = msg.senderId === user?.uid;
                 return (
-                  <div key={msg.id} className={`flex gap-2 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!isMe && (
-                      <UserAvatar photoURL={msg.senderPhotoURL} name={msg.senderName} size="sm" />
-                    )}
-                    <div className={`flex flex-col gap-1 max-w-[65%] ${isMe ? 'items-end' : 'items-start'}`}>
-                      <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
-                        isMe ? 'bg-blue-600 text-white rounded-br-md' : 'bg-surface-raised text-slate-200 rounded-bl-md'
+                  <div key={msg.id} className="flex gap-2 items-start">
+                    <UserAvatar photoURL={msg.senderPhotoURL} name={msg.senderName} size="sm" />
+                    <div className="flex flex-col gap-1 max-w-[65%] min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-xs font-medium text-slate-400">
+                          {isMe ? 'Me' : (msg.senderName || 'Unknown')}
+                        </span>
+                        <span className="text-[11px] text-slate-600 shrink-0">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words w-fit ${
+                        isMe ? 'bg-blue-600 text-white' : 'bg-surface-raised text-slate-200'
                       }`}>
                         {msg.text}
                       </div>
-                      <span className="text-[11px] text-slate-600 px-1">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
                     </div>
                   </div>
                 );
@@ -1008,7 +1011,7 @@ export default function OrderDetail({
                 <button
                   onClick={sendMessage}
                   disabled={sending || !text.trim()}
-                  className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0"
+                  className="h-10 w-10 flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -1090,10 +1093,10 @@ function PaymentInfoCard({
         </span>
       </div>
       <div className="space-y-2.5">
-        <Row label="Order amount" value={`$${price.toFixed(2)}`} />
-        <Row label={`Platform fee (${platformFeePercent}%)`} value={`-$${platformFee.toFixed(2)}`} muted />
+        <Row label="Order amount" value={`$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+        <Row label={`Platform fee (${platformFeePercent}%)`} value={`-$${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} muted />
         <div className="h-px bg-slate-800" />
-        <Row label="Seller earnings" value={`$${sellerEarnings.toFixed(2)}`} bold />
+        <Row label="Seller earnings" value={`$${sellerEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} bold />
       </div>
     </div>
   );
