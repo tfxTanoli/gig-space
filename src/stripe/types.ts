@@ -102,3 +102,19 @@ export interface WithdrawResponse {
   transferId: string;
   withdrawalId: string;
 }
+
+// ── Billing address, used for Stripe Tax on the extra-location subscription ─
+export interface BillingAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  state?: string;
+  postal_code: string;
+  country: string;
+}
+
+export interface TaxBreakdown {
+  subtotal: number;
+  tax: number;
+  total: number;
+}

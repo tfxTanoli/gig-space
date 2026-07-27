@@ -188,6 +188,18 @@ interface AuthRequest extends Request {
   uid?: string;
 }
 
+// A validated billing address (all fields required), used for the extra-location
+// subscription's Stripe Tax calculation — distinct from Stripe.AddressParam,
+// whose fields are all optional and won't satisfy the Tax API's required `country`.
+interface BillingAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  state?: string;
+  postal_code: string;
+  country: string;
+}
+
 async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
@@ -1671,13 +1683,57 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/subscriptions/preview-tax
+//
+// Quotes subtotal/tax/total for the extra-location subscription against a
+// given billing address, without creating any Stripe object — lets the
+// checkout summary show the real tax before the seller commits to paying.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/subscriptions/preview-tax', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { extraLocationCount, address } = req.body as {
+      extraLocationCount: number;
+      address: BillingAddress;
+    };
+
+    if (!extraLocationCount || extraLocationCount < 1) {
+      res.status(400).json({ error: 'extraLocationCount must be at least 1' });
+      return;
+    }
+    if (!address?.line1 || !address?.city || !address?.postal_code || !address?.country) {
+      res.status(400).json({ error: 'A complete billing address is required to calculate tax.' });
+      return;
+    }
+
+    const amount = Math.round(extraLocationCount * 500);
+    const calculation = await stripe.tax.calculations.create({
+      currency: 'usd',
+      line_items: [{ amount, reference: 'extra_location_subscription' }],
+      customer_details: { address, address_source: 'billing' },
+    });
+
+    res.json({
+      subtotal: amount / 100,
+      tax: calculation.tax_amount_exclusive / 100,
+      total: calculation.amount_total / 100,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/subscriptions/preview-tax error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/subscriptions/create-listing-subscription
 //
 // Creates a Stripe Subscription for extra listing locations ($5/month each).
 // Returns a PaymentIntent client secret so the frontend can confirm the card.
 //
 // Flow:
-//   1. Get/create Stripe Customer for the seller.
+//   1. Get/create Stripe Customer for the seller, and set their billing
+//      address on it — automatic_tax below has no jurisdiction to compute
+//      from without one.
 //   2. Get/create the reusable "$5/month extra location" Price, cached in
 //      Firebase at settings/stripe/extraLocationPriceId so it's only created
 //      once. Override with env STRIPE_EXTRA_LOCATION_PRICE_ID if set.
@@ -1690,13 +1746,19 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
 app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const uid = req.uid!;
-    const { extraLocationCount, serviceId } = req.body as {
+    const { extraLocationCount, serviceId, address, name } = req.body as {
       extraLocationCount: number;
       serviceId: string;
+      address: BillingAddress;
+      name?: string;
     };
 
     if (!extraLocationCount || extraLocationCount < 1) {
       res.status(400).json({ error: 'extraLocationCount must be at least 1' });
+      return;
+    }
+    if (!address?.line1 || !address?.city || !address?.postal_code || !address?.country) {
+      res.status(400).json({ error: 'A complete billing address is required to calculate tax.' });
       return;
     }
 
@@ -1707,6 +1769,13 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
     } | null;
 
     const customerId = await getOrCreateStripeCustomer(uid, userData);
+
+    // Stripe Tax has no jurisdiction to calculate from without the customer's
+    // location — set it explicitly rather than relying on IP inference.
+    await stripe.customers.update(customerId, {
+      address,
+      ...(name ? { name } : {}),
+    });
 
     // 2. Get or create the recurring $5/month Price ───────────────────────────
     // .trim() guards against a stray leading/trailing space in the env value
@@ -1753,6 +1822,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       items: [{ price: priceId, quantity: extraLocationCount }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription', payment_method_types: ['card', 'us_bank_account'] },
+      automatic_tax: { enabled: true },
       expand: ['latest_invoice.payment_intent'],
     });
 
@@ -1769,7 +1839,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       const sellerRecord = await admin.auth().getUser(uid);
       if (sellerRecord.email) {
         const firstName = await getFirstNameByUid(uid, sellerRecord.displayName);
-        const price = `$${(extraLocationCount * 5).toFixed(2)}`;
+        const price = `$${((latestInvoice.total ?? 0) / 100).toFixed(2)}`;
         const nextDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         await sendTransactionalEmail(
           sellerRecord.email,
@@ -1779,7 +1849,13 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       }
     } catch { /* non-fatal */ }
 
-    res.json({ clientSecret: paymentIntent.client_secret, subscriptionId: subscription.id });
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      subscriptionId: subscription.id,
+      subtotal: (latestInvoice.subtotal ?? 0) / 100,
+      tax: (latestInvoice.tax ?? 0) / 100,
+      total: (latestInvoice.total ?? 0) / 100,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/subscriptions/create-listing-subscription error:', msg);

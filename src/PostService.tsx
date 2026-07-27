@@ -18,8 +18,8 @@ import {
   Eye,
   Pencil,
 } from 'lucide-react';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, AddressElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { loadStripe, type StripeAddressElementChangeEvent } from '@stripe/stripe-js';
 import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -29,7 +29,8 @@ import { storage, database, auth } from './firebase';
 import { useAuth } from './AuthContext';
 import { useCategories } from './CategoriesContext';
 import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
-import { createListingSubscription } from './stripe/paymentHelpers';
+import { createListingSubscription, previewSubscriptionTax } from './stripe/paymentHelpers';
+import type { BillingAddress, TaxBreakdown } from './stripe/types';
 import { STRIPE_APPEARANCE, STRIPE_FONTS } from './stripe/stripeAppearance';
 import { LANGUAGES } from './data/languages';
 import { sanitizeHtml } from './utils/sanitize';
@@ -85,10 +86,51 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
   const [processing, setProcessing] = useState(false);
   const [payError, setPayError] = useState('');
 
-  const total = extraLocationCount * 5;
+  const [billingAddress, setBillingAddress] = useState<BillingAddress | null>(null);
+  const [billingName, setBillingName] = useState<string | undefined>(undefined);
+  const [addressComplete, setAddressComplete] = useState(false);
+  const [taxBreakdown, setTaxBreakdown] = useState<TaxBreakdown | null>(null);
+  const [previewingTax, setPreviewingTax] = useState(false);
+
+  const subtotal = extraLocationCount * 5;
+
+  const handleAddressChange = (event: StripeAddressElementChangeEvent) => {
+    if (!event.complete) {
+      setAddressComplete(false);
+      setBillingAddress(null);
+      return;
+    }
+    const { name, address } = event.value;
+    setBillingAddress({
+      line1: address.line1,
+      line2: address.line2 || undefined,
+      city: address.city,
+      state: address.state || undefined,
+      postal_code: address.postal_code,
+      country: address.country,
+    });
+    setBillingName(name || undefined);
+    setAddressComplete(true);
+  };
+
+  // Re-quote tax whenever the address or the location count changes (e.g. the
+  // seller goes back to step 6 and adjusts locations after already entering
+  // an address) — debounced so we don't fire on every keystroke.
+  useEffect(() => {
+    if (!billingAddress) { setTaxBreakdown(null); return; }
+    const timer = setTimeout(() => {
+      setPreviewingTax(true);
+      previewSubscriptionTax({ extraLocationCount, address: billingAddress })
+        .then(setTaxBreakdown)
+        .catch(() => setTaxBreakdown(null)) // fall back to subtotal-only display
+        .finally(() => setPreviewingTax(false));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [billingAddress, extraLocationCount]);
 
   const handlePublish = async () => {
     if (!stripe || !elements) return;
+    if (!billingAddress) { setPayError('Please complete your billing address.'); return; }
     setProcessing(true);
     setPayError('');
     try {
@@ -96,7 +138,9 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
       const { error: submitError } = await elements.submit();
       if (submitError) { setPayError(submitError.message ?? 'Please check your card details.'); return; }
       // Create subscription → get PaymentIntent client secret
-      const { clientSecret, subscriptionId } = await createListingSubscription({ extraLocationCount, serviceId });
+      const { clientSecret, subscriptionId } = await createListingSubscription({
+        extraLocationCount, serviceId, address: billingAddress, name: billingName,
+      });
       // Confirm payment
       const { error } = await stripe.confirmPayment({
         elements,
@@ -122,9 +166,11 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           <p className="text-slate-400 text-sm mb-4">
             Enter your billing information. Your subscription will renew monthly.
           </p>
-          <p className="text-white font-semibold mb-6">
-            Total: <span className="text-primary">${total}/mo</span>
-          </p>
+        </div>
+
+        <div>
+          <h3 className="text-white text-sm font-medium mb-2">Billing address</h3>
+          <AddressElement options={{ mode: 'billing' }} onChange={handleAddressChange} />
         </div>
 
         <PaymentElement
@@ -142,6 +188,33 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
         )}
 
         <div className="w-full h-px bg-slate-800 my-6" />
+
+        <div className="space-y-2">
+          <div className="flex justify-between text-slate-400 text-sm">
+            <span>Total Locations</span>
+            <span>{extraLocationCount}</span>
+          </div>
+          <div className="flex justify-between text-slate-400 text-sm">
+            <span>Subtotal</span>
+            <span>${(taxBreakdown?.subtotal ?? subtotal).toFixed(2)}/mo</span>
+          </div>
+          <div className="flex justify-between text-slate-400 text-sm">
+            <span>Tax</span>
+            <span>
+              {previewingTax
+                ? 'Calculating…'
+                : taxBreakdown
+                ? `$${taxBreakdown.tax.toFixed(2)}`
+                : 'Enter address above'}
+            </span>
+          </div>
+          <div className="w-full h-px bg-slate-800 my-2" />
+          <div className="flex justify-between items-center text-white font-semibold">
+            <span>Total</span>
+            <span className="text-primary">${(taxBreakdown?.total ?? subtotal).toFixed(2)}/mo</span>
+          </div>
+        </div>
+
         <div className="flex justify-between items-center">
           <button
             type="button"
@@ -154,7 +227,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           <button
             type="button"
             onClick={handlePublish}
-            disabled={processing || !stripe}
+            disabled={processing || !stripe || !addressComplete}
             className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-400 disabled:opacity-50 transition-colors text-sm"
           >
             {processing ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</> : 'Publish'}
