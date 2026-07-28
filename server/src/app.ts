@@ -828,7 +828,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
         type: 'referral_order',
         title: 'New referral order',
-        body: `You earned a $${commissionAmount.toFixed(2)} commission from a referred order.`,
+        body: `You earned a $${commissionAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} commission from a referred order.`,
         senderId: buyerId,
         senderName: buyer?.name || 'Buyer',
         orderId,
@@ -959,7 +959,7 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
         type: 'referral_order',
         title: 'New referral order',
-        body: `You earned a $${commissionAmount.toFixed(2)} commission from a referred order.`,
+        body: `You earned a $${commissionAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} commission from a referred order.`,
         senderId: buyerId,
         senderName: buyer?.name || 'Buyer',
         orderId,

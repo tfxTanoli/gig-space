@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { startElementsCheckout, verifyPaymentIntent } from './stripe/paymentHelpers';
 import PaymentModal from './components/PaymentModal';
 import { sendNotification } from './notifications/notificationHelpers';
+import { formatAmount } from './utils/currency';
 
 /* ── Types ── */
 
@@ -503,7 +504,7 @@ export default function ChatMessages({
         sendNotification(offerConv.buyerId, {
           type: 'offer',
           title: `${userProfile.name} sent you an offer`,
-          body: `$${price} offer for "${selectedService.title}"`,
+          body: `$${formatAmount(price)} offer for "${selectedService.title}"`,
           senderId: user.uid,
           senderName: userProfile.name,
           senderPhotoURL: userProfile.photoURL || '',
@@ -601,7 +602,7 @@ export default function ChatMessages({
             type: 'offer_accepted',
             title: 'Your offer was accepted',
             serviceTitle: pending.serviceTitle,
-            body: `${userProfile.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
+            body: `${userProfile.name || 'A buyer'} accepted your $${formatAmount(pending.price)} offer for "${pending.serviceTitle}"`,
             senderId: user.uid,
             senderName: userProfile.name || '',
             senderPhotoURL: userProfile.photoURL || '',

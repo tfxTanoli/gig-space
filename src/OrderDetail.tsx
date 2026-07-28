@@ -494,7 +494,7 @@ export default function OrderDetail({
                   placeholder="Describe what you've delivered, any notes for the buyer, or next steps…"
                   rows={3}
                   disabled={uploading}
-                  className="w-full bg-background border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-60 leading-relaxed"
+                  className="w-full bg-background border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-y min-h-[80px] max-h-64 transition-colors disabled:opacity-60 leading-relaxed"
                 />
               </div>
 
@@ -590,14 +590,14 @@ export default function OrderDetail({
               <button
                 onClick={closeDeliveryModal}
                 disabled={uploading}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2 rounded-xl transition-colors"
+                className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2 rounded-md transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={submitDelivery}
                 disabled={uploading}
-                className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-md transition-colors flex items-center justify-center gap-2"
               >
                 {uploading ? (
                   <>
