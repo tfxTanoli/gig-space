@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import { X, DollarSign, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { requestWithdrawal } from '../stripe/paymentHelpers';
+import { formatMoney } from '../utils/currency';
 
 interface WithdrawModalProps {
   availableBalance: number;
@@ -58,7 +59,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               <CheckCircle className="w-10 h-10 text-emerald-400" />
               <p className="text-white font-semibold">Withdrawal initiated!</p>
               <p className="text-slate-400 text-sm text-center">
-                ${parsed.toFixed(2)} is on its way to your Stripe account.
+                ${formatMoney(parsed)} is on its way to your Stripe account.
                 It may take 1–3 business days.
               </p>
             </div>
@@ -67,7 +68,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               {/* Balance display */}
               <div className="bg-background border border-slate-800 rounded-xl p-4">
                 <p className="text-slate-400 text-xs mb-1">Available to withdraw</p>
-                <p className="text-2xl font-bold text-white">${availableBalance.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-white">${formatMoney(availableBalance)}</p>
               </div>
 
               {/* Amount input */}
@@ -127,7 +128,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 <p className="text-yellow-400 text-xs">
                   {parsed < MINIMUM
                     ? `Minimum withdrawal is $${MINIMUM}.`
-                    : `Amount exceeds your available balance ($${availableBalance.toFixed(2)}).`}
+                    : `Amount exceeds your available balance ($${formatMoney(availableBalance)}).`}
                 </p>
               )}
 
@@ -143,7 +144,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                     Processing…
                   </>
                 ) : (
-                  `Withdraw $${isValid ? parsed.toFixed(2) : '—'}`
+                  `Withdraw $${isValid ? formatMoney(parsed) : '—'}`
                 )}
               </button>
 

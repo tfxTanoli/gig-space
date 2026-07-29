@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X, Link2 } from 'lucide-react';
 import { type AdminAffiliate } from './AdminAffiliatesTable';
+import { formatMoney } from '../../utils/currency';
 
 interface Props {
   affiliate: AdminAffiliate;
@@ -59,12 +60,12 @@ const AdminAffiliateViewModal = ({ affiliate, onClose }: Props) => {
               : '—'
           } />
           <Field label="Total Referrals" value={affiliate.totalReferrals} />
-          <Field label="Lifetime Earnings" value={`$${affiliate.lifetimeEarnings.toFixed(2)}`} />
+          <Field label="Lifetime Earnings" value={`$${formatMoney(affiliate.lifetimeEarnings)}`} />
           <Field label="Available Balance" value={
-            <span className="text-emerald-400 font-semibold">${affiliate.availableBalance.toFixed(2)}</span>
+            <span className="text-emerald-400 font-semibold">${formatMoney(affiliate.availableBalance)}</span>
           } />
           <Field label="Pending Balance" value={
-            <span className="text-yellow-400">${affiliate.pendingBalance.toFixed(2)}</span>
+            <span className="text-yellow-400">${formatMoney(affiliate.pendingBalance)}</span>
           } />
           <Field label="Joined" value={affiliate.createdAt ? new Date(affiliate.createdAt).toLocaleDateString() : '—'} />
         </div>

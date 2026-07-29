@@ -3,6 +3,7 @@ import { X, AlertTriangle, Trash2 } from 'lucide-react';
 import { ref as dbRef, remove } from 'firebase/database';
 import { database } from '../../firebase';
 import { type AdminOrder } from './AdminOrdersTable';
+import { formatMoney } from '../../utils/currency';
 
 interface Props {
   order: AdminOrder;
@@ -75,7 +76,7 @@ const AdminOrderDeleteModal = ({ order, onClose, onSuccess }: Props) => {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400">{order.buyerName} → {order.sellerName}</span>
-              <span className="text-white font-semibold">${order.amount.toFixed(2)}</span>
+              <span className="text-white font-semibold">${formatMoney(order.amount)}</span>
             </div>
             {order.serviceTitle && (
               <p className="text-xs text-slate-500 truncate">"{order.serviceTitle}"</p>

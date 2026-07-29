@@ -7,6 +7,7 @@ import {
 import { ref as dbRef, onValue } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
+import { formatMoney } from '../utils/currency';
 import {
   fetchAffiliateCommissions,
   fetchAffiliatePayouts,
@@ -141,7 +142,7 @@ function WithdrawModal({
     const num = parseFloat(amount);
     if (isNaN(num) || num <= 0) { setError('Enter a valid amount'); return; }
     if (num < 10)               { setError('Minimum withdrawal is $10'); return; }
-    if (num > available)        { setError(`Maximum is $${available.toFixed(2)}`); return; }
+    if (num > available)        { setError(`Maximum is $${formatMoney(available)}`); return; }
 
     setLoading(true);
     setError('');
@@ -166,7 +167,7 @@ function WithdrawModal({
         </div>
 
         <p className="text-slate-400 text-sm mb-4">
-          Available: <span className="text-white font-semibold">${available.toFixed(2)}</span>
+          Available: <span className="text-white font-semibold">${formatMoney(available)}</span>
         </p>
 
         <div className="relative mb-4">
@@ -287,7 +288,7 @@ export default function AffiliatePayoutsTab() {
           <div className="w-9 h-9 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-3">
             <DollarSign className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-white">${available.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-white">${formatMoney(available)}</p>
           <p className="text-slate-500 text-xs mt-0.5">Available to withdraw</p>
         </div>
 
@@ -295,7 +296,7 @@ export default function AffiliatePayoutsTab() {
           <div className="w-9 h-9 bg-yellow-500/10 rounded-xl flex items-center justify-center mb-3">
             <Clock className="w-4 h-4 text-yellow-400" />
           </div>
-          <p className="text-2xl font-bold text-white">${(stats?.pendingBalance ?? 0).toFixed(2)}</p>
+          <p className="text-2xl font-bold text-white">${formatMoney(stats?.pendingBalance ?? 0)}</p>
           <p className="text-slate-500 text-xs mt-0.5">Pending (awaiting order completion)</p>
         </div>
 
@@ -303,7 +304,7 @@ export default function AffiliatePayoutsTab() {
           <div className="w-9 h-9 bg-slate-700/40 rounded-xl flex items-center justify-center mb-3">
             <ArrowDownLeft className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-2xl font-bold text-white">${(stats?.totalWithdrawn ?? 0).toFixed(2)}</p>
+          <p className="text-2xl font-bold text-white">${formatMoney(stats?.totalWithdrawn ?? 0)}</p>
           <p className="text-slate-500 text-xs mt-0.5">Total withdrawn</p>
         </div>
       </div>
@@ -355,8 +356,8 @@ export default function AffiliatePayoutsTab() {
                     </td>
                     <td className="py-3 text-slate-400 font-mono text-xs pr-4">{c.orderId.substring(0, 8)}…</td>
                     <td className="py-3 text-slate-300 pr-4">{c.buyerName}</td>
-                    <td className="py-3 text-slate-300 pr-4">${c.orderAmount.toFixed(2)}</td>
-                    <td className="py-3 text-white font-semibold pr-4">${c.commissionAmount.toFixed(2)}</td>
+                    <td className="py-3 text-slate-300 pr-4">${formatMoney(c.orderAmount)}</td>
+                    <td className="py-3 text-white font-semibold pr-4">${formatMoney(c.commissionAmount)}</td>
                     <td className="py-3"><StatusPill status={c.status} /></td>
                   </tr>
                 ))}
@@ -393,7 +394,7 @@ export default function AffiliatePayoutsTab() {
                     <td className="py-3 text-slate-400 pr-4">
                       {new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
-                    <td className="py-3 text-white font-semibold pr-4">${p.amount.toFixed(2)}</td>
+                    <td className="py-3 text-white font-semibold pr-4">${formatMoney(p.amount)}</td>
                     <td className="py-3 pr-4">
                       <span className="inline-flex items-center text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                         Paid

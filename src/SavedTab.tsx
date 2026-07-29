@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import { useSavedServices } from './useSavedServices';
 import { UserAvatar } from './UserAvatar';
 import LocationIcon from './LocationIcon';
+import { formatAmount } from './utils/currency';
 
 interface SavedService {
   id: string;
@@ -23,8 +24,8 @@ interface SavedService {
 
 function formatPrice(svc: SavedService) {
   const suffix = svc.priceType === 'per_hour' ? 'per hour' : 'per project';
-  if (svc.priceMax) return { prefix: '', price: `$${svc.priceMin} – $${svc.priceMax}`, suffix };
-  return { prefix: 'From', price: `$${svc.priceMin}`, suffix };
+  if (svc.priceMax) return { prefix: '', price: `$${formatAmount(svc.priceMin)} – $${formatAmount(svc.priceMax)}`, suffix };
+  return { prefix: 'From', price: `$${formatAmount(svc.priceMin)}`, suffix };
 }
 
 const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {

@@ -4,6 +4,7 @@ import { ref as dbRef, update } from 'firebase/database';
 import { database } from '../../firebase';
 import { type AdminOrder } from './AdminOrdersTable';
 import AdminOrderMessagesModal from './AdminOrderMessagesModal';
+import { formatMoney } from '../../utils/currency';
 
 interface Props {
   order: AdminOrder;
@@ -134,7 +135,7 @@ const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
             )}
             <div className="flex justify-between">
               <span className="text-slate-500 text-xs uppercase tracking-wide">Amount</span>
-              <span className="text-emerald-400 font-semibold">${order.amount.toFixed(2)}</span>
+              <span className="text-emerald-400 font-semibold">${formatMoney(order.amount)}</span>
             </div>
           </div>
 

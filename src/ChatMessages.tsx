@@ -739,7 +739,7 @@ export default function ChatMessages({
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium line-clamp-1">{service.title}</p>
                           <p className="text-slate-400 text-xs mt-0.5">
-                            from ${service.priceMin}
+                            from ${formatAmount(service.priceMin)}
                             {service.priceType === 'per_hour' ? '/hr' : '/project'}
                           </p>
                         </div>
@@ -1037,7 +1037,7 @@ export default function ChatMessages({
 
                                 {/* Price */}
                                 <p className="text-white font-bold text-xl mt-3">
-                                  ${msg.offer.price}
+                                  ${formatAmount(msg.offer.price)}
                                   <span className="text-slate-400 font-normal text-sm ml-1">
                                     {msg.offer.priceUnit === 'per_hour' ? '/ hr' : '/ project'}
                                   </span>
@@ -1063,7 +1063,7 @@ export default function ChatMessages({
                                         Loading payment…
                                       </>
                                     ) : (
-                                      `Accept & Pay $${msg.offer.price}`
+                                      `Accept & Pay $${formatAmount(msg.offer.price)}`
                                     )}
                                   </button>
                                 ) : (

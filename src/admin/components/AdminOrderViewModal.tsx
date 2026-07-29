@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X, Package } from 'lucide-react';
 import { type AdminOrder } from './AdminOrdersTable';
+import { formatMoney } from '../../utils/currency';
 
 interface Props {
   order: AdminOrder;
@@ -53,7 +54,7 @@ const AdminOrderViewModal = ({ order, onClose }: Props) => {
               {order.status?.replace(/_/g, ' ') || '—'}
             </span>
           } />
-          <Field label="Amount" value={`$${order.amount.toFixed(2)}`} />
+          <Field label="Amount" value={`$${formatMoney(order.amount)}`} />
           <Field label="Created" value={order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'} />
         </div>
 

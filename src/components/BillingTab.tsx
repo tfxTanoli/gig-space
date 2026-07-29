@@ -43,6 +43,7 @@ function CardBrandIcon({ brand }: { brand: string }) {
 import type { Payment, SavedPaymentMethod } from '../stripe/types';
 import { listPaymentMethods, removePaymentMethod } from '../stripe/paymentHelpers';
 import AddPaymentMethodModal from './AddPaymentMethodModal';
+import { formatMoney } from '../utils/currency';
 
 const statusStyles: Record<string, string> = {
   paid:     'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -162,7 +163,7 @@ export default function BillingTab() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="bg-surface border border-slate-800 rounded-xl p-4">
           <p className="text-slate-300 text-xs mb-1">Total spent</p>
-          <p className="text-white text-xl font-bold">${totalSpent.toFixed(2)}</p>
+          <p className="text-white text-xl font-bold">${formatMoney(totalSpent)}</p>
         </div>
         <div className="bg-surface border border-slate-800 rounded-xl p-4">
           <p className="text-slate-300 text-xs mb-1">Active orders</p>
@@ -286,7 +287,7 @@ export default function BillingTab() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-white text-sm font-semibold">${payment.amount.toFixed(2)}</p>
+                  <p className="text-white text-sm font-semibold">${formatMoney(payment.amount)}</p>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wide ${statusStyles[payment.status] ?? statusStyles.pending}`}>
                     {statusLabel[payment.status] ?? payment.status}
                   </span>

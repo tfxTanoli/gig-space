@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
 import adminRouter from './routes/admin.routes';
 import affiliateRouter from './routes/affiliate.routes';
+import { formatMoney, formatAmount } from './utils/money';
 import {
   sendEmailNotification,
   sendTransactionalEmail,
@@ -242,7 +243,7 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
     const sellerAmountCents = amountInCents - platformFeeCents;
 
     const description = priceUnit === 'per_hour'
-      ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
+      ? `${serviceTitle} — $${formatAmount(offerAmount)}/hr (via ${sellerName})`
       : `${serviceTitle} — Fixed price (via ${sellerName})`;
 
     const session = await stripe.checkout.sessions.create({
@@ -347,7 +348,7 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
         us_bank_account: { verification_method: 'automatic' },
       },
       description: priceUnit === 'per_hour'
-        ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
+        ? `${serviceTitle} — $${formatAmount(offerAmount)}/hr (via ${sellerName})`
         : `${serviceTitle} — Fixed price (via ${sellerName})`,
       metadata: {
         buyerId, sellerId, serviceId, conversationId, messageId,
@@ -522,7 +523,7 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
           await sendTransactionalEmail(
             affRecord.email,
             'You earned a new Gigspace Affiliate commission!',
-            buildAffiliateCommissionEmail(firstName, `$${releasedCommission.amount.toFixed(2)}`)
+            buildAffiliateCommissionEmail(firstName, `$${formatMoney(releasedCommission.amount)}`)
           );
         }
       } catch { /* non-fatal */ }
@@ -678,7 +679,7 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
     const available = wallet.availableBalance ?? 0;
 
     if (amount > available) {
-      res.status(400).json({ error: `Insufficient balance. Available: $${available.toFixed(2)}` }); return;
+      res.status(400).json({ error: `Insufficient balance. Available: $${formatMoney(available)}` }); return;
     }
 
     const stripeAccountId = wallet.stripeConnectedAccountId;
@@ -711,7 +712,7 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
       [`walletTransactions/${sellerId}/${txId}`]: {
         type: 'withdrawal', orderId: '', paymentId: '',
         amount: -amount,
-        description: `Withdrawal — $${amount.toFixed(2)}`,
+        description: `Withdrawal — $${formatMoney(amount)}`,
         createdAt: now,
       },
     });
@@ -828,7 +829,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
         type: 'referral_order',
         title: 'New referral order',
-        body: `You earned a $${commissionAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} commission from a referred order.`,
+        body: `You earned a $${formatMoney(commissionAmount)} commission from a referred order.`,
         senderId: buyerId,
         senderName: buyer?.name || 'Buyer',
         orderId,
@@ -959,7 +960,7 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
         type: 'referral_order',
         title: 'New referral order',
-        body: `You earned a $${commissionAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} commission from a referred order.`,
+        body: `You earned a $${formatMoney(commissionAmount)} commission from a referred order.`,
         senderId: buyerId,
         senderName: buyer?.name || 'Buyer',
         orderId,
@@ -1839,7 +1840,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       const sellerRecord = await admin.auth().getUser(uid);
       if (sellerRecord.email) {
         const firstName = await getFirstNameByUid(uid, sellerRecord.displayName);
-        const price = `$${((latestInvoice.total ?? 0) / 100).toFixed(2)}`;
+        const price = `$${formatMoney((latestInvoice.total ?? 0) / 100)}`;
         const nextDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         await sendTransactionalEmail(
           sellerRecord.email,

@@ -12,6 +12,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useNotifications, type AppNotification } from './useNotifications';
+import { formatAmountsInText } from '../utils/currency';
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -99,7 +100,7 @@ function NotifItem({
           </p>
           {notif.body && notif.type !== 'message' && (
             <p className="text-xs text-slate-500 mt-0.5 leading-snug line-clamp-2">
-              {notif.body}
+              {formatAmountsInText(notif.body)}
             </p>
           )}
           <p className="text-[10px] text-slate-600 mt-1">{relativeTime(notif.createdAt)}</p>

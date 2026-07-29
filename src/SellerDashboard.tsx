@@ -438,8 +438,8 @@ const PostModal = ({ post, onClose, onDelete }: PostModalProps) => {
 
   const formatPrice = () => {
     const suffix = post.priceType === 'per_hour' ? '/hr' : '/project';
-    if (post.priceMax) return `$${post.priceMin} – $${post.priceMax}${suffix}`;
-    return `$${post.priceMin}${suffix}`;
+    if (post.priceMax) return `$${fmt(post.priceMin)} – $${fmt(post.priceMax)}${suffix}`;
+    return `$${fmt(post.priceMin)}${suffix}`;
   };
 
   // Close on Escape

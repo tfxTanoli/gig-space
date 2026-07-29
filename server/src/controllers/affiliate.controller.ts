@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 import { type Response } from 'express';
 import { type AuthRequest } from '../middleware/requireAuth';
+import { formatMoney } from '../utils/money';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 // FRONTEND_URL may be a comma-separated list of allowed origins (see app.ts's
@@ -202,7 +203,7 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
     const available = affiliate.availableBalance ?? 0;
 
     if (amount > available) {
-      res.status(400).json({ error: `Insufficient balance. Available: $${available.toFixed(2)}` }); return;
+      res.status(400).json({ error: `Insufficient balance. Available: $${formatMoney(available)}` }); return;
     }
 
     const stripeAccountId = affiliate.stripeConnectedAccountId;

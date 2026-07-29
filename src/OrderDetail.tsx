@@ -13,6 +13,7 @@ import { UserAvatar } from './UserAvatar';
 import ReviewModal from './ReviewModal';
 import { approveDelivery as approveDeliveryFn } from './stripe/paymentHelpers';
 import { sendNotification } from './notifications/notificationHelpers';
+import { formatAmount, formatMoney } from './utils/currency';
 
 export interface DeliveryFile {
   name: string;
@@ -667,7 +668,7 @@ export default function OrderDetail({
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-400">
                 <span className="text-white font-bold text-sm">
-                  ${order.price}
+                  ${formatAmount(order.price)}
                   <span className="text-slate-400 font-normal ml-0.5">
                     {order.priceType === 'per_hour' ? '/hr' : '/project'}
                   </span>
@@ -1100,10 +1101,10 @@ function PaymentInfoCard({
         </span>
       </div>
       <div className="space-y-2.5">
-        <Row label="Order amount" value={`$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-        <Row label={`Platform fee (${platformFeePercent}%)`} value={`-$${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} muted />
+        <Row label="Order amount" value={`$${formatMoney(price)}`} />
+        <Row label={`Platform fee (${platformFeePercent}%)`} value={`-$${formatMoney(platformFee)}`} muted />
         <div className="h-px bg-slate-800" />
-        <Row label="Seller earnings" value={`$${sellerEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} bold />
+        <Row label="Seller earnings" value={`$${formatMoney(sellerEarnings)}`} bold />
       </div>
     </div>
   );
