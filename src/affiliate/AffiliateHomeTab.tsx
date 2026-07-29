@@ -4,6 +4,7 @@ import { ref as dbRef, onValue, set } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { fetchAffiliateCommissions, type AffiliateStats, type AffiliateCommission } from './affiliateHelpers';
+import { formatMoney } from '../utils/currency';
 
 function MonthlyEarningsChart({ commissions }: { commissions: AffiliateCommission[] }) {
   const months = Array.from({ length: 6 }, (_, i) => {
@@ -154,8 +155,8 @@ export default function AffiliateHomeTab() {
   const statsCards = [
     { label: 'Total Clicks',  value: (stats?.totalClicks ?? 0).toLocaleString(),       Icon: Link2,      color: 'text-blue-400',    bg: 'bg-blue-500/10'    },
     { label: 'Referrals',     value: (stats?.totalReferrals ?? 0).toLocaleString(),     Icon: Users,      color: 'text-purple-400',  bg: 'bg-purple-500/10'  },
-    { label: 'Pending',       value: `$${(stats?.pendingBalance ?? 0).toFixed(2)}`,     Icon: Clock,      color: 'text-yellow-400',  bg: 'bg-yellow-500/10'  },
-    { label: 'Available',     value: `$${(stats?.availableBalance ?? 0).toFixed(2)}`,   Icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Pending',       value: `$${formatMoney(stats?.pendingBalance ?? 0)}`,     Icon: Clock,      color: 'text-yellow-400',  bg: 'bg-yellow-500/10'  },
+    { label: 'Available',     value: `$${formatMoney(stats?.availableBalance ?? 0)}`,   Icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
   ];
 
   const recentCommissions = commissions.slice(0, 5);
@@ -236,7 +237,7 @@ export default function AffiliateHomeTab() {
                   {new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
                 <span className="text-slate-400 font-mono text-xs truncate">{c.orderId.substring(0, 8)}…</span>
-                <span className="text-white font-medium">${c.commissionAmount.toFixed(2)}</span>
+                <span className="text-white font-medium">${formatMoney(c.commissionAmount)}</span>
                 <StatusBadge status={c.status} />
               </div>
             ))}

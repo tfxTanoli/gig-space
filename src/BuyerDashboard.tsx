@@ -18,6 +18,7 @@ import { verifyCheckoutSession, verifyPaymentIntent } from './stripe/paymentHelp
 import { CurrentUserAvatar } from './UserAvatar';
 import NotificationBell from './notifications/NotificationBell';
 import { sendNotification } from './notifications/notificationHelpers';
+import { formatAmount } from './utils/currency';
 import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
 import OrdersTab from './OrdersTab';
@@ -132,7 +133,7 @@ const BuyerDashboard = () => {
               type: 'offer_accepted',
               title: 'Your offer was accepted',
               serviceTitle: pending.serviceTitle,
-              body: `${userProfile?.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
+              body: `${userProfile?.name || 'A buyer'} accepted your $${formatAmount(pending.price)} offer for "${pending.serviceTitle}"`,
               senderId: user.uid,
               senderName: userProfile?.name || '',
               senderPhotoURL: userProfile?.photoURL || '',
@@ -186,7 +187,7 @@ const BuyerDashboard = () => {
               type: 'offer_accepted',
               title: 'Your offer was accepted',
               serviceTitle: pending.serviceTitle,
-              body: `${userProfile?.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
+              body: `${userProfile?.name || 'A buyer'} accepted your $${formatAmount(pending.price)} offer for "${pending.serviceTitle}"`,
               senderId: user.uid,
               senderName: userProfile?.name || '',
               senderPhotoURL: userProfile?.photoURL || '',

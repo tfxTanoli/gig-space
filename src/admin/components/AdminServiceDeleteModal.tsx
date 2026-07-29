@@ -3,6 +3,7 @@ import { X, AlertTriangle, Trash2, Tag } from 'lucide-react';
 import { ref as dbRef, get, remove } from 'firebase/database';
 import { database } from '../../firebase';
 import { type AdminService } from './AdminServicesTable';
+import { formatMoney } from '../../utils/currency';
 
 interface Props {
   service: AdminService;
@@ -79,7 +80,7 @@ const AdminServiceDeleteModal = ({ service, onClose, onSuccess }: Props) => {
               )}
               <div className="min-w-0">
                 <p className="text-sm text-white font-medium truncate">{service.title || '—'}</p>
-                <p className="text-xs text-slate-500 truncate">{service.sellerName} · ${service.price.toFixed(2)}</p>
+                <p className="text-xs text-slate-500 truncate">{service.sellerName} · ${formatMoney(service.price)}</p>
               </div>
             </div>
           </div>

@@ -98,6 +98,22 @@ export const adminGenerateListings = (body: { category: string; subcategory: str
     body: JSON.stringify(body),
   });
 
+export interface RehostPhotosResult {
+  pending: number;    // listings still on Google-hosted photos when the batch started
+  processed: number;
+  migrated: number;   // listings updated by this batch
+  photos: number;     // individual photos copied into our Storage
+  failed: number;     // photos Google wouldn't hand over — left as-is
+  remaining: number;
+}
+
+/** Copies Google-hosted photos on already-generated listings into our own Storage. */
+export const adminRehostListingPhotos = (limit = 5) =>
+  authedFetch<RehostPhotosResult>('/api/admin/listings/rehost-photos', {
+    method: 'POST',
+    body: JSON.stringify({ limit }),
+  });
+
 export interface AdminSubscription {
   id: string;
   sellerId: string;

@@ -13,6 +13,7 @@ import { UserAvatar } from './UserAvatar';
 import ReviewModal from './ReviewModal';
 import { approveDelivery as approveDeliveryFn } from './stripe/paymentHelpers';
 import { sendNotification } from './notifications/notificationHelpers';
+import { formatAmount, formatMoney } from './utils/currency';
 
 export interface DeliveryFile {
   name: string;
@@ -494,7 +495,7 @@ export default function OrderDetail({
                   placeholder="Describe what you've delivered, any notes for the buyer, or next steps…"
                   rows={3}
                   disabled={uploading}
-                  className="w-full bg-background border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none transition-colors disabled:opacity-60 leading-relaxed"
+                  className="w-full bg-background border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-y min-h-[80px] max-h-64 transition-colors disabled:opacity-60 leading-relaxed"
                 />
               </div>
 
@@ -590,14 +591,14 @@ export default function OrderDetail({
               <button
                 onClick={closeDeliveryModal}
                 disabled={uploading}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2 rounded-xl transition-colors"
+                className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2 rounded-md transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={submitDelivery}
                 disabled={uploading}
-                className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-md transition-colors flex items-center justify-center gap-2"
               >
                 {uploading ? (
                   <>
@@ -667,7 +668,7 @@ export default function OrderDetail({
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-400">
                 <span className="text-white font-bold text-sm">
-                  ${order.price}
+                  ${formatAmount(order.price)}
                   <span className="text-slate-400 font-normal ml-0.5">
                     {order.priceType === 'per_hour' ? '/hr' : '/project'}
                   </span>
@@ -1100,10 +1101,10 @@ function PaymentInfoCard({
         </span>
       </div>
       <div className="space-y-2.5">
-        <Row label="Order amount" value={`$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-        <Row label={`Platform fee (${platformFeePercent}%)`} value={`-$${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} muted />
+        <Row label="Order amount" value={`$${formatMoney(price)}`} />
+        <Row label={`Platform fee (${platformFeePercent}%)`} value={`-$${formatMoney(platformFee)}`} muted />
         <div className="h-px bg-slate-800" />
-        <Row label="Seller earnings" value={`$${sellerEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} bold />
+        <Row label="Seller earnings" value={`$${formatMoney(sellerEarnings)}`} bold />
       </div>
     </div>
   );

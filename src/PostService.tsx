@@ -34,6 +34,7 @@ import type { BillingAddress, TaxBreakdown } from './stripe/types';
 import { STRIPE_APPEARANCE, STRIPE_FONTS } from './stripe/stripeAppearance';
 import { LANGUAGES } from './data/languages';
 import { sanitizeHtml } from './utils/sanitize';
+import { formatMoney } from './utils/currency';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -196,7 +197,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           </div>
           <div className="flex justify-between text-slate-400 text-sm">
             <span>Subtotal</span>
-            <span>${(taxBreakdown?.subtotal ?? subtotal).toFixed(2)}/mo</span>
+            <span>${formatMoney(taxBreakdown?.subtotal ?? subtotal)}/mo</span>
           </div>
           <div className="flex justify-between text-slate-400 text-sm">
             <span>Tax</span>
@@ -204,14 +205,14 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
               {previewingTax
                 ? 'Calculating…'
                 : taxBreakdown
-                ? `$${taxBreakdown.tax.toFixed(2)}`
+                ? `$${formatMoney(taxBreakdown.tax)}`
                 : 'Enter address above'}
             </span>
           </div>
           <div className="w-full h-px bg-slate-800 my-2" />
           <div className="flex justify-between items-center text-white font-semibold">
             <span>Total</span>
-            <span className="text-primary">${(taxBreakdown?.total ?? subtotal).toFixed(2)}/mo</span>
+            <span className="text-primary">${formatMoney(taxBreakdown?.total ?? subtotal)}/mo</span>
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import OrderDetail, { type Order } from './OrderDetail';
+import { formatAmount } from './utils/currency';
 
 type OrderFilter = 'all' | 'pending' | 'in_progress' | 'delivered' | 'completed' | 'cancelled';
 
@@ -199,7 +200,7 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
                       {counterparty.label}: {counterparty.name}
                     </span>
                     <span className="font-semibold text-white">
-                      ${order.price}{order.priceType === 'per_hour' ? '/hr' : ''}
+                      ${formatAmount(order.price)}{order.priceType === 'per_hour' ? '/hr' : ''}
                     </span>
                     <span>
                       {new Date(order.createdAt).toLocaleDateString('en-US', {

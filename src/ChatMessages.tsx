@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { startElementsCheckout, verifyPaymentIntent } from './stripe/paymentHelpers';
 import PaymentModal from './components/PaymentModal';
 import { sendNotification } from './notifications/notificationHelpers';
+import { formatAmount } from './utils/currency';
 
 /* ── Types ── */
 
@@ -503,7 +504,7 @@ export default function ChatMessages({
         sendNotification(offerConv.buyerId, {
           type: 'offer',
           title: `${userProfile.name} sent you an offer`,
-          body: `$${price} offer for "${selectedService.title}"`,
+          body: `$${formatAmount(price)} offer for "${selectedService.title}"`,
           senderId: user.uid,
           senderName: userProfile.name,
           senderPhotoURL: userProfile.photoURL || '',
@@ -601,7 +602,7 @@ export default function ChatMessages({
             type: 'offer_accepted',
             title: 'Your offer was accepted',
             serviceTitle: pending.serviceTitle,
-            body: `${userProfile.name || 'A buyer'} accepted your $${pending.price} offer for "${pending.serviceTitle}"`,
+            body: `${userProfile.name || 'A buyer'} accepted your $${formatAmount(pending.price)} offer for "${pending.serviceTitle}"`,
             senderId: user.uid,
             senderName: userProfile.name || '',
             senderPhotoURL: userProfile.photoURL || '',
@@ -738,7 +739,7 @@ export default function ChatMessages({
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium line-clamp-1">{service.title}</p>
                           <p className="text-slate-400 text-xs mt-0.5">
-                            from ${service.priceMin}
+                            from ${formatAmount(service.priceMin)}
                             {service.priceType === 'per_hour' ? '/hr' : '/project'}
                           </p>
                         </div>
@@ -1036,7 +1037,7 @@ export default function ChatMessages({
 
                                 {/* Price */}
                                 <p className="text-white font-bold text-xl mt-3">
-                                  ${msg.offer.price}
+                                  ${formatAmount(msg.offer.price)}
                                   <span className="text-slate-400 font-normal text-sm ml-1">
                                     {msg.offer.priceUnit === 'per_hour' ? '/ hr' : '/ project'}
                                   </span>
@@ -1062,7 +1063,7 @@ export default function ChatMessages({
                                         Loading payment…
                                       </>
                                     ) : (
-                                      `Accept & Pay $${msg.offer.price}`
+                                      `Accept & Pay $${formatAmount(msg.offer.price)}`
                                     )}
                                   </button>
                                 ) : (

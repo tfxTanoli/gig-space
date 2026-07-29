@@ -3,6 +3,7 @@ import { X, Loader2, Lock } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { STRIPE_APPEARANCE, STRIPE_FONTS } from '../stripe/stripeAppearance';
+import { formatAmount } from '../utils/currency';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
@@ -80,7 +81,7 @@ function CheckoutForm({ offerAmount, onSuccess, onClose }: CheckoutFormProps) {
             ) : (
               <Lock className="w-3.5 h-3.5" />
             )}
-            {paying ? 'Processing…' : `Pay $${offerAmount}`}
+            {paying ? 'Processing…' : `Pay $${formatAmount(offerAmount)}`}
           </button>
         </div>
       )}
@@ -115,7 +116,7 @@ export default function PaymentModal({
           <div>
             <h3 className="font-semibold text-white text-base">Complete payment</h3>
             <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[280px]">
-              {serviceTitle} — ${offerAmount}
+              {serviceTitle} — ${formatAmount(offerAmount)}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors ml-4 shrink-0">

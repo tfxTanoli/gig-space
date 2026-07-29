@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
 import adminRouter from './routes/admin.routes';
 import affiliateRouter from './routes/affiliate.routes';
+import { formatMoney, formatAmount } from './utils/money';
 import {
   sendEmailNotification,
   sendTransactionalEmail,
@@ -29,15 +30,18 @@ if (!admin.apps.length) {
   const databaseURL = process.env.FIREBASE_DATABASE_URL;
 
   let credential: admin.credential.Credential | undefined;
+  let projectId = process.env.FIREBASE_PROJECT_ID;
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
     const parsed = JSON.parse(
       Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8')
     );
     credential = admin.credential.cert(parsed);
+    projectId = projectId || parsed.project_id;
   } else if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     const parsed = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
     credential = admin.credential.cert(parsed);
+    projectId = projectId || parsed.project_id;
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     const fs = require('fs');
     if (fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
@@ -45,6 +49,7 @@ if (!admin.apps.length) {
         fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf-8')
       );
       credential = admin.credential.cert(parsed);
+      projectId = projectId || parsed.project_id;
     } else {
       throw new Error(
         `[Firebase] serviceAccountKey.json not found at: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}. ` +
@@ -53,7 +58,17 @@ if (!admin.apps.length) {
     }
   }
 
-  admin.initializeApp({ ...(credential ? { credential } : {}), databaseURL });
+  // Needed so the backend can write listing photos into Storage. Derived from
+  // the service account, since `options.projectId` isn't populated when the app
+  // is initialised from a credential.
+  const storageBucket =
+    process.env.FIREBASE_STORAGE_BUCKET || (projectId ? `${projectId}.firebasestorage.app` : undefined);
+
+  admin.initializeApp({
+    ...(credential ? { credential } : {}),
+    databaseURL,
+    ...(storageBucket ? { storageBucket } : {}),
+  });
 }
 const db = admin.database();
 
@@ -242,7 +257,7 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
     const sellerAmountCents = amountInCents - platformFeeCents;
 
     const description = priceUnit === 'per_hour'
-      ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
+      ? `${serviceTitle} — $${formatAmount(offerAmount)}/hr (via ${sellerName})`
       : `${serviceTitle} — Fixed price (via ${sellerName})`;
 
     const session = await stripe.checkout.sessions.create({
@@ -347,7 +362,7 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
         us_bank_account: { verification_method: 'automatic' },
       },
       description: priceUnit === 'per_hour'
-        ? `${serviceTitle} — $${offerAmount}/hr (via ${sellerName})`
+        ? `${serviceTitle} — $${formatAmount(offerAmount)}/hr (via ${sellerName})`
         : `${serviceTitle} — Fixed price (via ${sellerName})`,
       metadata: {
         buyerId, sellerId, serviceId, conversationId, messageId,
@@ -522,7 +537,7 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
           await sendTransactionalEmail(
             affRecord.email,
             'You earned a new Gigspace Affiliate commission!',
-            buildAffiliateCommissionEmail(firstName, `$${releasedCommission.amount.toFixed(2)}`)
+            buildAffiliateCommissionEmail(firstName, `$${formatMoney(releasedCommission.amount)}`)
           );
         }
       } catch { /* non-fatal */ }
@@ -678,7 +693,7 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
     const available = wallet.availableBalance ?? 0;
 
     if (amount > available) {
-      res.status(400).json({ error: `Insufficient balance. Available: $${available.toFixed(2)}` }); return;
+      res.status(400).json({ error: `Insufficient balance. Available: $${formatMoney(available)}` }); return;
     }
 
     const stripeAccountId = wallet.stripeConnectedAccountId;
@@ -711,7 +726,7 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
       [`walletTransactions/${sellerId}/${txId}`]: {
         type: 'withdrawal', orderId: '', paymentId: '',
         amount: -amount,
-        description: `Withdrawal — $${amount.toFixed(2)}`,
+        description: `Withdrawal — $${formatMoney(amount)}`,
         createdAt: now,
       },
     });
@@ -828,7 +843,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
         type: 'referral_order',
         title: 'New referral order',
-        body: `You earned a $${commissionAmount.toFixed(2)} commission from a referred order.`,
+        body: `You earned a $${formatMoney(commissionAmount)} commission from a referred order.`,
         senderId: buyerId,
         senderName: buyer?.name || 'Buyer',
         orderId,
@@ -959,7 +974,7 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       mainUpdates[`notifications/${affiliateId}/${affNotifId}`] = {
         type: 'referral_order',
         title: 'New referral order',
-        body: `You earned a $${commissionAmount.toFixed(2)} commission from a referred order.`,
+        body: `You earned a $${formatMoney(commissionAmount)} commission from a referred order.`,
         senderId: buyerId,
         senderName: buyer?.name || 'Buyer',
         orderId,
@@ -1839,7 +1854,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       const sellerRecord = await admin.auth().getUser(uid);
       if (sellerRecord.email) {
         const firstName = await getFirstNameByUid(uid, sellerRecord.displayName);
-        const price = `$${((latestInvoice.total ?? 0) / 100).toFixed(2)}`;
+        const price = `$${formatMoney((latestInvoice.total ?? 0) / 100)}`;
         const nextDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         await sendTransactionalEmail(
           sellerRecord.email,

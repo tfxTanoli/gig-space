@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Search, MapPin, Star, ExternalLink, Pencil, Trash2, Sparkles, Loader2, CheckSquare, Square,
+  ImageDown,
 } from 'lucide-react';
 import { ref as dbRef, get, update, remove } from 'firebase/database';
 import { toast } from 'sonner';
@@ -8,7 +9,7 @@ import { database } from '../../firebase';
 import { useCategories } from '../../CategoriesContext';
 import { LANGUAGES } from '../../data/languages';
 import { searchLocations, type LocationResult } from '../../photon';
-import { adminSearchListings, adminGenerateListings, type ListingBusiness } from '../adminApi';
+import { adminSearchListings, adminGenerateListings, adminRehostListingPhotos, type ListingBusiness } from '../adminApi';
 import AdminPostEditDrawer from './AdminPostEditDrawer';
 import AdminPagination from './AdminPagination';
 import { type AdminService } from './AdminServicesTable';
@@ -146,6 +147,7 @@ export default function AdminListingsTab() {
   // ── Generated listings ──
   const [generated, setGenerated] = useState<GenListing[] | null>(null);
   const [editService, setEditService] = useState<GenListing | null>(null);
+  const [rehosting, setRehosting] = useState(false);
 
   // ── Generated-listings table filters + pagination ──
   const GEN_PAGE_SIZE = 20;
@@ -205,6 +207,36 @@ export default function AdminListingsTab() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to generate posts');
     } finally { setGenerating(false); }
+  };
+
+  // Posts generated before photos were re-hosted still link straight to Google,
+  // which bills us on every view. Walk the backlog in batches until the server
+  // reports nothing left — or stops making progress, so a photo Google refuses
+  // to hand over can't spin this forever.
+  const doRehostPhotos = async () => {
+    setRehosting(true);
+    try {
+      let listings = 0;
+      let photos = 0;
+      let failed = 0;
+      for (;;) {
+        const batch = await adminRehostListingPhotos(10);
+        listings += batch.migrated;
+        photos += batch.photos;
+        failed = batch.failed;
+        if (batch.remaining === 0 || batch.migrated === 0) break;
+      }
+      if (listings === 0) {
+        toast.message(failed > 0
+          ? `No photos could be copied — ${failed} were refused by Google.`
+          : 'All listing photos are already served from our own storage.');
+      } else {
+        toast.success(`Copied ${photos} photo${photos !== 1 ? 's' : ''} across ${listings} listing${listings !== 1 ? 's' : ''} into our storage.`);
+        await loadGenerated();
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to re-host photos');
+    } finally { setRehosting(false); }
   };
 
   const publish = async (id: string) => {
@@ -372,6 +404,15 @@ export default function AdminListingsTab() {
           </div>
           {/* Filters: location search, category, status */}
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={doRehostPhotos}
+              disabled={rehosting}
+              title="Copy any Google-hosted listing photos into our own storage, so viewing a post no longer calls Google"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700/50 bg-surface-raised text-xs text-slate-300 hover:text-white hover:border-slate-600 disabled:opacity-50 transition-colors"
+            >
+              {rehosting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageDown className="w-3.5 h-3.5" />}
+              {rehosting ? 'Copying…' : 'Re-host Google photos'}
+            </button>
             <input
               value={genLocFilter}
               onChange={(e) => setGenLocFilter(e.target.value)}

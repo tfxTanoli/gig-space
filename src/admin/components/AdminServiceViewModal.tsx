@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X, Tag, User, DollarSign, Calendar, Hash, FileText, Layers } from 'lucide-react';
 import { type AdminService } from './AdminServicesTable';
+import { formatMoney } from '../../utils/currency';
 
 interface Props {
   service: AdminService;
@@ -69,7 +70,7 @@ const AdminServiceViewModal = ({ service, onClose }: Props) => {
         {/* Fields */}
         <div className="px-6 py-5 space-y-4">
           <Field icon={User}      label="Seller"      value={service.sellerName} />
-          <Field icon={DollarSign} label="Starting Price" value={`$${service.price.toFixed(2)}`} />
+          <Field icon={DollarSign} label="Starting Price" value={`$${formatMoney(service.price)}`} />
           <Field icon={Layers}    label="Category"    value={service.category ?? ''} />
           <Field icon={FileText}  label="Description" value={service.description ?? ''} />
           <Field icon={Calendar}  label="Posted"      value={service.createdAt ? new Date(service.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''} />

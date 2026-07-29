@@ -9,6 +9,7 @@ import {
   ArrowDownLeft, RotateCcw, Wallet, Loader2,
 } from 'lucide-react';
 import type { Wallet as WalletType, WalletTransaction } from '../stripe/types';
+import { formatMoney } from '../utils/currency';
 
 const MIN_WITHDRAWAL = 10;
 
@@ -181,7 +182,7 @@ export default function WalletTab() {
                     </p>
                   </div>
                   <span className={`text-sm font-semibold shrink-0 ${txColor(tx.type)}`}>
-                    {tx.amount >= 0 ? '+' : ''}${Math.abs(tx.amount).toFixed(2)}
+                    {tx.amount >= 0 ? '+' : ''}${formatMoney(Math.abs(tx.amount))}
                   </span>
                 </div>
               ))}
@@ -218,7 +219,7 @@ function BalanceCard({ label, value, icon, accent, tooltip }: BalanceCardProps) 
         {icon}
         <p className="text-slate-300 text-xs font-medium">{label}</p>
       </div>
-      <p className="text-white text-xl font-bold">${value.toFixed(2)}</p>
+      <p className="text-white text-xl font-bold">${formatMoney(value)}</p>
     </div>
   );
 }

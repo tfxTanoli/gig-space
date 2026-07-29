@@ -438,7 +438,7 @@ const ServiceDetail = () => {
     const description = post.description
       ? post.description.slice(0, 160).replace(/\s+/g, ' ').trim()
       : `${post.sellerName} offers this service on GigSpace.`;
-    const priceLabel = `$${post.priceMin}${post.priceMax ? `–$${post.priceMax}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
+    const priceLabel = `$${fmtPrice(post.priceMin)}${post.priceMax ? `–$${fmtPrice(post.priceMax)}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
 
     document.title = `${post.title} | GigSpace`;
 

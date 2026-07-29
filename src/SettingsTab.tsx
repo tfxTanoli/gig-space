@@ -14,6 +14,7 @@ import { useAuth } from './AuthContext';
 import { useUsernameAvailability } from './useUsernameAvailability';
 import { normalizeUsername, validateUsername, claimUsername } from './username';
 import { useNavigate } from 'react-router-dom';
+import { formatMoney } from './utils/currency';
 
 type Section = 'profile' | 'security';
 
@@ -690,7 +691,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
                   <p className="text-amber-400 text-sm font-medium">Wallet balance will be forfeited</p>
                   <p className="text-amber-300/80 text-xs mt-1">
-                    You have <span className="font-semibold">${walletBalance.toFixed(2)}</span> in your wallet.
+                    You have <span className="font-semibold">${formatMoney(walletBalance)}</span> in your wallet.
                     These funds will be returned to the platform when your account is deleted.
                     Please withdraw before proceeding.
                   </p>
