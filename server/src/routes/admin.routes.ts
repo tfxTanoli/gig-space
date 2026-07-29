@@ -11,7 +11,7 @@ import {
   inviteAdmin, getAdmins, revokeAdmin,
   getSettings, updateSettings,
 } from '../controllers/admin.controller';
-import { searchListings, generateListings } from '../controllers/listings.controller';
+import { searchListings, generateListings, rehostListingPhotos } from '../controllers/listings.controller';
 
 const router = Router();
 
@@ -34,6 +34,7 @@ router.get('/subscriptions',           verifyAdmin, getSubscriptions);
 router.post('/subscriptions/:id/cancel', verifyAdmin, cancelSubscription);
 router.post('/listings/search',   verifyAdmin, searchListings);
 router.post('/listings/generate', verifyAdmin, generateListings);
+router.post('/listings/rehost-photos', verifyAdmin, rehostListingPhotos);
 router.get('/admins',          verifyAdmin, getAdmins);
 router.post('/admins/invite',  verifyAdmin, inviteAdmin);
 router.delete('/admins/:id',   verifyAdmin, revokeAdmin);

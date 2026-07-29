@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { randomUUID } from 'crypto';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 
@@ -51,6 +52,80 @@ function cityStateOf(p: Place): string {
     return statePart ? `${cityPart}, ${statePart}` : cityPart;
   }
   return p.formattedAddress ?? '';
+}
+
+/* ─── Re-hosting Google photos in our own Storage ──────────────────────────────
+ * A Places photo URL carries our API key and is billed by Google on every
+ * *view*, so linking to it straight from a post means paying for — and exposing
+ * the key in — every page load, forever. Instead we download each photo once,
+ * when the post is generated, and serve it from Firebase Storage. Google is
+ * then billed a single time per photo, the key never leaves the server, and the
+ * images survive Places rotating its photo resource names.
+ */
+
+const STORAGE_PREFIX = 'listingImages';
+const GOOGLE_PHOTO_URL = /^https:\/\/(places|maps)\.googleapis\.com\//;
+const EXT_BY_TYPE: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+
+export function isGooglePhotoUrl(url: unknown): url is string {
+  return typeof url === 'string' && GOOGLE_PHOTO_URL.test(url);
+}
+
+// Resolved lazily: this module is imported before admin.initializeApp() runs,
+// which is where the default bucket gets configured.
+function storageBucket() {
+  return admin.storage().bucket();
+}
+
+async function rehostPhoto(sourceUrl: string, folder: string, index: number): Promise<string> {
+  const resp = await fetch(sourceUrl, { redirect: 'follow' });
+  if (!resp.ok) throw new Error(`Google returned ${resp.status}`);
+
+  const contentType = (resp.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
+  if (!contentType.startsWith('image/')) throw new Error(`unexpected content-type "${contentType}"`);
+
+  const bucket = storageBucket();
+  const path = `${STORAGE_PREFIX}/${folder}/${index}.${EXT_BY_TYPE[contentType] ?? 'jpg'}`;
+  // A download token makes the object publicly readable by URL, exactly like a
+  // client-side getDownloadURL() upload — no bucket ACL changes needed.
+  const token = randomUUID();
+
+  await bucket.file(path).save(Buffer.from(await resp.arrayBuffer()), {
+    resumable: false,
+    metadata: {
+      contentType,
+      cacheControl: 'public, max-age=31536000, immutable',
+      metadata: { firebaseStorageDownloadTokens: token },
+    },
+  });
+
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+}
+
+/**
+ * Copies any Google-hosted photos into our Storage bucket and returns the list
+ * with those entries swapped for our own URLs. Anything already hosted by us is
+ * passed through untouched, and a photo that fails to copy keeps its original
+ * URL — a post with a Google-hosted image is better than a post with none.
+ */
+export async function rehostPhotos(urls: unknown[], folder: string): Promise<string[]> {
+  return Promise.all(
+    urls.map(async (url, i) => {
+      if (!isGooglePhotoUrl(url)) return String(url ?? '');
+      try {
+        return await rehostPhoto(url, folder, i);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[listings] could not re-host photo ${folder}#${i}: ${msg}`);
+        return url;
+      }
+    }),
+  );
 }
 
 // Business favicon (via Google's favicon service) doubles as the post's logo/avatar.
@@ -362,8 +437,10 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       const ref = db.ref('services').push();
       const id = ref.key as string;
       const now = Date.now();
-      // Post images are the business's Google Business Profile photos (owner uploads).
-      const images = Array.isArray(b.images) ? b.images : [];
+      // Post images are the business's Google Business Profile photos (owner
+      // uploads), copied into our own Storage so viewing a post never calls —
+      // or gets billed by — Google again.
+      const images = await rehostPhotos(Array.isArray(b.images) ? b.images : [], id);
       const reviews = Array.isArray(b.reviews) ? b.reviews : [];
       // The Places API returns at most 5 review texts, but the business's REAL
       // totals come from rating/userRatingCount — store those so the post shows
@@ -431,6 +508,61 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/listings/generate error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Backfill: move already-generated posts off Google-hosted photos ────────────
+// Posts created before photos were re-hosted still point at places.googleapis.com.
+// This walks them in batches — one HTTP call can only do so much before the
+// serverless timeout — and reports what's left so the caller can keep going.
+const REHOST_BATCH_MAX = 25;
+
+export async function rehostListingPhotos(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const requested = Number((req.body ?? {}).limit);
+    const limit = Math.min(Number.isFinite(requested) && requested > 0 ? requested : 5, REHOST_BATCH_MAX);
+
+    const db = admin.database();
+    const snap = await db.ref('services').once('value');
+
+    const pending: { id: string; images: unknown[] }[] = [];
+    snap.forEach((child) => {
+      const images = child.val()?.images;
+      if (Array.isArray(images) && images.some(isGooglePhotoUrl)) {
+        pending.push({ id: child.key as string, images });
+      }
+      return false; // keep iterating
+    });
+
+    let migrated = 0;
+    let photos = 0;
+    let failed = 0;
+
+    for (const service of pending.slice(0, limit)) {
+      const rehosted = await rehostPhotos(service.images, service.id);
+      const copied = rehosted.filter((url, i) => url !== service.images[i]).length;
+      const stillGoogle = rehosted.filter(isGooglePhotoUrl).length;
+
+      if (copied) {
+        await db.ref(`services/${service.id}`).update({ images: rehosted });
+        migrated += 1;
+        photos += copied;
+      }
+      failed += stillGoogle;
+    }
+
+    res.json({
+      pending: pending.length,
+      processed: Math.min(limit, pending.length),
+      migrated,
+      photos,
+      failed,
+      remaining: Math.max(0, pending.length - limit),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/listings/rehost-photos error:', msg);
     res.status(500).json({ error: msg });
   }
 }
