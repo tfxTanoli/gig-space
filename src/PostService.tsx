@@ -163,9 +163,40 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
       <div className="w-full h-px bg-slate-800/80 my-8" />
       <div className="space-y-6">
         <div>
-          <h2 className="text-white font-semibold mb-2">Payment</h2>
+          <h2 className="text-white font-semibold mb-2">Order summary</h2>
           <p className="text-slate-400 text-sm mb-4">
-            Enter your billing information. Your subscription will renew monthly.
+            Your subscription will renew monthly.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between text-slate-400 text-sm">
+            <span>Total Locations</span>
+            <span>{extraLocationCount}</span>
+          </div>
+          <div className="flex justify-between text-slate-400 text-sm">
+            <span>Subtotal</span>
+            <span>${formatMoney(taxBreakdown?.subtotal ?? subtotal)}/mo</span>
+          </div>
+          <div className="flex justify-between text-slate-400 text-sm">
+            <span>Tax</span>
+            <span>
+              {previewingTax ? 'Calculating…' : `$${formatMoney(taxBreakdown?.tax ?? 0)}`}
+            </span>
+          </div>
+          <div className="w-full h-px bg-slate-800 my-2" />
+          <div className="flex justify-between items-center text-white font-semibold">
+            <span>Total</span>
+            <span className="text-primary">${formatMoney(taxBreakdown?.total ?? subtotal)}/mo</span>
+          </div>
+        </div>
+
+        <div className="w-full h-px bg-slate-800 my-6" />
+
+        <div>
+          <h3 className="text-white font-semibold mb-2">Payment</h3>
+          <p className="text-slate-400 text-sm mb-4">
+            Enter your billing information below. Tax updates automatically once your address is complete.
           </p>
         </div>
 
@@ -187,34 +218,6 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
             {payError}
           </div>
         )}
-
-        <div className="w-full h-px bg-slate-800 my-6" />
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-slate-400 text-sm">
-            <span>Total Locations</span>
-            <span>{extraLocationCount}</span>
-          </div>
-          <div className="flex justify-between text-slate-400 text-sm">
-            <span>Subtotal</span>
-            <span>${formatMoney(taxBreakdown?.subtotal ?? subtotal)}/mo</span>
-          </div>
-          <div className="flex justify-between text-slate-400 text-sm">
-            <span>Tax</span>
-            <span>
-              {previewingTax
-                ? 'Calculating…'
-                : taxBreakdown
-                ? `$${formatMoney(taxBreakdown.tax)}`
-                : 'Enter address above'}
-            </span>
-          </div>
-          <div className="w-full h-px bg-slate-800 my-2" />
-          <div className="flex justify-between items-center text-white font-semibold">
-            <span>Total</span>
-            <span className="text-primary">${formatMoney(taxBreakdown?.total ?? subtotal)}/mo</span>
-          </div>
-        </div>
 
         <div className="flex justify-between items-center">
           <button

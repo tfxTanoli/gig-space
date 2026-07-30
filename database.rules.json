@@ -31,6 +31,12 @@
         },
         "clicks": {
           ".write": "auth !== null"
+        },
+        "reviewCount": {
+          ".write": "auth !== null"
+        },
+        "totalStars": {
+          ".write": "auth !== null"
         }
       }
     },

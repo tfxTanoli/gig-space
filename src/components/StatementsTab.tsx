@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, Filter,
 } from 'lucide-react';
 import type { WalletTransaction } from '../stripe/types';
+import { formatAmount } from '../utils/currency';
 
 type TxFilter = 'all' | 'payment_received' | 'withdrawal' | 'refund';
 
@@ -250,7 +251,10 @@ export default function StatementsTab() {
                 className="flex-1 flex flex-col items-center gap-1 group"
                 title={`${month}: ${fmt(val)}`}
               >
-                <div className="w-full flex items-end justify-center" style={{ height: '80px' }}>
+                <span className={`text-[9px] font-medium leading-none whitespace-nowrap transition-colors ${isSelected ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                  {val > 0 ? `$${formatAmount(val)}` : ' '}
+                </span>
+                <div className="w-full flex items-end justify-center" style={{ height: '64px' }}>
                   <div
                     className={`w-full rounded-t-md transition-all duration-200 ${
                       val === 0
