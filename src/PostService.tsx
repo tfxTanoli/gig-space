@@ -42,6 +42,16 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 const TOTAL_STEPS = 9;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
 
+// Hoisted so these stay stable object references across renders: Elements
+// treats a new `options` object as an update to push into the iframe, and this
+// section re-renders on every tax-quote state change.
+const ADDRESS_ELEMENT_OPTIONS = { mode: 'billing' as const };
+const PAYMENT_ELEMENT_OPTIONS = {
+  layout: 'tabs' as const,
+  wallets: { link: 'never' as const, applePay: 'never' as const, googlePay: 'never' as const },
+  paymentMethodOrder: ['card', 'us_bank_account'],
+};
+
 type MediaItem =
   | { kind: 'existing'; url: string }
   | { kind: 'new'; file: File; previewUrl: string };
@@ -96,22 +106,37 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
   const subtotal = extraLocationCount * 5;
 
   const handleAddressChange = (event: StripeAddressElementChangeEvent) => {
-    if (!event.complete) {
-      setAddressComplete(false);
+    const { name, address } = event.value;
+    setAddressComplete(event.complete);
+    setBillingName(name || undefined);
+
+    // Quote tax off the address alone, not `event.complete`. The Address
+    // Element only reports `complete` once every field it collects is valid —
+    // including Full name — so gating the quote on it left the Tax line stuck
+    // at $0.00 for a seller who had entered a full Philadelphia address but
+    // hadn't typed their name yet. These four fields are exactly what
+    // /api/subscriptions/preview-tax requires to identify a jurisdiction.
+    const hasTaxableAddress = Boolean(
+      address.line1 && address.city && address.postal_code && address.country,
+    );
+    if (!hasTaxableAddress) {
       setBillingAddress(null);
       return;
     }
-    const { name, address } = event.value;
-    setBillingAddress({
+
+    const next: BillingAddress = {
       line1: address.line1,
       line2: address.line2 || undefined,
       city: address.city,
       state: address.state || undefined,
       postal_code: address.postal_code,
       country: address.country,
-    });
-    setBillingName(name || undefined);
-    setAddressComplete(true);
+    };
+    // Reuse the previous object when nothing tax-relevant changed, so typing
+    // in Full name afterwards doesn't re-fire the quote effect below.
+    setBillingAddress((prev) =>
+      prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+    );
   };
 
   // Re-quote tax whenever the address or the location count changes (e.g. the
@@ -200,18 +225,9 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
           </p>
         </div>
 
-        <div>
-          <h3 className="text-white text-sm font-medium mb-2">Billing address</h3>
-          <AddressElement options={{ mode: 'billing' }} onChange={handleAddressChange} />
-        </div>
+        <AddressElement options={ADDRESS_ELEMENT_OPTIONS} onChange={handleAddressChange} />
 
-        <PaymentElement
-          options={{
-            layout: 'tabs',
-            wallets: { link: 'never', applePay: 'never', googlePay: 'never' },
-            paymentMethodOrder: ['card', 'us_bank_account'],
-          }}
-        />
+        <PaymentElement options={PAYMENT_ELEMENT_OPTIONS} />
 
         {payError && (
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-400 text-sm">
