@@ -191,14 +191,14 @@ export default function ReviewModal({
             <button
               onClick={handleClose}
               disabled={submitting}
-              className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2 rounded-xl transition-colors"
+              className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-sm font-medium py-2 rounded-md transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={rating === 0 || submitting}
-              className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-md transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>
