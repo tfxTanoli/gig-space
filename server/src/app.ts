@@ -737,11 +737,31 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
       res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
     }
 
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      destination: stripeAccountId,
-    });
+    let transfer: Stripe.Transfer;
+    try {
+      transfer = await stripe.transfers.create({
+        amount: Math.round(amount * 100),
+        currency: 'usd',
+        destination: stripeAccountId,
+      });
+    } catch (err) {
+      // Seller payouts draw on the platform's *available* balance, and card
+      // payments only settle there after the account's payout delay (2 days on
+      // this account). In test mode funds settled instantly, so this never
+      // surfaced. Stripe's own wording — "You have insufficient available funds
+      // in your Stripe account" — reads to a seller as though *their* balance
+      // is short, which it isn't: nothing has been deducted at this point.
+      if ((err as { code?: string })?.code !== 'balance_insufficient') throw err;
+      console.error(
+        `/api/withdraw: platform balance too low to transfer $${formatMoney(amount)} to ${stripeAccountId} ` +
+        `(seller ${sellerId}) — top up the Stripe balance or wait for payments to settle.`,
+      );
+      res.status(400).json({
+        error: 'Withdrawals are temporarily unavailable while recent payments settle. '
+             + 'Your balance is unchanged — please try again in a couple of business days.',
+      });
+      return;
+    }
 
     const now = Date.now();
     const withdrawalId = db.ref('withdrawals').push().key!;

@@ -40,7 +40,7 @@ export function isUnusableStripeId(err: unknown): boolean {
   const e = err as { type?: string; code?: string; message?: string } | undefined;
   if (!e) return false;
   if (e.type === 'StripeConnectionError' || e.type === 'StripeRateLimitError') return false;
-  if (e.code === 'resource_missing') return true;
+  if (e.code === 'resource_missing' || e.code === 'livemode_mismatch') return true;
 
   const msg = (e.message ?? '').toLowerCase();
   return msg.includes('testmode key') || (msg.includes('test mode') && msg.includes('live mode'));

@@ -224,11 +224,27 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
       res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
     }
 
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      destination: stripeAccountId,
-    });
+    let transfer: Stripe.Transfer;
+    try {
+      transfer = await stripe.transfers.create({
+        amount: Math.round(amount * 100),
+        currency: 'usd',
+        destination: stripeAccountId,
+      });
+    } catch (err) {
+      // Platform balance short, not the affiliate's — see the seller withdraw
+      // path in app.ts for why Stripe's own wording is misleading here.
+      if ((err as { code?: string })?.code !== 'balance_insufficient') throw err;
+      console.error(
+        `/api/affiliate/withdraw: platform balance too low to transfer $${formatMoney(amount)} ` +
+        `to ${stripeAccountId} (affiliate ${affiliateId}).`,
+      );
+      res.status(400).json({
+        error: 'Withdrawals are temporarily unavailable while recent payments settle. '
+             + 'Your balance is unchanged — please try again in a couple of business days.',
+      });
+      return;
+    }
 
     const now = Date.now();
     const payoutId = db.ref('affiliatePayouts').push().key!;
