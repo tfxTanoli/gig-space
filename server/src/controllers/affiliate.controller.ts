@@ -4,6 +4,10 @@ import { type Response } from 'express';
 import { type AuthRequest } from '../middleware/requireAuth';
 import { formatMoney } from '../utils/money';
 import { isUnusableStripeId } from '../stripeClient';
+import {
+  reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
+  isPlatformBalanceShort, PLATFORM_BALANCE_SHORT_MESSAGE,
+} from '../payouts';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 // FRONTEND_URL may be a comma-separated list of allowed origins (see app.ts's
@@ -186,6 +190,56 @@ export async function getPayouts(req: AuthRequest, res: Response): Promise<void>
   }
 }
 
+// Records a completed transfer. The balance was already debited at reservation
+// time, so this never touches availableBalance.
+async function settleAffiliatePayout(
+  affiliateId: string, payoutId: string, amount: number, transferId: string,
+): Promise<void> {
+  const db = admin.database();
+  const now = Date.now();
+  await db.ref().update({
+    [`affiliatePayouts/${payoutId}/status`]:           'paid',
+    [`affiliatePayouts/${payoutId}/stripeTransferId`]: transferId,
+    [`affiliatePayouts/${payoutId}/settledAt`]:        now,
+    [`affiliates/${affiliateId}/totalWithdrawn`]: admin.database.ServerValue.increment(amount),
+    [`affiliates/${affiliateId}/updatedAt`]:     now,
+  });
+}
+
+// Mirrors reconcilePendingWithdrawals() in app.ts — see the comment there for
+// why Stripe's records, not a replayed idempotency key, are the source of truth.
+async function reconcilePendingAffiliatePayouts(affiliateId: string, destination: string): Promise<void> {
+  try {
+    const db = admin.database();
+    const snap = await db.ref('affiliatePayouts')
+      .orderByChild('affiliateId').equalTo(affiliateId).get();
+    if (!snap.exists()) return;
+
+    const rows = snap.val() as Record<string, {
+      amount?: number; status?: string; createdAt?: number;
+    }>;
+
+    for (const [payoutId, row] of Object.entries(rows)) {
+      if (row.status !== 'pending' || !row.amount) continue;
+      if (Date.now() - (row.createdAt ?? 0) < 2 * 60 * 1000) continue;
+
+      const transfer = await findTransferForWithdrawal(destination, payoutId, row.createdAt ?? 0);
+      if (transfer) {
+        console.warn(`/api/affiliate/withdraw: reconciled ${payoutId} — transfer ${transfer.id} had succeeded unrecorded`);
+        await settleAffiliatePayout(affiliateId, payoutId, row.amount, transfer.id);
+      } else {
+        console.warn(`/api/affiliate/withdraw: reconciled ${payoutId} — no transfer exists, releasing $${formatMoney(row.amount)}`);
+        await releaseFunds(db.ref(`affiliates/${affiliateId}`), 'availableBalance', row.amount);
+        await db.ref(`affiliatePayouts/${payoutId}`).update({
+          status: 'failed', failureReason: 'No matching transfer found during reconciliation', settledAt: Date.now(),
+        });
+      }
+    }
+  } catch (err) {
+    console.error('/api/affiliate/withdraw: reconciliation pass failed:', err);
+  }
+}
+
 // POST /api/affiliate/withdraw
 export async function requestWithdrawal(req: AuthRequest, res: Response): Promise<void> {
   try {
@@ -201,11 +255,6 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
     if (!snap.exists()) { res.status(404).json({ error: 'Affiliate account not found' }); return; }
 
     const affiliate = snap.val() as AffiliateData;
-    const available = affiliate.availableBalance ?? 0;
-
-    if (amount > available) {
-      res.status(400).json({ error: `Insufficient balance. Available: $${formatMoney(available)}` }); return;
-    }
 
     const stripeAccountId = affiliate.stripeConnectedAccountId;
     if (!stripeAccountId) {
@@ -224,39 +273,49 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
       res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
     }
 
-    let transfer: Stripe.Transfer;
-    try {
-      transfer = await stripe.transfers.create({
-        amount: Math.round(amount * 100),
-        currency: 'usd',
-        destination: stripeAccountId,
-      });
-    } catch (err) {
-      // Platform balance short, not the affiliate's — see the seller withdraw
-      // path in app.ts for why Stripe's own wording is misleading here.
-      if ((err as { code?: string })?.code !== 'balance_insufficient') throw err;
-      console.error(
-        `/api/affiliate/withdraw: platform balance too low to transfer $${formatMoney(amount)} ` +
-        `to ${stripeAccountId} (affiliate ${affiliateId}).`,
-      );
+    await reconcilePendingAffiliatePayouts(affiliateId, stripeAccountId);
+
+    // Reserve before paying — same ordering as the seller path, for the same
+    // reason: a crash after the transfer must never leave the funds both sent
+    // and still spendable, and concurrent requests must not both clear the
+    // same balance. See server/src/payouts.ts.
+    const payoutId = db.ref('affiliatePayouts').push().key!;
+    const affiliateRef = db.ref(`affiliates/${affiliateId}`);
+    const reservation = await reserveFunds(affiliateRef, 'availableBalance', amount);
+
+    if (!reservation.ok) {
       res.status(400).json({
-        error: 'Withdrawals are temporarily unavailable while recent payments settle. '
-             + 'Your balance is unchanged — please try again in a couple of business days.',
+        error: `Insufficient balance. Available: $${formatMoney(reservation.available ?? 0)}`,
       });
       return;
     }
 
-    const now = Date.now();
-    const payoutId = db.ref('affiliatePayouts').push().key!;
-
-    await db.ref().update({
-      [`affiliatePayouts/${payoutId}`]: {
-        affiliateId, amount, stripeTransferId: transfer.id, status: 'paid', createdAt: now,
-      },
-      [`affiliates/${affiliateId}/availableBalance`]: admin.database.ServerValue.increment(-amount),
-      [`affiliates/${affiliateId}/totalWithdrawn`]:   admin.database.ServerValue.increment(amount),
-      [`affiliates/${affiliateId}/updatedAt`]:        now,
+    await db.ref(`affiliatePayouts/${payoutId}`).set({
+      affiliateId, amount, status: 'pending', createdAt: Date.now(),
     });
+
+    let transfer: Stripe.Transfer;
+    try {
+      transfer = await createPayoutTransfer(stripeAccountId, amount, payoutId, affiliateId);
+    } catch (err) {
+      await releaseFunds(affiliateRef, 'availableBalance', amount);
+      await db.ref(`affiliatePayouts/${payoutId}`).update({
+        status: 'failed',
+        failureReason: err instanceof Error ? err.message : 'Transfer failed',
+        settledAt: Date.now(),
+      });
+
+      if (isPlatformBalanceShort(err)) {
+        console.error(
+          `/api/affiliate/withdraw: platform balance too low to transfer $${formatMoney(amount)} ` +
+          `to ${stripeAccountId} (affiliate ${affiliateId}).`,
+        );
+        res.status(400).json({ error: PLATFORM_BALANCE_SHORT_MESSAGE }); return;
+      }
+      throw err;
+    }
+
+    await settleAffiliatePayout(affiliateId, payoutId, amount, transfer.id);
 
     res.json({ success: true, transferId: transfer.id, payoutId });
   } catch (err) {
