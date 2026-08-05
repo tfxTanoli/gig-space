@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin';
 import adminRouter from './routes/admin.routes';
 import affiliateRouter from './routes/affiliate.routes';
 import { formatMoney, formatAmount } from './utils/money';
+import { isUnusableStripeId } from './stripeClient';
 import {
   sendEmailNotification,
   sendTransactionalEmail,
@@ -591,6 +592,19 @@ app.post('/api/connect/link', requireAuth, async (req: AuthRequest, res: Respons
     const walletSnap = await db.ref(`wallets/${sellerId}/stripeConnectedAccountId`).get();
     let stripeAccountId: string = walletSnap.val() as string;
 
+    // A stored id minted in the other mode (test ids after the live cutover)
+    // can't be linked or paid out to. Drop it so the branch below mints a fresh
+    // account, otherwise the seller is stuck on a dead id forever.
+    if (stripeAccountId) {
+      try {
+        await stripe.accounts.retrieve(stripeAccountId);
+      } catch (err) {
+        if (!isUnusableStripeId(err)) throw err;
+        console.warn(`/api/connect/link: discarding unusable account ${stripeAccountId} for seller ${sellerId}`);
+        stripeAccountId = '';
+      }
+    }
+
     if (!stripeAccountId) {
       const userSnap = await db.ref(`users/${sellerId}`).get();
       const user = userSnap.val() as { email?: string } | null;
@@ -658,7 +672,15 @@ app.post('/api/connect/status', requireAuth, async (req: AuthRequest, res: Respo
     if (!stripeAccountId) {
       res.json({ payoutsEnabled: false, chargesEnabled: false, detailsSubmitted: false }); return;
     }
-    const account = await stripe.accounts.retrieve(stripeAccountId);
+    let account: Stripe.Account;
+    try {
+      account = await stripe.accounts.retrieve(stripeAccountId);
+    } catch (err) {
+      // An id from the other mode isn't a server error — the seller simply has
+      // no usable connected account, which is what the dashboard should show.
+      if (!isUnusableStripeId(err)) throw err;
+      res.json({ payoutsEnabled: false, chargesEnabled: false, detailsSubmitted: false }); return;
+    }
     res.json({
       payoutsEnabled: account.payouts_enabled,
       chargesEnabled: account.charges_enabled,
@@ -701,16 +723,45 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
       res.status(400).json({ error: 'Connect a Stripe account first' }); return;
     }
 
-    const account = await stripe.accounts.retrieve(stripeAccountId);
+    let account: Stripe.Account;
+    try {
+      account = await stripe.accounts.retrieve(stripeAccountId);
+    } catch (err) {
+      // Refuse rather than guess. A stored id from the other mode means the
+      // seller has to re-onboard; sending them the raw Stripe error ("…was a
+      // test account created with a testmode key…") tells them nothing.
+      if (!isUnusableStripeId(err)) throw err;
+      res.status(400).json({ error: 'Connect a Stripe account first' }); return;
+    }
     if (!account.payouts_enabled) {
       res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
     }
 
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      destination: stripeAccountId,
-    });
+    let transfer: Stripe.Transfer;
+    try {
+      transfer = await stripe.transfers.create({
+        amount: Math.round(amount * 100),
+        currency: 'usd',
+        destination: stripeAccountId,
+      });
+    } catch (err) {
+      // Seller payouts draw on the platform's *available* balance, and card
+      // payments only settle there after the account's payout delay (2 days on
+      // this account). In test mode funds settled instantly, so this never
+      // surfaced. Stripe's own wording — "You have insufficient available funds
+      // in your Stripe account" — reads to a seller as though *their* balance
+      // is short, which it isn't: nothing has been deducted at this point.
+      if ((err as { code?: string })?.code !== 'balance_insufficient') throw err;
+      console.error(
+        `/api/withdraw: platform balance too low to transfer $${formatMoney(amount)} to ${stripeAccountId} ` +
+        `(seller ${sellerId}) — top up the Stripe balance or wait for payments to settle.`,
+      );
+      res.status(400).json({
+        error: 'Withdrawals are temporarily unavailable while recent payments settle. '
+             + 'Your balance is unchanged — please try again in a couple of business days.',
+      });
+      return;
+    }
 
     const now = Date.now();
     const withdrawalId = db.ref('withdrawals').push().key!;
@@ -1503,7 +1554,15 @@ app.get('/api/payment-methods', requireAuth, async (req: AuthRequest, res: Respo
       res.json({ paymentMethods: [] }); return;
     }
 
-    const methods = await stripe.paymentMethods.list({ customer: customerId, type: 'card' });
+    let methods: Stripe.ApiList<Stripe.PaymentMethod>;
+    try {
+      methods = await stripe.paymentMethods.list({ customer: customerId, type: 'card' });
+    } catch (err) {
+      // Customer id from the other mode — they have no saved cards on this key.
+      // getOrCreateStripeCustomer() re-creates the customer on the next save.
+      if (!isUnusableStripeId(err)) throw err;
+      res.json({ paymentMethods: [] }); return;
+    }
     res.json({
       paymentMethods: methods.data.map((pm) => ({
         id: pm.id,

@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { type Response } from 'express';
 import { type AuthRequest } from '../middleware/requireAuth';
 import { formatMoney } from '../utils/money';
+import { isUnusableStripeId } from '../stripeClient';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 // FRONTEND_URL may be a comma-separated list of allowed origins (see app.ts's
@@ -211,16 +212,39 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
       res.status(400).json({ error: 'Connect a Stripe account first' }); return;
     }
 
-    const account = await stripe.accounts.retrieve(stripeAccountId);
+    let account: Stripe.Account;
+    try {
+      account = await stripe.accounts.retrieve(stripeAccountId);
+    } catch (err) {
+      // Refuse rather than guess — see the seller withdraw path in app.ts.
+      if (!isUnusableStripeId(err)) throw err;
+      res.status(400).json({ error: 'Connect a Stripe account first' }); return;
+    }
     if (!account.payouts_enabled) {
       res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
     }
 
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      destination: stripeAccountId,
-    });
+    let transfer: Stripe.Transfer;
+    try {
+      transfer = await stripe.transfers.create({
+        amount: Math.round(amount * 100),
+        currency: 'usd',
+        destination: stripeAccountId,
+      });
+    } catch (err) {
+      // Platform balance short, not the affiliate's — see the seller withdraw
+      // path in app.ts for why Stripe's own wording is misleading here.
+      if ((err as { code?: string })?.code !== 'balance_insufficient') throw err;
+      console.error(
+        `/api/affiliate/withdraw: platform balance too low to transfer $${formatMoney(amount)} ` +
+        `to ${stripeAccountId} (affiliate ${affiliateId}).`,
+      );
+      res.status(400).json({
+        error: 'Withdrawals are temporarily unavailable while recent payments settle. '
+             + 'Your balance is unchanged — please try again in a couple of business days.',
+      });
+      return;
+    }
 
     const now = Date.now();
     const payoutId = db.ref('affiliatePayouts').push().key!;
@@ -252,6 +276,18 @@ export async function getConnectLink(req: AuthRequest, res: Response): Promise<v
     const db = admin.database();
     const snap = await db.ref(`affiliates/${affiliateId}/stripeConnectedAccountId`).get();
     let stripeAccountId: string = snap.val() as string;
+
+    // Discard an id minted in the other mode so a fresh account is created
+    // below — otherwise the affiliate is stuck on a dead id forever.
+    if (stripeAccountId) {
+      try {
+        await stripe.accounts.retrieve(stripeAccountId);
+      } catch (err) {
+        if (!isUnusableStripeId(err)) throw err;
+        console.warn(`/api/affiliate/connect/link: discarding unusable account ${stripeAccountId} for ${affiliateId}`);
+        stripeAccountId = '';
+      }
+    }
 
     if (!stripeAccountId) {
       const userSnap = await db.ref(`users/${affiliateId}`).get();
@@ -296,7 +332,13 @@ export async function getConnectStatus(req: AuthRequest, res: Response): Promise
     if (!stripeAccountId) {
       res.json({ payoutsEnabled: false, chargesEnabled: false, detailsSubmitted: false }); return;
     }
-    const account = await stripe.accounts.retrieve(stripeAccountId);
+    let account: Stripe.Account;
+    try {
+      account = await stripe.accounts.retrieve(stripeAccountId);
+    } catch (err) {
+      if (!isUnusableStripeId(err)) throw err;
+      res.json({ payoutsEnabled: false, chargesEnabled: false, detailsSubmitted: false }); return;
+    }
     res.json({
       payoutsEnabled: account.payouts_enabled,
       chargesEnabled: account.charges_enabled,
