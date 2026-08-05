@@ -7,6 +7,10 @@ import affiliateRouter from './routes/affiliate.routes';
 import { formatMoney, formatAmount } from './utils/money';
 import { isUnusableStripeId } from './stripeClient';
 import {
+  reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
+  isPlatformBalanceShort, PLATFORM_BALANCE_SHORT_MESSAGE,
+} from './payouts';
+import {
   sendEmailNotification,
   sendTransactionalEmail,
   buildWelcomeSellerEmail,
@@ -696,6 +700,70 @@ app.post('/api/connect/status', requireAuth, async (req: AuthRequest, res: Respo
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/withdraw
 // ─────────────────────────────────────────────────────────────────────────────
+// Records a completed transfer: marks the withdrawal paid and writes the
+// seller's ledger entry. The balance was already debited when the funds were
+// reserved, so this never touches availableBalance.
+async function settleSellerWithdrawal(
+  sellerId: string, withdrawalId: string, amount: number, transferId: string,
+): Promise<void> {
+  const now = Date.now();
+  const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
+  await db.ref().update({
+    [`withdrawals/${withdrawalId}/status`]:           'paid',
+    [`withdrawals/${withdrawalId}/stripeTransferId`]: transferId,
+    [`withdrawals/${withdrawalId}/settledAt`]:        now,
+    [`wallets/${sellerId}/totalWithdrawn`]: admin.database.ServerValue.increment(amount),
+    [`wallets/${sellerId}/updatedAt`]:      now,
+    [`walletTransactions/${sellerId}/${txId}`]: {
+      type: 'withdrawal', orderId: '', paymentId: '',
+      amount: -amount,
+      description: `Withdrawal — $${formatMoney(amount)}`,
+      createdAt: now,
+    },
+  });
+}
+
+// Resolves withdrawals left `pending` by a crash between the transfer and the
+// bookkeeping write. Stripe's own records are the source of truth: if a
+// transfer carrying this withdrawal id exists the money did leave, so finish
+// the paperwork; if it doesn't, the reservation is handed back.
+//
+// Runs at the start of every withdrawal so it self-heals in the normal flow —
+// no cron, and a seller can't be blocked by an unresolved earlier attempt.
+// Deliberately never throws: reconciliation failing must not block a fresh,
+// otherwise-valid withdrawal.
+async function reconcilePendingWithdrawals(sellerId: string, destination: string): Promise<void> {
+  try {
+    const snap = await db.ref('withdrawals')
+      .orderByChild('sellerId').equalTo(sellerId).get();
+    if (!snap.exists()) return;
+
+    const rows = snap.val() as Record<string, {
+      amount?: number; status?: string; createdAt?: number;
+    }>;
+
+    for (const [withdrawalId, row] of Object.entries(rows)) {
+      if (row.status !== 'pending' || !row.amount) continue;
+      // Give an in-flight request room to finish on its own.
+      if (Date.now() - (row.createdAt ?? 0) < 2 * 60 * 1000) continue;
+
+      const transfer = await findTransferForWithdrawal(destination, withdrawalId, row.createdAt ?? 0);
+      if (transfer) {
+        console.warn(`/api/withdraw: reconciled ${withdrawalId} — transfer ${transfer.id} had succeeded unrecorded`);
+        await settleSellerWithdrawal(sellerId, withdrawalId, row.amount, transfer.id);
+      } else {
+        console.warn(`/api/withdraw: reconciled ${withdrawalId} — no transfer exists, releasing $${formatMoney(row.amount)}`);
+        await releaseFunds(db.ref(`wallets/${sellerId}`), 'availableBalance', row.amount);
+        await db.ref(`withdrawals/${withdrawalId}`).update({
+          status: 'failed', failureReason: 'No matching transfer found during reconciliation', settledAt: Date.now(),
+        });
+      }
+    }
+  } catch (err) {
+    console.error('/api/withdraw: reconciliation pass failed:', err);
+  }
+}
+
 app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const sellerId = req.uid!;
@@ -712,11 +780,6 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
     const wallet = walletSnap.val() as {
       availableBalance?: number; stripeConnectedAccountId?: string;
     };
-    const available = wallet.availableBalance ?? 0;
-
-    if (amount > available) {
-      res.status(400).json({ error: `Insufficient balance. Available: $${formatMoney(available)}` }); return;
-    }
 
     const stripeAccountId = wallet.stripeConnectedAccountId;
     if (!stripeAccountId) {
@@ -737,50 +800,57 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
       res.status(400).json({ error: 'Complete Stripe onboarding before withdrawing' }); return;
     }
 
-    let transfer: Stripe.Transfer;
-    try {
-      transfer = await stripe.transfers.create({
-        amount: Math.round(amount * 100),
-        currency: 'usd',
-        destination: stripeAccountId,
-      });
-    } catch (err) {
-      // Seller payouts draw on the platform's *available* balance, and card
-      // payments only settle there after the account's payout delay (2 days on
-      // this account). In test mode funds settled instantly, so this never
-      // surfaced. Stripe's own wording — "You have insufficient available funds
-      // in your Stripe account" — reads to a seller as though *their* balance
-      // is short, which it isn't: nothing has been deducted at this point.
-      if ((err as { code?: string })?.code !== 'balance_insufficient') throw err;
-      console.error(
-        `/api/withdraw: platform balance too low to transfer $${formatMoney(amount)} to ${stripeAccountId} ` +
-        `(seller ${sellerId}) — top up the Stripe balance or wait for payments to settle.`,
-      );
+    // Settle anything a previous attempt left half-finished before reading the
+    // balance, so a stuck reservation doesn't wrongly block this withdrawal.
+    await reconcilePendingWithdrawals(sellerId, stripeAccountId);
+
+    // ── Reserve before paying ────────────────────────────────────────────────
+    // Debiting first means a crash after the transfer can never leave the funds
+    // both sent and still spendable, and the RTDB transaction serialises
+    // concurrent requests so two clicks can't both clear the same balance.
+    const withdrawalId = db.ref('withdrawals').push().key!;
+    const walletRef = db.ref(`wallets/${sellerId}`);
+    const reservation = await reserveFunds(walletRef, 'availableBalance', amount);
+
+    if (!reservation.ok) {
       res.status(400).json({
-        error: 'Withdrawals are temporarily unavailable while recent payments settle. '
-             + 'Your balance is unchanged — please try again in a couple of business days.',
+        error: `Insufficient balance. Available: $${formatMoney(reservation.available ?? 0)}`,
       });
       return;
     }
 
-    const now = Date.now();
-    const withdrawalId = db.ref('withdrawals').push().key!;
-    const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
-
-    await db.ref().update({
-      [`withdrawals/${withdrawalId}`]: {
-        sellerId, amount, stripeTransferId: transfer.id, status: 'paid', createdAt: now,
-      },
-      [`wallets/${sellerId}/availableBalance`]: admin.database.ServerValue.increment(-amount),
-      [`wallets/${sellerId}/totalWithdrawn`]:   admin.database.ServerValue.increment(amount),
-      [`wallets/${sellerId}/updatedAt`]:        now,
-      [`walletTransactions/${sellerId}/${txId}`]: {
-        type: 'withdrawal', orderId: '', paymentId: '',
-        amount: -amount,
-        description: `Withdrawal — $${formatMoney(amount)}`,
-        createdAt: now,
-      },
+    // Written before the transfer so there is always a trace to reconcile from,
+    // even if the process dies mid-flight.
+    await db.ref(`withdrawals/${withdrawalId}`).set({
+      sellerId, amount, status: 'pending', createdAt: Date.now(),
     });
+
+    let transfer: Stripe.Transfer;
+    try {
+      transfer = await createPayoutTransfer(stripeAccountId, amount, withdrawalId, sellerId);
+    } catch (err) {
+      // Money never moved — hand the reservation back.
+      await releaseFunds(walletRef, 'availableBalance', amount);
+      await db.ref(`withdrawals/${withdrawalId}`).update({
+        status: 'failed',
+        failureReason: err instanceof Error ? err.message : 'Transfer failed',
+        settledAt: Date.now(),
+      });
+
+      if (isPlatformBalanceShort(err)) {
+        console.error(
+          `/api/withdraw: platform balance too low to transfer $${formatMoney(amount)} to ${stripeAccountId} ` +
+          `(seller ${sellerId}) — top up the Stripe balance or wait for payments to settle.`,
+        );
+        res.status(400).json({ error: PLATFORM_BALANCE_SHORT_MESSAGE }); return;
+      }
+      throw err;
+    }
+
+    // Past this point the money has left. A failure here leaves the withdrawal
+    // `pending` with the balance already debited — nobody is paid twice, and the
+    // next reconciliation pass finishes the paperwork from Stripe's records.
+    await settleSellerWithdrawal(sellerId, withdrawalId, amount, transfer.id);
 
     res.json({ success: true, transferId: transfer.id, withdrawalId });
   } catch (err) {
