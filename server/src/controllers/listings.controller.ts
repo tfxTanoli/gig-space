@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 
@@ -70,6 +70,9 @@ const EXT_BY_TYPE: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'image/svg+xml': 'svg',
+  'image/x-icon': 'ico',
+  'image/vnd.microsoft.icon': 'ico',
 };
 
 export function isGooglePhotoUrl(url: unknown): url is string {
@@ -82,20 +85,13 @@ function storageBucket() {
   return admin.storage().bucket();
 }
 
-async function rehostPhoto(sourceUrl: string, folder: string, index: number): Promise<string> {
-  const resp = await fetch(sourceUrl, { redirect: 'follow' });
-  if (!resp.ok) throw new Error(`Google returned ${resp.status}`);
-
-  const contentType = (resp.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
-  if (!contentType.startsWith('image/')) throw new Error(`unexpected content-type "${contentType}"`);
-
+async function saveToStorage(body: Buffer, contentType: string, path: string): Promise<string> {
   const bucket = storageBucket();
-  const path = `${STORAGE_PREFIX}/${folder}/${index}.${EXT_BY_TYPE[contentType] ?? 'jpg'}`;
   // A download token makes the object publicly readable by URL, exactly like a
   // client-side getDownloadURL() upload — no bucket ACL changes needed.
   const token = randomUUID();
 
-  await bucket.file(path).save(Buffer.from(await resp.arrayBuffer()), {
+  await bucket.file(path).save(body, {
     resumable: false,
     metadata: {
       contentType,
@@ -105,6 +101,17 @@ async function rehostPhoto(sourceUrl: string, folder: string, index: number): Pr
   });
 
   return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+}
+
+async function rehostPhoto(sourceUrl: string, folder: string, index: number): Promise<string> {
+  const resp = await fetch(sourceUrl, { redirect: 'follow' });
+  if (!resp.ok) throw new Error(`Google returned ${resp.status}`);
+
+  const contentType = (resp.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
+  if (!contentType.startsWith('image/')) throw new Error(`unexpected content-type "${contentType}"`);
+
+  const path = `${STORAGE_PREFIX}/${folder}/${index}.${EXT_BY_TYPE[contentType] ?? 'jpg'}`;
+  return saveToStorage(Buffer.from(await resp.arrayBuffer()), contentType, path);
 }
 
 /**
@@ -128,13 +135,116 @@ export async function rehostPhotos(urls: unknown[], folder: string): Promise<str
   );
 }
 
-// Business favicon (via Google's favicon service) doubles as the post's logo/avatar.
-function faviconOf(website: string): string {
+/* ─── Business logo (the post's avatar) ────────────────────────────────────────
+ * Google's favicon service answers for *every* domain — when it has no icon it
+ * hands back a faint generic globe, which inside a small round avatar reads as a
+ * barely-visible smudge. So we go looking for a real icon on the business's own
+ * site first (apple-touch-icons are opaque and ≥120px, ideal for a circle), only
+ * fall back to the favicon service, and reject its placeholder by fingerprint.
+ * Whatever we settle on is copied into our Storage like the photos are, so the
+ * post never hot-links a third party. When nothing usable exists we store no
+ * logo at all and the post falls back to the business's initial — a filled
+ * circle beats an empty outline.
+ */
+
+const LOGO_PREFIX = 'listingLogos';
+const FAVICON_SERVICE = 'https://www.google.com/s2/favicons';
+const ICON_REL = /(^|\s)(apple-touch-icon(-precomposed)?|(shortcut\s+)?icon)(\s|$)/i;
+const BROWSER_UA = 'Mozilla/5.0 (compatible; GigspaceBot/1.0; +https://gigspace.co)';
+
+// Cheap, unverified preview URL — used only to show something next to each
+// business in the admin's search results, never persisted onto a post.
+function faviconPreview(website: string): string {
   try {
-    return `https://www.google.com/s2/favicons?domain=${new URL(website).hostname}&sz=128`;
+    return `${FAVICON_SERVICE}?domain=${new URL(website).hostname}&sz=128`;
   } catch {
     return '';
   }
+}
+
+interface FetchedImage { body: Buffer; contentType: string }
+
+async function fetchImage(url: string, timeoutMs = 6000): Promise<FetchedImage | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, {
+      signal: ctrl.signal,
+      redirect: 'follow',
+      headers: { 'User-Agent': BROWSER_UA, Accept: 'image/*' },
+    });
+    if (!resp.ok) return null;
+    const contentType = (resp.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!contentType.startsWith('image/')) return null;
+    const body = Buffer.from(await resp.arrayBuffer());
+    // Anything this small is a tracking pixel or a broken placeholder, not a logo.
+    if (body.length < 256) return null;
+    return { body, contentType };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// The favicon service returns the same globe for every domain it doesn't know,
+// so one sample from a domain that cannot exist identifies all of them. Fetched
+// once per process.
+let placeholderFingerprint: Promise<string | null> | null = null;
+const fingerprint = (body: Buffer) => createHash('sha1').update(body).digest('hex');
+
+function faviconPlaceholder(): Promise<string | null> {
+  placeholderFingerprint ??= fetchImage(`${FAVICON_SERVICE}?domain=gigspace-no-such-domain.invalid&sz=256`)
+    .then((img) => (img ? fingerprint(img.body) : null))
+    .catch(() => null);
+  return placeholderFingerprint;
+}
+
+// Icon <link> tags on the page, best candidate first.
+function iconLinks(html: string, origin: string): string[] {
+  const found: { url: string; score: number }[] = [];
+  for (const match of html.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = match[0];
+    const rel = tag.match(/\brel=["']([^"']+)["']/i)?.[1] ?? '';
+    if (!ICON_REL.test(rel)) continue;
+    const href = tag.match(/\bhref=["']([^"']+)["']/i)?.[1];
+    if (!href) continue;
+    let url: string;
+    try { url = new URL(decodeEntities(href), origin).toString(); } catch { continue; }
+    const declared = Number(tag.match(/\bsizes=["'](\d+)/i)?.[1] ?? 0);
+    // Apple touch icons carry no size attribute but are opaque and ≥120px, so
+    // they outrank everything; past that, the largest declared size wins. A
+    // bare <link rel="icon"> is usually a 16px .ico, so it sorts last.
+    const score = /apple-touch-icon/i.test(rel) ? 1000 : declared || (/\.svg$/i.test(url) ? 512 : 16);
+    found.push({ url, score });
+  }
+  return found.sort((a, b) => b.score - a.score).map((f) => f.url);
+}
+
+/**
+ * Downloads the best available logo for a business and returns our own URL for
+ * it, or '' when the site has nothing better than the favicon service's globe.
+ */
+async function resolveLogo(candidates: string[], website: string, folder: string): Promise<string> {
+  let origin = '';
+  let hostname = '';
+  try { const u = new URL(website); origin = u.origin; hostname = u.hostname; } catch { return ''; }
+
+  const store = (img: FetchedImage) =>
+    saveToStorage(img.body, img.contentType, `${LOGO_PREFIX}/${folder}.${EXT_BY_TYPE[img.contentType] ?? 'png'}`);
+
+  // Site's own icons first, then the two conventional paths sites serve without
+  // declaring. Capped so a site with a dozen dead icon links can't stall a run.
+  const fromSite = [...candidates, `${origin}/apple-touch-icon.png`, `${origin}/favicon.ico`].slice(0, 6);
+  for (const url of fromSite) {
+    const img = await fetchImage(url);
+    if (img) return store(img);
+  }
+
+  const fallback = await fetchImage(`${FAVICON_SERVICE}?domain=${hostname}&sz=256`);
+  if (fallback && fingerprint(fallback.body) !== (await faviconPlaceholder())) return store(fallback);
+
+  return '';
 }
 
 // ─── Search public businesses (preview, not persisted) ──────────────────────────
@@ -218,7 +328,7 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
         address: p.formattedAddress ?? '',
         location: cityStateOf(p),
         website: p.websiteUri ?? '',
-        logo: faviconOf(p.websiteUri ?? ''),
+        logo: faviconPreview(p.websiteUri ?? ''),
         rating: p.rating ?? 0,
         reviewCount: p.userRatingCount ?? 0,
         description: p.editorialSummary?.text ?? '',
@@ -272,12 +382,25 @@ async function fetchPage(url: string, timeoutMs = 6000): Promise<string> {
   }
 }
 
-function decodeEntities(s: string): string {
+const HTML_ENTITY = /&(#\d+|#x[0-9a-f]+|amp|quot|apos|nbsp|lt|gt);/i;
+
+// Entity decoding only — no whitespace handling, so it's safe to run over text
+// whose line breaks carry meaning (descriptions are split into paragraphs on
+// blank lines, which a whitespace collapse would flatten).
+function decodeHtmlEntities(s: string): string {
   return s
-    .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'")
+    // Numeric entities first — sites encode "&" as "&#38;" and "'" as "&#8217;"
+    // often enough that leaving them raw shows up verbatim on the post.
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&amp;/g, '&').replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ')
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/\s+/g, ' ').trim();
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+}
+
+// Used while scraping, where runs of whitespace are just HTML formatting.
+function decodeEntities(s: string): string {
+  return decodeHtmlEntities(s).replace(/\s+/g, ' ').trim();
 }
 
 function metaContent(html: string, key: string): string {
@@ -295,6 +418,160 @@ function pageTitle(html: string): string {
   if (og) return og.slice(0, 90);
   const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return decodeEntities(m?.[1] ?? '').slice(0, 90);
+}
+
+/* ─── Post titles ──────────────────────────────────────────────────────────────
+ * A business's own <title> is frequently just "Home" or "Welcome | Acme" — fine
+ * as a browser tab, useless as a marketplace headline. We drop those junk
+ * segments and compose what's left into "<Business> — <what they do> in <city>",
+ * which always yields something readable from the Places data alone. When an
+ * Anthropic key is configured the batch then gets a single rewrite pass for a
+ * more enticing headline, falling back to the composed title on any failure.
+ */
+
+const TITLE_JUNK = /^(home|home\s?page|welcome|index|untitled|main|start|default|landing(\s?page)?|site|web\s?site|our\s?website|official\s?(site|website))$/i;
+const TITLE_SEPARATORS = /\s*[|•·–—:>»]+\s*|\s+-\s+/;
+const TITLE_MAX = 110;
+
+function cleanSiteTitle(raw: string, businessName: string): string {
+  const segments = raw
+    .split(TITLE_SEPARATORS)
+    .map((s) => s.trim())
+    .filter((s) => s && !TITLE_JUNK.test(s));
+  if (!segments.length) return '';
+
+  // A segment that only repeats the business name adds nothing once we prepend
+  // the name ourselves — unless it's the only segment there is.
+  const name = businessName.trim().toLowerCase();
+  const descriptive = segments.filter((s) => s.toLowerCase() !== name);
+  const kept = (descriptive.length ? descriptive : segments).join(' — ');
+  return kept.length < 3 ? '' : kept;
+}
+
+const includesCI = (haystack: string, needle: string) =>
+  Boolean(needle) && haystack.toLowerCase().includes(needle.toLowerCase());
+
+// Subcategories are stored as slugs ("hvac", "web-design"), so they need casing
+// before they can appear in a headline. Short all-lowercase tokens in this field
+// are trade acronyms — "hvac" wants HVAC, not Hvac.
+const SERVICE_STOPWORDS = new Set(['and', 'or', 'for', 'the', 'to', 'in', 'of', 'a', 'an']);
+
+function humanizeService(raw: string): string {
+  return raw
+    .replace(/[-_]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, i) => {
+      if (/[A-Z]/.test(word)) return word;  // already cased upstream — leave it
+      if (i > 0 && SERVICE_STOPWORDS.has(word)) return word;
+      return word.length <= 4 ? word.toUpperCase() : word[0].toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+}
+
+function composeTitle(name: string, siteTitle: string, rawService: string, location: string): string {
+  const service = humanizeService(rawService);
+  // "HVAC contractor in Austin, Texas", or just one half when that's all we have
+  // — the "in" only makes sense once there's a service in front of it.
+  const fromPlaces = [service, location && (service ? `in ${location}` : location)].filter(Boolean).join(' ');
+  const fromSite = cleanSiteTitle(siteTitle, name);
+
+  // A site title that only echoes the business name tells a buyer nothing the
+  // name already did, so the Places data wins that tie.
+  const echoesName = fromSite.toLowerCase() === name.trim().toLowerCase();
+  const detail = (echoesName ? fromPlaces || fromSite : fromSite || fromPlaces).trim();
+
+  const title = !name ? detail : includesCI(detail, name) ? detail : [name, detail].filter(Boolean).join(' — ');
+  return (title || name || service || 'Local service provider').slice(0, TITLE_MAX);
+}
+
+// ─── Optional AI polish ─────────────────────────────────────────────────────────
+// Set ANTHROPIC_API_KEY to have generated titles rewritten as marketplace
+// headlines. Without it, generation still works — posts just keep the composed
+// title. One batched request per generate keeps the cost per post negligible.
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
+
+interface TitleSubject {
+  name: string;
+  service: string;
+  location: string;
+  fallback: string;
+  description: string;
+}
+
+async function polishTitles(subjects: TitleSubject[]): Promise<string[]> {
+  if (!ANTHROPIC_KEY || subjects.length === 0) return [];
+  try {
+    // Imported lazily so a deploy without the key never pays to load the SDK.
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
+
+    const response = await client.messages.create({
+      model: 'claude-opus-5',
+      // Generous ceiling: max_tokens covers reasoning as well as the titles
+      // themselves, and a truncated response would fail the schema and cost us
+      // the whole batch. Billing is on tokens actually used, not the ceiling.
+      max_tokens: 8000,
+      output_config: {
+        effort: 'low',
+        format: {
+          type: 'json_schema',
+          schema: {
+            type: 'object',
+            properties: {
+              titles: {
+                type: 'array',
+                description: 'One rewritten title per business, in the order given.',
+                items: { type: 'string' },
+              },
+            },
+            required: ['titles'],
+            additionalProperties: false,
+          },
+        },
+      },
+      system:
+        'You write listing headlines for a local-services marketplace. For each business, ' +
+        'write one title that names the business and what it actually does, so a buyer ' +
+        'browsing search results knows whether to click. Keep it under 70 characters, in ' +
+        'title case, with no quotes, emoji, or trailing punctuation. Mention the city only ' +
+        'when it fits naturally. Never invent services, credentials, awards, or claims that ' +
+        'are not in the supplied data. Return exactly one title per business, in order.',
+      messages: [
+        {
+          role: 'user',
+          content: JSON.stringify(
+            subjects.map((s) => ({
+              business: s.name,
+              service: s.service,
+              location: s.location,
+              currentTitle: s.fallback,
+              about: s.description.slice(0, 400),
+            })),
+          ),
+        },
+      ],
+    });
+
+    // A refusal or a truncated response can't be parsed against the schema, so
+    // say which it was rather than surfacing a bare JSON error.
+    if (response.stop_reason !== 'end_turn') {
+      console.error(`[listings] title polish stopped early (${response.stop_reason}), using composed titles`);
+      return [];
+    }
+
+    const text = response.content.find((b) => b.type === 'text')?.text ?? '';
+    const titles = (JSON.parse(text) as { titles?: unknown }).titles;
+    // A short or over-long array means the model lost track of the ordering, and
+    // a mis-mapped title is worse than no title at all.
+    if (!Array.isArray(titles) || titles.length !== subjects.length) return [];
+    return titles.map((t) => String(t ?? '').trim().slice(0, TITLE_MAX));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[listings] title polish unavailable, using composed titles: ${msg}`);
+    return [];
+  }
 }
 
 // Descriptions are assembled from the meta description plus real body copy so
@@ -353,10 +630,12 @@ async function scrapeEmail(website: string): Promise<string> {
   return email;
 }
 
-interface ScrapedSite { title: string; description: string; email: string }
+interface ScrapedSite { title: string; description: string; email: string; iconUrls: string[] }
+
+const emptySite = (): ScrapedSite => ({ title: '', description: '', email: '', iconUrls: [] });
 
 async function scrapeWebsite(website: string): Promise<ScrapedSite> {
-  const out: ScrapedSite = { title: '', description: '', email: '' };
+  const out = emptySite();
   let origin = '';
   try { origin = new URL(website).origin; } catch { return out; }
 
@@ -365,6 +644,7 @@ async function scrapeWebsite(website: string): Promise<ScrapedSite> {
   if (home) {
     out.title = pageTitle(home);
     out.email = pageEmail(home);
+    out.iconUrls = iconLinks(home, origin);
     const meta = metaContent(home, 'og:description') || metaContent(home, 'description');
     if (meta.length >= 60) descParts.push(meta);
     descParts = mergeParagraphs(descParts, pageParagraphs(home));
@@ -426,9 +706,36 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     const db = admin.database();
     const created: { id: string; name: string }[] = [];
 
-    // Scrape all selected websites up front (parallel) — title, description, email.
+    // Scrape all selected websites up front (parallel) — title, description,
+    // email, and the page's icon links (the raw material for the post's logo).
     const scraped = await Promise.all(
-      businesses.map((b) => (b.website ? scrapeWebsite(b.website) : Promise.resolve<ScrapedSite>({ title: '', description: '', email: '' }))),
+      businesses.map((b) => (b.website ? scrapeWebsite(b.website) : Promise.resolve(emptySite()))),
+    );
+
+    // What the business actually does, best available first: Places' own label
+    // ("HVAC contractor"), then the subcategory the admin filed it under
+    // ("hvac"), and only then the broad category ("Skilled Trade").
+    const serviceLabel = (b: GenBusiness) => b.type || subcategory || category || '';
+
+    // Compose a readable title for every business, then hand the whole batch to
+    // the model in one request. `polished` is empty whenever AI titles aren't
+    // configured or the call failed, so the composed title is always the floor.
+    const composed = businesses.map((b, i) =>
+      composeTitle(
+        b.name ?? '',
+        scraped[i].title,
+        serviceLabel(b),
+        b.location || b.address || '',
+      ),
+    );
+    const polished = await polishTitles(
+      businesses.map((b, i) => ({
+        name: b.name ?? '',
+        service: humanizeService(serviceLabel(b)),
+        location: b.location || b.address || '',
+        fallback: composed[i],
+        description: scraped[i].description || b.description || '',
+      })),
     );
 
     for (let i = 0; i < businesses.length; i++) {
@@ -441,6 +748,10 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       // uploads), copied into our own Storage so viewing a post never calls —
       // or gets billed by — Google again.
       const images = await rehostPhotos(Array.isArray(b.images) ? b.images : [], id);
+      // Same deal for the avatar: find the business's real logo and serve it
+      // ourselves. Empty means we found nothing better than a generic globe, and
+      // the post renders the business's initial instead.
+      const logo = b.website ? await resolveLogo(site.iconUrls, b.website, id) : '';
       const reviews = Array.isArray(b.reviews) ? b.reviews : [];
       // The Places API returns at most 5 review texts, but the business's REAL
       // totals come from rating/userRatingCount — store those so the post shows
@@ -455,12 +766,12 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         sellerId: '',
         sellerName: b.name ?? '',
         sellerUsername: '',
-        sellerPhotoURL: b.logo ?? '',
-        title: site.title || b.name || '',
+        sellerPhotoURL: logo,
+        title: polished[i] || composed[i],
         description:
           site.description ||
           b.description ||
-          `${b.name ?? ''} — ${b.type || category || ''}. ${location}`.trim(),
+          `${b.name ?? ''} — ${humanizeService(serviceLabel(b))}. ${location}`.trim(),
         category: category ?? '',
         subcategory: subcategory ?? '',
         priceMin: 0,
@@ -512,11 +823,41 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
   }
 }
 
-// ─── Backfill: move already-generated posts off Google-hosted photos ────────────
-// Posts created before photos were re-hosted still point at places.googleapis.com.
-// This walks them in batches — one HTTP call can only do so much before the
-// serverless timeout — and reports what's left so the caller can keep going.
+// ─── Backfill: move already-generated posts onto our own storage ────────────────
+// Newly generated posts already store their photos and logo with us — this is
+// purely for posts created before that, which still point at
+// places.googleapis.com for photos or at the favicon service for their avatar.
+// It walks them in batches (one HTTP call can only do so much before the
+// serverless timeout) and reports what's left so the caller can keep going.
 const REHOST_BATCH_MAX = 25;
+const HOTLINKED_LOGO = /^https:\/\/(www\.)?google\.com\/s2\/favicons/;
+
+// Anything not already on our own bucket needs replacing — an empty avatar on a
+// generated post means we never resolved one.
+const needsLogo = (service: Record<string, unknown>) =>
+  service.isGenerated === true &&
+  typeof service.website === 'string' &&
+  service.website !== '' &&
+  (typeof service.sellerPhotoURL !== 'string' ||
+    service.sellerPhotoURL === '' ||
+    HOTLINKED_LOGO.test(service.sellerPhotoURL));
+
+/**
+ * Whether a stored title is broken rather than merely plain. Deliberately
+ * narrow: an admin may have hand-written a title, and silently replacing their
+ * wording would be worse than leaving a weak one alone. Only two cases qualify —
+ * a title that is nothing but junk once cleaned ("Home", "Welcome"), and one
+ * still carrying a raw HTML entity, which is always a scraping artefact.
+ */
+function isBrokenTitle(title: unknown, businessName: string): title is string {
+  if (typeof title !== 'string' || !title.trim()) return true;
+  if (HTML_ENTITY.test(title)) return true;
+  return cleanSiteTitle(title, businessName) === '';
+}
+
+// Descriptions only ever need the entity fix — the scraped copy itself is fine.
+const hasRawEntity = (text: unknown): text is string =>
+  typeof text === 'string' && HTML_ENTITY.test(text);
 
 export async function rehostListingPhotos(req: AdminRequest, res: Response): Promise<void> {
   try {
@@ -526,30 +867,92 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
     const db = admin.database();
     const snap = await db.ref('services').once('value');
 
-    const pending: { id: string; images: unknown[] }[] = [];
+    interface Pending {
+      id: string;
+      images: unknown[];
+      website: string;      // '' when neither repair below needs the homepage
+      staleLogo: boolean;
+      brokenTitle: boolean;
+      rawDescription: string;   // '' unless it still carries undecoded entities
+      name: string;
+      service: string;
+      location: string;
+    }
+
+    const pending: Pending[] = [];
     snap.forEach((child) => {
-      const images = child.val()?.images;
-      if (Array.isArray(images) && images.some(isGooglePhotoUrl)) {
-        pending.push({ id: child.key as string, images });
+      const service = (child.val() ?? {}) as Record<string, unknown>;
+      if (service.isGenerated !== true) return false;
+
+      const images = Array.isArray(service.images) ? service.images : [];
+      const name = String(service.sellerName ?? '');
+      const staleLogo = needsLogo(service);
+      const brokenTitle = isBrokenTitle(service.title, name);
+      const rawDescription = hasRawEntity(service.description) ? service.description : '';
+
+      if (images.some(isGooglePhotoUrl) || staleLogo || brokenTitle || rawDescription) {
+        pending.push({
+          id: child.key as string,
+          images,
+          // A broken title also needs the homepage, to read the real <title>.
+          website: staleLogo || brokenTitle ? String(service.website ?? '') : '',
+          staleLogo,
+          brokenTitle,
+          rawDescription,
+          name,
+          // Subcategory is the specific trade ("HVAC"); category is the bucket.
+          service: String(service.subcategory || service.category || ''),
+          location: String(service.primaryLocation ?? ''),
+        });
       }
       return false; // keep iterating
     });
 
     let migrated = 0;
     let photos = 0;
+    let logos = 0;
+    let titles = 0;
+    let descriptions = 0;
     let failed = 0;
 
-    for (const service of pending.slice(0, limit)) {
-      const rehosted = await rehostPhotos(service.images, service.id);
-      const copied = rehosted.filter((url, i) => url !== service.images[i]).length;
-      const stillGoogle = rehosted.filter(isGooglePhotoUrl).length;
+    for (const item of pending.slice(0, limit)) {
+      const patch: Record<string, unknown> = {};
 
-      if (copied) {
-        await db.ref(`services/${service.id}`).update({ images: rehosted });
+      const rehosted = await rehostPhotos(item.images, item.id);
+      const copied = rehosted.filter((url, i) => url !== item.images[i]).length;
+      if (copied) patch.images = rehosted;
+      failed += rehosted.filter(isGooglePhotoUrl).length;
+
+      // Pure text fix — no refetch needed, and paragraph breaks are preserved.
+      if (item.rawDescription) patch.description = decodeHtmlEntities(item.rawDescription);
+
+      if (item.website) {
+        // One homepage fetch serves both repairs below.
+        const home = await fetchPage(item.website);
+        let origin = '';
+        try { origin = new URL(item.website).origin; } catch { /* resolveLogo handles it */ }
+
+        if (item.staleLogo) {
+          const logo = await resolveLogo(home && origin ? iconLinks(home, origin) : [], item.website, item.id);
+          if (logo) patch.sellerPhotoURL = logo;
+        }
+
+        if (item.brokenTitle) {
+          const rebuilt = composeTitle(item.name, home ? pageTitle(home) : '', item.service, item.location);
+          // Only worth a write if we ended up somewhere other than the bare name.
+          if (rebuilt && rebuilt !== item.name) patch.title = rebuilt;
+        }
+      }
+
+      if (Object.keys(patch).length) {
+        patch.updatedAt = Date.now();
+        await db.ref(`services/${item.id}`).update(patch);
         migrated += 1;
         photos += copied;
+        if (patch.sellerPhotoURL) logos += 1;
+        if (patch.title) titles += 1;
+        if (patch.description) descriptions += 1;
       }
-      failed += stillGoogle;
     }
 
     res.json({
@@ -557,6 +960,9 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       processed: Math.min(limit, pending.length),
       migrated,
       photos,
+      logos,
+      titles,
+      descriptions,
       failed,
       remaining: Math.max(0, pending.length - limit),
     });

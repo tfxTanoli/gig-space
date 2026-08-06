@@ -65,6 +65,32 @@ const GEN_STATUS_BADGE: Record<GenStatus, { label: string; cls: string }> = {
   claimed:   { label: 'Claimed',   cls: 'bg-blue-500/10 text-blue-400' },
 };
 
+// Business logo shown next to a listing. Logos are square and often transparent,
+// so they sit on a white disc rather than being cropped to fill; a missing or
+// broken one falls back to the business's initial, matching how the post page
+// renders it — the admin should never see an avatar the public page won't show.
+function BusinessLogo({ url, name, className }: { url?: string; name?: string; className: string }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [url]);
+
+  if (url && !broken) {
+    return (
+      <img
+        src={url}
+        alt=""
+        title="Business logo (post avatar)"
+        onError={() => setBroken(true)}
+        className={`${className} rounded-full bg-white object-contain p-0.5 flex-shrink-0`}
+      />
+    );
+  }
+  return (
+    <div className={`${className} rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white font-semibold`}>
+      {name?.charAt(0)?.toUpperCase() ?? '?'}
+    </div>
+  );
+}
+
 // City field with the same Photon-powered auto-suggest the buyer search uses.
 function CityAutosuggest({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [suggestions, setSuggestions] = useState<LocationResult[]>([]);
@@ -209,33 +235,47 @@ export default function AdminListingsTab() {
     } finally { setGenerating(false); }
   };
 
-  // Posts generated before photos were re-hosted still link straight to Google,
-  // which bills us on every view. Walk the backlog in batches until the server
-  // reports nothing left — or stops making progress, so a photo Google refuses
-  // to hand over can't spin this forever.
+  // One-time backfill for posts generated before media was self-hosted: those
+  // still link straight to Google, which bills us on every view. Newly generated
+  // posts copy their photos and logo at creation, so this only ever has the old
+  // backlog to work through. Walk it in batches until the server reports nothing
+  // left — or stops making progress, so media Google refuses to hand over can't
+  // spin this forever.
   const doRehostPhotos = async () => {
     setRehosting(true);
     try {
       let listings = 0;
       let photos = 0;
+      let logos = 0;
+      let titles = 0;
+      let descriptions = 0;
       let failed = 0;
       for (;;) {
         const batch = await adminRehostListingPhotos(10);
         listings += batch.migrated;
         photos += batch.photos;
+        logos += batch.logos;
+        titles += batch.titles;
+        descriptions += batch.descriptions;
         failed = batch.failed;
         if (batch.remaining === 0 || batch.migrated === 0) break;
       }
       if (listings === 0) {
         toast.message(failed > 0
-          ? `No photos could be copied — ${failed} were refused by Google.`
-          : 'All listing photos are already served from our own storage.');
+          ? `Nothing could be repaired — ${failed} images were refused by Google.`
+          : 'Nothing to do — every listing is already up to date.');
       } else {
-        toast.success(`Copied ${photos} photo${photos !== 1 ? 's' : ''} across ${listings} listing${listings !== 1 ? 's' : ''} into our storage.`);
+        const fixed = [
+          photos > 0 && `${photos} photo${photos !== 1 ? 's' : ''}`,
+          logos > 0 && `${logos} logo${logos !== 1 ? 's' : ''}`,
+          titles > 0 && `${titles} title${titles !== 1 ? 's' : ''}`,
+          descriptions > 0 && `${descriptions} description${descriptions !== 1 ? 's' : ''}`,
+        ].filter(Boolean).join(', ');
+        toast.success(`Repaired ${fixed} across ${listings} listing${listings !== 1 ? 's' : ''}.`);
         await loadGenerated();
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to re-host photos');
+      toast.error(err instanceof Error ? err.message : 'Failed to re-host media');
     } finally { setRehosting(false); }
   };
 
@@ -349,13 +389,7 @@ export default function AdminListingsTab() {
                     <button onClick={() => toggle(b.placeId)} className="mt-0.5 text-slate-400 hover:text-blue-400 flex-shrink-0">
                       {checked ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5" />}
                     </button>
-                    {b.logo ? (
-                      <img src={b.logo} alt="" title="Business favicon (post avatar)" className="w-9 h-9 rounded-full bg-white object-contain flex-shrink-0" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700/60 flex items-center justify-center flex-shrink-0 text-slate-600 text-sm font-bold">
-                        {b.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <BusinessLogo url={b.logo} name={b.name} className="w-9 h-9 text-sm" />
                     <div className="min-w-0 flex-1">
                       <p className="text-white font-medium text-sm">{b.name}</p>
                       <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{b.location || b.address || '—'}</p>
@@ -407,11 +441,11 @@ export default function AdminListingsTab() {
             <button
               onClick={doRehostPhotos}
               disabled={rehosting}
-              title="Copy any Google-hosted listing photos into our own storage, so viewing a post no longer calls Google"
+              title="One-time repair for older listings: copies Google-hosted photos and logos into our own storage, and rebuilds titles that are broken (e.g. just 'Home'). Hand-edited titles are left alone. New listings get all of this automatically — you only need this once."
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700/50 bg-surface-raised text-xs text-slate-300 hover:text-white hover:border-slate-600 disabled:opacity-50 transition-colors"
             >
               {rehosting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageDown className="w-3.5 h-3.5" />}
-              {rehosting ? 'Copying…' : 'Re-host Google photos'}
+              {rehosting ? 'Copying…' : 'Backfill old listings'}
             </button>
             <input
               value={genLocFilter}
@@ -467,11 +501,7 @@ export default function AdminListingsTab() {
                       <tr key={g.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2.5">
-                            {g.sellerPhotoURL ? (
-                              <img src={g.sellerPhotoURL} alt="" title="Business favicon (post avatar)" className="w-7 h-7 rounded-full bg-white object-contain flex-shrink-0" />
-                            ) : (
-                              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700/60 flex-shrink-0" />
-                            )}
+                            <BusinessLogo url={g.sellerPhotoURL} name={g.sellerName || g.title} className="w-7 h-7 text-xs" />
                             <span className="text-white font-medium truncate max-w-[180px]">{g.title || '—'}</span>
                           </div>
                         </td>

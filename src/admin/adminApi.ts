@@ -99,15 +99,24 @@ export const adminGenerateListings = (body: { category: string; subcategory: str
   });
 
 export interface RehostPhotosResult {
-  pending: number;    // listings still on Google-hosted photos when the batch started
+  pending: number;    // listings still on Google-hosted photos/logos when the batch started
   processed: number;
   migrated: number;   // listings updated by this batch
   photos: number;     // individual photos copied into our Storage
-  failed: number;     // photos Google wouldn't hand over — left as-is
+  logos: number;      // listings given a real, self-hosted business logo
+  titles: number;        // listings whose title was broken ("Home", entity-mangled) and rebuilt
+  descriptions: number;  // listings whose description still showed raw HTML entities
+  failed: number;        // photos Google wouldn't hand over — left as-is
   remaining: number;
 }
 
-/** Copies Google-hosted photos on already-generated listings into our own Storage. */
+/**
+ * One-time repair pass for listings generated before this was handled at
+ * creation: copies Google-hosted photos into our Storage, replaces hot-linked
+ * favicons with the business's real logo, and rebuilds titles that are broken
+ * rather than merely plain. Hand-edited titles are left alone. Posts generated
+ * now get all three automatically.
+ */
 export const adminRehostListingPhotos = (limit = 5) =>
   authedFetch<RehostPhotosResult>('/api/admin/listings/rehost-photos', {
     method: 'POST',

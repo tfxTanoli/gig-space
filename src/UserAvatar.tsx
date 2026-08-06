@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 
 const sizes = {
@@ -6,27 +7,48 @@ const sizes = {
   lg: 'w-12 h-12 text-lg',
 };
 
+// Generated listings use the business's logo as their avatar. Logos are square
+// and often transparent, so cropping them to fill (object-cover) either clips the
+// mark or leaves it invisible against a dark page — they need a white disc and
+// room to breathe instead. We can tell them apart by where they're stored.
+const isBusinessLogo = (url: string) => url.includes('listingLogos');
+
+const imageClasses = (url: string) =>
+  isBusinessLogo(url)
+    ? 'bg-white object-contain p-0.5'
+    : 'object-cover';
+
+// Shared by both avatars: the initial in a filled circle. This is what a missing
+// or broken photo falls back to, so there's always a complete circle on screen.
+const Initial = ({ cls, name, interactive }: { cls: string; name?: string; interactive?: boolean }) => (
+  <div
+    className={`${cls} rounded-full bg-primary flex items-center justify-center text-white font-semibold flex-shrink-0 ${interactive ? 'cursor-pointer' : ''}`}
+  >
+    {name?.charAt(0)?.toUpperCase() ?? '?'}
+  </div>
+);
+
 // Displays the currently logged-in user's real avatar (photo or initial).
 export const CurrentUserAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' | 'lg' }) => {
   const { userProfile } = useAuth();
   const cls = sizes[size];
+  const [broken, setBroken] = useState(false);
 
-  if (userProfile?.photoURL) {
+  useEffect(() => { setBroken(false); }, [userProfile?.photoURL]);
+
+  if (userProfile?.photoURL && !broken) {
     return (
       <img
         src={userProfile.photoURL}
         alt={userProfile.name}
         decoding="async"
-        className={`${cls} rounded-full object-cover cursor-pointer flex-shrink-0`}
+        onError={() => setBroken(true)}
+        className={`${cls} rounded-full ${imageClasses(userProfile.photoURL)} cursor-pointer flex-shrink-0`}
       />
     );
   }
 
-  return (
-    <div className={`${cls} rounded-full bg-primary flex items-center justify-center text-white font-semibold cursor-pointer flex-shrink-0`}>
-      {userProfile?.name?.charAt(0)?.toUpperCase() ?? '?'}
-    </div>
-  );
+  return <Initial cls={cls} name={userProfile?.name} interactive />;
 };
 
 // Displays any user's avatar given explicit photoURL + name props.
@@ -40,22 +62,22 @@ export const UserAvatar = ({
   size?: 'sm' | 'md' | 'lg';
 }) => {
   const cls = sizes[size];
+  const [broken, setBroken] = useState(false);
 
-  if (photoURL) {
+  useEffect(() => { setBroken(false); }, [photoURL]);
+
+  if (photoURL && !broken) {
     return (
       <img
         src={photoURL}
         alt={name ?? 'avatar'}
         loading="lazy"
         decoding="async"
-        className={`${cls} rounded-full object-cover flex-shrink-0`}
+        onError={() => setBroken(true)}
+        className={`${cls} rounded-full ${imageClasses(photoURL)} flex-shrink-0`}
       />
     );
   }
 
-  return (
-    <div className={`${cls} rounded-full bg-primary flex items-center justify-center text-white font-semibold flex-shrink-0`}>
-      {name?.charAt(0)?.toUpperCase() ?? '?'}
-    </div>
-  );
+  return <Initial cls={cls} name={name} />;
 };
