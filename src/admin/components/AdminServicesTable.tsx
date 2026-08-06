@@ -25,7 +25,9 @@ export interface AdminService {
   price: number;
   priceMin?: number;
   priceMax?: number | null;
-  priceType?: 'per_project' | 'per_hour';
+  // Generated listings carry no price — they're marked "contact for pricing"
+  // and their priceMin/priceMax are meaningless.
+  priceType?: 'per_project' | 'per_hour' | 'contact_for_pricing';
   status: string;
   imageUrl?: string | null;
   images?: string[];
@@ -149,8 +151,14 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onEdit, onNew }
 
                     {/* Price */}
                     <td className="px-5 py-3 text-slate-300 whitespace-nowrap">
-                      ${(s.priceMin ?? s.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      {s.priceMax ? ` – $${s.priceMax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+                      {s.priceType === 'contact_for_pricing' ? (
+                        <span className="text-slate-500">Contact for pricing</span>
+                      ) : (
+                        <>
+                          ${(s.priceMin ?? s.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {s.priceMax ? ` – $${s.priceMax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+                        </>
+                      )}
                     </td>
 
                     {/* Category */}

@@ -16,9 +16,14 @@ interface Props {
 }
 
 const PRICE_TYPES = [
-  { value: 'per_project', label: 'Per Project' },
-  { value: 'per_hour',    label: 'Per Hour' },
+  { value: 'per_project',        label: 'Per Project' },
+  { value: 'per_hour',           label: 'Per Hour' },
+  // Generated listings are created with this — without it here, opening one in
+  // this drawer and saving would silently re-price it.
+  { value: 'contact_for_pricing', label: 'Contact for pricing' },
 ] as const;
+
+type PriceType = (typeof PRICE_TYPES)[number]['value'];
 
 const STATUS_OPTIONS = [
   { value: 'active',  label: 'Active' },
@@ -79,7 +84,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
   const [subcategory,    setSubcategory]    = useState(service.subcategory ?? '');
   const [priceMin,       setPriceMin]       = useState(String(service.priceMin ?? service.price ?? ''));
   const [priceMax,       setPriceMax]       = useState(service.priceMax != null ? String(service.priceMax) : '');
-  const [priceType,      setPriceType]      = useState<'per_project' | 'per_hour'>(service.priceType ?? 'per_project');
+  const [priceType,      setPriceType]      = useState<PriceType>(service.priceType ?? 'per_project');
   const [status,         setStatus]         = useState(service.status ?? 'active');
   const [existingImages, setExistingImages] = useState<string[]>(service.images ?? (service.imageUrl ? [service.imageUrl] : []));
   const [primaryLocation, setPrimaryLocation] = useState(service.primaryLocation ?? '');
@@ -134,13 +139,20 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
     setLanguageInput('');
   };
 
+  // "Contact for pricing" posts carry no figures, so the amount inputs are
+  // disabled and the numbers below are stored as zero/absent rather than
+  // whatever happens to be sitting in the boxes.
+  const noPrice = priceType === 'contact_for_pricing';
+
   const handleSave = async () => {
-    const parsedMin = parseFloat(priceMin);
-    const parsedMax = priceMax ? parseFloat(priceMax) : null;
+    const parsedMin = noPrice ? 0 : parseFloat(priceMin);
+    const parsedMax = noPrice ? null : (priceMax ? parseFloat(priceMax) : null);
 
     if (!title.trim()) { setError('Title is required.'); return; }
-    if (isNaN(parsedMin) || parsedMin < 0) { setError('Price Min must be a valid non-negative number.'); return; }
-    if (parsedMax !== null && parsedMax < parsedMin) { setError('Price Max must be greater than Price Min.'); return; }
+    if (!noPrice) {
+      if (isNaN(parsedMin) || parsedMin < 0) { setError('Price Min must be a valid non-negative number.'); return; }
+      if (parsedMax !== null && parsedMax < parsedMin) { setError('Price Max must be greater than Price Min.'); return; }
+    }
 
     setError(null);
     setSaving(true);
@@ -185,7 +197,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
         price:          Number(fresh?.priceMin      ?? fresh?.price ?? 0),
         priceMin:       Number(fresh?.priceMin      ?? 0),
         priceMax:       fresh?.priceMax != null ? Number(fresh.priceMax) : null,
-        priceType:      (fresh?.priceType as 'per_project' | 'per_hour') ?? 'per_project',
+        priceType:      (fresh?.priceType as PriceType) ?? 'per_project',
         status:         String(fresh?.status        ?? 'active'),
         images:         imgs,
         imageUrl:       imgs[0] ?? null,
@@ -280,18 +292,23 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
             <FieldLabel>Pricing</FieldLabel>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Input type="number" min="0" step="0.01" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min $" />
+                <Input type="number" min="0" step="0.01" value={noPrice ? '' : priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min $" disabled={noPrice} className={noPrice ? 'opacity-50 cursor-not-allowed' : undefined} />
               </div>
               <div>
-                <Input type="number" min="0" step="0.01" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max $ (opt)" />
+                <Input type="number" min="0" step="0.01" value={noPrice ? '' : priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max $ (opt)" disabled={noPrice} className={noPrice ? 'opacity-50 cursor-not-allowed' : undefined} />
               </div>
               <div className="relative">
-                <Select value={priceType} onChange={(e) => setPriceType(e.target.value as 'per_project' | 'per_hour')}>
+                <Select value={priceType} onChange={(e) => setPriceType(e.target.value as PriceType)}>
                   {PRICE_TYPES.map((pt) => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
                 </Select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
               </div>
             </div>
+            {noPrice && (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Buyers see “Contact for pricing” on this post — no amounts are shown.
+              </p>
+            )}
           </div>
 
           {/* Status */}

@@ -135,7 +135,7 @@ const parseServices = (raw: Record<string, Record<string, unknown>>): AdminServi
         price:           Number(s?.priceMin        ?? s?.price ?? 0),
         priceMin:        Number(s?.priceMin        ?? s?.price ?? 0),
         priceMax:        s?.priceMax != null ? Number(s.priceMax) : null,
-        priceType:       (s?.priceType as 'per_project' | 'per_hour') ?? 'per_project',
+        priceType:       (s?.priceType as AdminService['priceType']) ?? 'per_project',
         status:          String(s?.status          ?? 'active'),
         images,
         imageUrl:        images[0] ?? null,

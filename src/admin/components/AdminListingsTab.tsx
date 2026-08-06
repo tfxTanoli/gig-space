@@ -34,7 +34,10 @@ function parseGen(id: string, s: Record<string, unknown>): GenListing {
     price:           Number(s.priceMin ?? 0),
     priceMin:        Number(s.priceMin ?? 0),
     priceMax:        s.priceMax != null ? Number(s.priceMax) : null,
-    priceType:       'per_project', // coerced for AdminService; generated posts show "Contact for pricing"
+    // Read through as stored. Coercing this to 'per_project' used to mean the
+    // edit drawer saved that back, silently turning "Contact for pricing" into
+    // "$0 per project" on any generated listing an admin touched.
+    priceType:       (s.priceType as AdminService['priceType']) ?? 'contact_for_pricing',
     status:          String(s.status ?? 'draft'),
     images,
     imageUrl:        images[0] ?? null,
