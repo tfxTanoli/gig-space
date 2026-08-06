@@ -13,9 +13,12 @@ interface Props {
 }
 
 const PRICE_TYPES = [
-  { value: 'per_project', label: 'Per Project' },
-  { value: 'per_hour',    label: 'Per Hour' },
+  { value: 'per_project',         label: 'Per Project' },
+  { value: 'per_hour',            label: 'Per Hour' },
+  { value: 'contact_for_pricing', label: 'Contact for pricing' },
 ] as const;
+
+type PriceType = (typeof PRICE_TYPES)[number]['value'];
 
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
   <label className="block text-xs font-medium text-slate-400 mb-1.5">{children}</label>
@@ -52,7 +55,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
   const [subcategory,    setSubcategory]    = useState('');
   const [priceMin,       setPriceMin]       = useState('');
   const [priceMax,       setPriceMax]       = useState('');
-  const [priceType,      setPriceType]      = useState<'per_project' | 'per_hour'>('per_project');
+  const [priceType,      setPriceType]      = useState<PriceType>('per_project');
   const [primaryLocation, setPrimaryLocation] = useState('');
   const [extraLocations, setExtraLocations]   = useState<string[]>([]);
   const [offeredRemotely, setOfferedRemotely] = useState(false);
@@ -96,14 +99,21 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
     setLanguageInput('');
   };
 
+  // "Contact for pricing" posts carry no figures, so the amount inputs are
+  // disabled and the numbers below are stored as zero/absent rather than
+  // whatever happens to be sitting in the boxes.
+  const noPrice = priceType === 'contact_for_pricing';
+
   const handleSave = async () => {
-    const parsedMin = parseFloat(priceMin);
-    const parsedMax = priceMax ? parseFloat(priceMax) : null;
+    const parsedMin = noPrice ? 0 : parseFloat(priceMin);
+    const parsedMax = noPrice ? null : (priceMax ? parseFloat(priceMax) : null);
 
     if (!title.trim()) { setError('Title is required.'); return; }
     if (!category)     { setError('Category is required.'); return; }
-    if (isNaN(parsedMin) || parsedMin < 0) { setError('Price Min must be a valid non-negative number.'); return; }
-    if (parsedMax !== null && parsedMax < parsedMin) { setError('Price Max must be ≥ Price Min.'); return; }
+    if (!noPrice) {
+      if (isNaN(parsedMin) || parsedMin < 0) { setError('Price Min must be a valid non-negative number.'); return; }
+      if (parsedMax !== null && parsedMax < parsedMin) { setError('Price Max must be ≥ Price Min.'); return; }
+    }
 
     setError(null);
     setSaving(true);
@@ -239,15 +249,20 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           <div>
             <FieldLabel>Pricing</FieldLabel>
             <div className="grid grid-cols-3 gap-3">
-              <Input type="number" min="0" step="0.01" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min $" />
-              <Input type="number" min="0" step="0.01" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max $ (opt)" />
+              <Input type="number" min="0" step="0.01" value={noPrice ? '' : priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min $" disabled={noPrice} className={noPrice ? 'opacity-50 cursor-not-allowed' : undefined} />
+              <Input type="number" min="0" step="0.01" value={noPrice ? '' : priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max $ (opt)" disabled={noPrice} className={noPrice ? 'opacity-50 cursor-not-allowed' : undefined} />
               <div className="relative">
-                <Select value={priceType} onChange={(e) => setPriceType(e.target.value as 'per_project' | 'per_hour')}>
+                <Select value={priceType} onChange={(e) => setPriceType(e.target.value as PriceType)}>
                   {PRICE_TYPES.map((pt) => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
                 </Select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
               </div>
             </div>
+            {noPrice && (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Buyers see “Contact for pricing” on this post — no amounts are shown.
+              </p>
+            )}
           </div>
 
           {/* Images */}
