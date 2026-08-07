@@ -27,6 +27,8 @@ export interface PlatformSettings {
   fees: {
     platformFeePercent: number;
     minimumWithdrawal: number;
+    /** Days a released payout seasons before it can be withdrawn. 0 disables. */
+    withdrawalClearanceDays: number;
   };
   registration: {
     allowNewSignups: boolean;
@@ -45,6 +47,7 @@ const DEFAULTS: PlatformSettings = {
   fees: {
     platformFeePercent: 5,
     minimumWithdrawal: 10,
+    withdrawalClearanceDays: 10,
   },
   registration: {
     allowNewSignups: true,

@@ -48,6 +48,8 @@ export interface AffiliateCommission {
   status: 'pending' | 'available' | 'paid';
   createdAt: number;
   releasedAt: number | null;
+  /** When a released commission becomes withdrawable; null before release. */
+  clearsAt: number | null;
 }
 
 export interface AffiliateReferral {

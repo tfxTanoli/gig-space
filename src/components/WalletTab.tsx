@@ -6,7 +6,7 @@ import StripeConnectCard from './StripeConnectCard';
 import WithdrawModal from './WithdrawModal';
 import {
   DollarSign, Clock, TrendingUp, ArrowUpRight,
-  ArrowDownLeft, RotateCcw, Wallet, Loader2,
+  ArrowDownLeft, RotateCcw, Wallet, Loader2, Hourglass,
 } from 'lucide-react';
 import type { Wallet as WalletType, WalletTransaction } from '../stripe/types';
 import { formatMoney } from '../utils/currency';
@@ -79,8 +79,20 @@ export default function WalletTab() {
     };
   }, [user, refreshKey]);
 
-  const available = wallet?.availableBalance ?? 0;
+  const balance = wallet?.availableBalance ?? 0;
   const pending = wallet?.pendingBalance ?? 0;
+
+  // Released earnings season before they can be withdrawn. Rather than a
+  // separate balance kept in step by a scheduled job, each release carries the
+  // date it unlocks and this is derived from those — so it stays correct on its
+  // own, and matches exactly what the server enforces on withdrawal.
+  const now = Date.now();
+  const clearingTxs = transactions.filter((tx) => (tx.clearsAt ?? 0) > now);
+  const clearing = clearingTxs.reduce((sum, tx) => sum + tx.amount, 0);
+  const nextClearsAt = clearingTxs.length
+    ? Math.min(...clearingTxs.map((tx) => tx.clearsAt!))
+    : null;
+  const available = Math.max(0, balance - clearing);
 
   if (loading) {
     return (
@@ -107,13 +119,21 @@ export default function WalletTab() {
         </div>
 
         {/* Balance cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <BalanceCard
             label="Available"
             value={available}
             icon={<Wallet className="w-4 h-4 text-emerald-500" />}
             accent="emerald"
             tooltip="Ready to withdraw"
+          />
+          <BalanceCard
+            label="Clearing"
+            value={clearing}
+            icon={<Hourglass className="w-4 h-4 text-violet-500" />}
+            accent="violet"
+            tooltip="Approved and yours — becomes available to withdraw after the clearing period"
+            note={nextClearsAt ? `Next unlocks ${formatClearDate(nextClearsAt)}` : undefined}
           />
           <BalanceCard
             label="Pending"
@@ -137,17 +157,27 @@ export default function WalletTab() {
         </div>
 
         {/* Withdraw button */}
-        <button
-          onClick={() => setShowWithdraw(true)}
-          disabled={available < MIN_WITHDRAWAL}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors"
-        >
-          <ArrowUpRight className="w-4 h-4" />
-          Withdraw funds
-          {available < MIN_WITHDRAWAL && (
-            <span className="text-blue-300 font-normal">(min $10)</span>
+        <div className="space-y-2">
+          <button
+            onClick={() => setShowWithdraw(true)}
+            disabled={available < MIN_WITHDRAWAL}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors"
+          >
+            <ArrowUpRight className="w-4 h-4" />
+            Withdraw funds
+            {available < MIN_WITHDRAWAL && (
+              <span className="text-blue-300 font-normal">(min ${MIN_WITHDRAWAL})</span>
+            )}
+          </button>
+          {/* Without this, a seller who just had an order approved sees a
+              disabled button and no reason for it. */}
+          {clearing > 0 && available < MIN_WITHDRAWAL && nextClearsAt && (
+            <p className="text-slate-400 text-xs">
+              ${formatMoney(clearing)} is clearing and becomes available on{' '}
+              <span className="text-slate-300">{formatClearDate(nextClearsAt)}</span>.
+            </p>
           )}
-        </button>
+        </div>
 
         {/* Stripe Connect */}
         <StripeConnectCard />
@@ -194,12 +224,17 @@ export default function WalletTab() {
   );
 }
 
+function formatClearDate(ts: number): string {
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 interface BalanceCardProps {
   label: string;
   value: number;
   icon: React.ReactNode;
-  accent: 'emerald' | 'amber' | 'blue' | 'indigo';
+  accent: 'emerald' | 'amber' | 'blue' | 'indigo' | 'violet';
   tooltip?: string;
+  note?: string;
 }
 
 const accentMap: Record<string, string> = {
@@ -207,9 +242,10 @@ const accentMap: Record<string, string> = {
   amber:   'border-amber-500/25',
   blue:    'border-blue-500/25',
   indigo:  'border-indigo-500/25',
+  violet:  'border-violet-500/25',
 };
 
-function BalanceCard({ label, value, icon, accent, tooltip }: BalanceCardProps) {
+function BalanceCard({ label, value, icon, accent, tooltip, note }: BalanceCardProps) {
   return (
     <div
       className={`bg-surface border rounded-xl p-4 ${accentMap[accent]}`}
@@ -220,6 +256,7 @@ function BalanceCard({ label, value, icon, accent, tooltip }: BalanceCardProps) 
         <p className="text-slate-300 text-xs font-medium">{label}</p>
       </div>
       <p className="text-white text-xl font-bold">${formatMoney(value)}</p>
+      {note && <p className="text-slate-500 text-[11px] mt-1 leading-tight">{note}</p>}
     </div>
   );
 }

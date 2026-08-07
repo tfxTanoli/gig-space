@@ -37,6 +37,7 @@ interface GeneralSettings {
 interface FeeSettings {
   platformFeePercent: number;
   minimumWithdrawal: number;
+  withdrawalClearanceDays: number;
 }
 
 interface RegistrationSettings {
@@ -827,7 +828,7 @@ const AdminSettingsPage = () => {
   const [general, setGeneral] = useState<GeneralSettings>({
     platformName: 'Gigspace', supportEmail: '', maintenanceMode: false,
   });
-  const [fees, setFees] = useState<FeeSettings>({ platformFeePercent: 5, minimumWithdrawal: 10 });
+  const [fees, setFees] = useState<FeeSettings>({ platformFeePercent: 5, minimumWithdrawal: 10, withdrawalClearanceDays: 10 });
   const [registration, setRegistration] = useState<RegistrationSettings>({
     allowNewSignups: true, allowSellerRegistrations: true, requireEmailVerification: false,
   });
@@ -862,6 +863,10 @@ const AdminSettingsPage = () => {
       }
       if (isNaN(f.minimumWithdrawal) || f.minimumWithdrawal < 1) {
         setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Minimum withdrawal must be at least $1' } }));
+        return;
+      }
+      if (isNaN(f.withdrawalClearanceDays) || f.withdrawalClearanceDays < 0 || f.withdrawalClearanceDays > 90) {
+        setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Clearing period must be 0-90 days' } }));
         return;
       }
     }
@@ -942,8 +947,11 @@ const AdminSettingsPage = () => {
             <SettingRow label="Platform Fee" hint="Percentage deducted from each completed payment (0–50%)" htmlFor="platformFee">
               <NumberInput id="platformFee" value={fees.platformFeePercent} onChange={(v) => setFees((f) => ({ ...f, platformFeePercent: v }))} min={0} max={50} step={0.5} suffix="%" />
             </SettingRow>
-            <SettingRow label="Minimum Withdrawal" hint="Smallest amount a seller can withdraw at once" htmlFor="minWithdrawal" last>
+            <SettingRow label="Minimum Withdrawal" hint="Smallest amount a seller can withdraw at once" htmlFor="minWithdrawal">
               <NumberInput id="minWithdrawal" value={fees.minimumWithdrawal} onChange={(v) => setFees((f) => ({ ...f, minimumWithdrawal: v }))} min={1} step={1} prefix="$" />
+            </SettingRow>
+            <SettingRow label="Clearing Period" hint="Days earnings must season after a buyer approves before they can be withdrawn. Covers card settlement and leaves a window to handle disputes. 0 disables." htmlFor="clearanceDays" last>
+              <NumberInput id="clearanceDays" value={fees.withdrawalClearanceDays} onChange={(v) => setFees((f) => ({ ...f, withdrawalClearanceDays: v }))} min={0} max={90} step={1} suffix=" days" />
             </SettingRow>
           </SettingCard>
 
