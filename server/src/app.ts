@@ -862,11 +862,39 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
     // concurrent requests so two clicks can't both clear the same balance.
     const withdrawalId = db.ref('withdrawals').push().key!;
     const walletRef = db.ref(`wallets/${sellerId}`);
-    const reservation = await reserveFunds(walletRef, 'availableBalance', amount);
+    // `uncleared` is the floor the balance may not drop below, enforced inside
+    // the reservation transaction — the check above alone would let two
+    // simultaneous withdrawals each look affordable and together breach it.
+    const reservation = await reserveFunds(walletRef, 'availableBalance', amount, uncleared);
 
     if (!reservation.ok) {
       res.status(400).json({
         error: `Insufficient balance. Available: $${formatMoney(reservation.available ?? 0)}`,
+      });
+      return;
+    }
+
+    // The floor above came from a read taken before the reservation. If a fresh
+    // release landed in between it raised both the balance and the uncleared
+    // total, so the stale floor was too low by exactly that amount. Re-check
+    // against current figures and undo if it no longer holds — this is the only
+    // way the two reads can be made consistent, since a Realtime Database
+    // transaction can't consult a second location while it runs.
+    const afterUncleared = clearanceState(
+      (await db.ref(`walletTransactions/${sellerId}`).get()).val() as Record<string, Record<string, unknown>> | null,
+      'amount',
+    ).uncleared;
+    const afterBalance = Number(
+      (await db.ref(`wallets/${sellerId}/availableBalance`).get()).val() ?? 0,
+    );
+    if (afterBalance < afterUncleared) {
+      await releaseFunds(walletRef, 'availableBalance', amount);
+      console.warn(
+        `/api/withdraw: released ${sellerId}'s reservation of $${formatMoney(amount)} — a new payout `
+        + `landed mid-request and the clearance floor no longer held.`,
+      );
+      res.status(409).json({
+        error: 'Your balance changed while this withdrawal was being prepared. Please try again.',
       });
       return;
     }

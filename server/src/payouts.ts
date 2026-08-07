@@ -46,8 +46,10 @@ export async function reserveFunds(
   walletRef: admin.database.Reference,
   balanceField: string,
   amount: number,
+  minRemaining = 0,
 ): Promise<Reservation> {
   const balanceRef = walletRef.child(balanceField);
+  const floor = round2(minRemaining);
   let available = 0;
 
   // Two passes, because an aborted transaction is ambiguous: it means either
@@ -56,12 +58,16 @@ export async function reserveFunds(
   // cache *and* gives an accurate figure for the error message. A second pass
   // therefore only reports insufficient when a fresh read agrees.
   for (let attempt = 0; attempt < 2; attempt++) {
-    available = Number((await balanceRef.get()).val() ?? 0);
-    if (available < amount) return { ok: false, available };
+    available = round2(Number((await balanceRef.get()).val() ?? 0) - floor);
+    if (available < amount) return { ok: false, available: Math.max(0, available) };
 
     const result = await balanceRef.transaction((current: number | null) => {
       const balance = Number(current ?? 0);
-      if (balance < amount) return;                     // undefined = abort
+      // The floor must be enforced *inside* the transaction, not just by the
+      // caller's earlier read. Otherwise two withdrawals that each separately
+      // look affordable can both commit and together breach it — which for the
+      // clearance floor means uncleared earnings leaving the platform.
+      if (balance - amount < floor) return;             // undefined = abort
       return round2(balance - amount);
     });
 
@@ -73,7 +79,7 @@ export async function reserveFunds(
     // took the funds first (the next read reports the real, lower balance).
   }
 
-  return { ok: false, available };
+  return { ok: false, available: Math.max(0, available) };
 }
 
 /** Put a reservation back after the transfer failed. */
@@ -198,8 +204,12 @@ export async function findTransferForWithdrawal(
 ): Promise<Stripe.Transfer | null> {
   // A minute of slack either side covers clock skew between us and Stripe.
   const gte = Math.floor(createdAtMs / 1000) - 60;
-  const page = await stripe.transfers.list({ destination, created: { gte }, limit: 100 });
-  for (const transfer of page.data) {
+
+  // Every page, not just the first. A single page would mean concluding "no
+  // transfer exists" whenever the match sits past the page boundary — and this
+  // function's caller responds to that by handing the money back to the
+  // balance, so a missed match pays the same withdrawal out twice.
+  for await (const transfer of stripe.transfers.list({ destination, created: { gte }, limit: 100 })) {
     if (transfer.metadata?.withdrawalId === withdrawalId) return transfer;
   }
   return null;

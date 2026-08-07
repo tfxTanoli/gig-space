@@ -327,11 +327,30 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
     // same balance. See server/src/payouts.ts.
     const payoutId = db.ref('affiliatePayouts').push().key!;
     const affiliateRef = db.ref(`affiliates/${affiliateId}`);
-    const reservation = await reserveFunds(affiliateRef, 'availableBalance', amount);
+    // Clearance floor enforced inside the transaction — see app.ts.
+    const reservation = await reserveFunds(affiliateRef, 'availableBalance', amount, uncleared);
 
     if (!reservation.ok) {
       res.status(400).json({
         error: `Insufficient balance. Available: $${formatMoney(reservation.available ?? 0)}`,
+      });
+      return;
+    }
+
+    // Re-check the floor against current figures — a commission released
+    // mid-request would have made the floor used above stale. See app.ts.
+    const afterUncleared = (await affiliateClearance(affiliateId)).uncleared;
+    const afterBalance = Number(
+      (await db.ref(`affiliates/${affiliateId}/availableBalance`).get()).val() ?? 0,
+    );
+    if (afterBalance < afterUncleared) {
+      await releaseFunds(affiliateRef, 'availableBalance', amount);
+      console.warn(
+        `/api/affiliate/withdraw: released ${affiliateId}'s reservation of $${formatMoney(amount)} — `
+        + `a new commission landed mid-request and the clearance floor no longer held.`,
+      );
+      res.status(409).json({
+        error: 'Your balance changed while this withdrawal was being prepared. Please try again.',
       });
       return;
     }
