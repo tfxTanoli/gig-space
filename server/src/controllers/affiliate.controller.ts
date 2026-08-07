@@ -7,6 +7,7 @@ import { isUnusableStripeId } from '../stripeClient';
 import {
   reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
   isPlatformBalanceShort, PLATFORM_BALANCE_SHORT_MESSAGE,
+  clearanceState, daysUntil, type ClearanceState,
 } from '../payouts';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
@@ -72,6 +73,9 @@ export async function getAffiliate(req: AuthRequest, res: Response): Promise<voi
         totalReferrals: 0,
         pendingBalance: 0,
         availableBalance: 0,
+        clearingBalance: 0,
+        withdrawableBalance: 0,
+        nextClearsAt: null,
         lifetimeEarnings: 0,
         totalWithdrawn: 0,
         stripeConnectedAccountId: null,
@@ -80,12 +84,20 @@ export async function getAffiliate(req: AuthRequest, res: Response): Promise<voi
     }
 
     const data = snap.val() as AffiliateData;
+    const available = data.availableBalance ?? 0;
+    const { uncleared, nextClearsAt } = await affiliateClearance(affiliateId);
+
     res.json({
       referralCode: data.referralCode ?? '',
       totalClicks: data.totalClicks ?? 0,
       totalReferrals: data.totalReferrals ?? 0,
       pendingBalance: data.pendingBalance ?? 0,
-      availableBalance: data.availableBalance ?? 0,
+      availableBalance: available,
+      // Commissions released but still seasoning, and what can actually be
+      // withdrawn today. See the clearance notes in payouts.ts.
+      clearingBalance: uncleared,
+      withdrawableBalance: Math.max(0, Number((available - uncleared).toFixed(2))),
+      nextClearsAt,
       lifetimeEarnings: data.lifetimeEarnings ?? 0,
       totalWithdrawn: data.totalWithdrawn ?? 0,
       stripeConnectedAccountId: data.stripeConnectedAccountId ?? null,
@@ -120,6 +132,9 @@ export async function getCommissions(req: AuthRequest, res: Response): Promise<v
         status: c.status ?? 'pending',
         createdAt: c.createdAt ?? 0,
         releasedAt: c.releasedAt ?? null,
+        // Lets the dashboard show what is still seasoning without a second
+        // round trip, and match the gate the withdraw endpoint enforces.
+        clearsAt: (c as { clearsAt?: number }).clearsAt ?? null,
       }))
       .sort((a, b) => b.createdAt - a.createdAt);
 
@@ -188,6 +203,17 @@ export async function getPayouts(req: AuthRequest, res: Response): Promise<void>
     console.error('/api/affiliate/payouts error:', msg);
     res.status(500).json({ error: msg });
   }
+}
+
+// Commissions released but still inside their clearance window. Mirrors the
+// seller calculation in app.ts, reading affiliateCommissions instead of the
+// wallet ledger — only released rows carry `clearsAt`.
+async function affiliateClearance(affiliateId: string): Promise<ClearanceState> {
+  const snap = await admin.database().ref('affiliateCommissions')
+    .orderByChild('affiliateId').equalTo(affiliateId).get();
+  return clearanceState(
+    snap.val() as Record<string, Record<string, unknown>> | null, 'commissionAmount',
+  );
 }
 
 // Records a completed transfer. The balance was already debited at reservation
@@ -274,6 +300,26 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
     }
 
     await reconcilePendingAffiliatePayouts(affiliateId, stripeAccountId);
+
+    // Clearance gate — same rule as seller payouts, see payouts.ts.
+    const { uncleared, nextClearsAt } = await affiliateClearance(affiliateId);
+    if (uncleared > 0) {
+      const availableNow = Number(
+        (await db.ref(`affiliates/${affiliateId}/availableBalance`).get()).val() ?? 0,
+      );
+      const withdrawable = Math.max(0, Number((availableNow - uncleared).toFixed(2)));
+      if (amount > withdrawable) {
+        res.status(400).json({
+          error: withdrawable > 0
+            ? `You can withdraw $${formatMoney(withdrawable)} right now. `
+              + `$${formatMoney(uncleared)} is still clearing and unlocks in ${daysUntil(nextClearsAt!)} day(s).`
+            : `Your commissions are still clearing. $${formatMoney(uncleared)} unlocks in `
+              + `${daysUntil(nextClearsAt!)} day(s).`,
+          withdrawable, clearing: uncleared, nextClearsAt,
+        });
+        return;
+      }
+    }
 
     // Reserve before paying — same ordering as the seller path, for the same
     // reason: a crash after the transfer must never leave the funds both sent

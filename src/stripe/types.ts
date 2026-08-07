@@ -41,6 +41,12 @@ export interface WalletTransaction {
   amount: number; // positive = credit, negative = debit
   description: string;
   createdAt: number;
+  /**
+   * When this credit becomes withdrawable. Present only on the entry written
+   * as funds are released to the seller — the escrow credit recorded when the
+   * buyer paid has none, which is how the two are distinguished.
+   */
+  clearsAt?: number;
 }
 
 export type WalletTransactionType =

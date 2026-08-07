@@ -273,7 +273,16 @@ export default function AffiliatePayoutsTab() {
     );
   }
 
-  const available = stats?.availableBalance ?? 0;
+  // Released commissions season before they can be withdrawn, exactly as seller
+  // earnings do. Derived from the commission list already loaded above, so it
+  // matches the gate the withdraw endpoint enforces without an extra request.
+  const nowMs = Date.now();
+  const clearingCommissions = commissions.filter((c) => (c.clearsAt ?? 0) > nowMs);
+  const clearing = clearingCommissions.reduce((sum, c) => sum + c.commissionAmount, 0);
+  const nextClearsAt = clearingCommissions.length
+    ? Math.min(...clearingCommissions.map((c) => c.clearsAt!))
+    : null;
+  const available = Math.max(0, (stats?.availableBalance ?? 0) - clearing);
 
   return (
     <div className="space-y-6">
@@ -290,6 +299,12 @@ export default function AffiliatePayoutsTab() {
           </div>
           <p className="text-2xl font-bold text-white">${formatMoney(available)}</p>
           <p className="text-slate-500 text-xs mt-0.5">Available to withdraw</p>
+          {clearing > 0 && nextClearsAt && (
+            <p className="text-violet-400 text-xs mt-1.5">
+              ${formatMoney(clearing)} clearing · available{' '}
+              {new Date(nextClearsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </p>
+          )}
         </div>
 
         <div className="bg-surface border border-slate-800 rounded-2xl p-5">

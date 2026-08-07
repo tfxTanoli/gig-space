@@ -94,6 +94,72 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/* ─── Clearance period ─────────────────────────────────────────────────────────
+ *
+ * Earnings are credited the moment a buyer approves, but they are not
+ * withdrawable straight away: each release carries a `clearsAt` timestamp and
+ * stays locked until it passes. Two reasons, one operational and one financial.
+ *
+ * Operationally, card payments take about two business days to reach the
+ * platform's *available* Stripe balance, which is what transfers draw on. A
+ * seller withdrawing the same day would otherwise hit a failure that has
+ * nothing to do with them.
+ *
+ * Financially, it leaves a window in which a chargeback can be handled before
+ * the money is gone. Connect is configured with losses.payments = 'application',
+ * so a disputed payment comes out of the platform's balance either way.
+ *
+ * Deliberately there is no sweep job and no third balance field. Withdrawable
+ * is derived as `availableBalance - uncleared`, and `uncleared` shrinks by
+ * itself as timestamps pass. Nothing has to run on a schedule for a seller to
+ * get paid, which is the failure mode a cron would introduce.
+ *
+ * The invariant that makes the subtraction safe: uncleared funds can never be
+ * withdrawn, so availableBalance is always at least the uncleared total. A new
+ * release raises both by the same amount, leaving withdrawable unchanged.
+ */
+
+export const CLEARANCE_DAYS_DEFAULT = 10;
+
+export interface ClearanceState {
+  /** Credited but not yet withdrawable. */
+  uncleared: number;
+  /** When the next tranche unlocks, or null if nothing is pending. */
+  nextClearsAt: number | null;
+}
+
+/**
+ * Total still inside its clearance window. Rows without `clearsAt` are ignored,
+ * which is what distinguishes a release from the escrow credit written earlier
+ * in the order's life — only releases carry the timestamp.
+ */
+export function clearanceState(
+  rows: Record<string, Record<string, unknown>> | null,
+  amountKey: string,
+  now: number = Date.now(),
+): ClearanceState {
+  if (!rows) return { uncleared: 0, nextClearsAt: null };
+
+  let uncleared = 0;
+  let nextClearsAt: number | null = null;
+
+  for (const row of Object.values(rows)) {
+    const clearsAt = Number(row?.clearsAt ?? 0);
+    if (!clearsAt || clearsAt <= now) continue;
+    const amount = Number(row?.[amountKey] ?? 0);
+    if (!amount) continue;
+    uncleared += amount;
+    if (nextClearsAt === null || clearsAt < nextClearsAt) nextClearsAt = clearsAt;
+  }
+
+  return { uncleared: round2(uncleared), nextClearsAt };
+}
+
+/** Whole days until `timestamp`, floored at 1 so it never reads "in 0 days". */
+export function daysUntil(timestamp: number, now: number = Date.now()): number {
+  return Math.max(1, Math.ceil((timestamp - now) / 86_400_000));
+}
+
 /**
  * Create the transfer for a reserved withdrawal.
  *

@@ -9,6 +9,7 @@ import { isUnusableStripeId } from './stripeClient';
 import {
   reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
   isPlatformBalanceShort, PLATFORM_BALANCE_SHORT_MESSAGE,
+  clearanceState, daysUntil, CLEARANCE_DAYS_DEFAULT,
 } from './payouts';
 import {
   sendEmailNotification,
@@ -110,6 +111,19 @@ async function readMinWithdrawal(): Promise<number> {
     if (snap.exists()) return Number(snap.val());
   } catch { /* use fallback */ }
   return MINIMUM_WITHDRAWAL_DEFAULT;
+}
+
+// Days a released payout must season before it can be withdrawn. See the
+// clearance notes in payouts.ts for why. 0 disables the hold entirely.
+async function readClearanceDays(): Promise<number> {
+  try {
+    const snap = await db.ref('settings/fees/withdrawalClearanceDays').get();
+    if (snap.exists()) {
+      const days = Number(snap.val());
+      if (Number.isFinite(days) && days >= 0) return days;
+    }
+  } catch { /* use fallback */ }
+  return CLEARANCE_DAYS_DEFAULT;
 }
 
 app.use(cors({
@@ -458,6 +472,9 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
     }
 
     const now = Date.now();
+    // Earnings are credited now but seasoned before they can be withdrawn —
+    // see the clearance notes in payouts.ts.
+    const clearsAt = now + (await readClearanceDays()) * 86_400_000;
     const updates: Record<string, unknown> = {
       [`orders/${orderId}/status`]: 'completed',
       [`orders/${orderId}/completedAt`]: now,
@@ -487,6 +504,10 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
             amount: sellerAmount,
             description: `Funds released for "${order.serviceTitle || 'order'}"`,
             createdAt: now,
+            // Only release entries carry clearsAt — the escrow credit written
+            // when the buyer paid does not, which is how the two are told apart
+            // when summing what is still clearing.
+            clearsAt,
           };
           releasedSellerId = sellerId;
         }
@@ -509,6 +530,7 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
         const { affiliateId: affId, commissionAmount } = commission;
         updates[`affiliateCommissions/${commissionId}/status`]      = 'available';
         updates[`affiliateCommissions/${commissionId}/releasedAt`]  = now;
+        updates[`affiliateCommissions/${commissionId}/clearsAt`]    = clearsAt;
         updates[`affiliates/${affId}/pendingBalance`]   = admin.database.ServerValue.increment(-commissionAmount);
         updates[`affiliates/${affId}/availableBalance`] = admin.database.ServerValue.increment(commissionAmount);
         updates[`affiliates/${affId}/lifetimeEarnings`] = admin.database.ServerValue.increment(commissionAmount);
@@ -803,6 +825,36 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
     // Settle anything a previous attempt left half-finished before reading the
     // balance, so a stuck reservation doesn't wrongly block this withdrawal.
     await reconcilePendingWithdrawals(sellerId, stripeAccountId);
+
+    // ── Clearance gate ───────────────────────────────────────────────────────
+    // Recent releases are credited but not yet withdrawable. Withdrawable is
+    // availableBalance minus whatever is still inside its clearance window; the
+    // reservation below then draws on availableBalance, which is always at
+    // least that much (uncleared funds can never have been withdrawn).
+    const txSnap = await db.ref(`walletTransactions/${sellerId}`).get();
+    const { uncleared, nextClearsAt } = clearanceState(
+      txSnap.val() as Record<string, Record<string, unknown>> | null, 'amount',
+    );
+
+    if (uncleared > 0) {
+      // Read fresh rather than reusing walletSnap — reconciliation above may
+      // have released a stuck reservation back into the balance.
+      const availableNow = Number(
+        (await db.ref(`wallets/${sellerId}/availableBalance`).get()).val() ?? 0,
+      );
+      const withdrawable = Math.max(0, Number((availableNow - uncleared).toFixed(2)));
+      if (amount > withdrawable) {
+        res.status(400).json({
+          error: withdrawable > 0
+            ? `You can withdraw $${formatMoney(withdrawable)} right now. `
+              + `$${formatMoney(uncleared)} is still clearing and unlocks in ${daysUntil(nextClearsAt!)} day(s).`
+            : `Your earnings are still clearing. $${formatMoney(uncleared)} unlocks in `
+              + `${daysUntil(nextClearsAt!)} day(s).`,
+          withdrawable, clearing: uncleared, nextClearsAt,
+        });
+        return;
+      }
+    }
 
     // ── Reserve before paying ────────────────────────────────────────────────
     // Debiting first means a crash after the transfer can never leave the funds
