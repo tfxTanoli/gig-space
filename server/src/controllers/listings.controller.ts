@@ -431,30 +431,104 @@ function pageTitle(html: string): string {
 
 const TITLE_JUNK = /^(home|home\s?page|welcome|index|untitled|main|start|default|landing(\s?page)?|site|web\s?site|our\s?website|official\s?(site|website))$/i;
 const TITLE_SEPARATORS = /\s*[|•·–—:>»]+\s*|\s+-\s+/;
-const TITLE_MAX = 110;
+
+// Search results and cards give a title roughly two lines before it wraps or
+// clips, so anything past this stops being read rather than adding information.
+const TITLE_MAX = 80;
+
+// Sites often append their postal address or phone number to the page title.
+// Neither helps a buyer scanning search results, and an address fragment is
+// actively confusing once the title is trimmed ("… — 10742 Colewood").
+const TITLE_ADDRESS = /^\d+[\w-]*\s+\S/;      // "10742 Colewood Lane, …"
+const TITLE_NO_WORDS = /^[^A-Za-z]+$/;        // "10742", "(214) 555-0134", "2024"
+
+const isUsefulSegment = (s: string) =>
+  Boolean(s) && !TITLE_JUNK.test(s) && !TITLE_ADDRESS.test(s) && !TITLE_NO_WORDS.test(s);
+
+function titleSegments(raw: string): string[] {
+  return raw.split(TITLE_SEPARATORS).map((s) => s.trim()).filter(isUsefulSegment);
+}
+
+/**
+ * Site titles routinely repeat themselves across separators — "HVAC CONTRACTOR |
+ * HVAC contractor Cleveland, Ohio". Where one segment contains another, only the
+ * longer survives; it carries everything the shorter did plus more.
+ */
+function dedupeSegments(segments: string[]): string[] {
+  const kept: string[] = [];
+  for (const segment of segments) {
+    const lower = segment.toLowerCase();
+    const overlapping = kept.findIndex(
+      (k) => k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase()),
+    );
+    if (overlapping === -1) kept.push(segment);
+    else if (segment.length > kept[overlapping].length) kept[overlapping] = segment;
+  }
+  return kept;
+}
 
 function cleanSiteTitle(raw: string, businessName: string): string {
-  const segments = raw
-    .split(TITLE_SEPARATORS)
-    .map((s) => s.trim())
-    .filter((s) => s && !TITLE_JUNK.test(s));
+  const segments = titleSegments(raw);
   if (!segments.length) return '';
 
   // A segment that only repeats the business name adds nothing once we prepend
   // the name ourselves — unless it's the only segment there is.
   const name = businessName.trim().toLowerCase();
   const descriptive = segments.filter((s) => s.toLowerCase() !== name);
-  const kept = (descriptive.length ? descriptive : segments).join(' — ');
+  const kept = dedupeSegments(descriptive.length ? descriptive : segments).join(' — ');
   return kept.length < 3 ? '' : kept;
+}
+
+/**
+ * Trims to the length budget on a word boundary, so a title that has to be cut
+ * still ends on a whole word instead of mid-syllable. Trailing punctuation left
+ * dangling by the cut is removed too.
+ */
+function trimToWords(text: string, max = TITLE_MAX): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  // A single word longer than the budget has no boundary to fall back on.
+  const trimmed = lastSpace > max * 0.5 ? cut.slice(0, lastSpace) : cut;
+  return trimmed.replace(/[\s\-–—,:;|/&]+$/, '');
+}
+
+/**
+ * Picks the longest candidate that fits the budget, falling back to a
+ * word-boundary trim of the last one. Callers pass candidates richest-first, so
+ * detail is dropped a piece at a time rather than the whole title being chopped.
+ */
+function fitTitle(candidates: string[]): string {
+  const usable = candidates.map((c) => c.trim()).filter(Boolean);
+  return usable.find((c) => c.length <= TITLE_MAX) ?? trimToWords(usable[usable.length - 1] ?? '');
 }
 
 const includesCI = (haystack: string, needle: string) =>
   Boolean(needle) && haystack.toLowerCase().includes(needle.toLowerCase());
 
-// Subcategories are stored as slugs ("hvac", "web-design"), so they need casing
-// before they can appear in a headline. Short all-lowercase tokens in this field
-// are trade acronyms — "hvac" wants HVAC, not Hvac.
+/**
+ * Whole-word containment. A plain substring test is wrong for deciding whether a
+ * title names something: "Chicagoland" contains "Chicago" but is not about
+ * Chicago Heating & Cooling, and treating it as a match is what let that title
+ * survive as-is.
+ */
+function containsWord(haystack: string, word: string): boolean {
+  const trimmed = word.trim();
+  if (trimmed.length < 3) return false;
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, 'i').test(haystack);
+}
+
+// Subcategories are stored as slugs ("hvac", "web_design"), so they need casing
+// before they can appear in a headline. Acronyms are listed explicitly rather
+// than inferred from length — a "short words are acronyms" rule turns
+// "web_design" into "WEB Design".
 const SERVICE_STOPWORDS = new Set(['and', 'or', 'for', 'the', 'to', 'in', 'of', 'a', 'an']);
+const SERVICE_ACRONYMS = new Set([
+  'hvac', 'cctv', 'seo', 'sem', 'ppc', 'smm', 'crm', 'erp', 'pos', 'iot', 'vpn',
+  'cad', 'gis', 'api', 'ui', 'ux', 'it', 'ac', 'tv', 'av', 'pc', 'dj', 'rv',
+  'suv', 'atv', 'led', 'hd', '3d', '2d', 'pr', 'hr', 'b2b', 'b2c', 'diy', 'qa',
+]);
 
 function humanizeService(raw: string): string {
   return raw
@@ -465,7 +539,8 @@ function humanizeService(raw: string): string {
     .map((word, i) => {
       if (/[A-Z]/.test(word)) return word;  // already cased upstream — leave it
       if (i > 0 && SERVICE_STOPWORDS.has(word)) return word;
-      return word.length <= 4 ? word.toUpperCase() : word[0].toUpperCase() + word.slice(1);
+      if (SERVICE_ACRONYMS.has(word)) return word.toUpperCase();
+      return word[0].toUpperCase() + word.slice(1);
     })
     .join(' ');
 }
@@ -482,15 +557,46 @@ function composeTitle(name: string, siteTitle: string, rawService: string, locat
   const echoesName = fromSite.toLowerCase() === name.trim().toLowerCase();
   const detail = (echoesName ? fromPlaces || fromSite : fromSite || fromPlaces).trim();
 
-  const title = !name ? detail : includesCI(detail, name) ? detail : [name, detail].filter(Boolean).join(' — ');
-  return (title || name || service || 'Local service provider').slice(0, TITLE_MAX);
+  const join = (d: string) =>
+    !name ? d : includesCI(d, name) ? d : [name, d].filter(Boolean).join(' — ');
+
+  // Richest first. A long scraped title usually stacks several claims — keeping
+  // only its first segment loses the least, and dropping to the Places wording
+  // ("HVAC in Cleveland, Ohio") is the last stop before the name alone.
+  const firstSegment = titleSegments(detail)[0] ?? '';
+  return fitTitle([
+    join(detail),
+    join(firstSegment),
+    join(fromPlaces),
+    join(service),
+    name,
+    detail,
+    service,
+    'Local service provider',
+  ]);
 }
 
-// ─── Optional AI polish ─────────────────────────────────────────────────────────
-// Set ANTHROPIC_API_KEY to have generated titles rewritten as marketplace
-// headlines. Without it, generation still works — posts just keep the composed
-// title. One batched request per generate keeps the cost per post negligible.
+/* ─── Optional AI polish ───────────────────────────────────────────────────────
+ * Set GEMINI_API_KEY (or ANTHROPIC_API_KEY) to have generated titles rewritten
+ * as marketplace headlines. Gemini is preferred when both are present — it's the
+ * cheaper of the two and this deployment already sits on Google Cloud. Without
+ * either key, generation still works and posts keep their composed title.
+ *
+ * One batched request per generate, so cost scales with batches rather than
+ * posts. Every failure path returns [] and the composed title stands.
+ */
+const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
+
+const TITLE_SYSTEM_PROMPT =
+  'You write listing headlines for a local-services marketplace. For each business, ' +
+  'write one title that names the business and what it actually does, so a buyer ' +
+  `browsing search results knows whether to click. Hard limit ${TITLE_MAX} characters — ` +
+  'aim for 50 to 70. Use title case, with no quotes, emoji, or trailing punctuation. ' +
+  'Mention the city only when it fits naturally. Never invent services, credentials, ' +
+  'awards, or claims that are not in the supplied data. Return exactly one title per ' +
+  'business, in the order given.';
 
 interface TitleSubject {
   name: string;
@@ -500,76 +606,110 @@ interface TitleSubject {
   description: string;
 }
 
-async function polishTitles(subjects: TitleSubject[]): Promise<string[]> {
-  if (!ANTHROPIC_KEY || subjects.length === 0) return [];
-  try {
-    // Imported lazily so a deploy without the key never pays to load the SDK.
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
+const titlePayload = (subjects: TitleSubject[]) =>
+  JSON.stringify(
+    subjects.map((s) => ({
+      business: s.name,
+      service: s.service,
+      location: s.location,
+      currentTitle: s.fallback,
+      about: s.description.slice(0, 400),
+    })),
+  );
 
-    const response = await client.messages.create({
-      model: 'claude-opus-5',
-      // Generous ceiling: max_tokens covers reasoning as well as the titles
-      // themselves, and a truncated response would fail the schema and cost us
-      // the whole batch. Billing is on tokens actually used, not the ceiling.
-      max_tokens: 8000,
-      output_config: {
-        effort: 'low',
-        format: {
-          type: 'json_schema',
-          schema: {
-            type: 'object',
-            properties: {
-              titles: {
-                type: 'array',
-                description: 'One rewritten title per business, in the order given.',
-                items: { type: 'string' },
-              },
-            },
-            required: ['titles'],
-            additionalProperties: false,
+/**
+ * Validates a model's reply against the batch it was asked about. A short or
+ * over-long array means the model lost the ordering, and a mis-mapped title is
+ * worse than no title at all — so the whole batch is rejected rather than
+ * risking one business getting another's headline.
+ */
+function parseTitles(rawJson: string, expected: number): string[] {
+  const titles = (JSON.parse(rawJson) as { titles?: unknown }).titles;
+  if (!Array.isArray(titles) || titles.length !== expected) return [];
+  const cleaned = titles.map((t) => trimToWords(String(t ?? '').trim()));
+  // A blank entry would silently blank out a post's title.
+  return cleaned.every(Boolean) ? cleaned : [];
+}
+
+const TITLES_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    titles: {
+      type: 'array',
+      description: 'One rewritten title per business, in the order given.',
+      items: { type: 'string' },
+    },
+  },
+  required: ['titles'],
+  additionalProperties: false,
+} as const;
+
+async function geminiTitles(subjects: TitleSubject[]): Promise<string[]> {
+  // Imported lazily so a deploy without the key never pays to load the SDK.
+  const { GoogleGenAI, Type } = await import('@google/genai');
+  const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
+
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: titlePayload(subjects),
+    config: {
+      systemInstruction: TITLE_SYSTEM_PROMPT,
+      maxOutputTokens: 4000,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          titles: {
+            type: Type.ARRAY,
+            description: 'One rewritten title per business, in the order given.',
+            items: { type: Type.STRING },
           },
         },
+        required: ['titles'],
       },
-      system:
-        'You write listing headlines for a local-services marketplace. For each business, ' +
-        'write one title that names the business and what it actually does, so a buyer ' +
-        'browsing search results knows whether to click. Keep it under 70 characters, in ' +
-        'title case, with no quotes, emoji, or trailing punctuation. Mention the city only ' +
-        'when it fits naturally. Never invent services, credentials, awards, or claims that ' +
-        'are not in the supplied data. Return exactly one title per business, in order.',
-      messages: [
-        {
-          role: 'user',
-          content: JSON.stringify(
-            subjects.map((s) => ({
-              business: s.name,
-              service: s.service,
-              location: s.location,
-              currentTitle: s.fallback,
-              about: s.description.slice(0, 400),
-            })),
-          ),
-        },
-      ],
-    });
+    },
+  });
 
-    // A refusal or a truncated response can't be parsed against the schema, so
-    // say which it was rather than surfacing a bare JSON error.
-    if (response.stop_reason !== 'end_turn') {
-      console.error(`[listings] title polish stopped early (${response.stop_reason}), using composed titles`);
-      return [];
-    }
+  return parseTitles(response.text ?? '', subjects.length);
+}
 
-    const text = response.content.find((b) => b.type === 'text')?.text ?? '';
-    const titles = (JSON.parse(text) as { titles?: unknown }).titles;
-    // A short or over-long array means the model lost track of the ordering, and
-    // a mis-mapped title is worse than no title at all.
-    if (!Array.isArray(titles) || titles.length !== subjects.length) return [];
-    return titles.map((t) => String(t ?? '').trim().slice(0, TITLE_MAX));
+async function anthropicTitles(subjects: TitleSubject[]): Promise<string[]> {
+  const { default: Anthropic } = await import('@anthropic-ai/sdk');
+  const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
+
+  const response = await client.messages.create({
+    model: 'claude-opus-5',
+    // Generous ceiling: max_tokens covers reasoning as well as the titles
+    // themselves, and a truncated response would fail the schema and cost us
+    // the whole batch. Billing is on tokens actually used, not the ceiling.
+    max_tokens: 8000,
+    output_config: {
+      effort: 'low',
+      format: { type: 'json_schema', schema: TITLES_JSON_SCHEMA },
+    },
+    system: TITLE_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: titlePayload(subjects) }],
+  });
+
+  // A refusal or a truncated response can't be parsed against the schema, so
+  // say which it was rather than surfacing a bare JSON error.
+  if (response.stop_reason !== 'end_turn') {
+    console.error(`[listings] title polish stopped early (${response.stop_reason})`);
+    return [];
+  }
+  return parseTitles(response.content.find((b) => b.type === 'text')?.text ?? '', subjects.length);
+}
+
+export async function polishTitles(subjects: TitleSubject[]): Promise<string[]> {
+  if (subjects.length === 0) return [];
+  const provider = GEMINI_KEY ? 'gemini' : ANTHROPIC_KEY ? 'anthropic' : '';
+  if (!provider) return [];
+
+  try {
+    return provider === 'gemini' ? await geminiTitles(subjects) : await anthropicTitles(subjects);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[listings] title polish unavailable, using composed titles: ${msg}`);
+    console.error(`[listings] ${provider} title polish unavailable, using composed titles: ${msg}`);
     return [];
   }
 }
@@ -843,16 +983,60 @@ const needsLogo = (service: Record<string, unknown>) =>
     HOTLINKED_LOGO.test(service.sellerPhotoURL));
 
 /**
- * Whether a stored title is broken rather than merely plain. Deliberately
- * narrow: an admin may have hand-written a title, and silently replacing their
- * wording would be worse than leaving a weak one alone. Only two cases qualify —
- * a title that is nothing but junk once cleaned ("Home", "Welcome"), and one
- * still carrying a raw HTML entity, which is always a scraping artefact.
+ * Whether a stored title is one we should rebuild. A hand-written title is never
+ * touched — the drawer records `titleEditedByAdmin` on save, and that flag is
+ * checked by the caller before this runs — so the only titles reaching here came
+ * from scraping, and the bar is simply "would a buyer learn anything from it".
+ *
+ * Four cases qualify:
+ *   - empty
+ *   - a raw HTML entity, always a scraping artefact
+ *   - nothing but junk once cleaned ("Home", "Welcome")
+ *   - a bare fragment: too short to inform, and naming neither the business nor
+ *     what it does. "Chicagoland" is the motivating example — a real word, but
+ *     it tells a buyer browsing search results nothing at all.
  */
-function isBrokenTitle(title: unknown, businessName: string): title is string {
+const TITLE_MIN_USEFUL_WORDS = 3;
+
+function isWeakTitle(title: unknown, businessName: string, service: string, location: string): title is string {
   if (typeof title !== 'string' || !title.trim()) return true;
   if (HTML_ENTITY.test(title)) return true;
-  return cleanSiteTitle(title, businessName) === '';
+
+  const cleaned = cleanSiteTitle(title, businessName);
+  if (!cleaned) return true;
+
+  // Long enough to be carrying real information — leave it be.
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length >= TITLE_MIN_USEFUL_WORDS) return false;
+
+  // Short, but still anchored to something a buyer recognises. Whole-word
+  // matching matters here: "Chicagoland" must not count as naming "Chicago".
+  const firstNameWord = businessName.trim().split(/\s+/)[0] ?? '';
+  const anchored =
+    containsWord(cleaned, firstNameWord) ||
+    containsWord(cleaned, humanizeService(service)) ||
+    containsWord(cleaned, location.split(',')[0]);
+
+  return !anchored;
+}
+
+/**
+ * Whether the backfill should rebuild this title. Weak content is one reason;
+ * simply being over the length budget is the other, and it's an objective
+ * measurement rather than a judgement about wording. Kept separate from
+ * `isWeakTitle` because an over-long scraped title is still worth *reading* —
+ * `composeTitle` can shed a segment and keep the useful part, whereas a weak one
+ * has nothing worth salvaging.
+ */
+function needsTitleRepair(title: unknown, name: string, service: string, location: string): boolean {
+  if (isWeakTitle(title, name, service, location)) return true;
+  // isWeakTitle already rejected every non-string, so this is safe.
+  const text = String(title);
+  if (text.length > TITLE_MAX) return true;
+  // Carries a segment we would now reject — a postal address, a phone number,
+  // or a "Home"-style filler that an earlier version of this code let through.
+  const raw = text.split(TITLE_SEPARATORS).map((s) => s.trim()).filter(Boolean);
+  return raw.length !== titleSegments(text).length;
 }
 
 // Descriptions only ever need the entity fix — the scraped copy itself is fine.
@@ -886,23 +1070,27 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
 
       const images = Array.isArray(service.images) ? service.images : [];
       const name = String(service.sellerName ?? '');
+      // Subcategory is the specific trade ("HVAC"); category is the bucket.
+      const trade = String(service.subcategory || service.category || '');
+      const location = String(service.primaryLocation ?? '');
       const staleLogo = needsLogo(service);
-      const brokenTitle = isBrokenTitle(service.title, name);
+      // An admin who wrote this title owns it — we never second-guess their wording.
+      const brokenTitle =
+        service.titleEditedByAdmin !== true && needsTitleRepair(service.title, name, trade, location);
       const rawDescription = hasRawEntity(service.description) ? service.description : '';
 
       if (images.some(isGooglePhotoUrl) || staleLogo || brokenTitle || rawDescription) {
         pending.push({
           id: child.key as string,
           images,
-          // A broken title also needs the homepage, to read the real <title>.
+          // A weak title also needs the homepage, to read the real <title>.
           website: staleLogo || brokenTitle ? String(service.website ?? '') : '',
           staleLogo,
           brokenTitle,
           rawDescription,
           name,
-          // Subcategory is the specific trade ("HVAC"); category is the bucket.
-          service: String(service.subcategory || service.category || ''),
-          location: String(service.primaryLocation ?? ''),
+          service: trade,
+          location,
         });
       }
       return false; // keep iterating
@@ -915,16 +1103,23 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
     let descriptions = 0;
     let failed = 0;
 
-    for (const item of pending.slice(0, limit)) {
+    const batch = pending.slice(0, limit);
+    const patches = new Map<string, Record<string, unknown>>();
+    // Titles rebuilt below are collected so the whole batch can go through the
+    // same AI pass a freshly generated post gets — one request, not one per post.
+    const titleWork: { id: string; subject: TitleSubject }[] = [];
+
+    for (const item of batch) {
       const patch: Record<string, unknown> = {};
 
       const rehosted = await rehostPhotos(item.images, item.id);
       const copied = rehosted.filter((url, i) => url !== item.images[i]).length;
-      if (copied) patch.images = rehosted;
+      if (copied) { patch.images = rehosted; photos += copied; }
       failed += rehosted.filter(isGooglePhotoUrl).length;
 
       // Pure text fix — no refetch needed, and paragraph breaks are preserved.
-      if (item.rawDescription) patch.description = decodeHtmlEntities(item.rawDescription);
+      const description = item.rawDescription ? decodeHtmlEntities(item.rawDescription) : '';
+      if (description) patch.description = description;
 
       if (item.website) {
         // One homepage fetch serves both repairs below.
@@ -938,21 +1133,46 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
         }
 
         if (item.brokenTitle) {
-          const rebuilt = composeTitle(item.name, home ? pageTitle(home) : '', item.service, item.location);
+          // If the site's own title is as weak as the one we're replacing,
+          // ignore it and compose from the Places data instead — re-scraping
+          // "Chicagoland" and storing it again would fix nothing.
+          const scraped = home ? pageTitle(home) : '';
+          const usable = isWeakTitle(scraped, item.name, item.service, item.location) ? '' : scraped;
+          const rebuilt = composeTitle(item.name, usable, item.service, item.location);
           // Only worth a write if we ended up somewhere other than the bare name.
-          if (rebuilt && rebuilt !== item.name) patch.title = rebuilt;
+          if (rebuilt && rebuilt !== item.name) {
+            patch.title = rebuilt;
+            titleWork.push({
+              id: item.id,
+              subject: {
+                name: item.name,
+                service: humanizeService(item.service),
+                location: item.location,
+                fallback: rebuilt,
+                description,
+              },
+            });
+          }
         }
       }
 
-      if (Object.keys(patch).length) {
-        patch.updatedAt = Date.now();
-        await db.ref(`services/${item.id}`).update(patch);
-        migrated += 1;
-        photos += copied;
-        if (patch.sellerPhotoURL) logos += 1;
-        if (patch.title) titles += 1;
-        if (patch.description) descriptions += 1;
-      }
+      if (Object.keys(patch).length) patches.set(item.id, patch);
+    }
+
+    // Same graceful degradation as generation: no key or any failure leaves the
+    // composed titles in place.
+    const polished = await polishTitles(titleWork.map((t) => t.subject));
+    titleWork.forEach((t, i) => {
+      if (polished[i]) patches.get(t.id)!.title = polished[i];
+    });
+
+    for (const [id, patch] of patches) {
+      patch.updatedAt = Date.now();
+      await db.ref(`services/${id}`).update(patch);
+      migrated += 1;
+      if (patch.sellerPhotoURL) logos += 1;
+      if (patch.title) titles += 1;
+      if (patch.description) descriptions += 1;
     }
 
     res.json({

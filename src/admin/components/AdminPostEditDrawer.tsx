@@ -169,7 +169,13 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
 
       const allImages = [...existingImages, ...uploadedURLs];
 
+      // Once an admin has written a title themselves, the listings backfill must
+      // never rebuild it — this flag is what makes that guarantee real rather
+      // than a guess about how "hand-written" the wording looks.
+      const titleChanged = title.trim() !== (service.title ?? '').trim();
+
       await update(dbRef(database, `services/${service.id}`), {
+        ...(titleChanged ? { titleEditedByAdmin: true } : {}),
         title:          title.trim(),
         description:    description.trim(),
         category,

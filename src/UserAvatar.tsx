@@ -9,13 +9,18 @@ const sizes = {
 
 // Generated listings use the business's logo as their avatar. Logos are square
 // and often transparent, so cropping them to fill (object-cover) either clips the
-// mark or leaves it invisible against a dark page — they need a white disc and
-// room to breathe instead. We can tell them apart by where they're stored.
+// mark or leaves it invisible against a dark page — they need a white disc
+// behind them instead. We can tell them apart by where they're stored.
+//
+// The inset is a single pixel on purpose. How much white shows around a logo
+// depends on the source image — an opaque square fills the disc, a tall or
+// transparent mark leaves more visible — so any padding beyond a hairline reads
+// as a thick, uneven ring that varies from listing to listing.
 const isBusinessLogo = (url: string) => url.includes('listingLogos');
 
 const imageClasses = (url: string) =>
   isBusinessLogo(url)
-    ? 'bg-white object-contain p-0.5'
+    ? 'bg-white object-contain p-px'
     : 'object-cover';
 
 // Shared by both avatars: the initial in a filled circle. This is what a missing

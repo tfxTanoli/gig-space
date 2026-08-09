@@ -83,7 +83,7 @@ function BusinessLogo({ url, name, className }: { url?: string; name?: string; c
         alt=""
         title="Business logo (post avatar)"
         onError={() => setBroken(true)}
-        className={`${className} rounded-full bg-white object-contain p-0.5 flex-shrink-0`}
+        className={`${className} rounded-full bg-white object-contain p-px flex-shrink-0`}
       />
     );
   }
