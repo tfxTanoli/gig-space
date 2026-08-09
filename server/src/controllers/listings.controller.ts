@@ -222,8 +222,57 @@ function iconLinks(html: string, origin: string): string[] {
 }
 
 /**
+ * Pixel dimensions straight from the file header, so a candidate's shape can be
+ * judged without decoding it or pulling in an image library. Returns null for
+ * formats we don't parse (WebP, SVG), which callers treat as "no objection".
+ */
+function imageSize(body: Buffer): { width: number; height: number } | null {
+  // PNG: 8-byte signature, then an IHDR chunk carrying the dimensions.
+  if (body.length > 24 && body.toString('ascii', 12, 16) === 'IHDR') {
+    return { width: body.readUInt32BE(16), height: body.readUInt32BE(20) };
+  }
+  // GIF: dimensions sit right after the "GIF87a"/"GIF89a" signature.
+  if (body.length > 10 && body.toString('ascii', 0, 3) === 'GIF') {
+    return { width: body.readUInt16LE(6), height: body.readUInt16LE(8) };
+  }
+  // ICO: first directory entry; a stored 0 means 256.
+  if (body.length > 8 && body.readUInt16LE(0) === 0 && body.readUInt16LE(2) === 1) {
+    return { width: body[6] || 256, height: body[7] || 256 };
+  }
+  // JPEG: walk the marker segments to the start-of-frame, which holds the size.
+  if (body.length > 4 && body[0] === 0xff && body[1] === 0xd8) {
+    let offset = 2;
+    while (offset + 9 < body.length) {
+      if (body[offset] !== 0xff) { offset += 1; continue; }
+      const marker = body[offset + 1];
+      // SOF0-SOF15, excluding the non-frame markers DHT/JPG/DAC.
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        return { width: body.readUInt16BE(offset + 7), height: body.readUInt16BE(offset + 5) };
+      }
+      offset += 2 + body.readUInt16BE(offset + 2);
+    }
+  }
+  return null;
+}
+
+// A logo is displayed inside a small circle, so a banner-shaped file shrinks to
+// a sliver and reads as an empty disc. Anything roughly square is fine.
+function isRoughlySquare(body: Buffer): boolean {
+  const size = imageSize(body);
+  if (!size || !size.width || !size.height) return true;  // unknown — don't object
+  const ratio = size.width / size.height;
+  return ratio >= 0.75 && ratio <= 1.34;
+}
+
+/**
  * Downloads the best available logo for a business and returns our own URL for
  * it, or '' when the site has nothing better than the favicon service's globe.
+ *
+ * Square candidates win outright. A banner-shaped icon is held back and used
+ * only if nothing else turns up, because the favicon service — which always
+ * returns a square icon — is usually the better answer: one real listing
+ * declared a 353x212 wide logo as its only icon, and that rendered as a blank
+ * disc where the service had a perfectly good square version of the same mark.
  */
 async function resolveLogo(candidates: string[], website: string, folder: string): Promise<string> {
   let origin = '';
@@ -236,15 +285,18 @@ async function resolveLogo(candidates: string[], website: string, folder: string
   // Site's own icons first, then the two conventional paths sites serve without
   // declaring. Capped so a site with a dozen dead icon links can't stall a run.
   const fromSite = [...candidates, `${origin}/apple-touch-icon.png`, `${origin}/favicon.ico`].slice(0, 6);
+  let banner: FetchedImage | null = null;
   for (const url of fromSite) {
     const img = await fetchImage(url);
-    if (img) return store(img);
+    if (!img) continue;
+    if (isRoughlySquare(img.body)) return store(img);
+    banner ??= img;
   }
 
   const fallback = await fetchImage(`${FAVICON_SERVICE}?domain=${hostname}&sz=256`);
   if (fallback && fingerprint(fallback.body) !== (await faviconPlaceholder())) return store(fallback);
 
-  return '';
+  return banner ? store(banner) : '';
 }
 
 // ─── Search public businesses (preview, not persisted) ──────────────────────────
