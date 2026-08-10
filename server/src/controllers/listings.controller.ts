@@ -778,6 +778,50 @@ export async function polishTitles(subjects: TitleSubject[]): Promise<string[]> 
   }
 }
 
+// ─── Rewrite one title on demand (the admin drawer's "rewrite" button) ──────────
+// Generation polishes a whole batch; this is the single-post equivalent, so an
+// admin unhappy with one headline can ask for another without regenerating the
+// post. It only returns a suggestion — the drawer puts it in the field and the
+// admin still has to save, so nothing is written here.
+export async function rewriteListingTitle(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    if (!GEMINI_KEY && !ANTHROPIC_KEY) {
+      res.status(503).json({
+        error: 'AI titles are not configured. Add GEMINI_API_KEY to the server environment.',
+      });
+      return;
+    }
+
+    const { name, service, location, title, description } = (req.body ?? {}) as Record<string, string>;
+    const businessName = (name ?? '').trim();
+    if (!businessName && !(title ?? '').trim()) {
+      res.status(400).json({ error: 'A business name or a current title is required.' });
+      return;
+    }
+
+    const serviceLabel = humanizeService(service ?? '');
+    const [rewritten] = await polishTitles([{
+      name: businessName,
+      service: serviceLabel,
+      location: (location ?? '').trim(),
+      // Give the model the current wording as the baseline to improve on, or a
+      // composed title when the field is empty.
+      fallback: (title ?? '').trim() || composeTitle(businessName, '', service ?? '', location ?? ''),
+      description: (description ?? '').trim(),
+    }]);
+
+    if (!rewritten) {
+      res.status(502).json({ error: 'Could not write a title just now. Please try again.' });
+      return;
+    }
+    res.json({ title: rewritten });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/listings/rewrite-title error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
 // Descriptions are assembled from the meta description plus real body copy so
 // posts read like an About section, not a one-liner. Paragraphs are joined with
 // blank lines; the post page renders each as its own paragraph.

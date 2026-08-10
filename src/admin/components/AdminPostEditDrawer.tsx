@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState, useRef } from 'react';
-import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
+import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown, Sparkles } from 'lucide-react';
 import { ref as dbRef, get, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'sonner';
 import { database, storage } from '../../firebase';
-import { adminDeleteService } from '../adminApi';
+import { adminDeleteService, adminRewriteTitle } from '../adminApi';
 import { type AdminService } from './AdminServicesTable';
 import { useCategories } from '../../CategoriesContext';
 
@@ -97,6 +97,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
   const [newFiles,      setNewFiles]        = useState<File[]>([]);
   const [newPreviews,   setNewPreviews]     = useState<string[]>([]);
   const [saving,        setSaving]          = useState(false);
+  const [rewriting,     setRewriting]       = useState(false);
   const [error,         setError]           = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +138,33 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
     const v = languageInput.trim();
     if (v && !languages.includes(v)) setLanguages((prev) => [...prev, v]);
     setLanguageInput('');
+  };
+
+  // Asks the AI for a fresh headline using whatever is currently in the drawer,
+  // including edits not yet saved, so changing the subcategory or description
+  // first shapes the suggestion. The result only fills the field; the admin
+  // reviews it and still has to save, and can undo by simply not saving.
+  const rewriteTitle = async () => {
+    setRewriting(true);
+    try {
+      const { title: suggestion } = await adminRewriteTitle({
+        name: service.sellerName ?? '',
+        service: subcategory || category,
+        location: primaryLocation,
+        title,
+        description,
+      });
+      if (suggestion === title.trim()) {
+        toast.message('The AI suggested the same title.');
+      } else {
+        setTitle(suggestion);
+        toast.success('New title suggested. Review it, then Save Changes to keep it.');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not rewrite the title.');
+    } finally {
+      setRewriting(false);
+    }
   };
 
   // "Contact for pricing" posts carry no figures, so the amount inputs are
@@ -284,7 +312,22 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
           {/* Title */}
           <div>
             <FieldLabel>Title</FieldLabel>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post title…" />
+            <div className="flex items-center gap-2">
+              {/* Input is w-full, so it needs its own flex child to shrink beside the button. */}
+              <div className="flex-1 min-w-0">
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Post title…" />
+              </div>
+              <button
+                type="button"
+                onClick={rewriteTitle}
+                disabled={rewriting}
+                title="Rewrite this title with AI. The suggestion goes in the field above — nothing is saved until you click Save Changes."
+                aria-label="Rewrite title with AI"
+                className="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-slate-700/50 bg-surface-raised text-slate-300 hover:text-white hover:border-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {rewriting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Description */}

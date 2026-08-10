@@ -117,6 +117,22 @@ export interface RehostPhotosResult {
  * rather than merely plain. Hand-edited titles are left alone. Posts generated
  * now get all three automatically.
  */
+/**
+ * Asks the AI for a better headline for one post. Returns a suggestion only —
+ * the caller drops it into the title field and the admin still has to save.
+ */
+export const adminRewriteTitle = (body: {
+  name: string;
+  service: string;
+  location: string;
+  title: string;
+  description: string;
+}) =>
+  authedFetch<{ title: string }>('/api/admin/listings/rewrite-title', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
 export const adminRehostListingPhotos = (limit = 5) =>
   authedFetch<RehostPhotosResult>('/api/admin/listings/rehost-photos', {
     method: 'POST',
