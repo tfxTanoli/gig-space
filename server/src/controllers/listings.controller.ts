@@ -164,7 +164,15 @@ function faviconPreview(website: string): string {
 
 interface FetchedImage { body: Buffer; contentType: string }
 
-async function fetchImage(url: string, timeoutMs = 6000): Promise<FetchedImage | null> {
+// Kept tight: a single unresponsive host must not eat the request budget. Logo
+// resolution can try several candidates, and this runs inside a serverless
+// function with a hard ceiling on total duration.
+const IMAGE_FETCH_TIMEOUT = 4000;
+// Whole-of-logo budget, so a site whose every icon URL hangs still gives up in
+// time for the rest of generation to finish.
+const LOGO_BUDGET_MS = 15000;
+
+async function fetchImage(url: string, timeoutMs = IMAGE_FETCH_TIMEOUT): Promise<FetchedImage | null> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -284,9 +292,12 @@ async function resolveLogo(candidates: string[], website: string, folder: string
 
   // Site's own icons first, then the two conventional paths sites serve without
   // declaring. Capped so a site with a dozen dead icon links can't stall a run.
+  const deadline = Date.now() + LOGO_BUDGET_MS;
   const fromSite = [...candidates, `${origin}/apple-touch-icon.png`, `${origin}/favicon.ico`].slice(0, 6);
   let banner: FetchedImage | null = null;
   for (const url of fromSite) {
+    // Leave room for the favicon service, which is the most reliable candidate.
+    if (Date.now() > deadline - IMAGE_FETCH_TIMEOUT) break;
     const img = await fetchImage(url);
     if (!img) continue;
     if (isRoughlySquare(img.body)) return store(img);
@@ -931,20 +942,35 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       })),
     );
 
+    // Reserve every key up front so media can be copied in parallel — each
+    // business's files are stored under its own id.
+    const refs = businesses.map(() => db.ref('services').push());
+
+    // Post images are the business's Google Business Profile photos (owner
+    // uploads), copied into our own Storage so viewing a post never calls — or
+    // gets billed by — Google again. The avatar is resolved the same way.
+    //
+    // Businesses are processed together rather than one after another: this runs
+    // in a serverless function with a hard duration ceiling, and a couple of
+    // slow-responding sites in a batch used to add up past it.
+    const media = await Promise.all(
+      businesses.map(async (b, i) => {
+        const id = refs[i].key as string;
+        const [images, logo] = await Promise.all([
+          rehostPhotos(Array.isArray(b.images) ? b.images : [], id),
+          b.website ? resolveLogo(scraped[i].iconUrls, b.website, id) : Promise.resolve(''),
+        ]);
+        return { images, logo };
+      }),
+    );
+
     for (let i = 0; i < businesses.length; i++) {
       const b = businesses[i];
       const site = scraped[i];
-      const ref = db.ref('services').push();
+      const ref = refs[i];
       const id = ref.key as string;
       const now = Date.now();
-      // Post images are the business's Google Business Profile photos (owner
-      // uploads), copied into our own Storage so viewing a post never calls —
-      // or gets billed by — Google again.
-      const images = await rehostPhotos(Array.isArray(b.images) ? b.images : [], id);
-      // Same deal for the avatar: find the business's real logo and serve it
-      // ourselves. Empty means we found nothing better than a generic globe, and
-      // the post renders the business's initial instead.
-      const logo = b.website ? await resolveLogo(site.iconUrls, b.website, id) : '';
+      const { images, logo } = media[i];
       const reviews = Array.isArray(b.reviews) ? b.reviews : [];
       // The Places API returns at most 5 review texts, but the business's REAL
       // totals come from rating/userRatingCount — store those so the post shows
