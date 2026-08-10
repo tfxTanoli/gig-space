@@ -288,7 +288,7 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
           <div className="flex items-center gap-1.5 mb-2 h-[26px]">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
             <span className="text-[13px] text-slate-400">
-              {serviceAvgRating.toFixed(1)} ({serviceReviewCount})
+              {serviceAvgRating.toFixed(1)} ({fmt(serviceReviewCount)})
             </span>
           </div>
         ) : (

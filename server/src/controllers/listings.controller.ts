@@ -646,9 +646,10 @@ const TITLE_SYSTEM_PROMPT =
   'write one title that names the business and what it actually does, so a buyer ' +
   `browsing search results knows whether to click. Hard limit ${TITLE_MAX} characters — ` +
   'aim for 50 to 70. Use title case, with no quotes, emoji, or trailing punctuation. ' +
-  'Mention the city only when it fits naturally. Never invent services, credentials, ' +
-  'awards, or claims that are not in the supplied data. Return exactly one title per ' +
-  'business, in the order given.';
+  'Copy the business name verbatim, including "&" and any Inc. or LLC suffix, then ' +
+  'separate it from the service description with an em dash. Mention the city only ' +
+  'when it fits naturally. Never invent services, credentials, awards, or claims that ' +
+  'are not in the supplied data. Return exactly one title per business, in the order given.';
 
 interface TitleSubject {
   name: string;

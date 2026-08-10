@@ -284,7 +284,7 @@ const BuyerSearchFiltered = () => {
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                             <span className="text-xs text-slate-400">
-                              {svcAvgRating.toFixed(1)} ({svcReviewCount})
+                              {svcAvgRating.toFixed(1)} ({fmt(svcReviewCount)})
                             </span>
                           </div>
                         ) : (
