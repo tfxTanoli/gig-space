@@ -609,21 +609,35 @@ const TITLE_SHAPES: TitleShape[] = [
 ];
 const EM_DASH_SHAPE = 4;
 
+/**
+ * FNV-1a with a final avalanche. The obvious `hash * 31` variant leans on the
+ * last few characters, and real business names in one trade are too alike for
+ * that: a batch of Nashville electricians all landed in the same bucket, so
+ * five of six titles came out with a colon. Mixing the bits properly is what
+ * makes the spread hold on names that look similar.
+ */
 function seedOf(text: string): number {
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
-  return hash;
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 2246822507);
+  h ^= h >>> 13;
+  h = Math.imul(h, 3266489909);
+  return (h ^= h >>> 16) >>> 0;
 }
 
 /** Stable per business, so regenerating gives the same shape rather than a new one. */
 function shapeIndex(seed: string): number {
-  const n = seedOf(seed) % 10;
+  const n = seedOf(seed) % 100;
   // "HaulAway Junk Removal Service, LLC, Junk Removal" reads as a list rather
   // than a name and a service, so a name with a comma never gets another.
-  if (n < 3) return seed.includes(',') ? 1 : 0;
-  if (n < 6) return 1;
-  if (n < 8) return 2;
-  if (n < 9) return 3;
+  if (n < 30) return seed.includes(',') ? 1 : 0;
+  if (n < 60) return 1;
+  if (n < 80) return 2;
+  if (n < 90) return 3;
   return EM_DASH_SHAPE;  // roughly one business in ten
 }
 
