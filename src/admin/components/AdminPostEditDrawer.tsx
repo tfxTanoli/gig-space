@@ -156,7 +156,9 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
         name: service.sellerName ?? '',
         service: subcategory || category,
         location: primaryLocation,
-        title,
+        // The stored title, not the field. Feeding a previous suggestion back in
+        // anchors the model and the second and third clicks return it verbatim.
+        title: service.title ?? '',
         description,
         variant: attempt - 1,
       });
