@@ -530,15 +530,22 @@ function dedupeSegments(segments: string[]): string[] {
   return kept;
 }
 
-function cleanSiteTitle(raw: string, businessName: string): string {
+/** The useful, de-duplicated parts of a scraped site title, best first. */
+function cleanSiteSegments(raw: string, businessName: string): string[] {
   const segments = titleSegments(raw);
-  if (!segments.length) return '';
+  if (!segments.length) return [];
 
   // A segment that only repeats the business name adds nothing once we prepend
   // the name ourselves — unless it's the only segment there is.
   const name = businessName.trim().toLowerCase();
   const descriptive = segments.filter((s) => s.toLowerCase() !== name);
-  const kept = dedupeSegments(descriptive.length ? descriptive : segments).join(' — ');
+  return dedupeSegments(descriptive.length ? descriptive : segments);
+}
+
+function cleanSiteTitle(raw: string, businessName: string): string {
+  // Claims from the page title read as a list, so they're joined with a comma
+  // rather than another dash.
+  const kept = cleanSiteSegments(raw, businessName).join(', ');
   return kept.length < 3 ? '' : kept;
 }
 
@@ -568,6 +575,59 @@ function fitTitle(candidates: string[]): string {
 
 const includesCI = (haystack: string, needle: string) =>
   Boolean(needle) && haystack.toLowerCase().includes(needle.toLowerCase());
+
+/* ─── Separator variety ────────────────────────────────────────────────────────
+ * An em dash between the business name and the service is the giveaway that a
+ * machine wrote the title: fine once in a while, obviously templated when every
+ * listing has one. The separator is therefore chosen from the business name, so
+ * it is stable for a given business (regenerating gives the same style, not a
+ * different one each time) while varying across the marketplace. The em dash
+ * still appears, just as the minority.
+ */
+const EM_DASH = ' — ';
+
+/**
+ * Asking a model to "vary the wording" does not work: it settles on one
+ * favourite and repeats it. Mandating the em dash produced an em dash every
+ * time; banning it simply moved the tell to "provides", and banning that moved
+ * it to the colon. So the shape is decided here and handed to the model per
+ * business, which makes the spread a property of the code rather than a hope.
+ */
+interface TitleShape {
+  /** Told to the model for this business. */
+  instruction: string;
+  /** Used by the non-AI composed title, which can only join name and detail. */
+  joiner: string;
+}
+
+const TITLE_SHAPES: TitleShape[] = [
+  { joiner: ', ', instruction: 'Business name, then a comma, then what they do. Example: "Acme Plumbing, Emergency Drain Repair in Austin".' },
+  { joiner: ': ', instruction: 'Business name, then a colon, then what they do. Example: "Acme Plumbing: Emergency Drain Repair".' },
+  { joiner: ': ', instruction: 'Lead with the service, then "by" and the business name. Example: "Emergency Drain Repair in Austin by Acme Plumbing".' },
+  { joiner: ' ',  instruction: 'One natural phrase, no punctuation between the name and the service. Example: "Acme Plumbing Emergency Drain Repair in Austin".' },
+  { joiner: EM_DASH, instruction: 'Business name, then an em dash, then what they do. Example: "Acme Plumbing — Emergency Drain Repair".' },
+];
+const EM_DASH_SHAPE = 4;
+
+function seedOf(text: string): number {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
+/** Stable per business, so regenerating gives the same shape rather than a new one. */
+function shapeIndex(seed: string): number {
+  const n = seedOf(seed) % 10;
+  // "HaulAway Junk Removal Service, LLC, Junk Removal" reads as a list rather
+  // than a name and a service, so a name with a comma never gets another.
+  if (n < 3) return seed.includes(',') ? 1 : 0;
+  if (n < 6) return 1;
+  if (n < 8) return 2;
+  if (n < 9) return 3;
+  return EM_DASH_SHAPE;  // roughly one business in ten
+}
+
+const titleJoiner = (seed: string) => TITLE_SHAPES[shapeIndex(seed)].joiner;
 
 /**
  * Whole-word containment. A plain substring test is wrong for deciding whether a
@@ -613,6 +673,7 @@ function composeTitle(name: string, siteTitle: string, rawService: string, locat
   // "HVAC contractor in Austin, Texas", or just one half when that's all we have
   // — the "in" only makes sense once there's a service in front of it.
   const fromPlaces = [service, location && (service ? `in ${location}` : location)].filter(Boolean).join(' ');
+  const siteSegments = cleanSiteSegments(siteTitle, name);
   const fromSite = cleanSiteTitle(siteTitle, name);
 
   // A site title that only echoes the business name tells a buyer nothing the
@@ -620,13 +681,17 @@ function composeTitle(name: string, siteTitle: string, rawService: string, locat
   const echoesName = fromSite.toLowerCase() === name.trim().toLowerCase();
   const detail = (echoesName ? fromPlaces || fromSite : fromSite || fromPlaces).trim();
 
+  const joiner = titleJoiner(name || rawService || location);
   const join = (d: string) =>
-    !name ? d : includesCI(d, name) ? d : [name, d].filter(Boolean).join(' — ');
+    !name ? d : includesCI(d, name) ? d : [name, d].filter(Boolean).join(joiner);
 
   // Richest first. A long scraped title usually stacks several claims — keeping
   // only its first segment loses the least, and dropping to the Places wording
-  // ("HVAC in Cleveland, Ohio") is the last stop before the name alone.
-  const firstSegment = titleSegments(detail)[0] ?? '';
+  // ("HVAC in Cleveland, Ohio") is the last stop before the name alone. The
+  // segments are taken from before they were joined, so the joiner can be any
+  // punctuation without breaking this.
+  const detailSegments = detail === fromSite && siteSegments.length ? siteSegments : titleSegments(detail);
+  const firstSegment = detailSegments[0] ?? '';
   return fitTitle([
     join(detail),
     join(firstSegment),
@@ -657,10 +722,14 @@ const TITLE_SYSTEM_PROMPT =
   'write one title that names the business and what it actually does, so a buyer ' +
   `browsing search results knows whether to click. Hard limit ${TITLE_MAX} characters — ` +
   'aim for 50 to 70. Use title case, with no quotes, emoji, or trailing punctuation. ' +
-  'Copy the business name verbatim, including "&" and any Inc. or LLC suffix, then ' +
-  'separate it from the service description with an em dash. Mention the city only ' +
-  'when it fits naturally. Never invent services, credentials, awards, or claims that ' +
-  'are not in the supplied data. Return exactly one title per business, in the order given.';
+  'Copy the business name verbatim, including "&" and any Inc. or LLC suffix. ' +
+  'Each business carries a "shape" field describing how its title must be built — ' +
+  'follow that shape exactly for that business, and do not use any other separator. ' +
+  'Prefer noun phrases to sentences: "Acme Plumbing: Emergency Drain Repair" reads ' +
+  'better than "Acme Plumbing Provides Drain Repair", so avoid filler verbs such as ' +
+  '"provides" and "offers". Mention the city only when it fits naturally. Never ' +
+  'invent services, credentials, awards, or claims that are not in the supplied data. ' +
+  'Return exactly one title per business, in the order given.';
 
 interface TitleSubject {
   name: string;
@@ -668,6 +737,19 @@ interface TitleSubject {
   location: string;
   fallback: string;
   description: string;
+}
+
+/**
+ * Backstop for the prompt's "avoid the em dash" rule. Models drift back to a
+ * favourite construction, and one dash per title across a whole marketplace is
+ * exactly the tell we're trying to remove — so a title that used one keeps it
+ * only if this business is one of the minority the joiner picks it for.
+ * Deterministic, so rewriting the same listing doesn't flip-flop.
+ */
+function easeOffEmDash(title: string, seed: string): string {
+  if (!title.includes(EM_DASH)) return title;
+  const shape = shapeIndex(seed);
+  return shape === EM_DASH_SHAPE ? title : title.replace(EM_DASH, TITLE_SHAPES[shape].joiner);
 }
 
 const titlePayload = (subjects: TitleSubject[]) =>
@@ -678,6 +760,7 @@ const titlePayload = (subjects: TitleSubject[]) =>
       location: s.location,
       currentTitle: s.fallback,
       about: s.description.slice(0, 400),
+      shape: TITLE_SHAPES[shapeIndex(s.name || s.fallback)].instruction,
     })),
   );
 
@@ -770,7 +853,8 @@ export async function polishTitles(subjects: TitleSubject[]): Promise<string[]> 
   if (!provider) return [];
 
   try {
-    return provider === 'gemini' ? await geminiTitles(subjects) : await anthropicTitles(subjects);
+    const titles = provider === 'gemini' ? await geminiTitles(subjects) : await anthropicTitles(subjects);
+    return titles.map((t, i) => trimToWords(easeOffEmDash(t, subjects[i].name || subjects[i].fallback)));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[listings] ${provider} title polish unavailable, using composed titles: ${msg}`);
@@ -1034,7 +1118,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         description:
           site.description ||
           b.description ||
-          `${b.name ?? ''} — ${humanizeService(serviceLabel(b))}. ${location}`.trim(),
+          `${b.name ?? ''}: ${humanizeService(serviceLabel(b))}. ${location}`.trim(),
         category: category ?? '',
         subcategory: subcategory ?? '',
         priceMin: 0,
@@ -1128,8 +1212,9 @@ function isWeakTitle(title: unknown, businessName: string, service: string, loca
   const cleaned = cleanSiteTitle(title, businessName);
   if (!cleaned) return true;
 
-  // Long enough to be carrying real information — leave it be.
-  const words = cleaned.split(/\s+/).filter(Boolean);
+  // Long enough to be carrying real information — leave it be. Punctuation-only
+  // tokens don't count, so the answer doesn't shift with the joiner style.
+  const words = cleaned.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w));
   if (words.length >= TITLE_MIN_USEFUL_WORDS) return false;
 
   // Short, but still anchored to something a buyer recognises. Whole-word
@@ -1180,6 +1265,8 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       website: string;      // '' when neither repair below needs the homepage
       staleLogo: boolean;
       brokenTitle: boolean;
+      /** Existing title whose em dash should be swapped — no refetch, no AI. */
+      dashTitle: string;
       rawDescription: string;   // '' unless it still carries undecoded entities
       name: string;
       service: string;
@@ -1201,8 +1288,19 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       const brokenTitle =
         service.titleEditedByAdmin !== true && needsTitleRepair(service.title, name, trade, location);
       const rawDescription = hasRawEntity(service.description) ? service.description : '';
+      // Titles written before the joiner varied are all em dash. Swapping the
+      // punctuation is a pure text edit, so it needs neither a refetch nor the
+      // AI — but it still respects a title the admin wrote.
+      const currentTitle = String(service.title ?? '');
+      const dashTitle =
+        !brokenTitle &&
+        service.titleEditedByAdmin !== true &&
+        currentTitle.includes(EM_DASH) &&
+        easeOffEmDash(currentTitle, name) !== currentTitle
+          ? currentTitle
+          : '';
 
-      if (images.some(isGooglePhotoUrl) || staleLogo || brokenTitle || rawDescription) {
+      if (images.some(isGooglePhotoUrl) || staleLogo || brokenTitle || rawDescription || dashTitle) {
         pending.push({
           id: child.key as string,
           images,
@@ -1210,6 +1308,7 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
           website: staleLogo || brokenTitle ? String(service.website ?? '') : '',
           staleLogo,
           brokenTitle,
+          dashTitle,
           rawDescription,
           name,
           service: trade,
@@ -1240,9 +1339,10 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       if (copied) { patch.images = rehosted; photos += copied; }
       failed += rehosted.filter(isGooglePhotoUrl).length;
 
-      // Pure text fix — no refetch needed, and paragraph breaks are preserved.
+      // Pure text fixes — no refetch needed, and paragraph breaks are preserved.
       const description = item.rawDescription ? decodeHtmlEntities(item.rawDescription) : '';
       if (description) patch.description = description;
+      if (item.dashTitle) patch.title = easeOffEmDash(item.dashTitle, item.name);
 
       if (item.website) {
         // One homepage fetch serves both repairs below.
