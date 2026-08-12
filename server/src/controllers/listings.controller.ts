@@ -751,7 +751,17 @@ interface TitleSubject {
   location: string;
   fallback: string;
   description: string;
+  /**
+   * Nudges this business onto a different shape. Generation leaves it at 0 so a
+   * batch keeps its assigned spread; the drawer's rewrite button increments it
+   * per click, which is what makes asking twice give something new rather than
+   * the same sentence back.
+   */
+  variant?: number;
 }
+
+const shapeFor = (s: TitleSubject) =>
+  (shapeIndex(s.name || s.fallback) + (s.variant ?? 0)) % TITLE_SHAPES.length;
 
 /**
  * Backstop for the prompt's "avoid the em dash" rule. Models drift back to a
@@ -760,11 +770,16 @@ interface TitleSubject {
  * only if this business is one of the minority the joiner picks it for.
  * Deterministic, so rewriting the same listing doesn't flip-flop.
  */
-function easeOffEmDash(title: string, seed: string): string {
+function swapEmDash(title: string, shape: number): string {
   if (!title.includes(EM_DASH)) return title;
-  const shape = shapeIndex(seed);
   return shape === EM_DASH_SHAPE ? title : title.replace(EM_DASH, TITLE_SHAPES[shape].joiner);
 }
+
+/** For stored titles, which have only a business name to go on. */
+const easeOffEmDash = (title: string, seed: string) => swapEmDash(title, shapeIndex(seed));
+
+/** For AI output, which also knows the variant the caller asked for. */
+const easeOffEmDashFor = (title: string, subject: TitleSubject) => swapEmDash(title, shapeFor(subject));
 
 const titlePayload = (subjects: TitleSubject[]) =>
   JSON.stringify(
@@ -774,7 +789,7 @@ const titlePayload = (subjects: TitleSubject[]) =>
       location: s.location,
       currentTitle: s.fallback,
       about: s.description.slice(0, 400),
-      shape: TITLE_SHAPES[shapeIndex(s.name || s.fallback)].instruction,
+      shape: TITLE_SHAPES[shapeFor(s)].instruction,
     })),
   );
 
@@ -868,7 +883,7 @@ export async function polishTitles(subjects: TitleSubject[]): Promise<string[]> 
 
   try {
     const titles = provider === 'gemini' ? await geminiTitles(subjects) : await anthropicTitles(subjects);
-    return titles.map((t, i) => trimToWords(easeOffEmDash(t, subjects[i].name || subjects[i].fallback)));
+    return titles.map((t, i) => trimToWords(easeOffEmDashFor(t, subjects[i])));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[listings] ${provider} title polish unavailable, using composed titles: ${msg}`);
@@ -890,12 +905,18 @@ export async function rewriteListingTitle(req: AdminRequest, res: Response): Pro
       return;
     }
 
-    const { name, service, location, title, description } = (req.body ?? {}) as Record<string, string>;
+    const body = (req.body ?? {}) as Record<string, string>;
+    const { name, service, location, title, description } = body;
     const businessName = (name ?? '').trim();
     if (!businessName && !(title ?? '').trim()) {
       res.status(400).json({ error: 'A business name or a current title is required.' });
       return;
     }
+
+    // Each click of the drawer's button sends the next variant, which walks the
+    // business onto a different shape so asking again gives a real alternative.
+    const requested = Number(body.variant);
+    const variant = Number.isFinite(requested) ? Math.abs(Math.trunc(requested)) : 0;
 
     const serviceLabel = humanizeService(service ?? '');
     const [rewritten] = await polishTitles([{
@@ -906,6 +927,7 @@ export async function rewriteListingTitle(req: AdminRequest, res: Response): Pro
       // composed title when the field is empty.
       fallback: (title ?? '').trim() || composeTitle(businessName, '', service ?? '', location ?? ''),
       description: (description ?? '').trim(),
+      variant,
     }]);
 
     if (!rewritten) {

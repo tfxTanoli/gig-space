@@ -127,6 +127,8 @@ export const adminRewriteTitle = (body: {
   location: string;
   title: string;
   description: string;
+  /** Bumped on each click so asking again returns a different construction. */
+  variant: number;
 }) =>
   authedFetch<{ title: string }>('/api/admin/listings/rewrite-title', {
     method: 'POST',

@@ -98,6 +98,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
   const [newPreviews,   setNewPreviews]     = useState<string[]>([]);
   const [saving,        setSaving]          = useState(false);
   const [rewriting,     setRewriting]       = useState(false);
+  const [rewriteCount,  setRewriteCount]    = useState(0);
   const [error,         setError]           = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,6 +147,10 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
   // reviews it and still has to save, and can undo by simply not saving.
   const rewriteTitle = async () => {
     setRewriting(true);
+    // Each click asks for the next construction, so pressing it repeatedly
+    // offers genuine alternatives instead of the same sentence back.
+    const attempt = rewriteCount + 1;
+    setRewriteCount(attempt);
     try {
       const { title: suggestion } = await adminRewriteTitle({
         name: service.sellerName ?? '',
@@ -153,6 +158,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
         location: primaryLocation,
         title,
         description,
+        variant: attempt - 1,
       });
       if (suggestion === title.trim()) {
         toast.message('The AI suggested the same title.');
