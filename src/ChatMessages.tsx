@@ -86,8 +86,14 @@ interface ChatMessagesProps {
   onServiceContextHandled?: () => void;
 }
 
-function getConversationId(uid1: string, uid2: string): string {
-  return [uid1, uid2].sort().join('_');
+// Keyed by role, not by the unordered pair: the same two people can hold a
+// conversation as buyer+seller in one direction and, separately, as
+// seller+buyer in the other (e.g. a past customer later sells to you). A
+// sorted/unordered key would collide the two, silently keeping whichever
+// buyer/seller assignment was written first — including on new inquiries
+// that reverse who's the seller.
+function getConversationId(buyerId: string, sellerId: string): string {
+  return [buyerId, sellerId].join('_');
 }
 
 export default function ChatMessages({
@@ -208,21 +214,21 @@ export default function ChatMessages({
     }
 
     const open = async () => {
-      const convId = getConversationId(user.uid, startChatWithUserId);
+      const isBuyer = mode === 'buyer';
+      const convData = {
+        buyerId:        isBuyer ? user.uid                     : startChatWithUserId,
+        sellerId:       isBuyer ? startChatWithUserId          : user.uid,
+        buyerName:      isBuyer ? (userProfile.name || '')     : (startChatWithName || ''),
+        sellerName:     isBuyer ? (startChatWithName || '')    : (userProfile.name || ''),
+        buyerPhotoURL:  isBuyer ? (userProfile.photoURL || '') : (startChatWithPhoto || ''),
+        sellerPhotoURL: isBuyer ? (startChatWithPhoto || '')   : (userProfile.photoURL || ''),
+        lastMessage: '',
+        lastMessageAt: Date.now(),
+        unreadBuyer: 0,
+        unreadSeller: 0,
+      };
+      const convId = getConversationId(convData.buyerId, convData.sellerId);
       try {
-        const isBuyer = mode === 'buyer';
-        const convData = {
-          buyerId:        isBuyer ? user.uid                     : startChatWithUserId,
-          sellerId:       isBuyer ? startChatWithUserId          : user.uid,
-          buyerName:      isBuyer ? (userProfile.name || '')     : (startChatWithName || ''),
-          sellerName:     isBuyer ? (startChatWithName || '')    : (userProfile.name || ''),
-          buyerPhotoURL:  isBuyer ? (userProfile.photoURL || '') : (startChatWithPhoto || ''),
-          sellerPhotoURL: isBuyer ? (startChatWithPhoto || '')   : (userProfile.photoURL || ''),
-          lastMessage: '',
-          lastMessageAt: Date.now(),
-          unreadBuyer: 0,
-          unreadSeller: 0,
-        };
         const convSnap = await get(ref(database, `conversations/${convId}`));
         const updates: Record<string, unknown> = {
           [`userConversations/${convData.buyerId}/${convId}`]:  true,
