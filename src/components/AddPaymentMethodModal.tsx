@@ -101,7 +101,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
             <button
               onClick={onClose}
               disabled={saving}
-              className="flex-1 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-40"
+              className="flex-1 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-sm hover:bg-surface-raised hover:text-white transition-colors disabled:opacity-40"
             >
               Cancel
             </button>
