@@ -11,7 +11,12 @@ import {
 import type { Wallet as WalletType, WalletTransaction } from '../stripe/types';
 import { formatMoney } from '../utils/currency';
 
-const MIN_WITHDRAWAL = 10;
+// TEMPORARY for the GIG-37 live-mode withdrawal test: the real minimum is
+// admin-configurable server-side (settings/fees/minimumWithdrawal, default
+// $10) but the client can't read that path (admin-only in database.rules.json)
+// so it's hardcoded here. Lowered to $1 for one test withdrawal below $10 —
+// revert to 10 once that's done.
+const MIN_WITHDRAWAL = 1;
 
 function txIcon(type: WalletTransaction['type']) {
   switch (type) {

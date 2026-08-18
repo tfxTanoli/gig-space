@@ -9,7 +9,9 @@ interface WithdrawModalProps {
   onSuccess: () => void;
 }
 
-const MINIMUM = 10;
+// TEMPORARY — see matching note in WalletTab.tsx. Revert to 10 after the
+// GIG-37 live-mode test withdrawal.
+const MINIMUM = 1;
 
 export default function WithdrawModal({ availableBalance, onClose, onSuccess }: WithdrawModalProps) {
   const [amount, setAmount] = useState('');
