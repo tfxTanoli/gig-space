@@ -8,7 +8,7 @@ import { formatMoney, formatAmount } from './utils/money';
 import { isUnusableStripeId } from './stripeClient';
 import {
   reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
-  isPlatformBalanceShort, checkPlatformFunds, readPlatformBalance,
+  isPlatformBalanceShort, checkPlatformFunds, readPlatformBalance, refundDebit,
   platformShortfallMessage, describePlatformShortfall,
   clearanceState, daysUntil, CLEARANCE_DAYS_DEFAULT,
 } from './payouts';
@@ -1267,24 +1267,105 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   const paymentId = Object.keys(snap.val())[0];
   const payment = snap.val()[paymentId] as {
-    orderId?: string; sellerId?: string; buyerId?: string; sellerAmount?: number; status?: string;
+    orderId?: string; sellerId?: string; buyerId?: string;
+    amount?: number; sellerAmount?: number; status?: string; refundedAmount?: number;
   };
-  if (payment.status === 'refunded') return;
 
+  // Stripe sends charge.refunded for *partial* refunds as well, and sends it
+  // again each time more is refunded. Both were previously ignored: any refund
+  // event reversed the seller's entire balance and cancelled the order, so a
+  // $10 goodwill refund on a $100 order took $90 off the seller.
+  //
+  // So everything below is proportional to how much of the charge has actually
+  // been refunded, and debits only the portion a previous event didn't.
+  const chargeTotal   = (charge.amount ?? 0) / 100;
+  const refundedTotal = (charge.amount_refunded ?? 0) / 100;
+  if (chargeTotal <= 0 || refundedTotal <= 0) return;
+
+  // Payments refunded before this handler tracked amounts carry no
+  // refundedAmount; treating those as untouched would debit the seller a
+  // second time, so a legacy `refunded` status counts as fully reversed.
+  const alreadyRefunded = Number(
+    payment.refundedAmount ?? (payment.status === 'refunded' ? chargeTotal : 0),
+  );
+  if (refundedTotal <= alreadyRefunded) return;
+
+  const isFullRefund = refundedTotal >= chargeTotal;
   const now = Date.now();
+
   const updates: Record<string, unknown> = {
-    [`payments/${paymentId}/status`]: 'refunded',
+    [`payments/${paymentId}/status`]: isFullRefund ? 'refunded' : 'partially_refunded',
+    [`payments/${paymentId}/refundedAmount`]: Math.round(refundedTotal * 100) / 100,
     [`payments/${paymentId}/refundedAt`]: now,
   };
-  if (payment.status === 'paid' && payment.sellerId && payment.sellerAmount) {
-    updates[`wallets/${payment.sellerId}/pendingBalance`] =
-      admin.database.ServerValue.increment(-payment.sellerAmount);
-    updates[`wallets/${payment.sellerId}/updatedAt`] = now;
-    const txId = db.ref(`walletTransactions/${payment.sellerId}`).push().key!;
-    updates[`walletTransactions/${payment.sellerId}/${txId}`] = {
-      type: 'refund', orderId: payment.orderId || '', paymentId,
-      amount: -payment.sellerAmount, description: 'Payment refunded', createdAt: now,
-    };
+
+  // Which balance holds the seller's money depends on whether the buyer had
+  // already approved. Before approval it sits in pendingBalance; approval moves
+  // it to availableBalance and stamps the payment `released`. The old condition
+  // was `status === 'paid'` alone, so every *post-approval* refund — precisely
+  // the ones where the money is closest to leaving the platform — debited
+  // nothing whatsoever, and the seller kept funds for a reversed sale.
+  const sellerAmount = Number(payment.sellerAmount ?? 0);
+  if (payment.sellerId && sellerAmount > 0) {
+    const debit = refundDebit(chargeTotal, refundedTotal, alreadyRefunded, sellerAmount);
+    if (debit > 0) {
+      const released = payment.status === 'released';
+      const field = released ? 'availableBalance' : 'pendingBalance';
+      updates[`wallets/${payment.sellerId}/${field}`] =
+        admin.database.ServerValue.increment(-debit);
+      // lifetimeEarnings is only ever incremented at release, so it is only
+      // unwound for a release that is now being reversed.
+      if (released) {
+        updates[`wallets/${payment.sellerId}/lifetimeEarnings`] =
+          admin.database.ServerValue.increment(-debit);
+      }
+      updates[`wallets/${payment.sellerId}/updatedAt`] = now;
+      const txId = db.ref(`walletTransactions/${payment.sellerId}`).push().key!;
+      updates[`walletTransactions/${payment.sellerId}/${txId}`] = {
+        type: 'refund', orderId: payment.orderId || '', paymentId,
+        amount: -debit,
+        description: isFullRefund ? 'Payment refunded' : 'Partial refund issued',
+        createdAt: now,
+      };
+    }
+  }
+
+  // An affiliate commission is a share of the platform fee on a sale that has
+  // now been partly or wholly undone, so it comes back on the same terms. This
+  // handler previously never mentioned affiliates at all, which left them
+  // holding — and able to withdraw — commission on refunded orders.
+  if (payment.orderId) {
+    const commSnap = await db.ref('affiliateCommissions')
+      .orderByChild('orderId').equalTo(payment.orderId).limitToFirst(1).get();
+    if (commSnap.exists()) {
+      const commissionId = Object.keys(commSnap.val())[0];
+      const commission = (commSnap.val() as Record<string, {
+        affiliateId?: string; commissionAmount?: number; status?: string;
+      }>)[commissionId];
+      const commissionAmount = Number(commission.commissionAmount ?? 0);
+
+      if (commission.affiliateId && commissionAmount > 0) {
+        const debit = refundDebit(chargeTotal, refundedTotal, alreadyRefunded, commissionAmount);
+        if (debit > 0) {
+          // Mirrors the seller above: 'available' means it was released to the
+          // affiliate's withdrawable balance, anything else is still pending.
+          const releasedComm = commission.status === 'available';
+          const field = releasedComm ? 'availableBalance' : 'pendingBalance';
+          updates[`affiliates/${commission.affiliateId}/${field}`] =
+            admin.database.ServerValue.increment(-debit);
+          if (releasedComm) {
+            updates[`affiliates/${commission.affiliateId}/lifetimeEarnings`] =
+              admin.database.ServerValue.increment(-debit);
+          }
+          updates[`affiliates/${commission.affiliateId}/updatedAt`] = now;
+          updates[`affiliateCommissions/${commissionId}/refundedAmount`] =
+            refundDebit(chargeTotal, refundedTotal, 0, commissionAmount);
+          if (isFullRefund) {
+            updates[`affiliateCommissions/${commissionId}/status`] = 'refunded';
+          }
+        }
+      }
+    }
   }
 
   // Look up service title from the order before updating
@@ -1292,8 +1373,14 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   if (payment.orderId) {
     const orderSnap = await db.ref(`orders/${payment.orderId}`).get();
     refundServiceTitle = (orderSnap.val() as { serviceTitle?: string } | null)?.serviceTitle || refundServiceTitle;
-    updates[`orders/${payment.orderId}/status`]        = 'cancelled';
-    updates[`orders/${payment.orderId}/paymentStatus`] = 'refunded';
+    // Only a full refund ends the order. A partial one is a price adjustment —
+    // cancelling on it would close an order the seller is still working on.
+    if (isFullRefund) {
+      updates[`orders/${payment.orderId}/status`]        = 'cancelled';
+      updates[`orders/${payment.orderId}/paymentStatus`] = 'refunded';
+    } else {
+      updates[`orders/${payment.orderId}/paymentStatus`] = 'partially_refunded';
+    }
   }
 
   await db.ref().update(updates);
