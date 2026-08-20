@@ -8,7 +8,8 @@ import { formatMoney, formatAmount } from './utils/money';
 import { isUnusableStripeId } from './stripeClient';
 import {
   reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
-  isPlatformBalanceShort, PLATFORM_BALANCE_SHORT_MESSAGE,
+  isPlatformBalanceShort, checkPlatformFunds, readPlatformBalance,
+  platformShortfallMessage, describePlatformShortfall,
   clearanceState, daysUntil, CLEARANCE_DAYS_DEFAULT,
 } from './payouts';
 import {
@@ -856,6 +857,23 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
       }
     }
 
+    // ── Can the platform actually fund this? ─────────────────────────────────
+    // Asked before the wallet is touched. Without it a payout the platform
+    // can't cover still reserves the funds, writes a withdrawal row, fails at
+    // the transfer and releases again — leaving a failed record behind on every
+    // attempt for a condition Stripe could have told us about up front. An
+    // unreadable balance is treated as fundable, so this can only ever refuse a
+    // withdrawal Stripe would have refused a moment later anyway.
+    const funds = await checkPlatformFunds(amount);
+    if (!funds.ok) {
+      console.error(
+        `/api/withdraw: platform balance cannot fund ${sellerId}'s withdrawal — `
+        + `${describePlatformShortfall(amount, funds.balance)}.`,
+      );
+      res.status(400).json({ error: platformShortfallMessage(amount, funds.balance) });
+      return;
+    }
+
     // ── Reserve before paying ────────────────────────────────────────────────
     // Debiting first means a crash after the transfer can never leave the funds
     // both sent and still spendable, and the RTDB transaction serialises
@@ -918,11 +936,15 @@ app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) =
       });
 
       if (isPlatformBalanceShort(err)) {
+        // The preflight above passed, or couldn't read the balance, and the
+        // transfer disagreed. Re-read so the log and the message describe the
+        // balance Stripe actually refused on rather than a stale guess.
+        const balance = await readPlatformBalance();
         console.error(
-          `/api/withdraw: platform balance too low to transfer $${formatMoney(amount)} to ${stripeAccountId} ` +
-          `(seller ${sellerId}) — top up the Stripe balance or wait for payments to settle.`,
+          `/api/withdraw: Stripe refused the transfer to ${stripeAccountId} (seller ${sellerId}) ` +
+          `for insufficient platform funds — ${describePlatformShortfall(amount, balance)}.`,
         );
-        res.status(400).json({ error: PLATFORM_BALANCE_SHORT_MESSAGE }); return;
+        res.status(400).json({ error: platformShortfallMessage(amount, balance) }); return;
       }
       throw err;
     }

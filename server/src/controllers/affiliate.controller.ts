@@ -6,7 +6,8 @@ import { formatMoney } from '../utils/money';
 import { isUnusableStripeId } from '../stripeClient';
 import {
   reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
-  isPlatformBalanceShort, PLATFORM_BALANCE_SHORT_MESSAGE,
+  isPlatformBalanceShort, checkPlatformFunds, readPlatformBalance,
+  platformShortfallMessage, describePlatformShortfall,
   clearanceState, daysUntil, type ClearanceState,
 } from '../payouts';
 
@@ -327,6 +328,18 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
     // same balance. See server/src/payouts.ts.
     const payoutId = db.ref('affiliatePayouts').push().key!;
     const affiliateRef = db.ref(`affiliates/${affiliateId}`);
+    // Checked before the balance is touched, so an unfundable payout doesn't
+    // leave a failed record behind on every attempt — see app.ts.
+    const funds = await checkPlatformFunds(amount);
+    if (!funds.ok) {
+      console.error(
+        `/api/affiliate/withdraw: platform balance cannot fund ${affiliateId}'s payout — `
+        + `${describePlatformShortfall(amount, funds.balance)}.`,
+      );
+      res.status(400).json({ error: platformShortfallMessage(amount, funds.balance) });
+      return;
+    }
+
     // Clearance floor enforced inside the transaction — see app.ts.
     const reservation = await reserveFunds(affiliateRef, 'availableBalance', amount, uncleared);
 
@@ -371,11 +384,13 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
       });
 
       if (isPlatformBalanceShort(err)) {
+        const balance = await readPlatformBalance();
         console.error(
-          `/api/affiliate/withdraw: platform balance too low to transfer $${formatMoney(amount)} ` +
-          `to ${stripeAccountId} (affiliate ${affiliateId}).`,
+          `/api/affiliate/withdraw: Stripe refused the transfer to ${stripeAccountId} ` +
+          `(affiliate ${affiliateId}) for insufficient platform funds — ` +
+          `${describePlatformShortfall(amount, balance)}.`,
         );
-        res.status(400).json({ error: PLATFORM_BALANCE_SHORT_MESSAGE }); return;
+        res.status(400).json({ error: platformShortfallMessage(amount, balance) }); return;
       }
       throw err;
     }
