@@ -45,6 +45,7 @@ import Logo from './Logo';
 import { sanitizeHtml } from './utils/sanitize';
 import { useCategories } from './CategoriesContext';
 import { useAuth } from './AuthContext';
+import { formatAmount, formatMoney } from './utils/currency';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import NotificationBell from './notifications/NotificationBell';
 import { ref, query, orderByChild, equalTo, onValue, remove } from 'firebase/database';
@@ -89,7 +90,7 @@ const sellerNavItems = [
   { name: 'Settings', icon: Settings },
 ];
 
-function fmt(n: number) { return n.toLocaleString('en-US'); }
+function fmt(n: number) { return formatAmount(n); }
 
 function formatPostPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
@@ -1024,7 +1025,7 @@ const handleTabChange = useCallback((tab: string) => {
                 <div className="bg-surface border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
                   <p className="text-slate-400 text-xs mb-1">Earnings</p>
                   <p className="text-2xl font-bold text-white">
-                    {lifetimeEarnings === null ? '—' : `$${lifetimeEarnings.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
+                    {lifetimeEarnings === null ? '—' : `$${formatMoney(lifetimeEarnings)}`}
                   </p>
                 </div>
               </div>

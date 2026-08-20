@@ -4,7 +4,7 @@ import { ref as dbRef, onValue, set } from 'firebase/database';
 import { database } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { fetchAffiliateCommissions, type AffiliateStats, type AffiliateCommission } from './affiliateHelpers';
-import { formatMoney } from '../utils/currency';
+import { formatAmount, formatMoney } from '../utils/currency';
 
 function MonthlyEarningsChart({ commissions }: { commissions: AffiliateCommission[] }) {
   const months = Array.from({ length: 6 }, (_, i) => {
@@ -33,7 +33,7 @@ function MonthlyEarningsChart({ commissions }: { commissions: AffiliateCommissio
           return (
             <div key={label} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
               <span className="text-slate-500 text-xs leading-none">
-                {earnings[i] > 0 ? `$${earnings[i].toFixed(0)}` : ''}
+                {earnings[i] > 0 ? `$${formatAmount(earnings[i])}` : ''}
               </span>
               <div
                 style={{ height: `${pct}%` }}
