@@ -15,6 +15,7 @@ import { ref, onValue, get } from 'firebase/database';
 import { database } from './firebase';
 import { useCategories } from './CategoriesContext';
 import { useAuth } from './AuthContext';
+import { formatAmount } from './utils/currency';
 
 const filters = [
   "Budget", "Rating", "Verified", "Remote", "Language", "Online Now"
@@ -45,7 +46,7 @@ interface SellerMeta {
   verified: boolean;
 }
 
-function fmt(n: number) { return n.toLocaleString('en-US'); }
+function fmt(n: number) { return formatAmount(n); }
 function formatPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
   if (post.priceMax) return { prefix: 'From', price: `$${fmt(post.priceMin)} – $${fmt(post.priceMax)}`, suffix };

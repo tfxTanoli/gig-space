@@ -12,6 +12,7 @@ import VerifiedBadgeIcon from './VerifiedBadgeIcon';
 import { ref, get, onValue, query, orderByChild, equalTo, update, increment } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
+import { formatAmount } from './utils/currency';
 import { useSavedServices } from './useSavedServices';
 import { useCategories } from './CategoriesContext';
 import { geocodeLocation, isCountryName } from './photon';
@@ -251,7 +252,7 @@ function humanize(slug: string) {
 
 /* ─── Helper: format price with commas ─── */
 function fmtPrice(n: number) {
-  return n.toLocaleString('en-US');
+  return formatAmount(n);
 }
 
 /* ─── Main component ─── */

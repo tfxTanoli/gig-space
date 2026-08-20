@@ -25,6 +25,7 @@ import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import { ref, get, query, orderByChild, limitToLast, endBefore } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
+import { formatAmount } from './utils/currency';
 import { useSavedServices } from './useSavedServices';
 import { geocodeCache, geocodeLocation, haversineDistanceMiles } from './photon';
 import { useCategories } from './CategoriesContext';
@@ -184,7 +185,7 @@ interface ServicePost {
   totalStars?: number;
 }
 
-function fmt(n: number) { return n.toLocaleString('en-US'); }
+function fmt(n: number) { return formatAmount(n); }
 function formatPrice(post: ServicePost) {
   const suffix = post.priceType === 'per_hour' ? 'per hour' : 'per project';
   if (post.priceMax) return { prefix: 'From', price: `$${fmt(post.priceMin)} – $${fmt(post.priceMax)}`, suffix };

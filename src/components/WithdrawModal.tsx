@@ -109,7 +109,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 ))}
                 {availableBalance >= MINIMUM && (
                   <button
-                    onClick={() => setAmount(String(availableBalance))}
+                    onClick={() => setAmount(availableBalance.toFixed(2))}
                     className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition-colors"
                   >
                     Max

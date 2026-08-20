@@ -29,18 +29,35 @@ export interface Reservation {
   available?: number;
 }
 
+// Retries exist for cold-cache aborts, not for insufficiency: a truthful
+// refusal returns immediately, so these only ever cost time on a cache miss.
+const RESERVE_ATTEMPTS = 4;
+
 /**
  * Atomically move `amount` out of `balanceField`. Concurrent callers are
  * serialised by the transaction, so the balance can never go negative however
  * many requests land at once.
  *
  * The transaction runs on the balance *field* rather than the wallet object on
- * purpose. Firebase re-invokes the update function with `null` whenever the
- * node isn't locally cached, and returning undefined from that first call
- * aborts for good — so a wallet-level "if (!current) abort" would intermittently
- * report a perfectly real wallet as missing. Treating a null balance as 0 has
- * no such failure mode: the worst it can do is report "insufficient", which is
- * both true and safe. It can never over-pay.
+ * purpose: a wallet-level "if (!current) abort" would intermittently report a
+ * perfectly real wallet as missing.
+ *
+ * Two things guard against the cold-cache trap, which is what made this report
+ * a funded wallet as insufficient in production. Firebase invokes the update
+ * function with the *locally cached* value, which on a fresh connection — every
+ * cold serverless invocation — is `null`. A null balance reads as 0, can never
+ * satisfy the floor, and returning undefined there aborts the transaction for
+ * good rather than retrying against the server. `get()` does not reliably seed
+ * the cache the transaction consults, so:
+ *
+ *   1. A `value` listener is held for the duration. That genuinely keeps the
+ *      node in the local cache, so the update function sees the real balance.
+ *   2. The update function distinguishes `null` (cache cold — retry) from a
+ *      real balance that is too small (a truthful refusal). A cache miss is
+ *      therefore never reported to the seller as "insufficient balance".
+ *
+ * It still can never over-pay: every committed decrement is computed from a
+ * real, server-confirmed balance inside the transaction.
  */
 export async function reserveFunds(
   walletRef: admin.database.Reference,
@@ -52,34 +69,52 @@ export async function reserveFunds(
   const floor = round2(minRemaining);
   let available = 0;
 
-  // Two passes, because an aborted transaction is ambiguous: it means either
-  // "genuinely not enough funds" or "the first, local invocation saw a cold
-  // cache". The explicit read ahead of each attempt resolves it — it warms the
-  // cache *and* gives an accurate figure for the error message. A second pass
-  // therefore only reports insufficient when a fresh read agrees.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    available = round2(Number((await balanceRef.get()).val() ?? 0) - floor);
-    if (available < amount) return { ok: false, available: Math.max(0, available) };
+  // Holding a listener keeps the balance in the local cache for as long as it
+  // is attached, so the transaction below is handed the real value instead of
+  // the `null` a cold connection would otherwise supply.
+  const listener = balanceRef.on('value', () => { /* cache warmer only */ });
 
-    const result = await balanceRef.transaction((current: number | null) => {
-      const balance = Number(current ?? 0);
-      // The floor must be enforced *inside* the transaction, not just by the
-      // caller's earlier read. Otherwise two withdrawals that each separately
-      // look affordable can both commit and together breach it — which for the
-      // clearance floor means uncleared earnings leaving the platform.
-      if (balance - amount < floor) return;             // undefined = abort
-      return round2(balance - amount);
-    });
+  try {
+    for (let attempt = 0; attempt < RESERVE_ATTEMPTS; attempt++) {
+      available = round2(Number((await balanceRef.get()).val() ?? 0) - floor);
+      if (available < amount) return { ok: false, available: Math.max(0, available) };
 
-    if (result.committed) {
-      await walletRef.child('updatedAt').set(Date.now());
-      return { ok: true };
+      // Set only when the update function is handed a real balance. It is the
+      // difference between "the funds aren't there" and "the cache was cold",
+      // which look identical from an aborted transaction alone.
+      let sawBalance = false;
+
+      const result = await balanceRef.transaction((current: number | null) => {
+        if (current === null) return;                   // cold cache — abort, then retry
+        sawBalance = true;
+        const balance = Number(current);
+        // The floor must be enforced *inside* the transaction, not just by the
+        // caller's earlier read. Otherwise two withdrawals that each separately
+        // look affordable can both commit and together breach it — which for the
+        // clearance floor means uncleared earnings leaving the platform.
+        if (balance - amount < floor) return;           // undefined = abort
+        return round2(balance - amount);
+      });
+
+      if (result.committed) {
+        await walletRef.child('updatedAt').set(Date.now());
+        return { ok: true };
+      }
+
+      if (sawBalance) {
+        // A real balance was checked and refused, so this is genuine: either
+        // insufficient funds or a concurrent withdrawal got there first. Report
+        // the current figure rather than the one read before the attempt.
+        const fresh = round2(Number((await balanceRef.get()).val() ?? 0) - floor);
+        return { ok: false, available: Math.max(0, fresh) };
+      }
+      // Only ever saw null — the cache was cold, so try again.
     }
-    // Aborted: either a cold cache (retry succeeds) or a concurrent withdrawal
-    // took the funds first (the next read reports the real, lower balance).
-  }
 
-  return { ok: false, available: Math.max(0, available) };
+    return { ok: false, available: Math.max(0, available) };
+  } finally {
+    balanceRef.off('value', listener);
+  }
 }
 
 /** Put a reservation back after the transfer failed. */
