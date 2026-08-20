@@ -252,14 +252,114 @@ export async function findTransferForWithdrawal(
 
 /**
  * True when a transfer failed because the *platform* balance is short, not the
- * user's. Card payments take a couple of days to reach the available balance
- * that transfers draw on, so this is expected early in an account's life and
- * must not be reported to the user as though their own balance were short.
+ * user's. This must never be reported to the user as though their own balance
+ * were short — their wallet is fine, the account paying them out is not.
  */
 export function isPlatformBalanceShort(err: unknown): boolean {
   return (err as { code?: string })?.code === 'balance_insufficient';
 }
 
-export const PLATFORM_BALANCE_SHORT_MESSAGE =
+/* ─── Platform funding ─────────────────────────────────────────────────────────
+ *
+ * Transfers draw on the platform's *available* Stripe balance. Two very
+ * different things make it too small, and they need opposite responses:
+ *
+ *   - Settlement lag. Card payments spend a couple of days in `pending` before
+ *     they become available. Waiting genuinely fixes this.
+ *   - A real shortfall. The money isn't in flight, it isn't there at all —
+ *     usually because Stripe's processing fee, refunds or per-call charges have
+ *     eaten the margin between what buyers paid and what sellers are owed. No
+ *     amount of waiting fixes this; somebody has to top the account up.
+ *
+ * The two used to share one message that asserted the first cause. When the
+ * second was true it sent the seller away to retry on a promise that could
+ * never come good, and left nothing in the logs to tell an operator which case
+ * they were in. So the balance is now read and the cases told apart.
+ */
+
+/** The platform's own Stripe balance, in dollars, for a single currency. */
+export interface PlatformBalance {
+  available: number;
+  pending: number;
+}
+
+/**
+ * Read the platform's Stripe balance, or null if it can't be read.
+ *
+ * Null means *unknown*, never *empty*: callers must fall back to letting the
+ * transfer itself decide. A diagnostic call must never become the reason a
+ * withdrawal that would have worked is refused.
+ */
+export async function readPlatformBalance(currency = 'usd'): Promise<PlatformBalance | null> {
+  try {
+    const balance = await stripe.balance.retrieve();
+    const total = (rows: Array<{ currency: string; amount: number }>) => round2(
+      rows.filter((row) => row.currency === currency)
+          .reduce((sum, row) => sum + row.amount, 0) / 100,
+    );
+    return { available: total(balance.available), pending: total(balance.pending) };
+  } catch (err) {
+    console.error('readPlatformBalance failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
+ * Can the platform fund `amount` right now?
+ *
+ * `ok: false` only when a balance was actually read and it falls short — an
+ * unreadable balance is reported as fundable so the transfer stays the
+ * authority. The balance is handed back so the caller can log and phrase the
+ * refusal without asking Stripe twice.
+ */
+export async function checkPlatformFunds(
+  amount: number,
+): Promise<{ ok: boolean; balance: PlatformBalance | null }> {
+  const balance = await readPlatformBalance();
+  return { ok: balance === null || balance.available >= amount, balance };
+}
+
+const SETTLING_MESSAGE =
   'Withdrawals are temporarily unavailable while recent payments settle. '
   + 'Your balance is unchanged — please try again in a couple of business days.';
+
+const SHORTFALL_MESSAGE =
+  'Withdrawals are temporarily paused because of a problem on our side — this '
+  + 'is not a problem with your balance, which is unchanged. Our team has been '
+  + 'alerted. Please try again later or contact support.';
+
+/**
+ * What to tell the user when the platform can't fund their payout.
+ *
+ * Only promises settlement when money genuinely is in flight and would cover
+ * the payout once it lands. An unknown balance keeps the softer wording, since
+ * settlement lag is the likelier of the two and the alternative accuses the
+ * platform of a shortfall we haven't confirmed.
+ */
+export function platformShortfallMessage(amount: number, balance: PlatformBalance | null): string {
+  if (!balance) return SETTLING_MESSAGE;
+  return balance.available + balance.pending >= amount ? SETTLING_MESSAGE : SHORTFALL_MESSAGE;
+}
+
+/**
+ * The same situation phrased for the server log, with the figures an operator
+ * needs to act on. "Balance too low" without numbers means opening the Stripe
+ * dashboard to find out how low and whether waiting would have helped.
+ */
+export function describePlatformShortfall(
+  amount: number,
+  balance: PlatformBalance | null,
+): string {
+  if (!balance) return `requested $${money(amount)}, platform balance unreadable`;
+  const short = round2(amount - balance.available);
+  return `requested $${money(amount)}, available $${money(balance.available)}, `
+    + `pending $${money(balance.pending)}, short $${money(short)} — `
+    + (balance.available + balance.pending >= amount
+      ? 'pending funds will cover it once they settle'
+      : 'pending funds will NOT cover it; top up the platform balance');
+}
+
+/** Local two-decimal formatter — payouts.ts stays free of display imports. */
+function money(amount: number): string {
+  return (Number.isFinite(amount) ? amount : 0).toFixed(2);
+}
