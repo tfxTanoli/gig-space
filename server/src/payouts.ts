@@ -117,6 +117,34 @@ export async function reserveFunds(
   }
 }
 
+/**
+ * How much to claw back *now* from a party owed `whole` on the full charge,
+ * given how much of the charge has been refunded in total and how much a
+ * previous refund event already reversed.
+ *
+ * Proportional, because Stripe fires charge.refunded for partial refunds too —
+ * a $10 refund on a $100 order must not reverse the seller's whole $90.
+ *
+ * Delta-based, because Stripe fires it again each time more is refunded. Only
+ * the newly-refunded slice is debited, so replaying an event, or refunding in
+ * instalments, can never take the same money twice.
+ *
+ * Never negative: a refund being reduced or an event arriving out of order
+ * returns 0 rather than silently crediting someone.
+ */
+export function refundDebit(
+  chargeTotal: number,
+  refundedTotal: number,
+  alreadyRefunded: number,
+  whole: number,
+): number {
+  if (chargeTotal <= 0 || whole <= 0) return 0;
+  // Clamped so an over-refund can't reverse more than was ever owed.
+  const share = (refunded: number) =>
+    round2(whole * (Math.min(Math.max(refunded, 0), chargeTotal) / chargeTotal));
+  return Math.max(0, round2(share(refundedTotal) - share(alreadyRefunded)));
+}
+
 /** Put a reservation back after the transfer failed. */
 export async function releaseFunds(
   walletRef: admin.database.Reference,
@@ -323,10 +351,16 @@ const SETTLING_MESSAGE =
   'Withdrawals are temporarily unavailable while recent payments settle. '
   + 'Your balance is unchanged — please try again in a couple of business days.';
 
+// Says nothing it can't back up. An earlier draft claimed "our team has been
+// alerted", which nothing in this codebase does — there is no alerting, only a
+// console.error into the platform logs. Promising a response nobody is
+// obliged to make is the same kind of untruth as promising settlement that
+// isn't coming, so the message points at the one channel that does reach a
+// human instead.
 const SHORTFALL_MESSAGE =
   'Withdrawals are temporarily paused because of a problem on our side — this '
-  + 'is not a problem with your balance, which is unchanged. Our team has been '
-  + 'alerted. Please try again later or contact support.';
+  + 'is not a problem with your balance, which is unchanged. Please contact '
+  + 'support so we can sort it out for you.';
 
 /**
  * What to tell the user when the platform can't fund their payout.
