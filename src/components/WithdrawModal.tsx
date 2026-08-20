@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState } from 'react';
 import { X, DollarSign, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import { requestWithdrawal, getPayoutCapacity } from '../stripe/paymentHelpers';
+import { requestWithdrawal } from '../stripe/paymentHelpers';
 import { formatMoney } from '../utils/currency';
 
 interface WithdrawModalProps {
@@ -18,27 +18,9 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [capacity, setCapacity] = useState<number | null>(null);
-
-  // How much the platform itself can pay out right now. Offering more than
-  // this is how a withdrawal gets accepted on screen and then refused by
-  // Stripe — the modal used to advertise the full wallet balance and send
-  // people into an error they had no way to anticipate.
-  useEffect(() => {
-    let cancelled = false;
-    getPayoutCapacity().then((c) => { if (!cancelled) setCapacity(c); });
-    return () => { cancelled = true; };
-  }, []);
-
-  // A capacity we couldn't read is treated as no limit: the transfer stays the
-  // authority, and nobody is told their balance is smaller than it is.
-  const withdrawable = capacity === null
-    ? availableBalance
-    : Math.min(availableBalance, capacity);
-  const isCapped = capacity !== null && capacity < availableBalance;
 
   const parsed = parseFloat(amount);
-  const isValid = !isNaN(parsed) && parsed >= MINIMUM && parsed <= withdrawable;
+  const isValid = !isNaN(parsed) && parsed >= MINIMUM && parsed <= availableBalance;
 
   const handleWithdraw = async () => {
     if (!isValid || loading) return;
@@ -88,14 +70,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               {/* Balance display */}
               <div className="bg-background border border-slate-800 rounded-xl p-4">
                 <p className="text-slate-400 text-xs mb-1">Available to withdraw</p>
-                <p className="text-2xl font-bold text-white">${formatMoney(withdrawable)}</p>
-                {isCapped && (
-                  <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                    Temporarily limited. Your full balance of{' '}
-                    <span className="text-slate-300 font-medium">${formatMoney(availableBalance)}</span>{' '}
-                    is unaffected — the limit is on our side and lifts as payments settle.
-                  </p>
-                )}
+                <p className="text-2xl font-bold text-white">${formatMoney(availableBalance)}</p>
               </div>
 
               {/* Amount input */}
@@ -111,7 +86,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
                     min={MINIMUM}
-                    max={withdrawable}
+                    max={availableBalance}
                     step="0.01"
                     className="flex-1 bg-transparent text-white text-sm py-3 pr-4 focus:outline-none"
                   />
@@ -122,7 +97,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               {/* Quick select buttons */}
               <div className="flex gap-2 flex-wrap">
                 {[25, 50, 100].map((preset) => (
-                  preset <= withdrawable && (
+                  preset <= availableBalance && (
                     <button
                       key={preset}
                       onClick={() => setAmount(String(preset))}
@@ -132,9 +107,9 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                     </button>
                   )
                 ))}
-                {withdrawable >= MINIMUM && (
+                {availableBalance >= MINIMUM && (
                   <button
-                    onClick={() => setAmount(withdrawable.toFixed(2))}
+                    onClick={() => setAmount(availableBalance.toFixed(2))}
                     className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition-colors"
                   >
                     Max
@@ -155,7 +130,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 <p className="text-yellow-400 text-xs">
                   {parsed < MINIMUM
                     ? `Minimum withdrawal is $${MINIMUM}.`
-                    : `Amount exceeds what you can withdraw right now ($${formatMoney(withdrawable)}).`}
+                    : `Amount exceeds your available balance ($${formatMoney(availableBalance)}).`}
                 </p>
               )}
 

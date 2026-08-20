@@ -787,27 +787,6 @@ async function reconcilePendingWithdrawals(sellerId: string, destination: string
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /api/payouts/capacity
-// ─────────────────────────────────────────────────────────────────────────────
-// The most the platform can pay out right now. The withdraw UI takes the lesser
-// of this and the user's own cleared balance, so it can never offer a figure
-// the transfer would then refuse — which is exactly what happened when the
-// modal advertised $4.50 against a platform balance of $4.23.
-//
-// Normally this sits far above any single balance and changes nothing on
-// screen. It only bites when the platform's own Stripe balance is genuinely
-// lower than a user's, a state worth showing honestly rather than hiding
-// behind a failed withdrawal.
-//
-// `capacity: null` means the balance could not be read, and callers must
-// treat that as *no cap*: an unreadable balance must never make someone's
-// withdrawable total look smaller than it really is.
-app.get('/api/payouts/capacity', requireAuth, async (_req: AuthRequest, res: Response) => {
-  const balance = await readPlatformBalance();
-  res.json({ capacity: balance ? balance.available : null });
-});
-
 app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const sellerId = req.uid!;

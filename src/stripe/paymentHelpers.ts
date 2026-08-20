@@ -136,24 +136,6 @@ export async function requestWithdrawal(amount: number): Promise<WithdrawRespons
 }
 
 /**
- * The most the platform can pay out right now, or `null` when that couldn't be
- * determined.
- *
- * Withdrawal screens show the lesser of this and the user's own cleared
- * balance, so they never advertise an amount the transfer would refuse. `null`
- * means *no cap* — a balance we failed to read must never shrink what someone
- * is told they can withdraw.
- */
-export async function getPayoutCapacity(): Promise<number | null> {
-  try {
-    const { capacity } = await apiGet<{ capacity: number | null }>('/api/payouts/capacity');
-    return typeof capacity === 'number' ? capacity : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Creates a Stripe SetupIntent for saving a payment method.
  * The backend also creates/retrieves a Stripe Customer for the current user.
  */
