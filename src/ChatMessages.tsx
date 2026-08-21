@@ -20,6 +20,13 @@ import PaymentModal from './components/PaymentModal';
 import { sendNotification } from './notifications/notificationHelpers';
 import { formatAmount } from './utils/currency';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+// Mirrors MINIMUM_ORDER_AMOUNT_DEFAULT on the server; used only until
+// /api/settings/limits answers. A custom offer becomes an order, so it is held
+// to the same minimum — better to stop it here than to let the seller send an
+// offer the buyer then can't pay.
+const MINIMUM_ORDER_FALLBACK = 20;
+
 /* ── Types ── */
 
 interface Conversation {
@@ -125,6 +132,20 @@ export default function ChatMessages({
   const [offerDescription, setOfferDescription] = useState('');
   const [offerPrice, setOfferPrice] = useState('');
   const [offerPriceUnit, setOfferPriceUnit] = useState<'per_project' | 'per_hour'>('per_project');
+  const [minOrderAmount, setMinOrderAmount] = useState(MINIMUM_ORDER_FALLBACK);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/api/settings/limits`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && typeof d?.minimumOrderAmount === 'number') {
+          setMinOrderAmount(d.minimumOrderAmount);
+        }
+      })
+      .catch(() => { /* keep the fallback */ });
+    return () => { cancelled = true; };
+  }, []);
   const [sendingOffer, setSendingOffer] = useState(false);
 
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
@@ -476,6 +497,10 @@ export default function ChatMessages({
     if (!user || !userProfile || !selectedConvId || !selectedService) return;
     const price = parseFloat(offerPrice);
     if (isNaN(price) || price <= 0) return;
+    if (price < minOrderAmount) {
+      toast.error(`Minimum order amount is $${minOrderAmount}.`);
+      return;
+    }
     setSendingOffer(true);
     try {
       const msgId = push(ref(database, `messages/${selectedConvId}`)).key!;
@@ -823,12 +848,15 @@ export default function ChatMessages({
                       <option value="per_hour">/ hour</option>
                     </select>
                   </div>
+                  <p className="text-slate-500 text-xs mt-1.5">
+                    Minimum order amount: ${minOrderAmount}
+                  </p>
                 </div>
 
                 {/* Send */}
                 <button
                   onClick={sendOffer}
-                  disabled={sendingOffer || !offerPrice || parseFloat(offerPrice) <= 0}
+                  disabled={sendingOffer || !offerPrice || parseFloat(offerPrice) < minOrderAmount}
                   className="w-full bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
                 >
                   {sendingOffer ? 'Sending…' : 'Send offer'}

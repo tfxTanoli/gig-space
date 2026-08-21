@@ -8,7 +8,8 @@ import { formatMoney, formatAmount } from './utils/money';
 import { isUnusableStripeId } from './stripeClient';
 import {
   reserveFunds, releaseFunds, createPayoutTransfer, findTransferForWithdrawal,
-  isPlatformBalanceShort, checkPlatformFunds, readPlatformBalance, refundDebit,
+  isPlatformBalanceShort, checkPlatformFunds, readPlatformBalance,
+  refundDebit, proportionalDelta,
   platformShortfallMessage, describePlatformShortfall,
   clearanceState, daysUntil, CLEARANCE_DAYS_DEFAULT,
 } from './payouts';
@@ -98,6 +99,12 @@ const PRIMARY_FRONTEND_URL = ALLOWED_ORIGINS[0] || 'http://localhost:5173';
 const PLATFORM_FEE_PERCENT_DEFAULT = 5;
 const MINIMUM_WITHDRAWAL_DEFAULT   = 10;
 
+// Below this an order cannot pay for itself. Stripe charges 2.9% + $0.30, so
+// the platform's cut only covers processing above roughly $4.23 at a 10% fee —
+// and only above about $14.29 once an affiliate takes half the fee on a
+// referred sale. $20 clears both with room to spare.
+const MINIMUM_ORDER_AMOUNT_DEFAULT = 20;
+
 async function readFeePct(): Promise<number> {
   try {
     const snap = await db.ref('settings/fees/platformFeePercent').get();
@@ -112,6 +119,14 @@ async function readMinWithdrawal(): Promise<number> {
     if (snap.exists()) return Number(snap.val());
   } catch { /* use fallback */ }
   return MINIMUM_WITHDRAWAL_DEFAULT;
+}
+
+async function readMinOrderAmount(): Promise<number> {
+  try {
+    const snap = await db.ref('settings/fees/minimumOrderAmount').get();
+    if (snap.exists()) return Number(snap.val());
+  } catch { /* use fallback */ }
+  return MINIMUM_ORDER_AMOUNT_DEFAULT;
 }
 
 // Days a released payout must season before it can be withdrawn. See the
@@ -172,6 +187,10 @@ app.post(
         await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
       } else if (event.type === 'charge.refunded') {
         await handleChargeRefunded(event.data.object as Stripe.Charge);
+      } else if (event.type === 'charge.dispute.created') {
+        await handleDisputeChange(event.data.object as Stripe.Dispute, 'opened');
+      } else if (event.type === 'charge.dispute.closed') {
+        await handleDisputeChange(event.data.object as Stripe.Dispute, 'closed');
       } else if (event.type === 'account.updated') {
         await handleAccountUpdated(event.data.object as Stripe.Account);
       }
@@ -266,8 +285,14 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
     if (!conversationId || !messageId || !serviceId || !sellerId || !offerAmount) {
       res.status(400).json({ error: 'Missing required fields' }); return;
     }
-    if (offerAmount <= 0) {
-      res.status(400).json({ error: 'Amount must be greater than 0' }); return;
+    // Enforced server-side as well as in the form, since the form is not the
+    // only way to reach this endpoint.
+    const MINIMUM_ORDER = await readMinOrderAmount();
+    if (offerAmount < MINIMUM_ORDER) {
+      res.status(400).json({
+        error: `Minimum order amount is $${formatAmount(MINIMUM_ORDER)}`,
+      });
+      return;
     }
 
     const buyerId = req.uid!;
@@ -364,8 +389,14 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
     if (!conversationId || !messageId || !serviceId || !sellerId || !offerAmount) {
       res.status(400).json({ error: 'Missing required fields' }); return;
     }
-    if (offerAmount <= 0) {
-      res.status(400).json({ error: 'Amount must be greater than 0' }); return;
+    // Enforced server-side as well as in the form, since the form is not the
+    // only way to reach this endpoint.
+    const MINIMUM_ORDER = await readMinOrderAmount();
+    if (offerAmount < MINIMUM_ORDER) {
+      res.status(400).json({
+        error: `Minimum order amount is $${formatAmount(MINIMUM_ORDER)}`,
+      });
+      return;
     }
 
     const buyerId = req.uid!;
@@ -786,6 +817,32 @@ async function reconcilePendingWithdrawals(sellerId: string, destination: string
     console.error('/api/withdraw: reconciliation pass failed:', err);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/settings/limits
+// ─────────────────────────────────────────────────────────────────────────────
+// The amount limits the forms need to show. Both are admin-configurable, and
+// the client can't read settings/fees directly (it's admin-only in the database
+// rules), so without this the forms would have to hardcode the numbers and
+// silently drift from the values actually enforced — telling someone "minimum
+// $20" while the server rejects at a different figure.
+//
+// Deliberately unauthenticated: these are limits already stated on the forms,
+// not private data, and requiring a token would mean a signed-out visitor
+// browsing the post form couldn't be told the minimum.
+app.get('/api/settings/limits', async (_req: Request, res: Response) => {
+  try {
+    const [minimumOrderAmount, minimumWithdrawal] = await Promise.all([
+      readMinOrderAmount(), readMinWithdrawal(),
+    ]);
+    res.json({ minimumOrderAmount, minimumWithdrawal });
+  } catch {
+    res.json({
+      minimumOrderAmount: MINIMUM_ORDER_AMOUNT_DEFAULT,
+      minimumWithdrawal: MINIMUM_WITHDRAWAL_DEFAULT,
+    });
+  }
+});
 
 app.post('/api/withdraw', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -1399,6 +1456,141 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       }
     } catch { /* non-fatal */ }
   }
+}
+
+/**
+ * Keep seller earnings and affiliate commission in step with a dispute.
+ *
+ * The rule this implements: nobody is paid on a transaction the platform may
+ * lose. Stripe pulls the disputed amount out of the platform balance the moment
+ * a dispute is raised, so leaving the money sitting in a seller's wallet — or an
+ * affiliate's — means paying out funds the platform no longer holds.
+ *
+ * Raising a dispute therefore claws the money back and marks the payment
+ * `disputed`, which also stops approve-delivery releasing escrow while the
+ * outcome is unknown (it only releases a payment still marked `paid`). Winning
+ * restores exactly what was taken and puts the payment back as it was; losing
+ * makes the reversal permanent.
+ *
+ * Adjustments are proportional and computed as a delta against
+ * `disputedAmount`, so a partial dispute takes a proportional slice and Stripe
+ * re-sending an event can't take the same money twice. Refunds track their own
+ * cumulative total separately, so the two never interfere.
+ */
+async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'closed') {
+  const piId = typeof dispute.payment_intent === 'string'
+    ? dispute.payment_intent
+    : dispute.payment_intent?.id;
+  if (!piId) return;
+
+  // A closed dispute only moves money when it actually resolved. `won` gives
+  // everything back; `lost` keeps it. Anything else (an enquiry closed without
+  // a decision, say) is bookkeeping we should not act on.
+  if (phase === 'closed' && dispute.status !== 'won' && dispute.status !== 'lost') return;
+  const disputedTotal = dispute.status === 'won' ? 0 : (dispute.amount ?? 0) / 100;
+
+  const snap = await db.ref('payments')
+    .orderByChild('stripePaymentIntentId').equalTo(piId).limitToFirst(1).get();
+  if (!snap.exists()) return;
+
+  const paymentId = Object.keys(snap.val())[0];
+  const payment = snap.val()[paymentId] as {
+    orderId?: string; sellerId?: string; amount?: number; sellerAmount?: number;
+    status?: string; disputedAmount?: number; statusBeforeDispute?: string;
+  };
+
+  const chargeTotal = Number(payment.amount ?? 0);
+  if (chargeTotal <= 0) return;
+  const previouslyDisputed = Number(payment.disputedAmount ?? 0);
+  const now = Date.now();
+
+  const updates: Record<string, unknown> = {
+    [`payments/${paymentId}/disputedAmount`]: Math.round(disputedTotal * 100) / 100,
+  };
+
+  if (phase === 'opened') {
+    // Remembered so a win can put the payment back exactly as it was, rather
+    // than guessing at 'paid' and re-releasing escrow that had already moved.
+    if (payment.status !== 'disputed') {
+      updates[`payments/${paymentId}/statusBeforeDispute`] = payment.status ?? 'paid';
+    }
+    updates[`payments/${paymentId}/status`] = 'disputed';
+    updates[`payments/${paymentId}/disputedAt`] = now;
+  } else {
+    updates[`payments/${paymentId}/status`] = dispute.status === 'won'
+      ? (payment.statusBeforeDispute ?? 'paid')
+      : 'dispute_lost';
+    updates[`payments/${paymentId}/disputeResolvedAt`] = now;
+  }
+
+  // Whether the money sits in pending or available follows the same rule as a
+  // refund: escrow before the buyer approved, withdrawable balance after.
+  const heldInAvailable = (payment.statusBeforeDispute ?? payment.status) === 'released';
+  const balanceField = heldInAvailable ? 'availableBalance' : 'pendingBalance';
+
+  const sellerAmount = Number(payment.sellerAmount ?? 0);
+  if (payment.sellerId && sellerAmount > 0) {
+    const delta = proportionalDelta(chargeTotal, previouslyDisputed, disputedTotal, sellerAmount);
+    if (delta !== 0) {
+      updates[`wallets/${payment.sellerId}/${balanceField}`] =
+        admin.database.ServerValue.increment(-delta);
+      if (heldInAvailable) {
+        updates[`wallets/${payment.sellerId}/lifetimeEarnings`] =
+          admin.database.ServerValue.increment(-delta);
+      }
+      updates[`wallets/${payment.sellerId}/updatedAt`] = now;
+      const txId = db.ref(`walletTransactions/${payment.sellerId}`).push().key!;
+      updates[`walletTransactions/${payment.sellerId}/${txId}`] = {
+        type: 'dispute', orderId: payment.orderId || '', paymentId,
+        amount: -delta,
+        description: delta > 0
+          ? `Payment disputed — $${formatMoney(delta)} held`
+          : `Dispute resolved in your favour — $${formatMoney(-delta)} returned`,
+        createdAt: now,
+      };
+    }
+  }
+
+  // Marcus's rule, in the place it actually bites: an affiliate must not keep
+  // commission on a sale the platform lost.
+  if (payment.orderId) {
+    const commSnap = await db.ref('affiliateCommissions')
+      .orderByChild('orderId').equalTo(payment.orderId).limitToFirst(1).get();
+    if (commSnap.exists()) {
+      const commissionId = Object.keys(commSnap.val())[0];
+      const commission = (commSnap.val() as Record<string, {
+        affiliateId?: string; commissionAmount?: number; status?: string;
+      }>)[commissionId];
+      const commissionAmount = Number(commission.commissionAmount ?? 0);
+
+      if (commission.affiliateId && commissionAmount > 0) {
+        const delta = proportionalDelta(
+          chargeTotal, previouslyDisputed, disputedTotal, commissionAmount,
+        );
+        if (delta !== 0) {
+          const commInAvailable = commission.status === 'available';
+          const commField = commInAvailable ? 'availableBalance' : 'pendingBalance';
+          updates[`affiliates/${commission.affiliateId}/${commField}`] =
+            admin.database.ServerValue.increment(-delta);
+          if (commInAvailable) {
+            updates[`affiliates/${commission.affiliateId}/lifetimeEarnings`] =
+              admin.database.ServerValue.increment(-delta);
+          }
+          updates[`affiliates/${commission.affiliateId}/updatedAt`] = now;
+          updates[`affiliateCommissions/${commissionId}/status`] =
+            phase === 'closed' && dispute.status === 'won' ? (commission.status ?? 'pending')
+              : phase === 'closed' ? 'dispute_lost'
+                : 'disputed';
+        }
+      }
+    }
+  }
+
+  await db.ref().update(updates);
+  console.warn(
+    `/api/webhook: dispute ${dispute.id} ${phase} (${dispute.status}) on payment ${paymentId} — `
+    + `$${formatMoney(disputedTotal)} of $${formatMoney(chargeTotal)} reversed.`,
+  );
 }
 
 async function handleAccountUpdated(account: Stripe.Account) {
