@@ -1560,6 +1560,7 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
       const commissionId = Object.keys(commSnap.val())[0];
       const commission = (commSnap.val() as Record<string, {
         affiliateId?: string; commissionAmount?: number; status?: string;
+        statusBeforeDispute?: string;
       }>)[commissionId];
       const commissionAmount = Number(commission.commissionAmount ?? 0);
 
@@ -1568,7 +1569,13 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
           chargeTotal, previouslyDisputed, disputedTotal, commissionAmount,
         );
         if (delta !== 0) {
-          const commInAvailable = commission.status === 'available';
+          // The status held *before* the dispute, for the same reason the
+          // payment records one: opening the dispute overwrites `status`, so
+          // reading it on the closing event would report every commission as
+          // pending — restoring a won dispute into the wrong balance, leaving
+          // lifetimeEarnings short, and never returning the row to `available`.
+          const commPrior = commission.statusBeforeDispute ?? commission.status;
+          const commInAvailable = commPrior === 'available';
           const commField = commInAvailable ? 'availableBalance' : 'pendingBalance';
           updates[`affiliates/${commission.affiliateId}/${commField}`] =
             admin.database.ServerValue.increment(-delta);
@@ -1577,10 +1584,17 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
               admin.database.ServerValue.increment(-delta);
           }
           updates[`affiliates/${commission.affiliateId}/updatedAt`] = now;
-          updates[`affiliateCommissions/${commissionId}/status`] =
-            phase === 'closed' && dispute.status === 'won' ? (commission.status ?? 'pending')
-              : phase === 'closed' ? 'dispute_lost'
-                : 'disputed';
+
+          if (phase === 'opened') {
+            if (commission.status !== 'disputed') {
+              updates[`affiliateCommissions/${commissionId}/statusBeforeDispute`] =
+                commission.status ?? 'pending';
+            }
+            updates[`affiliateCommissions/${commissionId}/status`] = 'disputed';
+          } else {
+            updates[`affiliateCommissions/${commissionId}/status`] =
+              dispute.status === 'won' ? (commPrior ?? 'pending') : 'dispute_lost';
+          }
         }
       }
     }
