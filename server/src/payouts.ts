@@ -138,11 +138,29 @@ export function refundDebit(
   alreadyRefunded: number,
   whole: number,
 ): number {
+  return Math.max(0, proportionalDelta(chargeTotal, alreadyRefunded, refundedTotal, whole));
+}
+
+/**
+ * The signed adjustment for a party owed `whole` when the reversed portion of a
+ * charge moves from `from` to `to`, both measured against the gross charge.
+ *
+ * Positive means claw back, negative means give back. Refunds only ever move in
+ * one direction, but a dispute can be *won* — and then it has to restore
+ * exactly what raising it took, which is why this is signed and why both
+ * directions run through the same rounding.
+ */
+export function proportionalDelta(
+  chargeTotal: number,
+  from: number,
+  to: number,
+  whole: number,
+): number {
   if (chargeTotal <= 0 || whole <= 0) return 0;
   // Clamped so an over-refund can't reverse more than was ever owed.
-  const share = (refunded: number) =>
-    round2(whole * (Math.min(Math.max(refunded, 0), chargeTotal) / chargeTotal));
-  return Math.max(0, round2(share(refundedTotal) - share(alreadyRefunded)));
+  const share = (part: number) =>
+    round2(whole * (Math.min(Math.max(part, 0), chargeTotal) / chargeTotal));
+  return round2(share(to) - share(from));
 }
 
 /** Put a reservation back after the transfer failed. */

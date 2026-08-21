@@ -26,6 +26,8 @@ export interface PlatformSettings {
   };
   fees: {
     platformFeePercent: number;
+    /** Smallest order or custom offer that can be charged. */
+    minimumOrderAmount: number;
     minimumWithdrawal: number;
     /** Days a released payout seasons before it can be withdrawn. 0 disables. */
     withdrawalClearanceDays: number;
@@ -46,6 +48,7 @@ const DEFAULTS: PlatformSettings = {
   },
   fees: {
     platformFeePercent: 5,
+    minimumOrderAmount: 20,
     minimumWithdrawal: 10,
     withdrawalClearanceDays: 10,
   },
@@ -95,6 +98,14 @@ export async function updateSettings(req: AdminRequest, res: Response): Promise<
       }
       if (isNaN(min) || min < 1) {
         res.status(400).json({ error: 'minimumWithdrawal must be at least $1' }); return;
+      }
+      // Only validated when present so a caller patching other fee fields
+      // isn't forced to resend it.
+      if (data.minimumOrderAmount !== undefined) {
+        const minOrder = Number(data.minimumOrderAmount);
+        if (isNaN(minOrder) || minOrder < 1) {
+          res.status(400).json({ error: 'minimumOrderAmount must be at least $1' }); return;
+        }
       }
     }
 

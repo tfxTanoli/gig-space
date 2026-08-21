@@ -39,6 +39,10 @@ import { formatMoney } from './utils/currency';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 const API_URL = import.meta.env.VITE_API_URL || '';
 
+// Mirrors MINIMUM_ORDER_AMOUNT_DEFAULT on the server; only used until
+// /api/settings/limits answers, so the form never quotes a bare "$0".
+const MINIMUM_ORDER_FALLBACK = 20;
+
 const TOTAL_STEPS = 9;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
 
@@ -303,6 +307,23 @@ const PostService = () => {
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [priceType, setPriceType] = useState<'per_project' | 'per_hour'>('per_project');
+
+  // The order minimum is admin-configurable and enforced server-side. Fetching
+  // it means the form quotes the figure that will actually be applied instead
+  // of a hardcoded copy that silently drifts from it.
+  const [minOrderAmount, setMinOrderAmount] = useState(MINIMUM_ORDER_FALLBACK);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/api/settings/limits`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && typeof d?.minimumOrderAmount === 'number') {
+          setMinOrderAmount(d.minimumOrderAmount);
+        }
+      })
+      .catch(() => { /* keep the fallback */ });
+    return () => { cancelled = true; };
+  }, []);
 
   // Step 4 — Media
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -683,7 +704,7 @@ const PostService = () => {
     if (step === 3) {
       const min = parseInt(priceMin);
       const max = priceMax ? parseInt(priceMax) : null;
-      if (!priceMin || isNaN(min) || min < 5) { setStepError('Minimum price must be at least $5.'); return false; }
+      if (!priceMin || isNaN(min) || min < minOrderAmount) { setStepError(`Minimum price must be at least $${minOrderAmount}.`); return false; }
       if (min > 100000) { setStepError('Minimum price cannot exceed $100,000.'); return false; }
       if (max !== null && !isNaN(max) && max > 100000) { setStepError('Maximum price cannot exceed $100,000.'); return false; }
       if (max !== null && !isNaN(max) && max < min) { setStepError('Maximum price must be greater than or equal to the minimum.'); return false; }

@@ -36,6 +36,7 @@ interface GeneralSettings {
 
 interface FeeSettings {
   platformFeePercent: number;
+  minimumOrderAmount: number;
   minimumWithdrawal: number;
   withdrawalClearanceDays: number;
 }
@@ -828,7 +829,7 @@ const AdminSettingsPage = () => {
   const [general, setGeneral] = useState<GeneralSettings>({
     platformName: 'Gigspace', supportEmail: '', maintenanceMode: false,
   });
-  const [fees, setFees] = useState<FeeSettings>({ platformFeePercent: 5, minimumWithdrawal: 10, withdrawalClearanceDays: 10 });
+  const [fees, setFees] = useState<FeeSettings>({ platformFeePercent: 5, minimumOrderAmount: 20, minimumWithdrawal: 10, withdrawalClearanceDays: 10 });
   const [registration, setRegistration] = useState<RegistrationSettings>({
     allowNewSignups: true, allowSellerRegistrations: true, requireEmailVerification: false,
   });
@@ -859,6 +860,10 @@ const AdminSettingsPage = () => {
       const f = data as FeeSettings;
       if (isNaN(f.platformFeePercent) || f.platformFeePercent < 0 || f.platformFeePercent > 50) {
         setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Platform fee must be 0–50%' } }));
+        return;
+      }
+      if (isNaN(f.minimumOrderAmount) || f.minimumOrderAmount < 1) {
+        setStatus((s) => ({ ...s, fees: { saving: false, saved: false, error: 'Minimum order amount must be at least $1' } }));
         return;
       }
       if (isNaN(f.minimumWithdrawal) || f.minimumWithdrawal < 1) {
@@ -946,6 +951,9 @@ const AdminSettingsPage = () => {
           <SettingCard icon={DollarSign} iconColor="bg-emerald-500/10 text-emerald-400" title="Fees &amp; Payments" description="Controls how the platform charges on each transaction" status={status.fees} onSave={() => saveSection('fees', fees)}>
             <SettingRow label="Platform Fee" hint="Percentage deducted from each completed payment (0–50%)" htmlFor="platformFee">
               <NumberInput id="platformFee" value={fees.platformFeePercent} onChange={(v) => setFees((f) => ({ ...f, platformFeePercent: v }))} min={0} max={50} step={0.5} suffix="%" />
+            </SettingRow>
+            <SettingRow label="Minimum Order Amount" hint="Smallest order or custom offer a buyer can be charged. Stripe takes 2.9% + $0.30 per charge, so below roughly $4.23 an order costs more to process than the platform fee collects — and below about $14.29 once an affiliate takes half the fee." htmlFor="minOrderAmount">
+              <NumberInput id="minOrderAmount" value={fees.minimumOrderAmount} onChange={(v) => setFees((f) => ({ ...f, minimumOrderAmount: v }))} min={1} step={1} prefix="$" />
             </SettingRow>
             <SettingRow label="Minimum Withdrawal" hint="Smallest amount a seller can withdraw at once" htmlFor="minWithdrawal">
               <NumberInput id="minWithdrawal" value={fees.minimumWithdrawal} onChange={(v) => setFees((f) => ({ ...f, minimumWithdrawal: v }))} min={1} step={1} prefix="$" />
