@@ -503,6 +503,22 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
       res.status(400).json({ error: `Order must be 'delivered' (currently '${order.status}')` }); return;
     }
 
+    // A disputed payment must not be approved. The release below is already
+    // skipped while a payment is `disputed`, but the order transition is not —
+    // and delivered → completed is one-shot, so approving mid-dispute spent the
+    // transition, left escrow stranded with no way to release it, and marked
+    // the order paid when nothing had been. Refusing here lets the buyer simply
+    // approve again once the dispute resolves.
+    if (order.paymentId) {
+      const statusSnap = await db.ref(`payments/${order.paymentId}/status`).get();
+      if (statusSnap.val() === 'disputed') {
+        res.status(400).json({
+          error: 'This payment is under dispute. You can approve the delivery once the dispute is resolved.',
+        });
+        return;
+      }
+    }
+
     const now = Date.now();
     // Earnings are credited now but seasoned before they can be withdrawn —
     // see the clearance notes in payouts.ts.
@@ -1326,6 +1342,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   const payment = snap.val()[paymentId] as {
     orderId?: string; sellerId?: string; buyerId?: string;
     amount?: number; sellerAmount?: number; status?: string; refundedAmount?: number;
+    releasedAt?: number;
   };
 
   // Stripe sends charge.refunded for *partial* refunds as well, and sends it
@@ -1366,7 +1383,12 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   if (payment.sellerId && sellerAmount > 0) {
     const debit = refundDebit(chargeTotal, refundedTotal, alreadyRefunded, sellerAmount);
     if (debit > 0) {
-      const released = payment.status === 'released';
+      // Whether escrow was released is a fact with a timestamp, not a mutable
+      // label. Reading `status` here meant a refund and a dispute each
+      // clobbered the field the other relied on: a second partial refund, or a
+      // refund after a dispute, would credit the wrong balance and leave the
+      // seller holding money on a reversed sale.
+      const released = !!payment.releasedAt;
       const field = released ? 'availableBalance' : 'pendingBalance';
       updates[`wallets/${payment.sellerId}/${field}`] =
         admin.database.ServerValue.increment(-debit);
@@ -1487,6 +1509,12 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
   // everything back; `lost` keeps it. Anything else (an enquiry closed without
   // a decision, say) is bookkeeping we should not act on.
   if (phase === 'closed' && dispute.status !== 'won' && dispute.status !== 'lost') return;
+  // Retrievals and early fraud warnings arrive as charge.dispute.created with a
+  // `warning_*` status and take nothing from the platform balance. Acting on
+  // them zeroed a seller's earnings for an event that cost the platform
+  // nothing — and the benign close (`warning_closed`) is skipped by the guard
+  // above, so there was no path that ever gave the money back.
+  if (phase === 'opened' && (dispute.status ?? '').startsWith('warning_')) return;
   const disputedTotal = dispute.status === 'won' ? 0 : (dispute.amount ?? 0) / 100;
 
   const snap = await db.ref('payments')
@@ -1497,6 +1525,7 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
   const payment = snap.val()[paymentId] as {
     orderId?: string; sellerId?: string; amount?: number; sellerAmount?: number;
     status?: string; disputedAmount?: number; statusBeforeDispute?: string;
+    releasedAt?: number;
   };
 
   const chargeTotal = Number(payment.amount ?? 0);
@@ -1516,16 +1545,25 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
     }
     updates[`payments/${paymentId}/status`] = 'disputed';
     updates[`payments/${paymentId}/disputedAt`] = now;
+  } else if (dispute.status === 'won') {
+    // Only restore a status this handler actually replaced. These events were
+    // subscribed after some disputes were already open, so a close can arrive
+    // with no `created` behind it — and hardcoding 'paid' there would silently
+    // downgrade a released payment that was never touched.
+    if (payment.statusBeforeDispute || payment.status === 'disputed') {
+      updates[`payments/${paymentId}/status`] = payment.statusBeforeDispute ?? 'paid';
+    }
+    updates[`payments/${paymentId}/disputeResolvedAt`] = now;
   } else {
-    updates[`payments/${paymentId}/status`] = dispute.status === 'won'
-      ? (payment.statusBeforeDispute ?? 'paid')
-      : 'dispute_lost';
+    updates[`payments/${paymentId}/status`] = 'dispute_lost';
     updates[`payments/${paymentId}/disputeResolvedAt`] = now;
   }
 
   // Whether the money sits in pending or available follows the same rule as a
   // refund: escrow before the buyer approved, withdrawable balance after.
-  const heldInAvailable = (payment.statusBeforeDispute ?? payment.status) === 'released';
+  // Same reason as the refund path: a timestamp survives both handlers
+  // rewriting `status`, so the money always goes back where it came from.
+  const heldInAvailable = !!payment.releasedAt;
   const balanceField = heldInAvailable ? 'availableBalance' : 'pendingBalance';
 
   const sellerAmount = Number(payment.sellerAmount ?? 0);

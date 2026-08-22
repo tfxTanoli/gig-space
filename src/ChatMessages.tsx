@@ -596,6 +596,10 @@ export default function ChatMessages({
       setPaymentOffer({ amount: msg.offer.price, title: msg.offer.serviceTitle });
     } catch (err) {
       console.error('Checkout error:', err);
+      // Without this the button just stops spinning. The server's reason — an
+      // offer below the order minimum, most likely on one sent before the floor
+      // existed — never reached the buyer at all.
+      toast.error(err instanceof Error ? err.message : 'Could not start checkout. Please try again.');
     } finally {
       setAcceptingOfferId(null);
     }

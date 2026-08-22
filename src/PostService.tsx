@@ -312,6 +312,11 @@ const PostService = () => {
   // it means the form quotes the figure that will actually be applied instead
   // of a hardcoded copy that silently drifts from it.
   const [minOrderAmount, setMinOrderAmount] = useState(MINIMUM_ORDER_FALLBACK);
+  // The price an existing listing was already published at. Listings predate
+  // the order minimum — many sit below it, and some claimed imports are at $0 —
+  // so raising the floor must not lock their owners out of editing a title or a
+  // photo. They keep what they have; they just can't go lower.
+  const [originalPriceMin, setOriginalPriceMin] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetch(`${API_URL}/api/settings/limits`)
@@ -451,6 +456,7 @@ const PostService = () => {
         setTitle(String(d.title ?? ''));
         setDescription(String(d.description ?? ''));
         setPriceMin(d.priceMin ? String(d.priceMin) : '');
+        setOriginalPriceMin(typeof d.priceMin === 'number' ? d.priceMin : 0);
         setPriceMax(d.priceMax ? String(d.priceMax) : '');
         setPriceType((d.priceType as 'per_project' | 'per_hour') ?? 'per_project');
         setMediaItems(Array.isArray(d.images) ? (d.images as string[]).map((url) => ({ kind: 'existing' as const, url })) : []);
@@ -704,7 +710,12 @@ const PostService = () => {
     if (step === 3) {
       const min = parseInt(priceMin);
       const max = priceMax ? parseInt(priceMax) : null;
-      if (!priceMin || isNaN(min) || min < minOrderAmount) { setStepError(`Minimum price must be at least $${minOrderAmount}.`); return false; }
+      // New listings must clear the order minimum. An existing one only has to
+      // hold its ground.
+      const priceFloor = originalPriceMin !== null && originalPriceMin < minOrderAmount
+        ? originalPriceMin
+        : minOrderAmount;
+      if (!priceMin || isNaN(min) || min < priceFloor) { setStepError(`Minimum price must be at least $${priceFloor}.`); return false; }
       if (min > 100000) { setStepError('Minimum price cannot exceed $100,000.'); return false; }
       if (max !== null && !isNaN(max) && max > 100000) { setStepError('Maximum price cannot exceed $100,000.'); return false; }
       if (max !== null && !isNaN(max) && max < min) { setStepError('Maximum price must be greater than or equal to the minimum.'); return false; }
@@ -1047,7 +1058,10 @@ const PostService = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-slate-400 text-sm mb-6">Enter what you would typically charge for this type of service.</p>
+              <p className="text-slate-400 text-sm mb-6">
+                Enter what you would typically charge for this type of service.
+                {' '}Minimum order amount: ${minOrderAmount}.
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
