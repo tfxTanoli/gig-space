@@ -19,6 +19,12 @@ import {
   type AffiliatePayout,
 } from './affiliateHelpers';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+// Same reasoning as the seller wallet: the minimum is admin-configurable and
+// enforced server-side, and settings/* is admin-only in the database rules, so
+// it is read from /api/settings/limits rather than hardcoded here.
+const MINIMUM_WITHDRAWAL_FALLBACK = 10;
+
 /* ── Stripe Connect card ──────────────────────────────────────────────────── */
 
 function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null }) {
@@ -127,10 +133,12 @@ function AffiliateStripeConnectCard({ stats }: { stats: AffiliateStats | null })
 
 function WithdrawModal({
   available,
+  minimum,
   onClose,
   onSuccess,
 }: {
   available: number;
+  minimum: number;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -141,7 +149,7 @@ function WithdrawModal({
   const handle = async () => {
     const num = parseFloat(amount);
     if (isNaN(num) || num <= 0) { setError('Enter a valid amount'); return; }
-    if (num < 10)               { setError('Minimum withdrawal is $10'); return; }
+    if (num < minimum)          { setError(`Minimum withdrawal is $${formatMoney(minimum)}`); return; }
     if (num > available)        { setError(`Maximum is $${formatMoney(available)}`); return; }
 
     setLoading(true);
@@ -233,6 +241,20 @@ export default function AffiliatePayoutsTab() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [listLoading, setListLoading]   = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const [minWithdrawal, setMinWithdrawal] = useState(MINIMUM_WITHDRAWAL_FALLBACK);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/api/settings/limits`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && typeof d?.minimumWithdrawal === 'number') {
+          setMinWithdrawal(d.minimumWithdrawal);
+        }
+      })
+      .catch(() => { /* keep the fallback */ });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -427,6 +449,7 @@ export default function AffiliatePayoutsTab() {
       {showWithdraw && (
         <WithdrawModal
           available={available}
+          minimum={minWithdrawal}
           onClose={() => setShowWithdraw(false)}
           onSuccess={() => { setShowWithdraw(false); loadLists(); }}
         />

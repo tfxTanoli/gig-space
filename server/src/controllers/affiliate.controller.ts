@@ -16,7 +16,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 // CORS setup) — Stripe Connect return/refresh URLs need one canonical URL,
 // so use the first origin (the raw value produced a malformed href).
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
-const MINIMUM_WITHDRAWAL = 10;
+const MINIMUM_WITHDRAWAL_DEFAULT = 10;
+
+/**
+ * The same admin-configured minimum the seller withdrawal path applies. This
+ * was a hardcoded 10, so changing the figure in Admin → Settings → Fees moved
+ * the seller minimum and silently left affiliates on the old one.
+ */
+async function readMinWithdrawal(): Promise<number> {
+  try {
+    const snap = await admin.database().ref('settings/fees/minimumWithdrawal').get();
+    if (snap.exists()) return Number(snap.val());
+  } catch { /* use fallback */ }
+  return MINIMUM_WITHDRAWAL_DEFAULT;
+}
 
 interface AffiliateData {
   referralCode?: string;
@@ -212,8 +225,13 @@ export async function getPayouts(req: AuthRequest, res: Response): Promise<void>
 async function affiliateClearance(affiliateId: string): Promise<ClearanceState> {
   const snap = await admin.database().ref('affiliateCommissions')
     .orderByChild('affiliateId').equalTo(affiliateId).get();
+  // 'clearedAdjustment' nets out whatever a refund or dispute has already
+  // clawed back from a released commission — see the comment on
+  // clearanceState() in payouts.ts for why a mutable single-record ledger
+  // needs this and the seller wallet's append-only one doesn't.
   return clearanceState(
-    snap.val() as Record<string, Record<string, unknown>> | null, 'commissionAmount',
+    snap.val() as Record<string, Record<string, unknown>> | null,
+    'commissionAmount', Date.now(), 'clearedAdjustment',
   );
 }
 
@@ -273,8 +291,9 @@ export async function requestWithdrawal(req: AuthRequest, res: Response): Promis
     const affiliateId = req.uid!;
     const { amount } = req.body as { amount: number };
 
+    const MINIMUM_WITHDRAWAL = await readMinWithdrawal();
     if (!amount || amount < MINIMUM_WITHDRAWAL) {
-      res.status(400).json({ error: `Minimum withdrawal is $${MINIMUM_WITHDRAWAL}` }); return;
+      res.status(400).json({ error: `Minimum withdrawal is $${formatMoney(MINIMUM_WITHDRAWAL)}` }); return;
     }
 
     const db = admin.database();

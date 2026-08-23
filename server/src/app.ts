@@ -537,27 +537,52 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
       if (paymentSnap.exists()) {
         const payment = paymentSnap.val() as {
           sellerId?: string; sellerAmount?: number; status?: string;
+          amount?: number; refundedAmount?: number;
         };
-        if (payment.status === 'paid' && payment.sellerId && payment.sellerAmount) {
-          const { sellerId, sellerAmount } = payment;
-          updates[`payments/${order.paymentId}/status`] = 'released';
-          updates[`payments/${order.paymentId}/releasedAt`] = now;
-          updates[`wallets/${sellerId}/pendingBalance`]   = admin.database.ServerValue.increment(-sellerAmount);
-          updates[`wallets/${sellerId}/availableBalance`] = admin.database.ServerValue.increment(sellerAmount);
-          updates[`wallets/${sellerId}/lifetimeEarnings`] = admin.database.ServerValue.increment(sellerAmount);
-          updates[`wallets/${sellerId}/updatedAt`] = now;
-          const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
-          updates[`walletTransactions/${sellerId}/${txId}`] = {
-            type: 'payment_received', orderId, paymentId: order.paymentId,
-            amount: sellerAmount,
-            description: `Funds released for "${order.serviceTitle || 'order'}"`,
-            createdAt: now,
-            // Only release entries carry clearsAt — the escrow credit written
-            // when the buyer paid does not, which is how the two are told apart
-            // when summing what is still clearing.
-            clearsAt,
-          };
-          releasedSellerId = sellerId;
+        // A refund issued while the order was still 'delivered' (support
+        // clawing back money before the buyer approves) leaves the payment
+        // 'partially_refunded' rather than 'paid'. This used to be excluded
+        // here entirely, so approving stranded the remainder in
+        // pendingBalance forever — no releasedAt, no clearsAt, no error to
+        // anyone, while the order itself still flipped to completed/released.
+        // A full refund is not this case: it cancels the order outright, so
+        // 'delivered' is never reached and this block isn't.
+        const releasable = payment.status === 'paid' || payment.status === 'partially_refunded';
+        if (releasable && payment.sellerId && payment.sellerAmount) {
+          const { sellerId, sellerAmount: originalSellerAmount } = payment;
+          // Net out whatever a prior refund already clawed back from this
+          // payment's seller share, using the exact same proportional math
+          // the refund handler used to take it — otherwise this would credit
+          // the seller a second time for money already reversed.
+          const alreadyClawedBack = payment.status === 'partially_refunded'
+            ? refundDebit(payment.amount ?? 0, payment.refundedAmount ?? 0, 0, originalSellerAmount)
+            : 0;
+          const sellerAmount = Math.round((originalSellerAmount - alreadyClawedBack) * 100) / 100;
+          if (sellerAmount > 0) {
+            updates[`payments/${order.paymentId}/status`] = 'released';
+            updates[`payments/${order.paymentId}/releasedAt`] = now;
+            // Read by the refund/dispute handlers so a later clawback on this
+            // payment can carry the same clearsAt as this release — otherwise
+            // clearanceState keeps counting the pre-clawback face value as
+            // still uncleared even after the money is gone.
+            updates[`payments/${order.paymentId}/clearsAt`] = clearsAt;
+            updates[`wallets/${sellerId}/pendingBalance`]   = admin.database.ServerValue.increment(-sellerAmount);
+            updates[`wallets/${sellerId}/availableBalance`] = admin.database.ServerValue.increment(sellerAmount);
+            updates[`wallets/${sellerId}/lifetimeEarnings`] = admin.database.ServerValue.increment(sellerAmount);
+            updates[`wallets/${sellerId}/updatedAt`] = now;
+            const txId = db.ref(`walletTransactions/${sellerId}`).push().key!;
+            updates[`walletTransactions/${sellerId}/${txId}`] = {
+              type: 'payment_received', orderId, paymentId: order.paymentId,
+              amount: sellerAmount,
+              description: `Funds released for "${order.serviceTitle || 'order'}"`,
+              createdAt: now,
+              // Only release entries carry clearsAt — the escrow credit written
+              // when the buyer paid does not, which is how the two are told apart
+              // when summing what is still clearing.
+              clearsAt,
+            };
+            releasedSellerId = sellerId;
+          }
         }
       }
     }
@@ -1342,7 +1367,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   const payment = snap.val()[paymentId] as {
     orderId?: string; sellerId?: string; buyerId?: string;
     amount?: number; sellerAmount?: number; status?: string; refundedAmount?: number;
-    releasedAt?: number;
+    releasedAt?: number; clearsAt?: number;
   };
 
   // Stripe sends charge.refunded for *partial* refunds as well, and sends it
@@ -1405,6 +1430,14 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         amount: -debit,
         description: isFullRefund ? 'Payment refunded' : 'Partial refund issued',
         createdAt: now,
+        // Carrying the same clearsAt as the release this money came from lets
+        // clearanceState net the two rows against each other. Without this a
+        // clawback on already-released money left the release row's full
+        // pre-clawback face value counted as "still clearing" until its own
+        // clock ran out, blocking withdrawal of the seller's other, unrelated,
+        // already-cleared earnings for no reason — the money being clawed
+        // back here was never going to be withdrawable anyway.
+        ...(released && payment.clearsAt ? { clearsAt: payment.clearsAt } : {}),
       };
     }
   }
@@ -1420,15 +1453,21 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       const commissionId = Object.keys(commSnap.val())[0];
       const commission = (commSnap.val() as Record<string, {
         affiliateId?: string; commissionAmount?: number; status?: string;
+        releasedAt?: number; clearsAt?: number;
       }>)[commissionId];
       const commissionAmount = Number(commission.commissionAmount ?? 0);
 
       if (commission.affiliateId && commissionAmount > 0) {
         const debit = refundDebit(chargeTotal, refundedTotal, alreadyRefunded, commissionAmount);
         if (debit > 0) {
-          // Mirrors the seller above: 'available' means it was released to the
-          // affiliate's withdrawable balance, anything else is still pending.
-          const releasedComm = commission.status === 'available';
+          // Same fix as the seller wallet above, same reason: 'status' is
+          // mutable (the dispute handler overwrites it), so a refund arriving
+          // while a commission's status happened to read something other than
+          // 'available' — e.g. a dispute currently open on it — misrouted the
+          // debit to pendingBalance even though the money was actually sitting
+          // in availableBalance. releasedAt is stamped once at approval and
+          // never rewritten by either handler.
+          const releasedComm = !!commission.releasedAt;
           const field = releasedComm ? 'availableBalance' : 'pendingBalance';
           updates[`affiliates/${commission.affiliateId}/${field}`] =
             admin.database.ServerValue.increment(-debit);
@@ -1439,6 +1478,15 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
           updates[`affiliates/${commission.affiliateId}/updatedAt`] = now;
           updates[`affiliateCommissions/${commissionId}/refundedAmount`] =
             refundDebit(chargeTotal, refundedTotal, 0, commissionAmount);
+          // Accumulated so affiliateClearance() can net it against this row's
+          // commissionAmount — otherwise the uncleared sum keeps counting the
+          // pre-clawback face value until this commission's own clearsAt
+          // passes, needlessly blocking withdrawal of the affiliate's other,
+          // unrelated, already-cleared commissions.
+          if (releasedComm) {
+            updates[`affiliateCommissions/${commissionId}/clearedAdjustment`] =
+              admin.database.ServerValue.increment(debit);
+          }
           if (isFullRefund) {
             updates[`affiliateCommissions/${commissionId}/status`] = 'refunded';
           }
@@ -1525,7 +1573,7 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
   const payment = snap.val()[paymentId] as {
     orderId?: string; sellerId?: string; amount?: number; sellerAmount?: number;
     status?: string; disputedAmount?: number; statusBeforeDispute?: string;
-    releasedAt?: number;
+    releasedAt?: number; clearsAt?: number;
   };
 
   const chargeTotal = Number(payment.amount ?? 0);
@@ -1585,6 +1633,10 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
           ? `Payment disputed — $${formatMoney(delta)} held`
           : `Dispute resolved in your favour — $${formatMoney(-delta)} returned`,
         createdAt: now,
+        // Same reasoning as the refund handler: share the release's clearsAt
+        // so clearanceState nets this row against it instead of leaving the
+        // release's full pre-dispute face value counted as uncleared forever.
+        ...(heldInAvailable && payment.clearsAt ? { clearsAt: payment.clearsAt } : {}),
       };
     }
   }
@@ -1598,7 +1650,7 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
       const commissionId = Object.keys(commSnap.val())[0];
       const commission = (commSnap.val() as Record<string, {
         affiliateId?: string; commissionAmount?: number; status?: string;
-        statusBeforeDispute?: string;
+        statusBeforeDispute?: string; releasedAt?: number;
       }>)[commissionId];
       const commissionAmount = Number(commission.commissionAmount ?? 0);
 
@@ -1607,13 +1659,15 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
           chargeTotal, previouslyDisputed, disputedTotal, commissionAmount,
         );
         if (delta !== 0) {
-          // The status held *before* the dispute, for the same reason the
-          // payment records one: opening the dispute overwrites `status`, so
-          // reading it on the closing event would report every commission as
-          // pending — restoring a won dispute into the wrong balance, leaving
-          // lifetimeEarnings short, and never returning the row to `available`.
+          // The *string* held before the dispute, purely for restoring the
+          // display status on close.
           const commPrior = commission.statusBeforeDispute ?? commission.status;
-          const commInAvailable = commPrior === 'available';
+          // Money routing must not depend on that string at all — opening a
+          // dispute overwrites `status` to 'disputed', and a *second* event
+          // (e.g. a refund on the same commission) landing while it reads
+          // that way would misroute here too, same bug class as the payment
+          // side. releasedAt is stamped once at approval and never rewritten.
+          const commInAvailable = !!commission.releasedAt;
           const commField = commInAvailable ? 'availableBalance' : 'pendingBalance';
           updates[`affiliates/${commission.affiliateId}/${commField}`] =
             admin.database.ServerValue.increment(-delta);
@@ -1622,6 +1676,15 @@ async function handleDisputeChange(dispute: Stripe.Dispute, phase: 'opened' | 'c
               admin.database.ServerValue.increment(-delta);
           }
           updates[`affiliates/${commission.affiliateId}/updatedAt`] = now;
+          // See the refund handler above — nets against commissionAmount in
+          // affiliateClearance() so a dispute (open, or lost permanently)
+          // doesn't leave the pre-dispute face value counted as uncleared
+          // after the money it represents is gone. A win (negative delta)
+          // correctly unwinds this back down.
+          if (commInAvailable) {
+            updates[`affiliateCommissions/${commissionId}/clearedAdjustment`] =
+              admin.database.ServerValue.increment(delta);
+          }
 
           if (phase === 'opened') {
             if (commission.status !== 'disputed') {

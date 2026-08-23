@@ -451,7 +451,7 @@ const AffiliateLanding = () => {
               <div className="text-slate-500 text-sm">People who prefer hiring local talent</div>
             </div>
             <div>
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2">$5 - $100K</div>
+              <div className="text-4xl md:text-5xl font-bold text-white mb-2">$20 - $100K</div>
               <div className="text-slate-500 text-sm">Price range sellers can set</div>
             </div>
           </div>

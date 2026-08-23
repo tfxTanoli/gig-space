@@ -219,11 +219,23 @@ export interface ClearanceState {
  * Total still inside its clearance window. Rows without `clearsAt` are ignored,
  * which is what distinguishes a release from the escrow credit written earlier
  * in the order's life — only releases carry the timestamp.
+ *
+ * `netAgainstKey`, when given, is subtracted from `amountKey` before summing.
+ * It exists for the affiliate ledger, where a commission is one mutable record
+ * rather than a stream of immutable rows: a refund or dispute on an already-
+ * released commission doesn't add a new row, it adjusts the existing one. Without
+ * netting, that row keeps contributing its full pre-clawback face value to
+ * "uncleared" until its own clearsAt passes — even after the clawed-back money
+ * is already gone — which can block withdrawal of the affiliate's other,
+ * unrelated, already-cleared commissions for no reason. The seller wallet ledger
+ * doesn't need this: a clawback there is its own row, and it's given the same
+ * clearsAt as the release it came from, so the two net out by simple summation.
  */
 export function clearanceState(
   rows: Record<string, Record<string, unknown>> | null,
   amountKey: string,
   now: number = Date.now(),
+  netAgainstKey?: string,
 ): ClearanceState {
   if (!rows) return { uncleared: 0, nextClearsAt: null };
 
@@ -233,7 +245,8 @@ export function clearanceState(
   for (const row of Object.values(rows)) {
     const clearsAt = Number(row?.clearsAt ?? 0);
     if (!clearsAt || clearsAt <= now) continue;
-    const amount = Number(row?.[amountKey] ?? 0);
+    const gross = Number(row?.[amountKey] ?? 0);
+    const amount = netAgainstKey ? gross - Number(row?.[netAgainstKey] ?? 0) : gross;
     if (!amount) continue;
     uncleared += amount;
     if (nextClearsAt === null || clearsAt < nextClearsAt) nextClearsAt = clearsAt;
