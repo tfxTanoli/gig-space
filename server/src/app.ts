@@ -268,6 +268,51 @@ async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) 
   }
 }
 
+/**
+ * Check a checkout request against the offer the seller actually sent.
+ *
+ * `offerAmount` and `serviceId` arrive in the request body, so they are the
+ * *buyer's* account of what they were quoted. The offer stored on the message
+ * is the seller's, and it is what the charge has to match. Without this the
+ * amount was taken on trust: a buyer could post `offerAmount: 20` against a
+ * $4,000 offer and be charged $20, with the seller credited on that. The
+ * minimum-order check never caught it — $20 clears a $20 floor.
+ *
+ * Returns an error message to refuse with, or null when the request matches.
+ */
+async function offerMismatch(
+  conversationId: string,
+  messageId: string,
+  offerAmount: number,
+  serviceId: string,
+): Promise<string | null> {
+  const snap = await db.ref(`messages/${conversationId}/${messageId}`).get();
+  const msg = snap.val() as {
+    offer?: { price?: number; serviceId?: string };
+    offerStatus?: string;
+  } | null;
+
+  if (!msg?.offer) return 'Offer not found';
+
+  const quoted = Number(msg.offer.price);
+  if (!Number.isFinite(quoted) || quoted <= 0) return 'Offer not found';
+
+  // Compared in cents, which is the unit the charge is built in anyway, so a
+  // float that prints the same can't slip through as a different charge.
+  if (Math.round(quoted * 100) !== Math.round(Number(offerAmount) * 100)) {
+    return `This offer is for $${formatAmount(quoted)}. Please reopen the offer and try again.`;
+  }
+  if (msg.offer.serviceId && msg.offer.serviceId !== serviceId) {
+    return 'This offer is for a different service.';
+  }
+  // Only ever set after a payment has been fulfilled, so this is a second
+  // attempt to pay for something already bought.
+  if (msg.offerStatus === 'accepted') {
+    return 'This offer has already been paid for.';
+  }
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/checkout/create-session
 // ─────────────────────────────────────────────────────────────────────────────
@@ -294,6 +339,10 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
       });
       return;
     }
+    // The floor above only bounds the amount. This is what ties it to the offer
+    // the seller actually sent — see offerMismatch().
+    const mismatch = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
+    if (mismatch) { res.status(400).json({ error: mismatch }); return; }
 
     const buyerId = req.uid!;
     const amountInCents = Math.round(offerAmount * 100);
@@ -398,6 +447,10 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
       });
       return;
     }
+    // The floor above only bounds the amount. This is what ties it to the offer
+    // the seller actually sent — see offerMismatch().
+    const mismatch = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
+    if (mismatch) { res.status(400).json({ error: mismatch }); return; }
 
     const buyerId = req.uid!;
     const amountInCents = Math.round(offerAmount * 100);
