@@ -44,3 +44,15 @@ server/serviceAccountKey.json
 *.sw?
 
 .vercel
+
+# Local QA artifacts at the repo root — Playwright/Linear/Stripe page dumps and
+# screenshots. These are throwaway, and a Linear dump has already been found
+# holding a live Stripe secret key, so they must never be committable.
+# Root-anchored so tracked images under public/ and dist/ are unaffected.
+/*.yml
+/*.yaml
+/*.png
+/*.jpg
+# Agent/tool working directories — page snapshots here have held API keys.
+.playwright-mcp/
+.codex/

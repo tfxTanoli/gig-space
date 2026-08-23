@@ -131,8 +131,8 @@ app.post('/api/auth/google', async (req, res) => {
 | Variable | Where | Value |
 |---|---|---|
 | `VITE_GOOGLE_CLIENT_ID` | root `.env` | `325504600846-xxxx.apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET` | `server/.env` | `GOCSPX-xxxx` |
-| `GOOGLE_CLIENT_SECRET` | Vercel dashboard → Environment Variables | same `GOCSPX-xxxx` |
+| `GOOGLE_CLIENT_SECRET` | `server/.env` | `GOCSPX-…` |
+| `GOOGLE_CLIENT_SECRET` | Vercel dashboard → Environment Variables | same `GOCSPX-…` |
 
 `VITE_GOOGLE_CLIENT_ID` is safe to expose in the browser (it's the public client identifier). `GOOGLE_CLIENT_SECRET` must stay server-side only.
 
