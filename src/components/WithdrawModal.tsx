@@ -5,15 +5,13 @@ import { formatMoney } from '../utils/currency';
 
 interface WithdrawModalProps {
   availableBalance: number;
+  /** The admin-configured minimum, fetched by the parent. See WalletTab. */
+  minimum: number;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-// TEMPORARY — see matching note in WalletTab.tsx. Revert to 10 after the
-// GIG-37 live-mode test withdrawal.
-const MINIMUM = 1;
-
-export default function WithdrawModal({ availableBalance, onClose, onSuccess }: WithdrawModalProps) {
+export default function WithdrawModal({ availableBalance, minimum: MINIMUM, onClose, onSuccess }: WithdrawModalProps) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +89,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                     className="flex-1 bg-transparent text-white text-sm py-3 pr-4 focus:outline-none"
                   />
                 </div>
-                <p className="text-slate-500 text-xs mt-1.5">Minimum withdrawal: ${MINIMUM}.00</p>
+                <p className="text-slate-500 text-xs mt-1.5">Minimum withdrawal: ${formatMoney(MINIMUM)}</p>
               </div>
 
               {/* Quick select buttons */}

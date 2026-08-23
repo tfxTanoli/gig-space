@@ -11,12 +11,13 @@ import {
 import type { Wallet as WalletType, WalletTransaction } from '../stripe/types';
 import { formatMoney } from '../utils/currency';
 
-// TEMPORARY for the GIG-37 live-mode withdrawal test: the real minimum is
-// admin-configurable server-side (settings/fees/minimumWithdrawal, default
-// $10) but the client can't read that path (admin-only in database.rules.json)
-// so it's hardcoded here. Lowered to $1 for one test withdrawal below $10 —
-// revert to 10 once that's done.
-const MIN_WITHDRAWAL = 1;
+const API_URL = import.meta.env.VITE_API_URL || '';
+// The withdrawal minimum is admin-configurable and enforced server-side. The
+// client can't read settings/* directly (admin-only in database.rules.json),
+// so it comes from /api/settings/limits — the same endpoint the order minimum
+// uses. A hardcoded copy here is what let the modal promise one figure while
+// the server enforced another. Used only until that request answers.
+const MINIMUM_WITHDRAWAL_FALLBACK = 10;
 
 function txIcon(type: WalletTransaction['type']) {
   switch (type) {
@@ -43,6 +44,20 @@ export default function WalletTab() {
   const [loading, setLoading] = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [minWithdrawal, setMinWithdrawal] = useState(MINIMUM_WITHDRAWAL_FALLBACK);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/api/settings/limits`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && typeof d?.minimumWithdrawal === 'number') {
+          setMinWithdrawal(d.minimumWithdrawal);
+        }
+      })
+      .catch(() => { /* keep the fallback */ });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -112,6 +127,7 @@ export default function WalletTab() {
       {showWithdraw && (
         <WithdrawModal
           availableBalance={available}
+          minimum={minWithdrawal}
           onClose={() => setShowWithdraw(false)}
           onSuccess={() => setRefreshKey((k) => k + 1)}
         />
@@ -165,18 +181,18 @@ export default function WalletTab() {
         <div className="space-y-2">
           <button
             onClick={() => setShowWithdraw(true)}
-            disabled={available < MIN_WITHDRAWAL}
+            disabled={available < minWithdrawal}
             className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors"
           >
             <ArrowUpRight className="w-4 h-4" />
             Withdraw funds
-            {available < MIN_WITHDRAWAL && (
-              <span className="text-blue-300 font-normal">(min ${MIN_WITHDRAWAL})</span>
+            {available < minWithdrawal && (
+              <span className="text-blue-300 font-normal">(min ${formatMoney(minWithdrawal)})</span>
             )}
           </button>
           {/* Without this, a seller who just had an order approved sees a
               disabled button and no reason for it. */}
-          {clearing > 0 && available < MIN_WITHDRAWAL && nextClearsAt && (
+          {clearing > 0 && available < minWithdrawal && nextClearsAt && (
             <p className="text-slate-400 text-xs">
               ${formatMoney(clearing)} is clearing and becomes available on{' '}
               <span className="text-slate-300">{formatClearDate(nextClearsAt)}</span>.
