@@ -1068,7 +1068,9 @@ const PostService = () => {
               </div>
               <p className="text-slate-400 text-sm mb-6">
                 Enter what you would typically charge for this type of service.
-                {' '}Minimum order amount: ${minOrderAmount}.
+                {/* Follows the selected unit — a fixed figure here contradicted
+                    the error message the seller got a moment later. */}
+                {' '}Minimum order amount: ${priceType === 'per_hour' ? minOrderAmountHourly : minOrderAmount}.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
