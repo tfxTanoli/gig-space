@@ -26,8 +26,10 @@ export interface PlatformSettings {
   };
   fees: {
     platformFeePercent: number;
-    /** Smallest order or custom offer that can be charged. */
+    /** Smallest per-project order or custom offer that can be charged. */
     minimumOrderAmount: number;
+    /** The same floor for hourly-priced work, which is one hour, not a whole job. */
+    minimumOrderAmountHourly: number;
     minimumWithdrawal: number;
     /** Days a released payout seasons before it can be withdrawn. 0 disables. */
     withdrawalClearanceDays: number;
@@ -49,6 +51,7 @@ const DEFAULTS: PlatformSettings = {
   fees: {
     platformFeePercent: 5,
     minimumOrderAmount: 20,
+    minimumOrderAmountHourly: 10,
     minimumWithdrawal: 10,
     withdrawalClearanceDays: 10,
   },
@@ -105,6 +108,12 @@ export async function updateSettings(req: AdminRequest, res: Response): Promise<
         const minOrder = Number(data.minimumOrderAmount);
         if (isNaN(minOrder) || minOrder < 1) {
           res.status(400).json({ error: 'minimumOrderAmount must be at least $1' }); return;
+        }
+      }
+      if (data.minimumOrderAmountHourly !== undefined) {
+        const minHourly = Number(data.minimumOrderAmountHourly);
+        if (isNaN(minHourly) || minHourly < 1) {
+          res.status(400).json({ error: 'minimumOrderAmountHourly must be at least $1' }); return;
         }
       }
     }

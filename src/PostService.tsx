@@ -39,9 +39,11 @@ import { formatMoney } from './utils/currency';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-// Mirrors MINIMUM_ORDER_AMOUNT_DEFAULT on the server; only used until
-// /api/settings/limits answers, so the form never quotes a bare "$0".
+// Mirrors the server defaults; only used until /api/settings/limits answers, so
+// the form never quotes a bare "$0". Hourly is a lower floor than per-project
+// because an hourly rate buys one hour, not a whole job.
 const MINIMUM_ORDER_FALLBACK = 20;
+const MINIMUM_ORDER_HOURLY_FALLBACK = 10;
 
 const TOTAL_STEPS = 9;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -312,6 +314,7 @@ const PostService = () => {
   // it means the form quotes the figure that will actually be applied instead
   // of a hardcoded copy that silently drifts from it.
   const [minOrderAmount, setMinOrderAmount] = useState(MINIMUM_ORDER_FALLBACK);
+  const [minOrderAmountHourly, setMinOrderAmountHourly] = useState(MINIMUM_ORDER_HOURLY_FALLBACK);
   // The price an existing listing was already published at. Listings predate
   // the order minimum — many sit below it, and some claimed imports are at $0 —
   // so raising the floor must not lock their owners out of editing a title or a
@@ -322,8 +325,10 @@ const PostService = () => {
     fetch(`${API_URL}/api/settings/limits`)
       .then((r) => r.json())
       .then((d) => {
-        if (!cancelled && typeof d?.minimumOrderAmount === 'number') {
-          setMinOrderAmount(d.minimumOrderAmount);
+        if (cancelled) return;
+        if (typeof d?.minimumOrderAmount === 'number') setMinOrderAmount(d.minimumOrderAmount);
+        if (typeof d?.minimumOrderAmountHourly === 'number') {
+          setMinOrderAmountHourly(d.minimumOrderAmountHourly);
         }
       })
       .catch(() => { /* keep the fallback */ });
@@ -712,9 +717,12 @@ const PostService = () => {
       const max = priceMax ? parseInt(priceMax) : null;
       // New listings must clear the order minimum. An existing one only has to
       // hold its ground.
-      const priceFloor = originalPriceMin !== null && originalPriceMin < minOrderAmount
+      // Hourly work is held to its own, lower floor — quoting an hourly rate
+      // against the per-project minimum priced out legitimate hourly sellers.
+      const unitMinimum = priceType === 'per_hour' ? minOrderAmountHourly : minOrderAmount;
+      const priceFloor = originalPriceMin !== null && originalPriceMin < unitMinimum
         ? originalPriceMin
-        : minOrderAmount;
+        : unitMinimum;
       if (!priceMin || isNaN(min) || min < priceFloor) { setStepError(`Minimum price must be at least $${priceFloor}.`); return false; }
       if (min > 100000) { setStepError('Minimum price cannot exceed $100,000.'); return false; }
       if (max !== null && !isNaN(max) && max > 100000) { setStepError('Maximum price cannot exceed $100,000.'); return false; }
@@ -1096,7 +1104,10 @@ const PostService = () => {
 
               <div className="space-y-4">
                 {(['per_project', 'per_hour'] as const).map((pt) => (
-                  <label key={pt} className="flex items-center cursor-pointer group" onClick={() => setPriceType(pt)}>
+                  // Clearing the error matters here: the two units have
+                  // different floors, so a message naming the old one is wrong
+                  // the moment the unit changes.
+                  <label key={pt} className="flex items-center cursor-pointer group" onClick={() => { setPriceType(pt); setStepError(''); }}>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${priceType === pt ? 'border-primary' : 'border-slate-700 group-hover:border-slate-500'}`}>
                       {priceType === pt && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                     </div>

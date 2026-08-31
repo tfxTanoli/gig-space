@@ -26,6 +26,7 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 // to the same minimum — better to stop it here than to let the seller send an
 // offer the buyer then can't pay.
 const MINIMUM_ORDER_FALLBACK = 20;
+const MINIMUM_ORDER_HOURLY_FALLBACK = 10;
 
 /* ── Types ── */
 
@@ -133,19 +134,26 @@ export default function ChatMessages({
   const [offerPrice, setOfferPrice] = useState('');
   const [offerPriceUnit, setOfferPriceUnit] = useState<'per_project' | 'per_hour'>('per_project');
   const [minOrderAmount, setMinOrderAmount] = useState(MINIMUM_ORDER_FALLBACK);
+  const [minOrderAmountHourly, setMinOrderAmountHourly] = useState(MINIMUM_ORDER_HOURLY_FALLBACK);
 
   useEffect(() => {
     let cancelled = false;
     fetch(`${API_URL}/api/settings/limits`)
       .then((r) => r.json())
       .then((d) => {
-        if (!cancelled && typeof d?.minimumOrderAmount === 'number') {
-          setMinOrderAmount(d.minimumOrderAmount);
+        if (cancelled) return;
+        if (typeof d?.minimumOrderAmount === 'number') setMinOrderAmount(d.minimumOrderAmount);
+        if (typeof d?.minimumOrderAmountHourly === 'number') {
+          setMinOrderAmountHourly(d.minimumOrderAmountHourly);
         }
       })
       .catch(() => { /* keep the fallback */ });
     return () => { cancelled = true; };
   }, []);
+
+  // A custom offer becomes an order, so it is held to the same floor the
+  // checkout will apply — and that floor depends on how the offer is priced.
+  const offerMinimum = offerPriceUnit === 'per_hour' ? minOrderAmountHourly : minOrderAmount;
   const [sendingOffer, setSendingOffer] = useState(false);
 
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
@@ -497,8 +505,8 @@ export default function ChatMessages({
     if (!user || !userProfile || !selectedConvId || !selectedService) return;
     const price = parseFloat(offerPrice);
     if (isNaN(price) || price <= 0) return;
-    if (price < minOrderAmount) {
-      toast.error(`Minimum order amount is $${minOrderAmount}.`);
+    if (price < offerMinimum) {
+      toast.error(`Minimum order amount is $${offerMinimum}.`);
       return;
     }
     setSendingOffer(true);
@@ -853,14 +861,14 @@ export default function ChatMessages({
                     </select>
                   </div>
                   <p className="text-slate-500 text-xs mt-1.5">
-                    Minimum order amount: ${minOrderAmount}
+                    Minimum order amount: ${offerMinimum}
                   </p>
                 </div>
 
                 {/* Send */}
                 <button
                   onClick={sendOffer}
-                  disabled={sendingOffer || !offerPrice || parseFloat(offerPrice) < minOrderAmount}
+                  disabled={sendingOffer || !offerPrice || parseFloat(offerPrice) < offerMinimum}
                   className="w-full bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
                 >
                   {sendingOffer ? 'Sending…' : 'Send offer'}
