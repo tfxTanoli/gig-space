@@ -296,39 +296,46 @@ async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) 
  * $4,000 offer and be charged $20, with the seller credited on that. The
  * minimum-order check never caught it — $20 clears a $20 floor.
  *
- * Returns an error message to refuse with, or null when the request matches.
+ * Returns an error message to refuse with, or the stored offer's price unit
+ * when the request matches. That unit is returned rather than read from the
+ * body because it now selects which minimum applies: trusting the body would
+ * let a buyer claim `per_hour` on a per-project offer and clear the lower
+ * floor. Offer messages are writable by either participant (see the RTDB
+ * rules), so this endpoint is where the floor is actually enforced.
  */
 async function offerMismatch(
   conversationId: string,
   messageId: string,
   offerAmount: number,
   serviceId: string,
-): Promise<string | null> {
+): Promise<{ error: string } | { priceUnit: PriceUnit }> {
   const snap = await db.ref(`messages/${conversationId}/${messageId}`).get();
   const msg = snap.val() as {
-    offer?: { price?: number; serviceId?: string };
+    offer?: { price?: number; serviceId?: string; priceUnit?: PriceUnit };
     offerStatus?: string;
   } | null;
 
-  if (!msg?.offer) return 'Offer not found';
+  if (!msg?.offer) return { error: 'Offer not found' };
 
   const quoted = Number(msg.offer.price);
-  if (!Number.isFinite(quoted) || quoted <= 0) return 'Offer not found';
+  if (!Number.isFinite(quoted) || quoted <= 0) return { error: 'Offer not found' };
 
   // Compared in cents, which is the unit the charge is built in anyway, so a
   // float that prints the same can't slip through as a different charge.
   if (Math.round(quoted * 100) !== Math.round(Number(offerAmount) * 100)) {
-    return `This offer is for $${formatAmount(quoted)}. Please reopen the offer and try again.`;
+    return { error: `This offer is for $${formatAmount(quoted)}. Please reopen the offer and try again.` };
   }
   if (msg.offer.serviceId && msg.offer.serviceId !== serviceId) {
-    return 'This offer is for a different service.';
+    return { error: 'This offer is for a different service.' };
   }
   // Only ever set after a payment has been fulfilled, so this is a second
   // attempt to pay for something already bought.
   if (msg.offerStatus === 'accepted') {
-    return 'This offer has already been paid for.';
+    return { error: 'This offer has already been paid for.' };
   }
-  return null;
+  // Defaults to the stricter per-project floor when a legacy offer carries no
+  // unit, so an absent field can never buy the cheaper minimum.
+  return { priceUnit: msg.offer.priceUnit === 'per_hour' ? 'per_hour' : 'per_project' };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -338,29 +345,31 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
   try {
     const {
       conversationId, messageId, serviceTitle, serviceId,
-      sellerName, sellerId, offerAmount, priceUnit,
+      sellerName, sellerId, offerAmount,
     } = req.body as {
       conversationId: string; messageId: string; serviceTitle: string;
       serviceId: string; sellerName: string; sellerId: string;
-      offerAmount: number; priceUnit: 'per_project' | 'per_hour';
+      offerAmount: number;
     };
 
     if (!conversationId || !messageId || !serviceId || !sellerId || !offerAmount) {
       res.status(400).json({ error: 'Missing required fields' }); return;
     }
+    // Tie the request to the offer the seller actually sent before anything
+    // else — it yields the stored price unit, which decides the floor below.
+    const verified = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
+    if ('error' in verified) { res.status(400).json({ error: verified.error }); return; }
+
     // Enforced server-side as well as in the form, since the form is not the
-    // only way to reach this endpoint.
-    const MINIMUM_ORDER = await readMinOrderAmount(priceUnit);
+    // only way to reach this endpoint. Hourly work has its own lower floor, and
+    // the unit comes from the stored offer rather than the body.
+    const MINIMUM_ORDER = await readMinOrderAmount(verified.priceUnit);
     if (offerAmount < MINIMUM_ORDER) {
       res.status(400).json({
         error: `Minimum order amount is $${formatAmount(MINIMUM_ORDER)}`,
       });
       return;
     }
-    // The floor above only bounds the amount. This is what ties it to the offer
-    // the seller actually sent — see offerMismatch().
-    const mismatch = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
-    if (mismatch) { res.status(400).json({ error: mismatch }); return; }
 
     const buyerId = req.uid!;
     const amountInCents = Math.round(offerAmount * 100);
@@ -368,7 +377,7 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
     const platformFeeCents = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
     const sellerAmountCents = amountInCents - platformFeeCents;
 
-    const description = priceUnit === 'per_hour'
+    const description = verified.priceUnit === 'per_hour'
       ? `${serviceTitle} — $${formatAmount(offerAmount)}/hr (via ${sellerName})`
       : `${serviceTitle} — Fixed price (via ${sellerName})`;
 
@@ -446,29 +455,31 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
   try {
     const {
       conversationId, messageId, serviceTitle, serviceId,
-      sellerName, sellerId, offerAmount, priceUnit,
+      sellerName, sellerId, offerAmount,
     } = req.body as {
       conversationId: string; messageId: string; serviceTitle: string;
       serviceId: string; sellerName: string; sellerId: string;
-      offerAmount: number; priceUnit: 'per_project' | 'per_hour';
+      offerAmount: number;
     };
 
     if (!conversationId || !messageId || !serviceId || !sellerId || !offerAmount) {
       res.status(400).json({ error: 'Missing required fields' }); return;
     }
+    // Tie the request to the offer the seller actually sent before anything
+    // else — it yields the stored price unit, which decides the floor below.
+    const verified = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
+    if ('error' in verified) { res.status(400).json({ error: verified.error }); return; }
+
     // Enforced server-side as well as in the form, since the form is not the
-    // only way to reach this endpoint.
-    const MINIMUM_ORDER = await readMinOrderAmount(priceUnit);
+    // only way to reach this endpoint. Hourly work has its own lower floor, and
+    // the unit comes from the stored offer rather than the body.
+    const MINIMUM_ORDER = await readMinOrderAmount(verified.priceUnit);
     if (offerAmount < MINIMUM_ORDER) {
       res.status(400).json({
         error: `Minimum order amount is $${formatAmount(MINIMUM_ORDER)}`,
       });
       return;
     }
-    // The floor above only bounds the amount. This is what ties it to the offer
-    // the seller actually sent — see offerMismatch().
-    const mismatch = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
-    if (mismatch) { res.status(400).json({ error: mismatch }); return; }
 
     const buyerId = req.uid!;
     const amountInCents = Math.round(offerAmount * 100);
@@ -483,7 +494,7 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
       payment_method_options: {
         us_bank_account: { verification_method: 'automatic' },
       },
-      description: priceUnit === 'per_hour'
+      description: verified.priceUnit === 'per_hour'
         ? `${serviceTitle} — $${formatAmount(offerAmount)}/hr (via ${sellerName})`
         : `${serviceTitle} — Fixed price (via ${sellerName})`,
       metadata: {
