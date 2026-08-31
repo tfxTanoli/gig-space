@@ -105,6 +105,14 @@ const MINIMUM_WITHDRAWAL_DEFAULT   = 10;
 // referred sale. $20 clears both with room to spare.
 const MINIMUM_ORDER_AMOUNT_DEFAULT = 20;
 
+// An hourly rate is one hour of someone's time, not the whole job, so holding it
+// to the per-project floor priced out legitimate hourly sellers. Marcus set this
+// at $10 knowing it sits below the $14.29 referred-sale break-even: an hourly
+// order that arrives through an affiliate can still lose money.
+const MINIMUM_ORDER_AMOUNT_HOURLY_DEFAULT = 10;
+
+export type PriceUnit = 'per_project' | 'per_hour';
+
 async function readFeePct(): Promise<number> {
   try {
     const snap = await db.ref('settings/fees/platformFeePercent').get();
@@ -121,12 +129,22 @@ async function readMinWithdrawal(): Promise<number> {
   return MINIMUM_WITHDRAWAL_DEFAULT;
 }
 
-async function readMinOrderAmount(): Promise<number> {
+/**
+ * The floor for `priceUnit`. Hourly and per-project are separate figures and
+ * both are admin-configurable, so an offer is only ever measured against the
+ * one that matches how it was priced.
+ */
+async function readMinOrderAmount(priceUnit?: PriceUnit): Promise<number> {
+  const hourly = priceUnit === 'per_hour';
+  const key = hourly ? 'minimumOrderAmountHourly' : 'minimumOrderAmount';
+  const fallback = hourly
+    ? MINIMUM_ORDER_AMOUNT_HOURLY_DEFAULT
+    : MINIMUM_ORDER_AMOUNT_DEFAULT;
   try {
-    const snap = await db.ref('settings/fees/minimumOrderAmount').get();
+    const snap = await db.ref(`settings/fees/${key}`).get();
     if (snap.exists()) return Number(snap.val());
   } catch { /* use fallback */ }
-  return MINIMUM_ORDER_AMOUNT_DEFAULT;
+  return fallback;
 }
 
 // Days a released payout must season before it can be withdrawn. See the
@@ -332,7 +350,7 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
     }
     // Enforced server-side as well as in the form, since the form is not the
     // only way to reach this endpoint.
-    const MINIMUM_ORDER = await readMinOrderAmount();
+    const MINIMUM_ORDER = await readMinOrderAmount(priceUnit);
     if (offerAmount < MINIMUM_ORDER) {
       res.status(400).json({
         error: `Minimum order amount is $${formatAmount(MINIMUM_ORDER)}`,
@@ -440,7 +458,7 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
     }
     // Enforced server-side as well as in the form, since the form is not the
     // only way to reach this endpoint.
-    const MINIMUM_ORDER = await readMinOrderAmount();
+    const MINIMUM_ORDER = await readMinOrderAmount(priceUnit);
     if (offerAmount < MINIMUM_ORDER) {
       res.status(400).json({
         error: `Minimum order amount is $${formatAmount(MINIMUM_ORDER)}`,
@@ -926,13 +944,14 @@ async function reconcilePendingWithdrawals(sellerId: string, destination: string
 // browsing the post form couldn't be told the minimum.
 app.get('/api/settings/limits', async (_req: Request, res: Response) => {
   try {
-    const [minimumOrderAmount, minimumWithdrawal] = await Promise.all([
-      readMinOrderAmount(), readMinWithdrawal(),
+    const [minimumOrderAmount, minimumOrderAmountHourly, minimumWithdrawal] = await Promise.all([
+      readMinOrderAmount('per_project'), readMinOrderAmount('per_hour'), readMinWithdrawal(),
     ]);
-    res.json({ minimumOrderAmount, minimumWithdrawal });
+    res.json({ minimumOrderAmount, minimumOrderAmountHourly, minimumWithdrawal });
   } catch {
     res.json({
       minimumOrderAmount: MINIMUM_ORDER_AMOUNT_DEFAULT,
+      minimumOrderAmountHourly: MINIMUM_ORDER_AMOUNT_HOURLY_DEFAULT,
       minimumWithdrawal: MINIMUM_WITHDRAWAL_DEFAULT,
     });
   }
