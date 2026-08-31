@@ -298,24 +298,49 @@ async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) 
  *
  * Returns an error message to refuse with, or the stored offer's price unit
  * when the request matches. That unit is returned rather than read from the
- * body because it now selects which minimum applies: trusting the body would
- * let a buyer claim `per_hour` on a per-project offer and clear the lower
- * floor. Offer messages are writable by either participant (see the RTDB
- * rules), so this endpoint is where the floor is actually enforced.
+ * body because it selects which minimum applies: trusting the body would let a
+ * buyer claim `per_hour` on a per-project offer and clear the lower floor.
+ *
+ * The RTDB rules let *either* participant write to a conversation's messages,
+ * so an offer is not self-evidently the seller's. Checking that the seller sent
+ * it — and that the money is going to that same seller — is what stops a buyer
+ * writing their own $20 offer against a $4,000 service and paying it. Offer
+ * creation has no server-side validation anywhere else, so this is the only
+ * place any of it is enforced.
  */
 async function offerMismatch(
   conversationId: string,
   messageId: string,
   offerAmount: number,
   serviceId: string,
+  sellerId: string,
+  buyerId: string,
 ): Promise<{ error: string } | { priceUnit: PriceUnit }> {
-  const snap = await db.ref(`messages/${conversationId}/${messageId}`).get();
-  const msg = snap.val() as {
+  const [msgSnap, convSnap] = await Promise.all([
+    db.ref(`messages/${conversationId}/${messageId}`).get(),
+    db.ref(`conversations/${conversationId}`).get(),
+  ]);
+  const msg = msgSnap.val() as {
+    senderId?: string;
     offer?: { price?: number; serviceId?: string; priceUnit?: PriceUnit };
     offerStatus?: string;
   } | null;
+  const conv = convSnap.val() as { buyerId?: string; sellerId?: string } | null;
 
   if (!msg?.offer) return { error: 'Offer not found' };
+  if (!conv) return { error: 'Offer not found' };
+
+  // Only the seller in this conversation can make an offer, and only its buyer
+  // can pay one — otherwise the offer is not evidence of anything.
+  if (!conv.sellerId || msg.senderId !== conv.sellerId) {
+    return { error: 'This offer was not sent by the seller.' };
+  }
+  if (sellerId !== conv.sellerId) {
+    return { error: 'This offer belongs to a different seller.' };
+  }
+  if (!conv.buyerId || buyerId !== conv.buyerId) {
+    return { error: 'This offer was not sent to you.' };
+  }
 
   const quoted = Number(msg.offer.price);
   if (!Number.isFinite(quoted) || quoted <= 0) return { error: 'Offer not found' };
@@ -357,7 +382,9 @@ app.post('/api/checkout/create-session', requireAuth, async (req: AuthRequest, r
     }
     // Tie the request to the offer the seller actually sent before anything
     // else — it yields the stored price unit, which decides the floor below.
-    const verified = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
+    const verified = await offerMismatch(
+      conversationId, messageId, offerAmount, serviceId, sellerId, req.uid!,
+    );
     if ('error' in verified) { res.status(400).json({ error: verified.error }); return; }
 
     // Enforced server-side as well as in the form, since the form is not the
@@ -467,7 +494,9 @@ app.post('/api/checkout/create-payment-intent', requireAuth, async (req: AuthReq
     }
     // Tie the request to the offer the seller actually sent before anything
     // else — it yields the stored price unit, which decides the floor below.
-    const verified = await offerMismatch(conversationId, messageId, offerAmount, serviceId);
+    const verified = await offerMismatch(
+      conversationId, messageId, offerAmount, serviceId, sellerId, req.uid!,
+    );
     if ('error' in verified) { res.status(400).json({ error: verified.error }); return; }
 
     // Enforced server-side as well as in the form, since the form is not the
