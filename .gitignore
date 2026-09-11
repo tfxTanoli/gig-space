@@ -53,6 +53,11 @@ server/serviceAccountKey.json
 /*.yaml
 /*.png
 /*.jpg
+# Playwright/Linear dumps also land here as markdown (e.g. accessibility-tree
+# snapshots) — same risk as above. README.md/PROJECT_SUMMARY.md stay tracked;
+# root-anchoring plus the pre-existing gitignore only blocks NEW untracked
+# root .md files, it can't untrack files already in git.
+/*.md
 # Agent/tool working directories — page snapshots here have held API keys.
 .playwright-mcp/
 .codex/
