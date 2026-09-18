@@ -868,13 +868,15 @@ const PostService = () => {
       }
 
       // Give the live post its permanent /posts/ address (no-op once it has one).
-      // Non-fatal: the post is already published; the legacy /service-detail link
-      // keeps working and an admin can assign the address later.
+      // Non-fatal: the post is already published and reachable, so a failure here
+      // must not fail the publish. It is recorded rather than swallowed — the post
+      // stays out of the sitemap and is served noindex until it has an address, and
+      // Admin → Listings → "Generate SEO URLs" reports and repairs the backlog.
       if (publishedId) {
         try {
           await ensureSeoPath(publishedId, payload, { category: getCategoryLabel, subcategory: getSubcategoryLabel });
-        } catch {
-          // see above
+        } catch (err) {
+          console.error('[seo] could not assign a permanent URL to', publishedId, err);
         }
       }
 

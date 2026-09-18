@@ -554,6 +554,20 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
     ? (rawSubLabel !== post.subcategory ? rawSubLabel : humanize(post.subcategory))
     : null;
 
+  // The seller's headline is only worth showing under the h1 when it carries
+  // words the heading doesn't already have — otherwise the business name and
+  // service end up on screen three times in a row.
+  const showTagline = (() => {
+    if (!seo || !post.title || post.title === seo.h1) return false;
+    const words = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 2));
+    const inTitle = words(post.title);
+    if (inTitle.size === 0) return false;
+    const inHeading = words(seo.h1);
+    let shared = 0;
+    inTitle.forEach((w) => { if (inHeading.has(w)) shared++; });
+    return shared / inTitle.size < 0.8;
+  })();
+
   // Share the permanent address, never whatever is in the URL bar.
   const pageUrl = seo?.canonicalUrl ?? window.location.href;
   const enc = encodeURIComponent;
@@ -652,10 +666,12 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
             )}
           </nav>
 
-          {/* Heading: the service + area is the page's subject; the seller's own
-              headline follows as a tagline so it stays the only h1 on the page. */}
-          <h1 className="order-3 text-3xl font-bold mb-2 leading-snug text-slate-100">{seo?.h1 ?? post.title}</h1>
-          {seo && post.title && post.title !== seo.h1 && (
+          {/* Heading: the service, place and business are the page's subject.
+              The seller's own headline follows as a tagline — but only when it
+              says something the heading doesn't, which is often false for
+              generated listings whose title restates the same three facts. */}
+          <h1 className={`order-3 text-3xl font-bold leading-snug text-slate-100 ${showTagline ? 'mb-2' : 'mb-4'}`}>{seo?.h1 ?? post.title}</h1>
+          {showTagline && (
             <p className="order-3 text-lg text-slate-300 mb-4 leading-snug">{post.title}</p>
           )}
 

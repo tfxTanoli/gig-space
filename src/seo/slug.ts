@@ -93,7 +93,12 @@ export function parseLocation(raw: string | null | undefined): ParsedLocation {
   // Skip street-address segments ("930 10th Street") when picking the city.
   const cityCandidates = parts.filter((p) => !/^\d/.test(p));
   const city = cityCandidates[cityCandidates.length - 1] ?? parts[parts.length - 1];
-  if (city && !(parts.length === 1 && normalizeCountry(city))) out.city = city;
+  // A lone segment that names a country is the country, not a city. But once a
+  // region is known the segment is a real place name — the US has towns called
+  // Italy, Lebanon, Peru and Mexico, and dropping them loses the city targeting
+  // that local search depends on.
+  const looksLikeCountryAlone = !out.region && !!normalizeCountry(city);
+  if (city && !looksLikeCountryAlone) out.city = city;
   return out;
 }
 

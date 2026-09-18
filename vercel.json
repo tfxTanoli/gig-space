@@ -1,8 +1,24 @@
 {
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "gig-space.vercel.app" }],
+      "destination": "https://gigspace.co/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "gig-space-lac.vercel.app" }],
+      "destination": "https://gigspace.co/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/sitemap-:name.xml", "destination": "/api/sitemap?name=:name" },
     { "source": "/posts/:business/:slug", "destination": "/api/post-page?business=:business&slug=:slug" },
+    { "source": "/posts/(.*)", "destination": "/api/post-page?notfound=1" },
     { "source": "/service-detail", "destination": "/api/post-page" },
     { "source": "/share", "destination": "/api/og" },
     { "source": "/(.*)", "destination": "/index.html" }

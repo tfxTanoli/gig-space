@@ -7,7 +7,7 @@ import { ref as dbRef, get, update, remove } from 'firebase/database';
 import { toast } from 'sonner';
 import { database } from '../../firebase';
 import { useCategories } from '../../CategoriesContext';
-import { ensureSeoPath } from '../../seo/ensureSeoPath';
+import { ensureSeoPath, indexForSitemap, removeFromSitemap } from '../../seo/ensureSeoPath';
 import type { SeoListing } from '../../seo/meta';
 import { LANGUAGES } from '../../data/languages';
 import { searchLocations, type LocationResult } from '../../photon';
@@ -301,20 +301,39 @@ export default function AdminListingsTab() {
   // Every live listing (generated or seller-made) that has no permanent
   // /posts/ address yet gets one. Safe to re-run: listings that already have
   // an address are skipped, and an address never changes once assigned.
+  //
+  // This is also the reconciliation path for the sitemap index — it rebuilds
+  // seoIndex from the listings themselves, so anything that drifted (a publish
+  // whose allocation failed, a listing unpublished outside the normal flow)
+  // is corrected by running this.
   const doAssignSeoPaths = async () => {
     setAssigningSeo(true);
     try {
       const snap = await get(dbRef(database, 'services'));
       const all = (snap.val() as Record<string, Omit<SeoListing, 'id'> & { status?: string }> | null) ?? {};
-      const pending = Object.entries(all).filter(([, s]) => s && s.status === 'active' && !s.seoPath);
+      const live = Object.entries(all).filter(([, s]) => s && s.status === 'active');
+      const pending = live.filter(([, s]) => !s.seoPath);
       let done = 0;
       let failed = 0;
       for (const [id, s] of pending) {
         try { await ensureSeoPath(id, s, seoLabels); done++; } catch { failed++; }
       }
-      if (pending.length === 0) toast.message('Every live listing already has its SEO URL.');
-      else if (failed === 0) toast.success(`Assigned SEO URLs to ${done} listing${done !== 1 ? 's' : ''}.`);
-      else toast.warning(`Assigned ${done}, ${failed} failed — run again to retry.`);
+      // Re-sync the sitemap index against the listings that should be in it.
+      let reindexed = 0;
+      let dropped = 0;
+      for (const [id, s] of live) {
+        if (typeof s.seoPath === 'string' && s.seoPath) { await indexForSitemap(id, s.seoPath, s); reindexed++; }
+      }
+      const liveIds = new Set(live.map(([id]) => id));
+      const idxSnap = await get(dbRef(database, 'seoIndex'));
+      for (const id of Object.keys((idxSnap.val() as Record<string, unknown> | null) ?? {})) {
+        if (!liveIds.has(id)) { await removeFromSitemap(id); dropped++; }
+      }
+
+      const sitemapNote = `Sitemap index: ${reindexed} listed${dropped ? `, ${dropped} removed` : ''}.`;
+      if (pending.length === 0) toast.message(`Every live listing already has its SEO URL. ${sitemapNote}`);
+      else if (failed === 0) toast.success(`Assigned SEO URLs to ${done} listing${done !== 1 ? 's' : ''}. ${sitemapNote}`);
+      else toast.warning(`Assigned ${done}, ${failed} failed — run again to retry. ${sitemapNote}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to assign SEO URLs');
     } finally { setAssigningSeo(false); }
@@ -326,6 +345,7 @@ export default function AdminListingsTab() {
       await Promise.all([
         remove(dbRef(database, `services/${id}`)),
         remove(dbRef(database, `serviceReviews/${id}`)),
+        removeFromSitemap(id),
       ]);
       setGenerated((prev) => prev?.filter((g) => g.id !== id) ?? null);
       toast.success('Listing deleted.');

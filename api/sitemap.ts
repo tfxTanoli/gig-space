@@ -26,21 +26,27 @@ const STATIC_PAGES: { path: string; changefreq: string; priority: string }[] = [
 interface ListingEntry { path: string; lastmod: string }
 let listingsCache: { entries: ListingEntry[]; expires: number } | null = null;
 
-type ServiceRow = { status?: string; seoPath?: string; updatedAt?: number; createdAt?: number };
+/** One compact record per publicly listed service: path and last-modified. */
+type IndexRow = { p?: string; m?: number };
 
+// Reads `seoIndex`, not `services`. The full service table carries descriptions,
+// image arrays and scraped review metadata — roughly 2 KB per listing — and the
+// sitemap needs two fields. src/seo/ensureSeoPath.ts maintains this node, and
+// Admin → Listings → "Generate SEO URLs" rebuilds it from scratch if it drifts.
 async function loadListings(): Promise<ListingEntry[]> {
   const now = Date.now();
   if (listingsCache && listingsCache.expires > now) return listingsCache.entries;
   let entries: ListingEntry[] = [];
   if (DB_URL) {
     try {
-      const r = await fetch(`${DB_URL}/services.json`, { headers: { accept: 'application/json' } });
-      const data = r.ok ? ((await r.json()) as Record<string, ServiceRow> | null) : null;
+      const r = await fetch(`${DB_URL}/seoIndex.json`, { headers: { accept: 'application/json' } });
+      const data = r.ok ? ((await r.json()) as Record<string, IndexRow> | null) : null;
       entries = Object.values(data ?? {})
-        .filter((s) => s && s.status === 'active' && typeof s.seoPath === 'string' && /^[a-z0-9-]+\/[a-z0-9-]+$/.test(s.seoPath))
+        .filter((s): s is Required<Pick<IndexRow, 'p'>> & IndexRow =>
+          !!s && typeof s.p === 'string' && /^[a-z0-9-]+\/[a-z0-9-]+$/.test(s.p))
         .map((s) => ({
-          path: `/posts/${s.seoPath}`,
-          lastmod: new Date(s.updatedAt ?? s.createdAt ?? now).toISOString().slice(0, 10),
+          path: `/posts/${s.p}`,
+          lastmod: new Date(s.m ?? now).toISOString().slice(0, 10),
         }))
         .sort((a, b) => (a.lastmod < b.lastmod ? 1 : a.lastmod > b.lastmod ? -1 : a.path.localeCompare(b.path)));
     } catch {

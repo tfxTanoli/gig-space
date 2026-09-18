@@ -124,6 +124,14 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   const slug = str(req.query.slug);
   const legacyId = str(req.query.id);
 
+  // Anything under /posts/ that isn't exactly two segments — a trailing slash,
+  // a bare business, extra depth — is not a page. Answer 404 rather than let the
+  // SPA catch-all return 200 for an unbounded URL space.
+  if (str(req.query.notfound)) {
+    sendHtml(res, 404, injectHead(shell, notFoundHead('Post not found')), MISS_CACHE);
+    return;
+  }
+
   let serviceId: string | null = null;
   let legacy = false;
   if (business && slug) {
@@ -181,8 +189,11 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   );
 
   const ctx = buildSeoContext(service, labels);
+  // Without a permanent address the only URL we could offer is the legacy
+  // /service-detail?id= query form. That is not a canonical we want indexed, so
+  // the page is served noindex until the address is assigned.
   const head = [
-    buildHeadHtml(ctx, buildJsonLd(service, ctx, rating), { index: true }),
+    buildHeadHtml(ctx, buildJsonLd(service, ctx, rating), { index: Boolean(service.seoPath) }),
     `<script>window.__SEO_ROUTE__=${JSON.stringify({ path: service.seoPath ?? null, serviceId }).replace(/</g, '\\u003c')}</script>`,
   ].join('\n    ');
 

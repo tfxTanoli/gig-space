@@ -229,6 +229,14 @@
       }
     },
 
+    "seoIndex": {
+      ".read": true,
+      "$serviceId": {
+        ".write": "auth !== null && (root.child('services').child($serviceId).child('sellerId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".validate": "!newData.exists() || (newData.hasChild('p') && newData.child('p').isString() && newData.child('m').isNumber())"
+      }
+    },
+
     "seoPaths": {
       ".read": true,
       "$business": {

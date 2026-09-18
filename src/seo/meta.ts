@@ -130,12 +130,17 @@ export function buildSeoContext(listing: SeoListing, labels: CategoryLabels): Se
   const area = formatArea(location);
   const areaLong = formatArea(location, { longState: true });
 
-  const h1 = area ? `${serviceLabel} in ${area}` : serviceLabel;
-  const title = `${h1} | ${business} | ${SITE_NAME}`;
+  // The heading names the business as well as the service and place. Without it
+  // two sellers offering the same service in the same city get byte-identical
+  // H1s, which is exactly the duplication each listing is supposed to avoid.
+  const subject = area ? `${serviceLabel} in ${area}` : serviceLabel;
+  const named = business !== SITE_NAME && !subject.toLowerCase().includes(business.toLowerCase());
+  const h1 = named ? `${subject} by ${business}` : subject;
+  const title = `${subject} | ${business} | ${SITE_NAME}`;
 
   const price = priceText(listing);
   const cta = `Get a quote on ${SITE_NAME}.`;
-  const lead = `${`${h1} by ${business}`.replace(/\.+$/, '')}. ${price}.`;
+  const lead = `${`${subject} by ${business}`.replace(/\.+$/, '')}. ${price}.`;
   const room = 155 - lead.length - cta.length - 2;
   let snippet = room > 20 ? truncateWords(stripHtml(listing.description), room) : '';
   if (snippet && !/[.!?…]$/.test(snippet)) snippet += '.';
@@ -166,16 +171,22 @@ export function buildSeoContext(listing: SeoListing, labels: CategoryLabels): Se
 export interface RatingSummary {
   count: number;
   average: number;
+  /**
+   * `external` means the figures were imported from the business's Google
+   * profile rather than earned on Gigspace. They are fine to show on the page
+   * (clearly attributed) but must not be published as our own aggregateRating.
+   */
+  source: 'own' | 'external';
 }
 
 export function ratingSummary(listing: SeoListing, loadedReviews?: { rating: number }[]): RatingSummary | null {
   const count = listing.reviewCount ?? 0;
   if ((listing.isGenerated || listing.placeId) && count > 0) {
-    return { count, average: (listing.totalStars ?? 0) / count };
+    return { count, average: (listing.totalStars ?? 0) / count, source: 'external' };
   }
   if (loadedReviews && loadedReviews.length > 0) {
     const sum = loadedReviews.reduce((s, r) => s + (Number(r.rating) || 0), 0);
-    return { count: loadedReviews.length, average: sum / loadedReviews.length };
+    return { count: loadedReviews.length, average: sum / loadedReviews.length, source: 'own' };
   }
   return null;
 }
@@ -184,21 +195,31 @@ function offerFor(listing: SeoListing, ctx: SeoContext): Record<string, unknown>
   const min = listing.priceMin;
   if (listing.priceType === 'contact_for_pricing' || min == null || !(min > 0)) return null;
   const hourly = listing.priceType === 'per_hour';
+  // A range is an AggregateOffer with lowPrice/highPrice. Expressing it as an
+  // Offer carrying a min/max priceSpecification is valid schema.org but Google
+  // reads neither, so the price is dropped from any rich result.
+  if (listing.priceMax && listing.priceMax > min) {
+    return {
+      '@type': 'AggregateOffer',
+      url: ctx.canonicalUrl,
+      priceCurrency: 'USD',
+      lowPrice: min,
+      highPrice: listing.priceMax,
+      offerCount: 1,
+      availability: 'https://schema.org/InStock',
+      ...(hourly ? { priceSpecification: { '@type': 'UnitPriceSpecification', priceCurrency: 'USD', minPrice: min, maxPrice: listing.priceMax, unitCode: 'HUR', unitText: 'hour' } } : {}),
+    };
+  }
   const offer: Record<string, unknown> = {
     '@type': 'Offer',
     url: ctx.canonicalUrl,
     priceCurrency: 'USD',
     availability: 'https://schema.org/InStock',
   };
-  if (listing.priceMax && listing.priceMax > min) {
-    offer.priceSpecification = {
-      '@type': hourly ? 'UnitPriceSpecification' : 'PriceSpecification',
-      priceCurrency: 'USD',
-      minPrice: min,
-      maxPrice: listing.priceMax,
-      ...(hourly ? { unitCode: 'HUR', unitText: 'hour' } : {}),
-    };
-  } else if (hourly) {
+  // Google reads Offer.price; the unit spec carries the "per hour" meaning
+  // alongside it rather than instead of it.
+  offer.price = min;
+  if (hourly) {
     offer.priceSpecification = {
       '@type': 'UnitPriceSpecification',
       priceCurrency: 'USD',
@@ -206,8 +227,6 @@ function offerFor(listing: SeoListing, ctx: SeoContext): Record<string, unknown>
       unitCode: 'HUR',
       unitText: 'hour',
     };
-  } else {
-    offer.price = min;
   }
   return offer;
 }
@@ -220,7 +239,17 @@ function areaServed(listing: SeoListing): unknown[] {
     const name = formatArea(loc, { longState: true });
     if (!name || seen.has(name)) continue;
     seen.add(name);
-    out.push({ '@type': loc.city ? 'City' : loc.region ? 'State' : 'Country', name });
+    // A City's name is the city alone — "Chicago", not "Chicago, Illinois" —
+    // with the enclosing state expressed as containedInPlace.
+    if (loc.city) {
+      out.push({
+        '@type': 'City',
+        name: loc.city,
+        ...(loc.region ? { containedInPlace: { '@type': 'State', name: loc.region } } : {}),
+      });
+    } else {
+      out.push({ '@type': loc.region ? 'State' : 'Country', name });
+    }
   }
   if (listing.offeredRemotely && !out.length) out.push({ '@type': 'Place', name: 'Remote' });
   return out;
@@ -241,14 +270,21 @@ export function buildJsonLd(listing: SeoListing, ctx: SeoContext, rating: Rating
       }
     : null;
 
+  // LocalBusiness means a business with a real physical address. A seller whose
+  // location parses only to a country or state — typically a remote freelancer —
+  // is an Organization; claiming otherwise misrepresents them to Google.
   const provider: Record<string, unknown> = {
-    '@type': address ? 'LocalBusiness' : 'Organization',
+    '@type': loc.city ? 'LocalBusiness' : 'Organization',
     '@id': `${url}#provider`,
     name: ctx.business,
     url: listing.website || url,
     ...(listing.sellerPhotoURL ? { image: listing.sellerPhotoURL, logo: listing.sellerPhotoURL } : {}),
     ...(address ? { address } : {}),
-    ...(rating && rating.count > 0
+    // Only ratings collected on Gigspace are published as structured data.
+    // Imported Google ratings stay on the page for shoppers but are never
+    // asserted as ours — doing so is what Google's review-snippet policy
+    // treats as spammy markup, and the penalty applies site-wide.
+    ...(rating && rating.source === 'own' && rating.count > 0
       ? {
           aggregateRating: {
             '@type': 'AggregateRating',
