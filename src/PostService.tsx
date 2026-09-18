@@ -29,6 +29,7 @@ import { storage, database, auth } from './firebase';
 import { useAuth } from './AuthContext';
 import { useCategories } from './CategoriesContext';
 import { ensureSeoPath } from './seo/ensureSeoPath';
+import { slugify } from './seo/slug';
 import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
 import { createListingSubscription, previewSubscriptionTax } from './stripe/paymentHelpers';
 import type { BillingAddress, TaxBreakdown } from './stripe/types';
@@ -685,9 +686,13 @@ const PostService = () => {
           contentType === 'image/png' ? 'png' :
           contentType === 'image/webp' ? 'webp' :
           (item.file.name.split('.').pop() || 'jpg');
+        // Descriptive object name: the filename is part of the public image URL
+        // and is one of the few image-SEO signals Google reads besides alt text.
+        // The random suffix keeps re-uploads of the same title from colliding.
+        const stem = slugify([title, primaryLocation].filter(Boolean).join(' ')) || 'service';
         const ref = storageRef(
           storage,
-          `serviceImages/${user!.uid}/${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}.${ext}`,
+          `serviceImages/${user!.uid}/${stem}-${i + 1}-${Math.random().toString(36).slice(2, 8)}.${ext}`,
         );
         await uploadBytes(ref, blob, { contentType });
         return getDownloadURL(ref);

@@ -81,7 +81,13 @@ async function loadShell(origin: string): Promise<string | null> {
 }
 
 function injectHead(shell: string, head: string): string {
-  return shell.replace(/<title>[^<]*<\/title>\s*/i, '').replace('</head>', `    ${head}\n  </head>`);
+  // The shell carries site-wide defaults (description, canonical, OG, Twitter)
+  // for every other page. A listing supplies its own, so drop the defaults
+  // rather than emit both — two og:title tags is worse than none.
+  return shell
+    .replace(/<!--seo-defaults-->[\s\S]*?<!--\/seo-defaults-->\s*/i, '')
+    .replace(/<title>[^<]*<\/title>\s*/i, '')
+    .replace('</head>', `    ${head}\n  </head>`);
 }
 
 function str(v: string | string[] | undefined): string {
