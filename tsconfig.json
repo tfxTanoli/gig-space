@@ -1,16 +1,24 @@
 {
+  /* `tsc -b` builds the three referenced projects; this root one compiles
+     nothing (files: []), so the options below are inert for the local build.
+     They exist for Vercel, which compiles api/*.ts against THIS file and does
+     not follow project references — without them it can't find Node globals.
+     Keep them in step with tsconfig.api.json. */
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.api.json" }
   ],
   "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "target": "es2022",
     "types": ["node"],
     "strict": true,
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "noEmit": true
   }
 }

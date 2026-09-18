@@ -383,6 +383,9 @@ export async function deleteService(req: AdminRequest, res: Response): Promise<v
     const ordersData = ((await db.ref('orders').get()).val() ?? {}) as Record<string, { serviceId?: string }>;
     const hasOrders = Object.values(ordersData).some((o) => o?.serviceId === id);
 
+    // Either way the post stops being public, so it leaves the sitemap.
+    await db.ref(`seoIndex/${id}`).remove();
+
     if (hasOrders) {
       await db.ref(`services/${id}`).update({
         status: 'deleted',

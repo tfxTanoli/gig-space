@@ -2709,6 +2709,9 @@ app.post('/api/listings/mark-claimed', requireAuth, async (req: AuthRequest, res
       updatedAt: Date.now(),
       ...(seoRedirectTo ? { seoRedirectTo } : {}),
     });
+    // No longer public, so it drops out of the sitemap. Its /posts/ URL stays
+    // alive and 301s to the seller's own post (see api/post-page.ts).
+    await db.ref(`seoIndex/${claimId}`).remove();
     res.json({ success: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
