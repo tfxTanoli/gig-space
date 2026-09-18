@@ -1,6 +1,7 @@
-﻿import { useState, useEffect, useRef, type ReactNode } from 'react';
+﻿import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { sanitizeHtml } from './utils/sanitize';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { buildSeoContext, listingPath } from './seo/meta';
 import {
   ChevronLeft, ChevronRight,
   Bookmark, Star, Play, ArrowRight, Globe,
@@ -55,6 +56,9 @@ interface ServicePost {
   offeredRemotely: boolean;
   status: 'active' | 'paused';
   createdAt: number;
+  updatedAt?: number;
+  /** Permanent public address: `{business}/{service-city-state}` under /posts/. */
+  seoPath?: string;
   /* Admin-generated (Google) listings awaiting an owner claim */
   isGenerated?: boolean;
   source?: string;
@@ -257,12 +261,14 @@ function fmtPrice(n: number) {
 
 /* ─── Main component ─── */
 
-const ServiceDetail = () => {
+const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) => {
   const [searchParams] = useSearchParams();
-  const postId = searchParams.get('id');
+  // /posts/{business}/{slug} passes the resolved id in; /service-detail?id= is the legacy form.
+  const postId = postIdProp !== undefined ? postIdProp : searchParams.get('id');
   const { user, userProfile } = useAuth();
   const navigate = useNavigate();
-  const { getCategoryLabel, getSubcategoryLabel } = useCategories();
+  const location = useLocation();
+  const { getCategoryLabel, getSubcategoryLabel, loading: labelsLoading } = useCategories();
 
   const { isSaved, toggleSave } = useSavedServices();
   const [post, setPost] = useState<ServicePost | null>(null);
@@ -315,7 +321,7 @@ const ServiceDetail = () => {
     // buyer's mail client instead, pre-filled with an email that also pitches the
     // business on claiming their free Gigspace listing. No login needed for this.
     if (post.isGenerated && post.claimStatus !== 'claimed' && post.contactEmail) {
-      const postUrl = `${window.location.origin}/service-detail?id=${post.id}`;
+      const postUrl = `${window.location.origin}${listingPath(post)}`;
       const claimUrl = `${window.location.origin}/post-service?claim=${post.id}`;
       // "an excavation project" vs "a cleaning services project" — lowercase the
       // subcategory (falling back to category) so the email reads as human-written.
@@ -411,54 +417,64 @@ const ServiceDetail = () => {
     }).catch(() => {});
   }, [post, isOwnService]);
 
+  // Title / description / canonical / social tags. Crawlers get these from the
+  // server-rendered shell (api/post-page.ts); this keeps the tab title and share
+  // cards right during client-side navigation and once labels finish loading.
+  const seo = useMemo(
+    () => (post ? buildSeoContext(post, { category: getCategoryLabel, subcategory: getSubcategoryLabel }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- label getters are stable; re-run when labels load
+    [post, labelsLoading],
+  );
+
+  // The old /service-detail?id= address is not canonical: swap it for the
+  // permanent /posts/ URL. Direct loads get a 301 from the server; this covers
+  // in-app navigation that still uses the legacy link.
   useEffect(() => {
-    if (!post) return;
+    if (!post?.seoPath || location.pathname !== '/service-detail') return;
+    navigate(listingPath(post), { replace: true });
+  }, [post, location.pathname, navigate]);
 
-    const setMeta = (property: string, content: string) => {
-      let el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
-      if (!el) {
-        el = document.createElement('meta');
-        el.setAttribute('property', property);
-        document.head.appendChild(el);
-      }
-      el.setAttribute('content', content);
+  useEffect(() => {
+    if (!seo) return;
+
+    const upsert = (selector: string, create: () => HTMLElement, apply: (el: HTMLElement) => void) => {
+      let el = document.head.querySelector<HTMLElement>(selector);
+      if (!el) { el = create(); document.head.appendChild(el); }
+      apply(el);
     };
+    const setMeta = (attr: 'property' | 'name', key: string, content: string) =>
+      upsert(`meta[${attr}="${key}"]`, () => {
+        const m = document.createElement('meta');
+        m.setAttribute(attr, key);
+        return m;
+      }, (el) => el.setAttribute('content', content));
 
-    const setNameMeta = (name: string, content: string) => {
-      let el = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
-      if (!el) {
-        el = document.createElement('meta');
-        el.setAttribute('name', name);
-        document.head.appendChild(el);
-      }
-      el.setAttribute('content', content);
-    };
+    document.title = seo.title;
+    setMeta('name', 'description', seo.description);
+    upsert('link[rel="canonical"]', () => {
+      const l = document.createElement('link');
+      l.setAttribute('rel', 'canonical');
+      return l;
+    }, (el) => el.setAttribute('href', seo.canonicalUrl));
 
-    const pageUrl = window.location.href;
-    const image = post.images?.[0] ?? '';
-    const description = post.description
-      ? post.description.slice(0, 160).replace(/\s+/g, ' ').trim()
-      : `${post.sellerName} offers this service on GigSpace.`;
-    const priceLabel = `$${fmtPrice(post.priceMin)}${post.priceMax ? `–$${fmtPrice(post.priceMax)}` : ''} ${post.priceType === 'per_hour' ? '/hr' : '/project'}`;
+    setMeta('property', 'og:type', 'website');
+    setMeta('property', 'og:site_name', 'Gigspace');
+    setMeta('property', 'og:url', seo.canonicalUrl);
+    setMeta('property', 'og:title', seo.title);
+    setMeta('property', 'og:description', seo.description);
+    if (seo.image) setMeta('property', 'og:image', seo.image);
 
-    document.title = `${post.title} | GigSpace`;
-
-    setMeta('og:type', 'website');
-    setMeta('og:site_name', 'GigSpace');
-    setMeta('og:url', pageUrl);
-    setMeta('og:title', post.title);
-    setMeta('og:description', `${priceLabel} · ${description}`);
-    if (image) setMeta('og:image', image);
-
-    setNameMeta('twitter:card', 'summary_large_image');
-    setNameMeta('twitter:title', post.title);
-    setNameMeta('twitter:description', `${priceLabel} · ${description}`);
-    if (image) setNameMeta('twitter:image', image);
+    setMeta('name', 'twitter:card', seo.image ? 'summary_large_image' : 'summary');
+    setMeta('name', 'twitter:title', seo.title);
+    setMeta('name', 'twitter:description', seo.description);
+    if (seo.image) setMeta('name', 'twitter:image', seo.image);
 
     return () => {
-      document.title = 'GigSpace';
+      document.title = 'Gigspace';
+      document.head.querySelector('link[rel="canonical"]')?.remove();
+      document.head.querySelector('meta[name="description"]')?.remove();
     };
-  }, [post]);
+  }, [seo]);
 
   // Reviews listener
   useEffect(() => {
@@ -538,10 +554,15 @@ const ServiceDetail = () => {
     ? (rawSubLabel !== post.subcategory ? rawSubLabel : humanize(post.subcategory))
     : null;
 
-  const pageUrl = window.location.href;
+  // Share the permanent address, never whatever is in the URL bar.
+  const pageUrl = seo?.canonicalUrl ?? window.location.href;
   const enc = encodeURIComponent;
   const shareText = 'Check out this great service I found on Gigspace:';
   const shareImage = post.images?.[0] ?? '';
+  const imageAlt = (url: string) => {
+    const idx = Math.max(0, (post.images ?? []).indexOf(url));
+    return seo?.imageAlt(idx) ?? post.title;
+  };
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
@@ -605,110 +626,6 @@ const ServiceDetail = () => {
       )}
       <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_512px] lg:gap-[100px] mb-10">
 
-        {/* ═══ LEFT COLUMN — gallery + description ═══ */}
-        {/* `contents` on mobile lets each block be ordered individually in the single-column flow; `lg:block` restores the two-column layout on desktop */}
-        <div className="contents lg:block lg:order-1 lg:min-w-0">
-
-          {/* ── Media gallery ── */}
-          {mediaItems.length > 0 ? (
-            <div className="order-2 mb-8">
-              {/* Main viewer — fixed 592×444 on desktop, responsive 4:3 below */}
-              <div
-                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3]"
-              >
-                {activeMedia?.kind === 'video' ? (
-                  <video
-                    key={activeMedia.url}
-                    src={activeMedia.url}
-                    controls
-                    className="w-full h-full object-cover"
-                  />
-                ) : activeMedia?.kind === 'image' ? (
-                  <img
-                    src={activeMedia.url}
-                    alt={post.title}
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                  />
-                ) : null}
-
-                {/* Prev / Next arrows */}
-                {mediaItems.length > 1 && (
-                  <>
-                    <button
-                      onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-white" />
-                    </button>
-                    <button
-                      onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5 text-white" />
-                    </button>
-                    {/* Dot indicators */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                      {mediaItems.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setActiveIdx(i)}
-                          className={`w-1.5 h-1.5 rounded-full transition-colors ${i === activeIdx ? 'bg-white' : 'bg-white/40'}`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Thumbnail strip */}
-              {mediaItems.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                  {mediaItems.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveIdx(i)}
-                      className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
-                        i === activeIdx ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-80'
-                      }`}
-                      style={{ width: 72, height: 54 }}
-                    >
-                      {item.kind === 'video' ? (
-                        <>
-                          <video src={item.url} className="w-full h-full object-cover" muted />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <Play className="w-4 h-4 text-white fill-white" />
-                          </div>
-                        </>
-                      ) : (
-                        <img src={item.url} alt={`Thumbnail ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="order-2 rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8" style={{ aspectRatio: '4/3' }}>
-              <p className="text-slate-500 text-sm">No images uploaded</p>
-            </div>
-          )}
-
-          {/* ── Description ── */}
-          <div className="order-8 mb-8">
-            <h2 className="text-sm font-medium text-white mb-4">Description</h2>
-            {post.description ? (
-              <div
-                className="text-slate-300 text-sm leading-relaxed whitespace-pre-line [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.description) }}
-              />
-            ) : (
-              <span className="text-slate-500 text-sm">No description provided.</span>
-            )}
-          </div>
-
-        </div>
-
         {/* ═══ RIGHT COLUMN — price/CTA/details ═══ */}
         <div className="contents lg:block lg:order-2 lg:min-w-0">
 
@@ -735,8 +652,12 @@ const ServiceDetail = () => {
             )}
           </nav>
 
-          {/* Title */}
-          <h1 className="order-3 text-3xl font-bold mb-4 leading-snug text-slate-100">{post.title}</h1>
+          {/* Heading: the service + area is the page's subject; the seller's own
+              headline follows as a tagline so it stays the only h1 on the page. */}
+          <h1 className="order-3 text-3xl font-bold mb-2 leading-snug text-slate-100">{seo?.h1 ?? post.title}</h1>
+          {seo && post.title && post.title !== seo.h1 && (
+            <p className="order-3 text-lg text-slate-300 mb-4 leading-snug">{post.title}</p>
+          )}
 
           {/* Seller row */}
           <div className="order-4 flex items-center gap-2 mb-5">
@@ -777,11 +698,13 @@ const ServiceDetail = () => {
           {/* Price */}
           {post.priceType === 'contact_for_pricing' ? (
             <div className="order-6 mb-5">
+              <h2 className="text-sm font-medium text-white mb-1">Pricing</h2>
               {/* Per client: slate-100, 18px, medium weight */}
               <span className="text-slate-100 text-lg font-medium">Contact for pricing</span>
             </div>
           ) : post.priceMin != null && (
             <div className="order-6 mb-5">
+              <h2 className="text-sm font-medium text-white mb-1">Pricing</h2>
               {post.priceMax ? (
                 /* Range: From $X – $Y per project */
                 <>
@@ -830,7 +753,7 @@ const ServiceDetail = () => {
           {/* Locations */}
           {(post.primaryLocation || post.offeredRemotely || post.extraLocations?.length > 0) && (
             <div className="order-10 mb-7">
-              <h3 className="text-sm font-medium text-white mb-2">Locations Served</h3>
+              <h2 className="text-sm font-medium text-white mb-2">Service Areas</h2>
               <div className="text-slate-400 text-sm space-y-1">
                 {post.primaryLocation && <p>{post.primaryLocation}</p>}
                 {post.extraLocations?.map((loc) => <p key={loc}>{loc}</p>)}
@@ -930,11 +853,115 @@ const ServiceDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* ═══ LEFT COLUMN — gallery + description ═══ */}
+        {/* `contents` on mobile lets each block be ordered individually in the single-column flow; `lg:block` restores the two-column layout on desktop */}
+        <div className="contents lg:block lg:order-1 lg:min-w-0">
+
+          {/* ── Media gallery ── */}
+          {mediaItems.length > 0 ? (
+            <div className="order-2 mb-8">
+              {/* Main viewer — fixed 592×444 on desktop, responsive 4:3 below */}
+              <div
+                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3]"
+              >
+                {activeMedia?.kind === 'video' ? (
+                  <video
+                    key={activeMedia.url}
+                    src={activeMedia.url}
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                ) : activeMedia?.kind === 'image' ? (
+                  <img
+                    src={activeMedia.url}
+                    alt={imageAlt(activeMedia.url)}
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                ) : null}
+
+                {/* Prev / Next arrows */}
+                {mediaItems.length > 1 && (
+                  <>
+                    <button
+                      onClick={prev}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-white" />
+                    </button>
+                    <button
+                      onClick={next}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5 text-white" />
+                    </button>
+                    {/* Dot indicators */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {mediaItems.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveIdx(i)}
+                          className={`w-1.5 h-1.5 rounded-full transition-colors ${i === activeIdx ? 'bg-white' : 'bg-white/40'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Thumbnail strip */}
+              {mediaItems.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {mediaItems.map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveIdx(i)}
+                      className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                        i === activeIdx ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-80'
+                      }`}
+                      style={{ width: 72, height: 54 }}
+                    >
+                      {item.kind === 'video' ? (
+                        <>
+                          <video src={item.url} className="w-full h-full object-cover" muted />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <Play className="w-4 h-4 text-white fill-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img src={item.url} alt={imageAlt(item.url)} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="order-2 rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8" style={{ aspectRatio: '4/3' }}>
+              <p className="text-slate-500 text-sm">No images uploaded</p>
+            </div>
+          )}
+
+          {/* ── Description ── */}
+          <div className="order-8 mb-8">
+            <h2 className="text-sm font-medium text-white mb-4">About this Service</h2>
+            {post.description ? (
+              <div
+                className="text-slate-300 text-sm leading-relaxed whitespace-pre-line [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_b]:text-white [&_strong]:text-white"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.description) }}
+              />
+            ) : (
+              <span className="text-slate-500 text-sm">No description provided.</span>
+            )}
+          </div>
+
+        </div>
       </div>
 
       {/* ── Customer Reviews — full width, always below both columns ── */}
       <div id="reviews" className="border-t border-slate-700/60 pt-8 pb-20 scroll-mt-24">
-        <h2 className="text-xl font-medium text-white mb-6">Customer Reviews</h2>
+        <h2 className="text-xl font-medium text-white mb-6">Reviews</h2>
 
         {reviewsLoading ? (
           <p className="text-slate-500 text-sm">Loading reviews…</p>

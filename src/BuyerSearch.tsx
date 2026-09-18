@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, memo, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { listingPath } from './seo/meta';
 import {
   ChevronDown,
   ChevronLeft,
@@ -183,6 +184,7 @@ interface ServicePost {
   createdAt: number;
   reviewCount?: number;
   totalStars?: number;
+  seoPath?: string;
 }
 
 function fmt(n: number) { return formatAmount(n); }
@@ -222,7 +224,7 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
   return (
     <div className="group block">
       <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative">
-        <Link to={`/service-detail?id=${post.id}`} className="block w-full h-full">
+        <Link to={listingPath(post)} className="block w-full h-full">
           {post.images?.[0] ? (
             <img
               src={post.images[0]}
@@ -247,7 +249,7 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
         </button>
       </div>
 
-      <Link to={`/service-detail?id=${post.id}`} className="block">
+      <Link to={listingPath(post)} className="block">
         {/* Avatar & Name */}
         <div className="flex items-center gap-2 mb-2.5">
           <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />

@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Search, MapPin, Star, ExternalLink, Pencil, Trash2, Sparkles, Loader2, CheckSquare, Square,
-  ImageDown,
+  ImageDown, Link2,
 } from 'lucide-react';
 import { ref as dbRef, get, update, remove } from 'firebase/database';
 import { toast } from 'sonner';
 import { database } from '../../firebase';
 import { useCategories } from '../../CategoriesContext';
+import { ensureSeoPath } from '../../seo/ensureSeoPath';
+import type { SeoListing } from '../../seo/meta';
 import { LANGUAGES } from '../../data/languages';
 import { searchLocations, type LocationResult } from '../../photon';
 import { adminSearchListings, adminGenerateListings, adminRehostListingPhotos, type ListingBusiness } from '../adminApi';
@@ -158,7 +160,8 @@ function CityAutosuggest({ value, onChange }: { value: string; onChange: (v: str
 }
 
 export default function AdminListingsTab() {
-  const { categoryOptions, subcategoryMap } = useCategories();
+  const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
+  const seoLabels = { category: getCategoryLabel, subcategory: getSubcategoryLabel };
 
   // ── Search form ──
   const [keyword, setKeyword]         = useState('');
@@ -177,6 +180,7 @@ export default function AdminListingsTab() {
   const [generated, setGenerated] = useState<GenListing[] | null>(null);
   const [editService, setEditService] = useState<GenListing | null>(null);
   const [rehosting, setRehosting] = useState(false);
+  const [assigningSeo, setAssigningSeo] = useState(false);
 
   // ── Generated-listings table filters + pagination ──
   const GEN_PAGE_SIZE = 20;
@@ -287,7 +291,33 @@ export default function AdminListingsTab() {
       await update(dbRef(database, `services/${id}`), { status: 'active', updatedAt: Date.now() });
       setGenerated((prev) => prev?.map((g) => g.id === id ? { ...g, status: 'active' } : g) ?? null);
       toast.success('Post published — it is now live on the marketplace.');
-    } catch { toast.error('Failed to publish.'); }
+    } catch { toast.error('Failed to publish.'); return; }
+    // Permanent /posts/ address for the now-public listing. Non-fatal: the
+    // "Generate SEO URLs" button picks up anything that slipped through.
+    const g = generated?.find((x) => x.id === id);
+    if (g) { try { await ensureSeoPath(id, g, seoLabels); } catch { /* covered by the bulk action */ } }
+  };
+
+  // Every live listing (generated or seller-made) that has no permanent
+  // /posts/ address yet gets one. Safe to re-run: listings that already have
+  // an address are skipped, and an address never changes once assigned.
+  const doAssignSeoPaths = async () => {
+    setAssigningSeo(true);
+    try {
+      const snap = await get(dbRef(database, 'services'));
+      const all = (snap.val() as Record<string, Omit<SeoListing, 'id'> & { status?: string }> | null) ?? {};
+      const pending = Object.entries(all).filter(([, s]) => s && s.status === 'active' && !s.seoPath);
+      let done = 0;
+      let failed = 0;
+      for (const [id, s] of pending) {
+        try { await ensureSeoPath(id, s, seoLabels); done++; } catch { failed++; }
+      }
+      if (pending.length === 0) toast.message('Every live listing already has its SEO URL.');
+      else if (failed === 0) toast.success(`Assigned SEO URLs to ${done} listing${done !== 1 ? 's' : ''}.`);
+      else toast.warning(`Assigned ${done}, ${failed} failed — run again to retry.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to assign SEO URLs');
+    } finally { setAssigningSeo(false); }
   };
 
   const del = async (id: string) => {
@@ -449,6 +479,15 @@ export default function AdminListingsTab() {
             >
               {rehosting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageDown className="w-3.5 h-3.5" />}
               {rehosting ? 'Copying…' : 'Backfill old listings'}
+            </button>
+            <button
+              onClick={doAssignSeoPaths}
+              disabled={assigningSeo}
+              title="Gives every live listing (generated or seller-made) its permanent search-friendly address, e.g. /posts/junk-busters-dallas/junk-removal-dallas-tx. Listings that already have one are left exactly as they are."
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700/50 bg-surface-raised text-xs text-slate-300 hover:text-white hover:border-slate-600 disabled:opacity-50 transition-colors"
+            >
+              {assigningSeo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+              {assigningSeo ? 'Assigning…' : 'Generate SEO URLs'}
             </button>
             <input
               value={genLocFilter}

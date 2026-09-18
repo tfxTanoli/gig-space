@@ -1,5 +1,5 @@
 const DB_URL = process.env.VITE_FIREBASE_DATABASE_URL;
-const SITE = 'https://gig-space.vercel.app';
+const SITE = 'https://gigspace.co';
 
 function esc(str) {
   return String(str ?? '')
@@ -27,6 +27,15 @@ export default async function handler(req, res) {
 
   if (!service || service.status !== 'active') {
     res.redirect(302, servicePageUrl);
+    return;
+  }
+
+  // Listings with a permanent /posts/ address serve their own Open Graph tags
+  // server-side (api/post-page.ts) — send old share links straight there so
+  // every preview and crawler sees one canonical page.
+  if (typeof service.seoPath === 'string' && /^[a-z0-9-]+\/[a-z0-9-]+$/.test(service.seoPath)) {
+    res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600');
+    res.redirect(301, `${SITE}/posts/${service.seoPath}`);
     return;
   }
 
