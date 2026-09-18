@@ -227,6 +227,16 @@
         ".read": "auth !== null && auth.uid === $uid",
         ".write": "auth !== null"
       }
+    },
+
+    "seoPaths": {
+      ".read": true,
+      "$business": {
+        "$slug": {
+          ".write": "auth !== null && (!data.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          ".validate": "newData.isString() && newData.val().length > 0 && root.child('services').child(newData.val()).exists() && (root.child('services').child(newData.val()).child('sellerId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        }
+      }
     }
   }
 }

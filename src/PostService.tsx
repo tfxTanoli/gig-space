@@ -28,6 +28,7 @@ import { ref as dbRef, push, set, get, update } from 'firebase/database';
 import { storage, database, auth } from './firebase';
 import { useAuth } from './AuthContext';
 import { useCategories } from './CategoriesContext';
+import { ensureSeoPath } from './seo/ensureSeoPath';
 import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
 import { createListingSubscription, previewSubscriptionTax } from './stripe/paymentHelpers';
 import type { BillingAddress, TaxBreakdown } from './stripe/types';
@@ -268,7 +269,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
 // ── Main PostService component ────────────────────────────────────────────────
 const PostService = () => {
   const { user, userProfile } = useAuth();
-  const { categoryOptions, subcategoryMap } = useCategories();
+  const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -866,6 +867,17 @@ const PostService = () => {
         publishedId = newPostRef.key;
       }
 
+      // Give the live post its permanent /posts/ address (no-op once it has one).
+      // Non-fatal: the post is already published; the legacy /service-detail link
+      // keeps working and an admin can assign the address later.
+      if (publishedId) {
+        try {
+          await ensureSeoPath(publishedId, payload, { category: getCategoryLabel, subcategory: getSubcategoryLabel });
+        } catch {
+          // see above
+        }
+      }
+
       // If this publish came from claiming a generated listing, mark the original
       // as claimed and unpublish it so the claim banner no longer shows and there
       // is no public duplicate of the seller's new post.
@@ -891,7 +903,7 @@ const PostService = () => {
           const resp = await fetch(`${API_URL}/api/listings/mark-claimed`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ claimId }),
+            body: JSON.stringify({ claimId, publishedId }),
           });
           if (!resp.ok) throw new Error(`Server error ${resp.status}`);
         } catch {

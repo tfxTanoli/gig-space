@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { listingPath } from './seo/meta';
 import { Bookmark, Package } from 'lucide-react';
 import { ref, onValue } from 'firebase/database';
 import { database } from './firebase';
@@ -20,6 +21,7 @@ interface SavedService {
   images: string[];
   primaryLocation: string;
   offeredRemotely: boolean;
+  seoPath?: string;
 }
 
 function formatPrice(svc: SavedService) {
@@ -138,7 +140,7 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
               <div key={svc.id} className="group block">
                 {/* Image */}
                 <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-surface-raised relative">
-                  <Link to={`/service-detail?id=${svc.id}`} className="block w-full h-full">
+                  <Link to={listingPath(svc)} className="block w-full h-full">
                     {svc.images?.[0] ? (
                       <img
                         src={svc.images[0]}
@@ -164,7 +166,7 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
                 </div>
 
                 {/* Info */}
-                <Link to={`/service-detail?id=${svc.id}`} className="block">
+                <Link to={listingPath(svc)} className="block">
                   <div className="flex items-center gap-2 mb-2">
                     <UserAvatar photoURL={svc.sellerPhotoURL} name={svc.sellerName} size="sm" />
                     <span className="text-sm font-medium truncate">{svc.sellerName}</span>

@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /admin-dashboard
+Disallow: /seller-dashboard
+Disallow: /buyer-dashboard
+Disallow: /affiliate-dashboard
+Disallow: /affiliate-profile
+Disallow: /seller-profile
+Disallow: /buyer-profile
+Disallow: /post-service
+Disallow: /account-type
+Disallow: /verify-email
+Disallow: /reset-password
+Disallow: /email-welcome
+Disallow: /email-reset-password
+Disallow: /email-password-updated
+
+Sitemap: https://gigspace.co/sitemap.xml

@@ -87,7 +87,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 const app = express();
 
 // FRONTEND_URL accepts a comma-separated list of allowed origins (e.g. prod + preview)
-// e.g. FRONTEND_URL=https://gig-space.vercel.app,https://gig-space-lbk7.vercel.app
+// e.g. FRONTEND_URL=https://gigspace.co,https://gig-space-lbk7.vercel.app
 const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 const ALLOWED_ORIGINS = rawFrontendUrl.split(',').map(u => u.trim()).filter(Boolean);
 // The first configured origin is the canonical one to use for redirect/continue
@@ -2691,6 +2691,10 @@ app.post('/api/listings/mark-claimed', requireAuth, async (req: AuthRequest, res
       res.status(400).json({ error: 'claimId is required' });
       return;
     }
+    // The seller's own post that replaces this listing: its public URL takes
+    // over from the original's, so the old address 301s there (api/post-page).
+    const publishedId = typeof req.body?.publishedId === 'string' ? req.body.publishedId.trim() : '';
+    const seoRedirectTo = publishedId && !/[.#$/[\]]/.test(publishedId) && publishedId !== claimId ? publishedId : null;
 
     const snap = await db.ref(`services/${claimId}`).get();
     if (!snap.exists()) { res.status(404).json({ error: 'Listing not found' }); return; }
@@ -2703,6 +2707,7 @@ app.post('/api/listings/mark-claimed', requireAuth, async (req: AuthRequest, res
       claimedBy: uid,
       status: 'paused',
       updatedAt: Date.now(),
+      ...(seoRedirectTo ? { seoRedirectTo } : {}),
     });
     res.json({ success: true });
   } catch (err) {

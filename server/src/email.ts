@@ -2,7 +2,7 @@
 
 const FROM = 'Gigspace <notifications@gigspace.co>';
 // FRONTEND_URL may be a comma-separated list of allowed origins (see app.ts's
-// CORS setup, e.g. "https://gig-space.vercel.app,https://gig-space-lbk7.vercel.app").
+// CORS setup, e.g. "https://gigspace.co,https://gig-space-lbk7.vercel.app").
 // Emails need one canonical URL for their buttons, so use the first origin —
 // using the raw value here previously produced a malformed, unclickable href
 // like "https://a.com,https://b.com/seller-dashboard" in every email.
@@ -10,7 +10,7 @@ const APP_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',')
 // Email images must load from a PUBLIC URL — localhost is unreachable by email clients,
 // and most clients (Gmail/Outlook) block SVG, so we use a hosted PNG.
 // Defaults to the production site; override with EMAIL_ASSET_URL if assets live elsewhere.
-const ASSET_URL = process.env.EMAIL_ASSET_URL || 'https://gig-space.vercel.app';
+const ASSET_URL = process.env.EMAIL_ASSET_URL || 'https://gigspace.co';
 
 // ─── Notification-based email types (sent via /api/notifications/email) ───────
 export type NotificationType =

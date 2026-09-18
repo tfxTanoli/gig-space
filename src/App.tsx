@@ -19,6 +19,7 @@ const AffiliateLanding    = lazy(() => import('./AffiliateLanding'));
 const AffiliateProfile    = lazy(() => import('./AffiliateProfile'));
 const AffiliateDashboard  = lazy(() => import('./AffiliateDashboard'));
 const ServiceDetail       = lazy(() => import('./ServiceDetail'));
+const PostPage            = lazy(() => import('./PostPage'));
 const AdminDashboard      = lazy(() => import('./admin/AdminDashboard'));
 const LandingPage         = lazy(() => import('./LandingPage'));
 const SellerLandingPage   = lazy(() => import('./SellerLandingPage'));
@@ -179,6 +180,7 @@ function AppRoutes() {
           <Route path="/affiliate-signin"   element={<Navigate to="/signin" replace />} />
           <Route path="/affiliate-profile"  element={<ProtectedRoute><AffiliateProfile /></ProtectedRoute>} />
           <Route path="/service-detail"     element={<ServiceDetail />} />
+          <Route path="/posts/:business/:slug" element={<PostPage />} />
           <Route path="/admin-dashboard"    element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/about"              element={<AboutUs />} />
           <Route path="/terms"              element={<TermsAndConditions />} />

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { listingPath } from './seo/meta';
 import {
   MessageCircle,
   Bell,
@@ -40,6 +41,7 @@ interface ServicePost {
   createdAt: number;
   reviewCount?: number;
   totalStars?: number;
+  seoPath?: string;
 }
 
 interface SellerMeta {
@@ -233,7 +235,7 @@ const BuyerSearchFiltered = () => {
                 return (
                   <div key={post.id} className="group block">
                     {/* Image */}
-                    <Link to={`/service-detail?id=${post.id}`} className="block">
+                    <Link to={listingPath(post)} className="block">
                       <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised">
                         {post.images?.[0] ? (
                           <img
@@ -249,7 +251,7 @@ const BuyerSearchFiltered = () => {
                       </div>
                     </Link>
 
-                    <Link to={`/service-detail?id=${post.id}`} className="block">
+                    <Link to={listingPath(post)} className="block">
                       {/* Avatar & Name */}
                       <div className="flex items-center gap-2 mb-1.5">
                         <UserAvatar photoURL={post.sellerPhotoURL} name={post.sellerName} size="sm" />
