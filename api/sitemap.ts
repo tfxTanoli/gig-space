@@ -71,7 +71,12 @@ function send(res: Res, status: number, body: string): void {
   res.statusCode = status;
   res.setHeader('Content-Type', status === 200 ? 'application/xml; charset=utf-8' : 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', CACHE);
-  res.setHeader('X-Robots-Tag', 'noindex');
+  // Deliberately no X-Robots-Tag here. Marking the sitemap noindex looks tidy
+  // — it keeps the XML itself out of results — but Google treats the header as
+  // covering the sitemap as a document and then refuses to process it at all:
+  // Search Console reports "Sitemap could not be read" with 0 pages discovered,
+  // which is exactly what the first submission returned. Sitemap files do not
+  // get indexed as results in practice, so there is nothing to suppress.
   res.end(body);
 }
 
