@@ -75,6 +75,21 @@ const EXT_BY_TYPE: Record<string, string> = {
   'image/vnd.microsoft.icon': 'ico',
 };
 
+/** Filename stem for a business's photos: "junk-busters-dallas-dallas-texas". */
+function photoStem(b: { name?: string; location?: string; address?: string }): string {
+  const parts = [b.name, b.location || b.address].filter(Boolean).join(' ');
+  return parts
+    .normalize('NFKD')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/, '') || 'listing';
+}
+
 export function isGooglePhotoUrl(url: unknown): url is string {
   return typeof url === 'string' && GOOGLE_PHOTO_URL.test(url);
 }
@@ -103,14 +118,18 @@ async function saveToStorage(body: Buffer, contentType: string, path: string): P
   return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
 }
 
-async function rehostPhoto(sourceUrl: string, folder: string, index: number): Promise<string> {
+async function rehostPhoto(sourceUrl: string, folder: string, index: number, stem?: string): Promise<string> {
   const resp = await fetch(sourceUrl, { redirect: 'follow' });
   if (!resp.ok) throw new Error(`Google returned ${resp.status}`);
 
   const contentType = (resp.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
   if (!contentType.startsWith('image/')) throw new Error(`unexpected content-type "${contentType}"`);
 
-  const path = `${STORAGE_PREFIX}/${folder}/${index}.${EXT_BY_TYPE[contentType] ?? 'jpg'}`;
+  // The filename lands in the public image URL, and it is one of the few
+  // image-SEO signals Google reads besides alt text. Fall back to the index
+  // when no descriptive stem is available (older callers, repair runs).
+  const name = stem ? `${stem}-${index + 1}` : String(index);
+  const path = `${STORAGE_PREFIX}/${folder}/${name}.${EXT_BY_TYPE[contentType] ?? 'jpg'}`;
   return saveToStorage(Buffer.from(await resp.arrayBuffer()), contentType, path);
 }
 
@@ -120,12 +139,12 @@ async function rehostPhoto(sourceUrl: string, folder: string, index: number): Pr
  * passed through untouched, and a photo that fails to copy keeps its original
  * URL — a post with a Google-hosted image is better than a post with none.
  */
-export async function rehostPhotos(urls: unknown[], folder: string): Promise<string[]> {
+export async function rehostPhotos(urls: unknown[], folder: string, stem?: string): Promise<string[]> {
   return Promise.all(
     urls.map(async (url, i) => {
       if (!isGooglePhotoUrl(url)) return String(url ?? '');
       try {
-        return await rehostPhoto(url, folder, i);
+        return await rehostPhoto(url, folder, i, stem);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[listings] could not re-host photo ${folder}#${i}: ${msg}`);
@@ -1121,7 +1140,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       businesses.map(async (b, i) => {
         const id = refs[i].key as string;
         const [images, logo] = await Promise.all([
-          rehostPhotos(Array.isArray(b.images) ? b.images : [], id),
+          rehostPhotos(Array.isArray(b.images) ? b.images : [], id, photoStem(b)),
           b.website ? resolveLogo(scraped[i].iconUrls, b.website, id) : Promise.resolve(''),
         ]);
         return { images, logo };

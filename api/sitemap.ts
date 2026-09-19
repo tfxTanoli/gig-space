@@ -23,11 +23,11 @@ const STATIC_PAGES: { path: string; changefreq: string; priority: string }[] = [
   { path: '/privacy', changefreq: 'yearly', priority: '0.2' },
 ];
 
-interface ListingEntry { path: string; lastmod: string }
+interface ListingEntry { path: string; lastmod: string; image?: string }
 let listingsCache: { entries: ListingEntry[]; expires: number } | null = null;
 
 /** One compact record per publicly listed service: path and last-modified. */
-type IndexRow = { p?: string; m?: number };
+type IndexRow = { p?: string; m?: number; i?: string };
 
 // Reads `seoIndex`, not `services`. The full service table carries descriptions,
 // image arrays and scraped review metadata — roughly 2 KB per listing — and the
@@ -47,6 +47,7 @@ async function loadListings(): Promise<ListingEntry[]> {
         .map((s) => ({
           path: `/posts/${s.p}`,
           lastmod: new Date(s.m ?? now).toISOString().slice(0, 10),
+          ...(typeof s.i === 'string' && s.i ? { image: s.i } : {}),
         }))
         .sort((a, b) => (a.lastmod < b.lastmod ? 1 : a.lastmod > b.lastmod ? -1 : a.path.localeCompare(b.path)));
     } catch {
@@ -61,8 +62,9 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function urlset(items: string[]): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${items.join('\n')}\n</urlset>\n`;
+function urlset(items: string[], withImages = false): string {
+  const ns = withImages ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : '';
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${ns}>\n${items.join('\n')}\n</urlset>\n`;
 }
 
 function send(res: Res, status: number, body: string): void {
@@ -106,8 +108,12 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     const listings = await loadListings();
     const slice = listings.slice((page - 1) * CHUNK, page * CHUNK);
     if (page < 1 || (slice.length === 0 && page !== 1)) { send(res, 404, 'Not found'); return; }
+    // Declaring the primary image ties it to this listing for Google Images;
+    // the client-rendered gallery alone does not do that reliably.
     send(res, 200, urlset(slice.map((l) =>
-      `  <url><loc>${esc(SITE_URL + l.path)}</loc><lastmod>${l.lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`)));
+      `  <url><loc>${esc(SITE_URL + l.path)}</loc><lastmod>${l.lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority>`
+      + (l.image ? `<image:image><image:loc>${esc(l.image)}</image:loc></image:image>` : '')
+      + `</url>`), true));
     return;
   }
 
