@@ -39,10 +39,10 @@ export default async function handler(req, res) {
     return;
   }
 
-  const title = service.title || 'Service on GigSpace';
+  const title = service.title || 'Service on Gigspace';
   const rawDesc = service.description
     ? service.description.replace(/\s+/g, ' ').trim().slice(0, 160)
-    : `${service.sellerName ?? 'A seller'} offers this service on GigSpace.`;
+    : `${service.sellerName ?? 'A seller'} offers this service on Gigspace.`;
   const priceLabel = `$${service.priceMin}${service.priceMax ? `–$${service.priceMax}` : ''} ${service.priceType === 'per_hour' ? '/hr' : '/project'}`;
   const description = `${priceLabel} · ${rawDesc}`;
   const image = Array.isArray(service.images) ? service.images[0] : '';
@@ -51,11 +51,11 @@ export default async function handler(req, res) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${esc(title)} | GigSpace</title>
+  <title>${esc(title)} | Gigspace</title>
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website">
-  <meta property="og:site_name"   content="GigSpace">
+  <meta property="og:site_name"   content="Gigspace">
   <meta property="og:url"         content="${esc(servicePageUrl)}">
   <meta property="og:title"       content="${esc(title)}">
   <meta property="og:description" content="${esc(description)}">

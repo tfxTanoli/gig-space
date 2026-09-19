@@ -1389,7 +1389,9 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
     for (const item of batch) {
       const patch: Record<string, unknown> = {};
 
-      const rehosted = await rehostPhotos(item.images, item.id);
+      // Same descriptive stem a freshly generated post gets — without it a
+      // repair run would re-host photos back under bare index filenames.
+      const rehosted = await rehostPhotos(item.images, item.id, photoStem(item));
       const copied = rehosted.filter((url, i) => url !== item.images[i]).length;
       if (copied) { patch.images = rehosted; photos += copied; }
       failed += rehosted.filter(isGooglePhotoUrl).length;
