@@ -2543,7 +2543,7 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
     if (!priceId) {
       const product = await stripe.products.create({
         name: 'Extra Listing Location',
-        description: 'Monthly fee for each additional location on a GigSpace listing ($5/month each).',
+        description: 'Monthly fee for each additional location on a Gigspace listing ($5/month each).',
       });
       const price = await stripe.prices.create({
         product: product.id,

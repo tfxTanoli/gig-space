@@ -9,7 +9,7 @@ import { sendEmailNotification } from './src/email';
 const APP_URL = 'http://localhost:5173';
 
 async function main() {
-  console.log('\n=== GigSpace Email Notification Tests ===\n');
+  console.log('\n=== Gigspace Email Notification Tests ===\n');
 
   // ─────────────────────────────────────────────────────────────────────────
   // Scenario 1 — sajalal678@gmail.com

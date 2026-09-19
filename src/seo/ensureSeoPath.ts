@@ -62,14 +62,15 @@ export async function ensureSeoPath(
 export async function indexForSitemap(
   serviceId: string,
   seoPath: string,
-  listing: Pick<SeoListing, 'updatedAt' | 'createdAt' | 'images'>,
+  listing: Pick<SeoListing, 'updatedAt' | 'createdAt' | 'images' | 'ogImage'>,
 ): Promise<void> {
   // `i` is the listing's primary image, carried so the sitemap can declare it
   // as belonging to that page. The gallery renders client-side, so without this
   // a crawler has no dependable way to tie the photos to the listing. It is the
   // one field here that isn't tiny — roughly 250 bytes per listing on top of
   // the ~90 the rest costs.
-  const image = Array.isArray(listing.images) ? listing.images.find(Boolean) : undefined;
+  const image =
+    listing.ogImage || (Array.isArray(listing.images) ? listing.images.find(Boolean) : undefined);
   await update(ref(database, `seoIndex/${serviceId}`), {
     p: seoPath,
     m: listing.updatedAt ?? listing.createdAt ?? Date.now(),

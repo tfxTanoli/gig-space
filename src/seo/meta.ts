@@ -16,6 +16,8 @@ export interface SeoListing {
   priceMax?: number | null;
   priceType?: 'per_project' | 'per_hour' | 'contact_for_pricing' | string;
   images?: string[];
+  /** Chosen social-card image: the gallery photo closest to 1.91:1. */
+  ogImage?: string;
   primaryLocation?: string;
   extraLocations?: string[];
   offeredRemotely?: boolean;
@@ -147,7 +149,11 @@ export function buildSeoContext(listing: SeoListing, labels: CategoryLabels): Se
   const description = [lead, snippet, cta].filter(Boolean).join(' ');
 
   const canonicalPath = listingPath(listing);
-  const image = Array.isArray(listing.images) ? (listing.images[0] ?? '') : '';
+  // Share previews crop to roughly 1.91:1, so a portrait first photo gets its
+  // middle third shown and nothing else. ogImage names the gallery photo that
+  // survives that crop; the gallery order itself is left alone.
+  const gallery = Array.isArray(listing.images) ? listing.images.filter(Boolean) : [];
+  const image = listing.ogImage || gallery[0] || '';
   const altBase = areaLong ? `${serviceLabel} by ${business} in ${areaLong}` : `${serviceLabel} by ${business}`;
 
   return {
