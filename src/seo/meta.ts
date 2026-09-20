@@ -45,7 +45,10 @@ export interface SeoContext {
   area: string;
   /** "Los Angeles, California" */
   areaLong: string;
+  /** The seller's own listing title, shown verbatim as the page's H1. */
   h1: string;
+  /** "HVAC in Chicago, IL" — the keyword phrase, used in the <title> tag only. */
+  subject: string;
   title: string;
   description: string;
   canonicalPath: string;
@@ -132,13 +135,14 @@ export function buildSeoContext(listing: SeoListing, labels: CategoryLabels): Se
   const area = formatArea(location);
   const areaLong = formatArea(location, { longState: true });
 
-  // The heading names the business as well as the service and place. Without it
-  // two sellers offering the same service in the same city get byte-identical
-  // H1s, which is exactly the duplication each listing is supposed to avoid.
+  // The <title> tag is written for the search result: service, place, business.
+  // It is deliberately not the visible heading. The H1 is the seller's own
+  // listing title, verbatim, so the search card and the listing page always
+  // read the same — a generated heading here is what made them disagree.
   const subject = area ? `${serviceLabel} in ${area}` : serviceLabel;
   const named = business !== SITE_NAME && !subject.toLowerCase().includes(business.toLowerCase());
-  const h1 = named ? `${subject} by ${business}` : subject;
   const title = `${subject} | ${business} | ${SITE_NAME}`;
+  const h1 = (listing.title ?? '').trim() || (named ? `${subject} by ${business}` : subject);
 
   const price = priceText(listing);
   const cta = `Get a quote on ${SITE_NAME}.`;
@@ -164,6 +168,7 @@ export function buildSeoContext(listing: SeoListing, labels: CategoryLabels): Se
     area,
     areaLong,
     h1,
+    subject,
     title,
     description,
     canonicalPath,
@@ -388,7 +393,10 @@ export function buildHeadHtml(ctx: SeoContext, jsonLd: Record<string, unknown>, 
     `<meta property="og:site_name" content="${SITE_NAME}">`,
     `<meta property="og:locale" content="en_US">`,
     `<meta property="og:url" content="${escapeAttr(ctx.canonicalUrl)}">`,
-    `<meta property="og:title" content="${escapeAttr(ctx.title)}">`,
+    // Share previews are read by people, not crawlers, so they carry the
+    // listing's own title — the same words as the card and the page heading.
+    // Only <title> is written for the search result.
+    `<meta property="og:title" content="${escapeAttr(ctx.h1)}">`,
     `<meta property="og:description" content="${escapeAttr(ctx.description)}">`,
     ...(ctx.image
       ? [
@@ -397,7 +405,7 @@ export function buildHeadHtml(ctx: SeoContext, jsonLd: Record<string, unknown>, 
         ]
       : []),
     `<meta name="twitter:card" content="${ctx.image ? 'summary_large_image' : 'summary'}">`,
-    `<meta name="twitter:title" content="${escapeAttr(ctx.title)}">`,
+    `<meta name="twitter:title" content="${escapeAttr(ctx.h1)}">`,
     `<meta name="twitter:description" content="${escapeAttr(ctx.description)}">`,
     ...(ctx.image ? [`<meta name="twitter:image" content="${escapeAttr(ctx.image)}">`] : []),
     `<script type="application/ld+json">${ld}</script>`,
