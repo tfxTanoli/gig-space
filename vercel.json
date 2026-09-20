@@ -3,6 +3,12 @@
   "redirects": [
     {
       "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.gigspace.co" }],
+      "destination": "https://gigspace.co/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
       "has": [{ "type": "host", "value": "gig-space.vercel.app" }],
       "destination": "https://gigspace.co/$1",
       "permanent": true
