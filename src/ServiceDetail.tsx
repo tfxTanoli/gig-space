@@ -460,12 +460,12 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
     setMeta('property', 'og:type', 'website');
     setMeta('property', 'og:site_name', 'Gigspace');
     setMeta('property', 'og:url', seo.canonicalUrl);
-    setMeta('property', 'og:title', seo.title);
+    setMeta('property', 'og:title', seo.h1);
     setMeta('property', 'og:description', seo.description);
     if (seo.image) setMeta('property', 'og:image', seo.image);
 
     setMeta('name', 'twitter:card', seo.image ? 'summary_large_image' : 'summary');
-    setMeta('name', 'twitter:title', seo.title);
+    setMeta('name', 'twitter:title', seo.h1);
     setMeta('name', 'twitter:description', seo.description);
     if (seo.image) setMeta('name', 'twitter:image', seo.image);
 
@@ -553,20 +553,6 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
   const subcategoryLabel = rawSubLabel != null
     ? (rawSubLabel !== post.subcategory ? rawSubLabel : humanize(post.subcategory))
     : null;
-
-  // The seller's headline is only worth showing under the h1 when it carries
-  // words the heading doesn't already have — otherwise the business name and
-  // service end up on screen three times in a row.
-  const showTagline = (() => {
-    if (!seo || !post.title || post.title === seo.h1) return false;
-    const words = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 2));
-    const inTitle = words(post.title);
-    if (inTitle.size === 0) return false;
-    const inHeading = words(seo.h1);
-    let shared = 0;
-    inTitle.forEach((w) => { if (inHeading.has(w)) shared++; });
-    return shared / inTitle.size < 0.8;
-  })();
 
   // Share the permanent address, never whatever is in the URL bar.
   const pageUrl = seo?.canonicalUrl ?? window.location.href;
@@ -666,14 +652,10 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
             )}
           </nav>
 
-          {/* Heading: the service, place and business are the page's subject.
-              The seller's own headline follows as a tagline — but only when it
-              says something the heading doesn't, which is often false for
-              generated listings whose title restates the same three facts. */}
-          <h1 className={`order-3 text-3xl font-bold leading-snug text-slate-100 ${showTagline ? 'mb-2' : 'mb-4'}`}>{seo?.h1 ?? post.title}</h1>
-          {showTagline && (
-            <p className="order-3 text-lg text-slate-300 mb-4 leading-snug">{post.title}</p>
-          )}
+          {/* Heading: the seller's own listing title, exactly as it reads on
+              the search card. The service-and-place phrasing lives in the
+              <title> tag, never here. */}
+          <h1 className="order-3 text-3xl font-bold leading-snug text-slate-100 mb-4">{seo?.h1 ?? post.title}</h1>
 
           {/* Seller row */}
           <div className="order-4 flex items-center gap-2 mb-5">
@@ -799,7 +781,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
           {/* Languages */}
           {post.languages?.length > 0 && (
             <div className="order-[13] mb-7">
-              <h3 className="text-sm font-medium text-white mb-2">Languages Spoken</h3>
+              <h2 className="text-sm font-medium text-white mb-2">Languages Spoken</h2>
               <div className="text-slate-400 text-sm space-y-0.5">
                 {post.languages.map((lang) => (
                   <p key={lang}>{lang}</p>
@@ -810,7 +792,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
 
           {/* Offered Remotely */}
           <div className="order-[14] mb-7">
-            <h3 className="text-sm font-medium text-white mb-2">Offered Remotely</h3>
+            <h2 className="text-sm font-medium text-white mb-2">Offered Remotely</h2>
             <p className="text-slate-400 text-sm">{post.offeredRemotely ? 'Yes' : 'No'}</p>
           </div>
 
@@ -818,7 +800,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
 
           {/* Share */}
           <div className="order-[16]">
-            <h3 className="text-sm font-medium text-white mb-3">Share</h3>
+            <h2 className="text-sm font-medium text-white mb-3">Share</h2>
             <div className="flex items-center gap-3">
               {/* Facebook */}
               <SocialBtn href={`https://www.facebook.com/sharer/sharer.php?u=${enc(pageUrl)}`} brand="facebook">
