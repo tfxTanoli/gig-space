@@ -23,6 +23,7 @@ interface Place {
   id: string;
   displayName?: { text?: string };
   formattedAddress?: string;
+  location?: { latitude?: number; longitude?: number };
   addressComponents?: AddressComponent[];
   websiteUri?: string;
   rating?: number;
@@ -353,7 +354,7 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
             'places.id', 'places.displayName', 'places.formattedAddress', 'places.rating',
             'places.userRatingCount', 'places.photos', 'places.reviews',
             'places.editorialSummary', 'places.primaryTypeDisplayName',
-            'places.websiteUri', 'places.addressComponents',
+            'places.websiteUri', 'places.addressComponents', 'places.location',
           ].join(','),
         },
         body: JSON.stringify({
@@ -409,6 +410,8 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
         name: p.displayName?.text ?? '',
         address: p.formattedAddress ?? '',
         location: cityStateOf(p),
+        lat: p.location?.latitude ?? null,
+        lng: p.location?.longitude ?? null,
         website: p.websiteUri ?? '',
         logo: faviconPreview(p.websiteUri ?? ''),
         rating: p.rating ?? 0,
@@ -1069,6 +1072,8 @@ interface GenBusiness {
   name?: string;
   address?: string;
   location?: string;
+  lat?: number | null;   // the business's own coordinates, from Places
+  lng?: number | null;
   website?: string;
   logo?: string;
   email?: string;    // scraped at search time; generate reuses it
@@ -1182,6 +1187,8 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         images,
         languages: language ? [language] : ['English'],
         primaryLocation: location,
+        primaryLocationLat: typeof b.lat === 'number' ? b.lat : null,
+        primaryLocationLng: typeof b.lng === 'number' ? b.lng : null,
         extraLocations: Array.isArray(b.extraLocations) ? b.extraLocations : [],
         offeredRemotely: false,
         status: 'draft',           // admin reviews then publishes

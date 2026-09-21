@@ -75,6 +75,8 @@ export interface ListingBusiness {
   name: string;
   address: string;
   location: string;   // "City, State" — what generated posts display
+  lat: number | null; // the business's own coordinates, used by the radius filter
+  lng: number | null;
   website: string;    // only businesses with a website are returned
   logo: string;       // website favicon, used as the post's avatar
   email: string;      // contact email scraped at search time ('' if none found)
