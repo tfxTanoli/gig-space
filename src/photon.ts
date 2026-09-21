@@ -61,6 +61,24 @@ function formatLocation(props: PhotonProperties): string {
   return parts.join(', ');
 }
 
+// The " City" suffix above is a display-only disambiguation — it exists so the
+// picker can offer "New York City, New York" alongside the state of the same
+// name. Nothing stores it: Google Places hands us the plain locality ("New
+// York, New York"), while a seller who picked from the dropdown saves the
+// suffixed form. Collapsing the suffix gives both spellings one comparable key
+// so a search for either finds both.
+//
+// Only a name that IS its own state is collapsed, so "Kansas City, Missouri"
+// keeps its suffix and can never be folded into an unrelated place.
+export function locationMatchKey(label: string): string {
+  const parts = label.toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const stripped = parts[0].endsWith(' city') ? parts[0].slice(0, -5) : parts[0];
+    if (stripped !== parts[0] && parts.slice(1).includes(stripped)) parts[0] = stripped;
+  }
+  return parts.join(', ');
+}
+
 export async function searchLocations(
   query: string,
   signal?: AbortSignal,

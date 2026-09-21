@@ -28,7 +28,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { formatAmount } from './utils/currency';
 import { useSavedServices } from './useSavedServices';
-import { geocodeCache, geocodeLocation, haversineDistanceMiles } from './photon';
+import { geocodeCache, geocodeLocation, haversineDistanceMiles, locationMatchKey } from './photon';
 import { useCategories } from './CategoriesContext';
 
 const MessagesIcon = ({ className }: { className?: string }) => (
@@ -729,8 +729,11 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
     const toGeocode = Array.from(
       new Set(
         posts
-          .filter((p) => !p.offeredRemotely && p.primaryLocation)
-          .map((p) => p.primaryLocation)
+          .filter((p) => !p.offeredRemotely)
+          .flatMap((p) => [
+            ...(p.primaryLocation ? [p.primaryLocation] : []),
+            ...(p.extraLocations ?? []),
+          ])
           .filter((loc) => !geocodeCache.has(loc)),
       ),
     );
@@ -852,13 +855,23 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
 
       const matchesLocation = (() => {
         if (!activeLocation) return true;
-        if (!p.primaryLocation) return false;
-        const a = activeLocation.toLowerCase();
-        const b = p.primaryLocation.toLowerCase();
-        if (a.includes(b) || b.includes(a)) return true;
-        const cityA = a.split(',')[0].trim();
-        const cityB = b.split(',')[0].trim();
-        return cityA.length > 0 && cityA === cityB;
+        // Extra locations are a paid add-on and the card already lists them,
+        // so a post has to be findable by any area it serves.
+        const postLocations = [
+          ...(p.primaryLocation ? [p.primaryLocation] : []),
+          ...(p.extraLocations ?? []),
+        ];
+        if (postLocations.length === 0) return false;
+        // locationMatchKey folds the picker's disambiguating " City" suffix so
+        // "New York City, New York" finds a post stored as "New York, New York".
+        const a = locationMatchKey(activeLocation);
+        return postLocations.some((loc) => {
+          const b = locationMatchKey(loc);
+          if (a.includes(b) || b.includes(a)) return true;
+          const cityA = a.split(',')[0].trim();
+          const cityB = b.split(',')[0].trim();
+          return cityA.length > 0 && cityA === cityB;
+        });
       })();
 
       const matchesBudget = budgetMax == null || p.priceMin <= budgetMax;
@@ -882,20 +895,26 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
       const matchesRadius = (() => {
         if (!searchRadius || !locationCoords) return true;
         if (p.offeredRemotely) return true;
-        // Prefer coordinates stored on the post at creation time.
-        if (p.primaryLocationLat != null && p.primaryLocationLng != null) {
-          return haversineDistanceMiles(locationCoords.lat, locationCoords.lng, p.primaryLocationLat, p.primaryLocationLng) <= searchRadius;
-        }
-        // Fall back to client-side geocode cache for older posts.
-        const loc = p.primaryLocation;
-        if (!loc) return false;
-        if (!geocodeCache.has(loc)) return true; // not yet geocoded — pass through
-        const coords = geocodeCache.get(loc);
-        if (!coords) return true; // geocode failed — pass through
-        return (
-          haversineDistanceMiles(locationCoords.lat, locationCoords.lng, coords.lat, coords.lng) <=
-          searchRadius
-        );
+        const within = (lat: number, lng: number) =>
+          haversineDistanceMiles(locationCoords.lat, locationCoords.lng, lat, lng) <= searchRadius;
+        const postLocations = [
+          ...(p.primaryLocation ? [p.primaryLocation] : []),
+          ...(p.extraLocations ?? []),
+        ];
+        if (postLocations.length === 0) return false;
+        // A post is in range on any area it serves, so a Dallas business that also
+        // covers Austin still survives an Austin search with a radius set.
+        return postLocations.some((loc, i) => {
+          // Prefer coordinates stored on the post at creation time. Only the
+          // primary location has them; extras are resolved through the cache.
+          if (i === 0 && p.primaryLocation && p.primaryLocationLat != null && p.primaryLocationLng != null) {
+            return within(p.primaryLocationLat, p.primaryLocationLng);
+          }
+          if (!geocodeCache.has(loc)) return true; // not yet geocoded — pass through
+          const coords = geocodeCache.get(loc);
+          if (!coords) return true; // geocode failed — pass through
+          return within(coords.lat, coords.lng);
+        });
       })();
 
       const matchesOnline = (() => {
