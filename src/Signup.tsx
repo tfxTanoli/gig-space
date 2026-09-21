@@ -150,7 +150,7 @@ const Signup = () => {
         <div className="w-full max-w-md text-center mt-10 space-y-3">
           <h1 className="text-2xl font-bold text-white">Registration is currently closed</h1>
           <p className="text-slate-400 text-sm">New sign-ups are temporarily disabled. Please check back soon.</p>
-          <Link to="/signin" className="inline-block text-blue-400 hover:text-blue-300 text-sm transition-colors">Already have an account? Sign in →</Link>
+          <Link to={next ? `/signin?next=${encodeURIComponent(next)}` : '/signin'} className="inline-block text-blue-400 hover:text-blue-300 text-sm transition-colors">Already have an account? Sign in →</Link>
         </div>
       </div>
     );

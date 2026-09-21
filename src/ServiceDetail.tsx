@@ -321,8 +321,10 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
     // buyer's mail client instead, pre-filled with an email that also pitches the
     // business on claiming their free Gigspace listing. No login needed for this.
     if (post.isGenerated && post.claimStatus !== 'claimed' && post.contactEmail) {
+      // The listing page is where the owner claims the business, so one link
+      // does both jobs. It is the real published URL — /posts/<business>/<service-city-state>,
+      // the form already indexed by Search Console.
       const postUrl = `${window.location.origin}${listingPath(post)}`;
-      const claimUrl = `${window.location.origin}/post-service?claim=${post.id}`;
       // "an excavation project" vs "a cleaning services project" — lowercase the
       // subcategory (falling back to category) so the email reads as human-written.
       const rawCat = getCategoryLabel(post.category);
@@ -334,20 +336,23 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
       const projectType = (subLabel || catLabel || '').trim().toLowerCase();
       const article = /^[aeiou]/.test(projectType) ? 'an' : 'a';
       const projectPhrase = projectType ? `${article} ${projectType} project` : 'a project';
-      const subject = `Interested in discussing ${projectPhrase}`;
-      const body =
-        `Hi ${post.sellerName || 'there'},\n\n` +
-        `I found your business on Gigspace and I'm interested in discussing ${projectPhrase} with you.\n\n` +
-        `I've been comparing several businesses to find the best fit, and Gigspace makes it easy for me to keep all of my conversations, quotes, and projects organized in one place.\n\n` +
-        `You can claim your Gigspace business profile to:\n\n` +
-        `- Discuss the details of my project with me\n` +
-        `- Send me a quote and receive payment through the app\n` +
-        `- Allow me to leave a review once the job is complete\n\n` +
-        `View your post:\n` +
-        `${postUrl}\n\n` +
-        `Claim your business profile:\n` +
-        `${claimUrl}\n\n` +
-        `I look forward to connecting with you!`;
+      const subject = `Looking for a quote on ${projectPhrase}`;
+      // RFC 6068 requires a mailto body's line breaks to be CRLF. A bare LF is
+      // enough for Apple Mail, which is why this read correctly on desktop, but
+      // Gmail's iOS app drops it and ran the whole email into one paragraph.
+      const body = [
+        `Hi ${post.sellerName || 'there'},`,
+        '',
+        `I came across your business on Gigspace and I'm looking for help with ${projectPhrase}.`,
+        '',
+        `I'm comparing a few local options and using Gigspace to keep my quotes and messages in one place. Would you be able to send me a quote and let me know your availability?`,
+        '',
+        `It's free to claim your listing, and you can message me directly from there:`,
+        '',
+        postUrl,
+        '',
+        `Thanks! I look forward to hearing from you.`,
+      ].join('\r\n');
       window.location.href = `mailto:${post.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       return;
     }
