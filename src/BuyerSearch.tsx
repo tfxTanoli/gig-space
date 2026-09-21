@@ -892,29 +892,45 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
         !verifiedFilter || !meta ||
         (verifiedFilter === 'yes' ? meta.verified : !meta.verified);
 
-      const matchesRadius = (() => {
-        if (!searchRadius || !locationCoords) return true;
-        if (p.offeredRemotely) return true;
+      // Pure geometry: does any area this post serves fall inside the search
+      // circle? No opinion on whether the circle applies — matchesArea decides
+      // that. Absence of evidence is false here, because this is now one half
+      // of an OR and the location label is the other.
+      const withinRadius = (() => {
+        if (!searchRadius || !locationCoords) return false;
         const within = (lat: number, lng: number) =>
           haversineDistanceMiles(locationCoords.lat, locationCoords.lng, lat, lng) <= searchRadius;
         const postLocations = [
           ...(p.primaryLocation ? [p.primaryLocation] : []),
           ...(p.extraLocations ?? []),
         ];
-        if (postLocations.length === 0) return false;
-        // A post is in range on any area it serves, so a Dallas business that also
-        // covers Austin still survives an Austin search with a radius set.
         return postLocations.some((loc, i) => {
           // Prefer coordinates stored on the post at creation time. Only the
           // primary location has them; extras are resolved through the cache.
           if (i === 0 && p.primaryLocation && p.primaryLocationLat != null && p.primaryLocationLng != null) {
             return within(p.primaryLocationLat, p.primaryLocationLng);
           }
-          if (!geocodeCache.has(loc)) return true; // not yet geocoded — pass through
           const coords = geocodeCache.get(loc);
-          if (!coords) return true; // geocode failed — pass through
+          if (!coords) return false; // not geocoded yet, or it failed — no evidence
           return within(coords.lat, coords.lng);
         });
+      })();
+
+      // Location and radius describe one idea — "near here" — so they are one
+      // test, not two ANDed ones. Previously a post had to match the location
+      // label before the radius was even consulted, which meant the radius
+      // could only ever remove results: searching Jersey City with a 100 mile
+      // radius returned nothing, though the New York listings are two miles
+      // away. A radius now widens the search to anywhere inside the circle,
+      // while a post that names the area still matches however far its own
+      // address happens to sit from the centre.
+      const matchesArea = (() => {
+        if (!activeLocation) return true;
+        if (!searchRadius || !locationCoords) return matchesLocation;
+        // Remote posts are unchanged: the radius never excluded them, and the
+        // label has always decided whether they show.
+        if (p.offeredRemotely) return matchesLocation;
+        return matchesLocation || withinRadius;
       })();
 
       const matchesOnline = (() => {
@@ -925,9 +941,9 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
         return Date.now() - m.lastSeen < 5 * 60_000; // within 5 minutes
       })();
 
-      return matchesSearch && matchesCategory && matchesSubcategory && matchesLocation &&
+      return matchesSearch && matchesCategory && matchesSubcategory && matchesArea &&
         matchesBudget && matchesRemote && matchesLanguage && matchesRating && matchesVerified &&
-        matchesRadius && matchesOnline;
+        matchesOnline;
     })
     .sort((a, b) => {
       if (sortBy === 'oldest') return a.createdAt - b.createdAt;
