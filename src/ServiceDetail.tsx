@@ -254,6 +254,34 @@ function humanize(slug: string) {
   return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/* ─── Helpers: phrase a category as "an HVAC project" / "a junk removal project" ─── */
+
+// An all-caps token of five characters or fewer is an initialism — HVAC, AI,
+// IT, NFT, QA, UI/UX, AR/VR, 3D. Anything longer is likelier to be a label
+// someone typed in caps than an abbreviation, so it follows the normal rules.
+const INITIALISM = /^[A-Z0-9][A-Z0-9&/-]{1,4}$/;
+
+// Letters whose *names* open with a vowel sound. The article follows how the
+// first letter is said aloud, not how it is spelled: "an HVAC project"
+// (aitch), "an NFT project" (en) — but "a UI/UX project" (you) and "a QA
+// project" (cue), which is why U and Q are absent.
+const VOWEL_SOUNDED_LETTERS = new Set(['A', 'E', 'F', 'H', 'I', 'L', 'M', 'N', 'O', 'R', 'S', 'X']);
+
+// Lowercase the label so it reads as prose mid-sentence, but leave an
+// initialism in the case the category was written in.
+function phraseProjectType(label: string): string {
+  return label
+    .split(' ')
+    .map((word) => (INITIALISM.test(word) ? word : word.toLowerCase()))
+    .join(' ');
+}
+
+function articleFor(phrase: string): 'a' | 'an' {
+  const first = phrase.split(' ')[0] ?? '';
+  if (INITIALISM.test(first)) return VOWEL_SOUNDED_LETTERS.has(first[0]) ? 'an' : 'a';
+  return /^[aeiou]/i.test(first) ? 'an' : 'a';
+}
+
 /* ─── Helper: format price with commas ─── */
 function fmtPrice(n: number) {
   return formatAmount(n);
@@ -325,16 +353,17 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
       // does both jobs. It is the real published URL — /posts/<business>/<service-city-state>,
       // the form already indexed by Search Console.
       const postUrl = `${window.location.origin}${listingPath(post)}`;
-      // "an excavation project" vs "a cleaning services project" — lowercase the
-      // subcategory (falling back to category) so the email reads as human-written.
+      // "an excavation project", "a cleaning services project", "an HVAC
+      // project" — take the subcategory (falling back to category) and phrase
+      // it so the email reads as human-written.
       const rawCat = getCategoryLabel(post.category);
       const catLabel = rawCat !== post.category ? rawCat : humanize(post.category);
       const rawSub = post.subcategory ? getSubcategoryLabel(post.category, post.subcategory) : null;
       const subLabel = rawSub != null
         ? (rawSub !== post.subcategory ? rawSub : humanize(post.subcategory))
         : null;
-      const projectType = (subLabel || catLabel || '').trim().toLowerCase();
-      const article = /^[aeiou]/.test(projectType) ? 'an' : 'a';
+      const projectType = phraseProjectType((subLabel || catLabel || '').trim());
+      const article = articleFor(projectType);
       const projectPhrase = projectType ? `${article} ${projectType} project` : 'a project';
       const subject = `Looking for a quote on ${projectPhrase}`;
       // RFC 6068 requires a mailto body's line breaks to be CRLF. A bare LF is
