@@ -33,6 +33,8 @@ const getErrorMessage = (code: string) =>
 const Signin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // Kept at component scope so the link across to signup can carry it too.
+  const nextParam = searchParams.get('next');
   const { user, userProfile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,12 +44,12 @@ const Signin = () => {
   // Navigate as soon as auth state resolves with a signed-in user.
   useEffect(() => {
     if (authLoading || !user) return;
-    if (!userProfile?.accountType) {
-      navigate('/account-type');
-      return;
-    }
     // Honour an explicit ?next= redirect from the referring page (relative paths only)
     const next = searchParams.get('next');
+    if (!userProfile?.accountType) {
+      navigate(next && next.startsWith('/') ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
+      return;
+    }
     if (next && next.startsWith('/')) {
       navigate(next);
       return;
@@ -229,7 +231,7 @@ const Signin = () => {
 
         <p className="mt-8 text-center text-sm text-slate-400">
           New to Gigspace?{' '}
-          <Link to="/signup" className="text-primary hover:text-blue-400 font-semibold transition-colors">
+          <Link to={nextParam ? `/signup?next=${encodeURIComponent(nextParam)}` : '/signup'} className="text-primary hover:text-blue-400 font-semibold transition-colors">
             Create account
           </Link>
         </p>

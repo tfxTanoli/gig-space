@@ -96,12 +96,12 @@ const AuthCallback = () => {
     // Clean up the success marker now that we're leaving this route, so a
     // future sign-in from the same tab can run the exchange again.
     sessionStorage.removeItem('oauthExchangeComplete');
-    if (!userProfile?.accountType) {
-      navigate('/account-type');
-      return;
-    }
     const next = sessionStorage.getItem('oauthNext');
     sessionStorage.removeItem('oauthNext');
+    if (!userProfile?.accountType) {
+      navigate(next && next.startsWith('/') ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
+      return;
+    }
     if (next && next.startsWith('/')) {
       navigate(next);
       return;

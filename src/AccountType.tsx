@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type AccountTypeOption = 'buyer' | 'seller' | 'affiliate';
 
@@ -24,6 +24,13 @@ const destinationMap: Record<AccountTypeOption, string> = {
 const AccountType = () => {
   const [selectedType, setSelectedType] = useState<AccountTypeOption>('buyer');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Keep an onward redirect (e.g. a listing claim the user arrived for)
+  // alive across the profile step — this screen sits in the middle of
+  // signup, so dropping it here strands the user on their dashboard.
+  const next = searchParams.get('next');
+  const withNext = (path: string) =>
+    next && next.startsWith('/') ? `${path}?next=${encodeURIComponent(next)}` : path;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -62,7 +69,7 @@ const AccountType = () => {
         </div>
 
         <button
-          onClick={() => navigate(destinationMap[selectedType])}
+          onClick={() => navigate(withNext(destinationMap[selectedType]))}
           className="mt-8 w-full bg-[#2b7fff] hover:bg-blue-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
         >
           Continue

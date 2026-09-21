@@ -1,6 +1,6 @@
 ﻿import { useState, useRef, type ChangeEvent } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ref as dbRef, set, get, push, update, increment } from 'firebase/database';
 import { storage, database, auth } from './firebase';
@@ -23,6 +23,10 @@ const SellerProfile = () => {
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  // Last step of signup: honour an onward redirect carried from the
+  // signup link (relative paths only) instead of the default landing.
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get('next');
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,6 +129,7 @@ const SellerProfile = () => {
         })
       ).catch(() => {});
 
+      if (next && next.startsWith('/')) { navigate(next); return; }
       navigate('/post-service?new=true');
     } catch {
       setError('Failed to save profile. Please try again.');
@@ -206,7 +211,7 @@ const SellerProfile = () => {
 
         <div className="w-full flex items-center justify-between">
           <button
-            onClick={() => navigate('/account-type')}
+            onClick={() => navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type')}
             className="text-slate-400 hover:text-white text-sm transition-colors"
           >
             <ArrowLeft className="inline w-3.5 h-3.5 mr-1.5" /> Switch account type
