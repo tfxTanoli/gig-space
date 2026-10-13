@@ -6,6 +6,7 @@ import { database, storage } from '../../firebase';
 import { type AdminService } from './AdminServicesTable';
 import { useCategories } from '../../CategoriesContext';
 import { useAuth } from '../../AuthContext';
+import { ensureSeoPath } from '../../seo/ensureSeoPath';
 
 interface Props {
   onClose: () => void;
@@ -47,7 +48,7 @@ const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
 
 export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
   const { user, userProfile } = useAuth();
-  const { categoryOptions, subcategoryMap } = useCategories();
+  const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
 
   const [title,          setTitle]          = useState('');
   const [description,    setDescription]    = useState('');
@@ -151,6 +152,15 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
       };
 
       await set(postRef, data);
+
+      // A post created here goes straight to active, so it needs its permanent
+      // /posts/ address now, as the seller publish flow does (GIG-71). Non-fatal:
+      // Admin → Listings → "Generate SEO URLs" repairs anything missed.
+      try {
+        await ensureSeoPath(newId, data, { category: getCategoryLabel, subcategory: getSubcategoryLabel });
+      } catch (err) {
+        console.error('[seo] could not assign a permanent URL to', newId, err);
+      }
 
       onSuccess({
         id:             newId,
