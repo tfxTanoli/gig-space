@@ -201,21 +201,21 @@ html.light {
   --color-slate-50:  oklch(12.9% 0.042 264.695);
 
   /* Accent tints used as text on dark, deepened for white backgrounds. */
-  --color-blue-400: oklch(54.6% 0.245 262.881);
-  --color-red-400: oklch(57.7% 0.245 27.325);
-  --color-emerald-400: oklch(59.6% 0.145 163.225);
-  --color-yellow-400: oklch(68.1% 0.162 75.834);
-  --color-amber-400: oklch(66.6% 0.179 58.318);
-  --color-purple-400: oklch(55.8% 0.288 302.321);
-  --color-orange-400: oklch(64.6% 0.222 41.116);
-  --color-green-400: oklch(62.7% 0.194 149.214);
-  --color-violet-400: oklch(54.1% 0.281 293.009);
-  --color-sky-400: oklch(58.8% 0.158 241.966);
-  --color-indigo-400: oklch(51.1% 0.262 276.966);
-  --color-cyan-400: oklch(60.9% 0.126 221.723);
-  --color-blue-300: oklch(48.8% 0.243 264.376);
-  --color-red-300: oklch(50.5% 0.213 27.518);
-  --color-yellow-300: oklch(55.4% 0.135 66.442);
+  --color-blue-400: oklch(54.6% 0.245 262.881);
+  --color-red-400: oklch(57.7% 0.245 27.325);
+  --color-emerald-400: oklch(59.6% 0.145 163.225);
+  --color-yellow-400: oklch(68.1% 0.162 75.834);
+  --color-amber-400: oklch(66.6% 0.179 58.318);
+  --color-purple-400: oklch(55.8% 0.288 302.321);
+  --color-orange-400: oklch(64.6% 0.222 41.116);
+  --color-green-400: oklch(62.7% 0.194 149.214);
+  --color-violet-400: oklch(54.1% 0.281 293.009);
+  --color-sky-400: oklch(58.8% 0.158 241.966);
+  --color-indigo-400: oklch(51.1% 0.262 276.966);
+  --color-cyan-400: oklch(60.9% 0.126 221.723);
+  --color-blue-300: oklch(48.8% 0.243 264.376);
+  --color-red-300: oklch(50.5% 0.213 27.518);
+  --color-yellow-300: oklch(55.4% 0.135 66.442);
   --color-amber-300: oklch(55.5% 0.163 48.998);
 
   /* Deep fills in the onboarding and upload illustrations turn pale. (The
@@ -276,7 +276,7 @@ html.light .leaflet-control-zoom a:hover {
 /* blue-400 now holds blue-600 for readable links, which is also the new
    primary — so the primary buttons' hover:bg-blue-400 would no longer change
    anything. Deepen it to blue-700 instead. */
-html.light .hover\:bg-blue-400:hover { background-color: oklch(48.8% 0.243 264.376); }
+html.light .hover\:bg-blue-400:hover { background-color: oklch(48.8% 0.243 264.376); }
 /* The landing pages' white call-to-action pill sits on the dark sky; on a light
    page it would be white on white, so it becomes a primary blue button. */
 html.light .bg-white.text-background { background-color: var(--color-primary); color: #fff; }
