@@ -916,11 +916,11 @@ export default function ChatMessages({
                     key={conv.id}
                     onClick={() => setSelectedConvId(conv.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 border-b border-slate-800/40 transition-colors text-left relative ${
-                      sel ? 'bg-blue-600/10' : 'hover:bg-slate-700/40'
+                      sel ? 'bg-primary/10' : 'hover:bg-slate-700/40'
                     }`}
                   >
                     {sel && (
-                      <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-r" />
+                      <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
                     )}
                     <UserAvatar photoURL={other.photoURL} name={other.name} size="sm" />
                     <div className="flex-1 min-w-0">
@@ -933,7 +933,7 @@ export default function ChatMessages({
                           {other.name || 'Unknown'}
                         </p>
                         {unread > 0 && (
-                          <span className="shrink-0 bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                          <span className="shrink-0 bg-primary text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                             {unread > 9 ? '9+' : unread}
                           </span>
                         )}
@@ -1157,7 +1157,7 @@ export default function ChatMessages({
                               rel="noopener noreferrer"
                               className={`block rounded-2xl overflow-hidden border w-64 rounded-bl-md transition-colors ${
                                 isMe
-                                  ? 'border-blue-500/40 bg-blue-600/10 hover:border-blue-500/70'
+                                  ? 'border-primary/40 bg-primary/10 hover:border-primary/70'
                                   : 'border-slate-700 bg-surface hover:border-slate-600'
                               }`}
                             >
@@ -1181,7 +1181,7 @@ export default function ChatMessages({
                             {msg.text && (
                               <div
                                 className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words w-fit max-w-[80%] ${
-                                  isMe ? 'bg-blue-600 text-white' : 'bg-surface-raised text-slate-200'
+                                  isMe ? 'bg-primary text-white' : 'bg-surface-raised text-slate-200'
                                 }`}
                               >
                                 {msg.text}
@@ -1232,7 +1232,7 @@ export default function ChatMessages({
                           {msg.text && (
                             <div
                               className={`px-3 py-2 rounded-2xl rounded-bl-md text-sm leading-relaxed break-words w-fit max-w-[80%] ${
-                                isMe ? 'bg-blue-600 text-white' : 'bg-surface-raised text-slate-200'
+                                isMe ? 'bg-primary text-white' : 'bg-surface-raised text-slate-200'
                               }`}
                             >
                               {msg.text}
@@ -1338,7 +1338,7 @@ export default function ChatMessages({
                   onChange={(e) => { setInputText(e.target.value); autoResizeInput(e.target); }}
                   onKeyDown={handleKeyDown}
                   placeholder={imageFile ? 'Add a caption…' : 'Type a message…'}
-                  className="flex-1 min-w-0 bg-background border border-slate-600 rounded-xl px-3 py-2 text-base md:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none leading-5 overflow-hidden"
+                  className="flex-1 min-w-0 bg-background border border-slate-600 rounded-xl px-3 py-2 text-base md:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary resize-none leading-5 overflow-hidden"
                   rows={1}
                   style={{ minHeight: '36px' }}
                 />
@@ -1346,7 +1346,7 @@ export default function ChatMessages({
                   type="button"
                   onClick={sendMessage}
                   disabled={sending || (!inputText.trim() && !imageFile)}
-                  className="h-9 w-9 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors shrink-0 flex items-center justify-center"
+                  className="h-9 w-9 bg-primary hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors shrink-0 flex items-center justify-center"
                   title="Send"
                 >
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
