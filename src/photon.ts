@@ -44,29 +44,31 @@ function formatLocation(props: PhotonProperties): string {
   const isUS = props.countrycode === 'US';
   const parts: string[] = [];
 
-  // When a city-type feature shares its name with its parent state (e.g. "New York" city inside
-  // "New York" state), append " City" so it's distinguishable from the state result.
-  let displayName = props.name ?? '';
-  if (props.osm_value === 'city' && displayName && props.state && displayName === props.state) {
-    displayName = displayName + ' City';
-  }
+  const displayName = props.name ?? '';
+  // A city that shares its state's name ("New York" in New York) keeps the state
+  // even though the words repeat, so it reads "New York, New York" — how Google
+  // and sites like Realtor.com write it — while the state itself stays "New York".
+  // The dedupe below would otherwise collapse the two into one indistinguishable
+  // label. (It used to read "New York City, New York"; see locationMatchKey.)
+  const cityNamedLikeState =
+    props.osm_value === 'city' && !!displayName && !!props.state && displayName === props.state;
 
   const push = (v?: string) => {
     if (v && !parts.includes(v)) parts.push(v);
   };
   push(displayName);
   push(props.city);
-  push(props.state);
+  if (cityNamedLikeState) parts.push(props.state as string);
+  else push(props.state);
   if (!isUS) push(props.country);
   return parts.join(', ');
 }
 
-// The " City" suffix above is a display-only disambiguation — it exists so the
-// picker can offer "New York City, New York" alongside the state of the same
-// name. Nothing stores it: Google Places hands us the plain locality ("New
-// York, New York"), while a seller who picked from the dropdown saves the
-// suffixed form. Collapsing the suffix gives both spellings one comparable key
-// so a search for either finds both.
+// The picker used to label the city "New York City, New York", and sellers who
+// picked it then saved that spelling, while Google Places stores the plain
+// locality ("New York, New York"). The picker now uses the plain form too, but
+// stored posts may still carry the old one, so the " City" suffix is folded
+// here and either spelling still finds both.
 //
 // Only a name that IS its own state is collapsed, so "Kansas City, Missouri"
 // keeps its suffix and can never be folded into an unrelated place.
