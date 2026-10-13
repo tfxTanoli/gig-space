@@ -275,6 +275,12 @@ const PostService = () => {
   const [searchParams] = useSearchParams();
 
   const [editId, setEditId] = useState<string | null>(null);
+  // The status the post had when it was opened. A saved draft also arrives
+  // through ?id=, so editId alone can't tell "editing a live post" from
+  // "finishing a draft" — and treating a draft as live published it on the
+  // first Next click, before checkout and without an SEO address (GIG-70/71).
+  const [loadedStatus, setLoadedStatus] = useState<string | null>(null);
+  const isLiveEdit = editId !== null && (loadedStatus === 'active' || loadedStatus === 'paused');
   const [originalCreatedAt, setOriginalCreatedAt] = useState<number>(0);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -457,6 +463,7 @@ const PostService = () => {
         const d = snap.val() as Record<string, unknown>;
         if (d.sellerId !== user.uid) { navigate('/seller-dashboard'); return; }
 
+        setLoadedStatus(typeof d.status === 'string' ? d.status : 'active');
         setOriginalCreatedAt(Number(d.createdAt ?? 0));
         setCategory(String(d.category ?? ''));
         setSubcategory(String(d.subcategory ?? ''));
@@ -744,7 +751,7 @@ const PostService = () => {
   };
 
   // ── Build payload ──────────────────────────────────────────────────────────
-  const buildPayload = async (status: 'draft' | 'active', subscriptionId?: string) => {
+  const buildPayload = async (status: 'draft' | 'active' | 'paused', subscriptionId?: string) => {
     let currentDescription = description;
     if (descriptionRef.current) {
       currentDescription = sanitizeHtml(descriptionRef.current.innerHTML);
@@ -814,10 +821,11 @@ const PostService = () => {
     setSaving(true);
     setStepError('');
     try {
-      // Editing keeps the post active; a brand-new post stays a draft until the
-      // final publish. buildPayload enforces the extra-location paywall per status,
-      // so extra locations without a subscription are stripped from an active post.
-      const payload = await buildPayload(editId ? 'active' : 'draft');
+      // A step save never changes visibility: a live post keeps its status, and
+      // anything else (a new post, or a saved draft being finished) stays a draft
+      // until the final Publish. buildPayload enforces the extra-location paywall
+      // per status, so extras without a subscription are stripped from a live post.
+      const payload = await buildPayload(isLiveEdit ? (loadedStatus as 'active' | 'paused') : 'draft');
 
       if (editId) {
         // update() (not set) so counters the form doesn't manage — views, clicks,
@@ -858,7 +866,10 @@ const PostService = () => {
     setPublishing(true);
     setStepError('');
     try {
-      const payload = await buildPayload('active', subscriptionId);
+      // A paused post (paused by an admin, say) stays paused when its seller saves
+      // an edit — saving changes is not the same as un-pausing.
+      const finalStatus = isLiveEdit && loadedStatus === 'paused' ? 'paused' : 'active';
+      const payload = await buildPayload(finalStatus, subscriptionId);
       const currentPostId = editId ?? draftId;
       let publishedId = currentPostId;
       if (currentPostId) {
@@ -877,7 +888,8 @@ const PostService = () => {
       // must not fail the publish. It is recorded rather than swallowed — the post
       // stays out of the sitemap and is served noindex until it has an address, and
       // Admin → Listings → "Generate SEO URLs" reports and repairs the backlog.
-      if (publishedId) {
+      // A paused post keeps (or later gets) its address but is never indexed.
+      if (publishedId && finalStatus === 'active') {
         try {
           await ensureSeoPath(publishedId, payload, { category: getCategoryLabel, subcategory: getSubcategoryLabel });
         } catch (err) {
@@ -920,7 +932,7 @@ const PostService = () => {
 
       setStep(9);
     } catch {
-      setStepError(editId ? 'Failed to update. Please try again.' : 'Failed to publish. Please try again.');
+      setStepError(isLiveEdit ? 'Failed to update. Please try again.' : 'Failed to publish. Please try again.');
     } finally {
       setPublishing(false);
     }
@@ -1595,10 +1607,10 @@ const PostService = () => {
                 <Check className="w-8 h-8 text-brand-green" strokeWidth={3} />
               </div>
               <h2 className="text-white font-semibold text-center mb-2">
-                {editId ? 'Post updated!' : 'Your post is live!'}
+                {isLiveEdit ? 'Post updated!' : 'Your post is live!'}
               </h2>
               <p className="text-slate-400 text-sm mb-6 text-center">
-                {editId
+                {isLiveEdit
                   ? 'Your changes have been saved. Buyers can now see the updated listing.'
                   : 'Sellers who share their posts on social media get up to 3× more views. Share yours now!'}
               </p>
@@ -1656,7 +1668,7 @@ const PostService = () => {
 
       <main className="w-full max-w-2xl px-6 pb-24">
         <h1 className="text-2xl font-bold text-center text-white mb-8">
-          {editId ? 'Edit service' : 'Post a service'}
+          {isLiveEdit ? 'Edit service' : 'Post a service'}
         </h1>
 
         <div className="w-full h-2 bg-slate-700 rounded-full mb-12 overflow-hidden">
@@ -1707,8 +1719,8 @@ const PostService = () => {
                 >
                   {step === 8 ? (
                     publishing
-                      ? (editId ? 'Saving…' : 'Publishing…')
-                      : (editId ? 'Save changes' : 'Publish')
+                      ? (isLiveEdit ? 'Saving…' : 'Publishing…')
+                      : (isLiveEdit ? 'Save changes' : 'Publish')
                   ) : saving ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
                   ) : (

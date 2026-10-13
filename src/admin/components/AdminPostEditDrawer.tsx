@@ -7,6 +7,8 @@ import { database, storage } from '../../firebase';
 import { adminDeleteService, adminRewriteTitle } from '../adminApi';
 import { type AdminService } from './AdminServicesTable';
 import { useCategories } from '../../CategoriesContext';
+import { ensureSeoPath, removeFromSitemap } from '../../seo/ensureSeoPath';
+import { type SeoListing } from '../../seo/meta';
 
 interface Props {
   service: AdminService;
@@ -58,7 +60,7 @@ const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
 );
 
 export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDeleted }: Props) {
-  const { categoryOptions, subcategoryMap } = useCategories();
+  const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -228,6 +230,19 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
       });
 
       const fresh = (await get(dbRef(database, `services/${service.id}`))).val() as Record<string, unknown>;
+
+      // The status picker can take a post live or off the site, so the SEO
+      // address and sitemap entry follow it (GIG-71): active gets an address
+      // (a no-op once it has one) and is indexed; anything else is de-indexed.
+      try {
+        if (fresh?.status === 'active') {
+          await ensureSeoPath(service.id, fresh as unknown as Omit<SeoListing, 'id'>, { category: getCategoryLabel, subcategory: getSubcategoryLabel });
+        } else {
+          await removeFromSitemap(service.id);
+        }
+      } catch (err) {
+        console.error('[seo] could not sync the sitemap for', service.id, err);
+      }
       const imgs  = Array.isArray(fresh?.images) ? (fresh.images as string[]) : [];
 
       onSuccess({

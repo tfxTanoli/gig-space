@@ -50,6 +50,7 @@ import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import NotificationBell from './notifications/NotificationBell';
 import { ref, query, orderByChild, equalTo, onValue, remove } from 'firebase/database';
 import { cancelListingSubscription } from './stripe/paymentHelpers';
+import { removeFromSitemap } from './seo/ensureSeoPath';
 import { database } from './firebase';
 import ChatMessages from './ChatMessages';
 import { useUnreadMessages } from './useUnreadMessages';
@@ -645,6 +646,10 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
       if (post.subscriptionId) {
         try { await cancelListingSubscription(post.subscriptionId); } catch { /* non-fatal */ }
       }
+      // Out of the sitemap first: the rules only let the seller touch seoIndex
+      // while services/{id} still names them as owner. Non-fatal — a stale entry
+      // just 404s, and Admin → Listings → "Generate SEO URLs" drops it.
+      try { await removeFromSitemap(post.id); } catch { /* non-fatal */ }
       await remove(ref(database, `services/${post.id}`));
       await remove(ref(database, `users/${user.uid}/posts/${post.id}`));
       onSuccess(post.id);
