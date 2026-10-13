@@ -7,6 +7,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
+import ThemeToggle from './ThemeToggle';
 
 // Reads admin-managed affiliate FAQs from the CMS, falling back to the provided
 // defaults. Affiliate FAQs live at cms/affiliateFaqs, separate from the seller
@@ -208,6 +209,7 @@ const AffiliateLanding = () => {
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
+            <ThemeToggle />
             {!loading && (
               user ? (
                 <HeaderUserMenu />
@@ -228,6 +230,7 @@ const AffiliateLanding = () => {
           </nav>
 
           {/* Mobile: avatar + dropdown when logged in, hamburger nav otherwise */}
+          <ThemeToggle className="lg:hidden ml-auto mr-1" />
           {user ? (
             <div className="lg:hidden">
               <HeaderUserMenu />

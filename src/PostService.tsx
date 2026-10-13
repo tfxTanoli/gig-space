@@ -33,10 +33,12 @@ import { slugify } from './seo/slug';
 import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
 import { createListingSubscription, previewSubscriptionTax } from './stripe/paymentHelpers';
 import type { BillingAddress, TaxBreakdown } from './stripe/types';
-import { STRIPE_APPEARANCE, STRIPE_FONTS } from './stripe/stripeAppearance';
+import { stripeAppearance, STRIPE_FONTS } from './stripe/stripeAppearance';
+import { useTheme } from './theme';
 import { LANGUAGES } from './data/languages';
 import { sanitizeHtml } from './utils/sanitize';
 import { formatMoney } from './utils/currency';
+import ThemeToggle from './ThemeToggle';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -269,6 +271,7 @@ function Step8PaymentSection({ extraLocationCount, serviceId, onBack, onSuccess 
 
 // ── Main PostService component ────────────────────────────────────────────────
 const PostService = () => {
+  const theme = useTheme();
   const { user, userProfile } = useAuth();
   const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
   const navigate = useNavigate();
@@ -1163,14 +1166,14 @@ const PostService = () => {
                     className="w-full border border-dashed border-slate-700 rounded-xl bg-slate-900/50 py-10 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/50 transition-colors"
                   >
                     <svg width="70" height="51" viewBox="0 0 70 51" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-3">
-                      <path d="M6.05172 8.74549L17.2131 6.88525V40.7377L12.3018 41.7717C9.01306 42.464 5.79705 40.3203 5.17081 37.0184L1.14319 15.7819C0.515988 12.4748 2.73148 9.29886 6.05172 8.74549Z" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
-                      <path d="M63.9483 8.74549L52.7869 6.88525V40.7377L57.6982 41.7717C60.9869 42.464 64.203 40.3203 64.8292 37.0184L68.8568 15.7819C69.484 12.4748 67.2685 9.29886 63.9483 8.74549Z" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
+                      <path d="M6.05172 8.74549L17.2131 6.88525V40.7377L12.3018 41.7717C9.01306 42.464 5.79705 40.3203 5.17081 37.0184L1.14319 15.7819C0.515988 12.4748 2.73148 9.29886 6.05172 8.74549Z" className="fill-blue-950" stroke="#2B7FFF" strokeWidth="2"/>
+                      <path d="M63.9483 8.74549L52.7869 6.88525V40.7377L57.6982 41.7717C60.9869 42.464 64.203 40.3203 64.8292 37.0184L68.8568 15.7819C69.484 12.4748 67.2685 9.29886 63.9483 8.74549Z" className="fill-blue-950" stroke="#2B7FFF" strokeWidth="2"/>
                       <g filter="url(#filter0_d_114_4271)">
-                        <rect x="16.0654" width="37.8689" height="44.7541" rx="6" fill="#162456"/>
+                        <rect x="16.0654" width="37.8689" height="44.7541" rx="6" className="fill-blue-950"/>
                         <rect x="17.0654" y="1" width="35.8689" height="42.7541" rx="5" stroke="#2B7FFF" strokeWidth="2"/>
                       </g>
-                      <path d="M38.9824 33.0893C39.7831 34.0105 41.215 34.0058 42.0098 33.0796L47.2451 26.976L52.9346 33.0981V38.7544C52.9344 41.5156 50.6958 43.7542 47.9346 43.7544H22.0654C19.3041 43.7544 17.0656 41.5157 17.0654 38.7544V35.2934L29.4727 22.145L38.9824 33.0893Z" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
-                      <circle cx="39.5897" cy="14.3442" r="4.16393" fill="#162456" stroke="#2B7FFF" strokeWidth="2"/>
+                      <path d="M38.9824 33.0893C39.7831 34.0105 41.215 34.0058 42.0098 33.0796L47.2451 26.976L52.9346 33.0981V38.7544C52.9344 41.5156 50.6958 43.7542 47.9346 43.7544H22.0654C19.3041 43.7544 17.0656 41.5157 17.0654 38.7544V35.2934L29.4727 22.145L38.9824 33.0893Z" className="fill-blue-950" stroke="#2B7FFF" strokeWidth="2"/>
+                      <circle cx="39.5897" cy="14.3442" r="4.16393" className="fill-blue-950" stroke="#2B7FFF" strokeWidth="2"/>
                       <defs>
                         <filter id="filter0_d_114_4271" x="13.0654" y="0" width="43.8687" height="50.7541" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
                           <feFlood floodOpacity="0" result="BackgroundImageFix"/>
@@ -1539,7 +1542,7 @@ const PostService = () => {
                   // the expected setup_future_usage (null)" at Publish.
                   setupFutureUsage: 'off_session',
                   paymentMethodTypes: ['card', 'us_bank_account'],
-                  appearance: STRIPE_APPEARANCE,
+                  appearance: stripeAppearance(theme),
                   fonts: STRIPE_FONTS,
                 }}
               >
@@ -1631,7 +1634,10 @@ const PostService = () => {
     <div className="min-h-screen bg-background text-white font-sans flex flex-col items-center">
       <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center mb-8">
         <Logo className="h-6" />
-        <HeaderUserMenu />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <HeaderUserMenu />
+        </div>
       </header>
 
       <main className="w-full max-w-2xl px-6 pb-24">

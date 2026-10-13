@@ -6,6 +6,7 @@ import { database, isImpersonating, endImpersonation, IMPERSONATION_NAME } from 
 import { AuthProvider, useAuth } from './AuthContext';
 import { CategoriesProvider } from './CategoriesContext';
 import { ErrorBoundary } from './ErrorBoundary';
+import { useTheme } from './theme';
 
 // Route-based code splitting — each page is its own chunk
 const Signup              = lazy(() => import('./Signup'));
@@ -206,6 +207,7 @@ function AppRoutes() {
 }
 
 function App() {
+  const theme = useTheme();
   return (
     <ErrorBoundary>
       <Router>
@@ -214,7 +216,7 @@ function App() {
             <PlatformGate>
               <AppRoutes />
             </PlatformGate>
-            <Toaster position="top-center" richColors theme="dark" />
+            <Toaster position="top-center" richColors theme={theme} />
           </CategoriesProvider>
         </AuthProvider>
       </Router>

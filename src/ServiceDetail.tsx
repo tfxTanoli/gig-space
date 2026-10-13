@@ -20,6 +20,8 @@ import { useCategories } from './CategoriesContext';
 import { geocodeLocation, isCountryName } from './photon';
 import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from 'react-leaflet';
 import L from 'leaflet';
+import ThemeToggle from './ThemeToggle';
+import { useTheme } from './theme';
 
 /* ─── Types ─── */
 
@@ -231,12 +233,14 @@ const SocialBtn = ({
   children: ReactNode;
 }) => {
   const [hovered, setHovered] = useState(false);
+  const theme = useTheme();
+  const brandColor = brand === 'twitter' && theme === 'light' ? '#0F1419' : socialBrandColors[brand];
   return (
     <button
       onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ color: hovered ? socialBrandColors[brand] : '#62748E' }}
+      style={{ color: hovered ? brandColor : '#62748E' }}
       className="flex items-center justify-center transition-colors flex-shrink-0"
       title="Share"
     >
@@ -607,6 +611,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
         <div className="h-16 flex items-center justify-between">
           <Logo className="h-6 shrink-0" />
           <div className="flex items-center gap-4 md:gap-6">
+            <ThemeToggle />
             {user ? (
               <>
                 {userProfile?.role !== 'admin' && (

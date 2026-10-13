@@ -7,6 +7,7 @@ import Logo from './Logo';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import { sanitizeHtml } from './utils/sanitize';
+import ThemeToggle from './ThemeToggle';
 
 const PrivacyPolicy = () => {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ const PrivacyPolicy = () => {
           <Logo className="h-6" />
         </div>
         <nav className="flex items-center space-x-6 text-sm font-medium">
+          <ThemeToggle />
           {user ? (
             <HeaderUserMenu />
           ) : (

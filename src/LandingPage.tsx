@@ -6,6 +6,7 @@ import LocationSearch from './LocationSearch';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
+import ThemeToggle from './ThemeToggle';
 
 const categories = [
   { name: 'Automotive', icon: Car },
@@ -147,6 +148,7 @@ const LandingPage = () => {
           <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             <Link to="/for-sellers" className="text-slate-300 hover:text-white transition-colors">For Sellers</Link>
             <Link to="/affiliate" className="text-slate-300 hover:text-white transition-colors">Become an Affiliate</Link>
+            <ThemeToggle />
             {user ? (
               <HeaderUserMenu />
             ) : (
@@ -160,6 +162,7 @@ const LandingPage = () => {
           </nav>
 
           {/* Mobile: avatar + dropdown when logged in, hamburger nav otherwise */}
+          <ThemeToggle className="lg:hidden ml-auto mr-1" />
           {user ? (
             <div className="lg:hidden">
               <HeaderUserMenu />

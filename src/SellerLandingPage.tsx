@@ -7,6 +7,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
+import ThemeToggle from './ThemeToggle';
 
 // Reads admin-managed FAQs from the CMS, falling back to the provided defaults.
 function useCmsFaqs(defaults: { question: string; answer: string }[]) {
@@ -172,6 +173,7 @@ const SellerLandingPage = () => {
           <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             <Link to="/" className="text-slate-300 hover:text-white transition-colors">For Buyers</Link>
             <Link to="/affiliate" className="text-slate-300 hover:text-white transition-colors">Become an Affiliate</Link>
+            <ThemeToggle />
             {user ? (
               <HeaderUserMenu />
             ) : (
@@ -185,6 +187,7 @@ const SellerLandingPage = () => {
           </nav>
 
           {/* Mobile: avatar + dropdown when logged in, hamburger nav otherwise */}
+          <ThemeToggle className="lg:hidden ml-auto mr-1" />
           {user ? (
             <div className="lg:hidden">
               <HeaderUserMenu />

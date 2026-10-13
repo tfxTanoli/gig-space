@@ -25,6 +25,34 @@ export const STRIPE_APPEARANCE = {
   } as Record<string, Record<string, string>>,
 };
 
+// Light-mode counterpart (GIG-73). Stripe renders in an iframe our stylesheet
+// can't reach, so the form needs its own palette per theme.
+export const STRIPE_APPEARANCE_LIGHT = {
+  theme: 'stripe' as const,
+  variables: {
+    colorPrimary: '#3b82f6',
+    colorBackground: '#ffffff',
+    colorText: '#0f172a',
+    colorTextSecondary: '#475569',
+    borderRadius: '8px',
+    fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
+    fontSizeBase: '16px',
+  },
+  rules: {
+    '.Input': { border: '1px solid #cbd5e1', backgroundColor: '#ffffff', padding: '8px 16px', fontSize: '16px', lineHeight: '18px', boxShadow: 'none' },
+    '.Input:focus': { border: '1px solid #3b82f6', boxShadow: 'none', outline: 'none' },
+    '.Label': { color: '#334155', fontSize: '13px' },
+    '.Tab': { fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', boxShadow: 'none' },
+    '.Tab--selected': { backgroundColor: '#ffffff', border: '1px solid #3b82f6', boxShadow: 'none' },
+    '.Tab:focus': { boxShadow: 'none' },
+    '.Block': { boxShadow: 'none' },
+  } as Record<string, Record<string, string>>,
+};
+
+/** The Stripe Elements appearance for the active theme. */
+export const stripeAppearance = (theme: 'light' | 'dark') =>
+  theme === 'light' ? STRIPE_APPEARANCE_LIGHT : STRIPE_APPEARANCE;
+
 export const STRIPE_FONTS = [
   { cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
 ];
