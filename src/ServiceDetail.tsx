@@ -343,6 +343,11 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
   const prev = () => setActiveIdx((p) => (p === 0 ? mediaItems.length - 1 : p - 1));
   const next = () => setActiveIdx((p) => (p === mediaItems.length - 1 ? 0 : p + 1));
 
+  // Saving and messaging need an account. Guests go to sign in and come back
+  // to this same listing afterwards, instead of the click doing nothing (GIG-75).
+  const signInAndReturn = () =>
+    navigate(`/signin?next=${encodeURIComponent(location.pathname + location.search)}`);
+
   const handleContactSeller = async () => {
     if (!post) return;
     // Unclaimed generated listings have no seller account to chat with — open the
@@ -385,7 +390,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
       window.location.href = `mailto:${post.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       return;
     }
-    if (!user) { navigate('/signin'); return; }
+    if (!user) { signInAndReturn(); return; }
     if (isOwnService) return;
     // Admins have no buyer chat — the Messages redirect would just bounce them to
     // the admin panel. Open an email to the seller instead.
@@ -771,7 +776,11 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
                 Message seller
               </button>
               <button
-                onClick={() => post && toggleSave(post.id)}
+                onClick={() => {
+                  if (!post) return;
+                  if (!user) { signInAndReturn(); return; }
+                  toggleSave(post.id);
+                }}
                 className="w-11 border border-slate-700 rounded-[6px] flex items-center justify-center hover:bg-slate-800 transition-colors flex-shrink-0"
                 title={post && isSaved(post.id) ? 'Remove from saved' : 'Save service'}
               >
