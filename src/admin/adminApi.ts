@@ -62,14 +62,6 @@ export interface AdminMessage {
 export const adminGetOrderMessages = (orderId: string) =>
   authedFetch<{ messages: AdminMessage[]; conversationId: string }>(`/api/admin/orders/${orderId}/messages`);
 
-export interface ListingReview {
-  rating: number;
-  text: string;
-  author: string;
-  photo: string;
-  time: number;
-}
-
 export interface ListingBusiness {
   placeId: string;
   name: string;
@@ -80,12 +72,11 @@ export interface ListingBusiness {
   website: string;    // only businesses with a website are returned
   logo: string;       // website favicon, used as the post's avatar
   email: string;      // contact email scraped at search time ('' if none found)
-  rating: number;
+  rating: number;      // Google rating — shown while choosing, never saved on a post
   reviewCount: number;
   description: string;
   type: string;
-  images: string[];
-  reviews: ListingReview[];
+  images: string[];   // photo candidates from the business's own website, best first (GIG-74)
 }
 
 export const adminSearchListings = (body: { keyword: string; city: string }) =>

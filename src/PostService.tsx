@@ -287,10 +287,6 @@ const PostService = () => {
   // When claiming an admin-generated (Google) listing, we prefill from it but
   // publish a brand-new post under this seller, then mark the original claimed.
   const [claimId, setClaimId] = useState<string | null>(null);
-  // The business's real Google totals, carried onto the new post so its rating
-  // survives the claim. New Gigspace reviews increment the same aggregates
-  // (OrderDetail), blending Google + Gigspace counts and stars.
-  const [claimBaseline, setClaimBaseline] = useState<{ reviewCount: number; totalStars: number; placeId: string } | null>(null);
 
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState('');
@@ -510,15 +506,6 @@ const PostService = () => {
         const d = snap.val() as Record<string, unknown>;
         // Only generated, unclaimed listings can be claimed.
         if (!d.isGenerated || d.claimStatus === 'claimed') { navigate(`/service-detail?id=${cid}`); return; }
-
-        const baseCount = Number(d.reviewCount) || 0;
-        if (baseCount > 0) {
-          setClaimBaseline({
-            reviewCount: baseCount,
-            totalStars: Number(d.totalStars) || 0,
-            placeId: String(d.placeId ?? ''),
-          });
-        }
 
         setCategory(String(d.category ?? ''));
         setSubcategory(String(d.subcategory ?? ''));
@@ -802,15 +789,8 @@ const PostService = () => {
       subscriptionId: effectiveSubscriptionId,
       status,
       updatedAt: Date.now(),
-      // Claiming a Google listing: seed the new post with the business's real
-      // Google rating (placeId marks the post as carrying a Google baseline).
-      ...(claimId && claimBaseline
-        ? {
-            reviewCount: claimBaseline.reviewCount,
-            totalStars: claimBaseline.totalStars,
-            placeId: claimBaseline.placeId,
-          }
-        : {}),
+      // A claimed post starts with no rating: Google's review scores are no
+      // longer copied across (GIG-74), so it earns its own on Gigspace.
     };
   };
 
@@ -901,18 +881,6 @@ const PostService = () => {
       // as claimed and unpublish it so the claim banner no longer shows and there
       // is no public duplicate of the seller's new post.
       if (claimId && claimId !== currentPostId) {
-        // Bring the Google review texts along so the new post keeps the business's
-        // review history; future Gigspace reviews append to the same list.
-        if (publishedId && publishedId !== claimId) {
-          try {
-            const revSnap = await get(dbRef(database, `serviceReviews/${claimId}`));
-            if (revSnap.exists()) {
-              await update(dbRef(database, `serviceReviews/${publishedId}`), revSnap.val());
-            }
-          } catch {
-            // Non-fatal: the post is already live; it just starts without the copied texts.
-          }
-        }
         // The original listing has no owner (sellerId is ''), so RTDB rules deny
         // this write from the client — the backend does it with the Admin SDK.
         // Non-fatal on failure: the seller's own post is already live above.

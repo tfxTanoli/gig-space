@@ -222,6 +222,13 @@
       ".write": false
     },
 
+    "sellerSales": {
+      ".read": true,
+      "$sellerId": {
+        ".write": false,
+        ".validate": "newData.isNumber() && newData.val() >= 0"
+      }
+    },
     "sellerStats": {
       "$uid": {
         ".read": "auth !== null && auth.uid === $uid",

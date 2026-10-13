@@ -74,6 +74,38 @@ const GEN_STATUS_BADGE: Record<GenStatus, { label: string; cls: string }> = {
 // so they sit on a white disc rather than being cropped to fill; a missing or
 // broken one falls back to the business's initial, matching how the post page
 // renders it — the admin should never see an avatar the public page won't show.
+/**
+ * The photo the post will most likely use, taken from the business's own
+ * website (GIG-74). Walks the candidates in the order the server will try
+ * them and shows the first one that loads at photo size. The server applies
+ * stricter checks when generating (it also drops logos and badges by file
+ * type), so treat this as a preview, not a promise.
+ */
+function SitePhotoPreview({ urls }: { urls: string[] }) {
+  const [i, setI] = useState(0);
+  if (i >= urls.length) {
+    return (
+      <div className="w-24 h-16 rounded-md border border-dashed border-slate-700 flex items-center justify-center text-[10px] text-slate-500 text-center leading-tight flex-shrink-0">
+        No photo found
+      </div>
+    );
+  }
+  return (
+    <img
+      key={urls[i]}
+      src={urls[i]}
+      alt=""
+      referrerPolicy="no-referrer"
+      onError={() => setI((n) => n + 1)}
+      onLoad={(e) => {
+        const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+        if (w < 400 || h < 250 || w / h > 3 || w / h < 0.45) setI((n) => n + 1);
+      }}
+      className="w-24 h-16 rounded-md object-cover border border-slate-700 flex-shrink-0 bg-slate-800"
+    />
+  );
+}
+
 function BusinessLogo({ url, name, className }: { url?: string; name?: string; className: string }) {
   const [broken, setBroken] = useState(false);
   useEffect(() => { setBroken(false); }, [url]);
@@ -453,7 +485,6 @@ export default function AdminListingsTab() {
                             {b.rating.toFixed(1)} ({b.reviewCount.toLocaleString()} review{b.reviewCount !== 1 ? 's' : ''})
                           </span>
                         )}
-                        <span>{b.images.length} photo{b.images.length !== 1 ? 's' : ''}</span>
                         {b.website && (
                           <a
                             href={b.website}
@@ -472,6 +503,7 @@ export default function AdminListingsTab() {
                           : <span className="text-slate-600">no email found</span>}
                       </p>
                     </div>
+                    <SitePhotoPreview urls={b.images} />
                   </li>
                 );
               })}
