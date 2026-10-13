@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'crypto';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 import { cardScore, pageImageCandidates, pickSitePhotos } from '../sitePhotos';
+import { addToOutreach, outreachConfigured } from '../saleshandy';
 
 // Google Places API (new). Provide GOOGLE_PLACES_API_KEY (or GOOGLE_MAPS_API_KEY)
 // in the server environment with Places API (New) enabled.
@@ -1456,5 +1457,50 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/listings/rehost-photos error:', msg);
     res.status(500).json({ error: msg });
+  }
+}
+
+/* ─── Cold-email outreach for a published post (GIG-76) ───────────────────────────
+ * POST /api/admin/listings/outreach { serviceId }
+ * Called by the admin Publish button once a generated post is live, so the
+ * email can link to a page that exists. Sends the five values Marcus's
+ * Saleshandy templates use. Re-publishing is safe: Saleshandy leaves an
+ * existing prospect untouched.
+ */
+const SITE_URL = 'https://gigspace.co';
+
+export async function addListingToOutreach(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    if (!outreachConfigured()) { res.json({ added: false, reason: 'not_configured' }); return; }
+    const serviceId = String((req.body as { serviceId?: string } | undefined)?.serviceId ?? '').trim();
+    if (!serviceId) { res.status(400).json({ error: 'serviceId is required' }); return; }
+
+    const db = admin.database();
+    const s = (await db.ref(`services/${serviceId}`).get()).val() as Record<string, unknown> | null;
+    if (!s) { res.status(404).json({ error: 'Post not found' }); return; }
+    if (s.status !== 'active') { res.json({ added: false, reason: 'not_live' }); return; }
+    const email = String(s.contactEmail ?? '').trim();
+    if (!email) { res.json({ added: false, reason: 'no_email' }); return; }
+
+    const category = String(s.category ?? '');
+    const subcategory = String(s.subcategory ?? '');
+    const subLabel = category && subcategory
+      ? ((await db.ref(`subcategories/${category}/${subcategory}/label`).get()).val() as string | null)
+      : null;
+    const seoPath = typeof s.seoPath === 'string' && s.seoPath ? s.seoPath : '';
+
+    const { status } = await addToOutreach({
+      email,
+      company: String(s.sellerName ?? ''),
+      // "Dallas, Texas" -> "Dallas": the templates say "in {{City}}".
+      city: String(s.primaryLocation ?? '').split(',')[0].trim(),
+      subcategory: subLabel || humanizeService(subcategory),
+      postUrl: seoPath ? `${SITE_URL}/posts/${seoPath}` : `${SITE_URL}/service-detail?id=${serviceId}`,
+    });
+    res.json({ added: true, status });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/listings/outreach error:', msg);
+    res.status(502).json({ error: msg });
   }
 }
