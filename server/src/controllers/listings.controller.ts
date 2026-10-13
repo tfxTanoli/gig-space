@@ -2,18 +2,13 @@ import * as admin from 'firebase-admin';
 import { createHash, randomUUID } from 'crypto';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
+import { cardScore, pageImageCandidates, pickSitePhotos } from '../sitePhotos';
 
 // Google Places API (new). Provide GOOGLE_PLACES_API_KEY (or GOOGLE_MAPS_API_KEY)
 // in the server environment with Places API (New) enabled.
 const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
 const TEXT_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
 
-interface PlaceReview {
-  rating?: number;
-  text?: { text?: string };
-  authorAttribution?: { displayName?: string; photoUri?: string };
-  publishTime?: string;
-}
 interface AddressComponent {
   longText?: string;
   shortText?: string;
@@ -28,14 +23,8 @@ interface Place {
   websiteUri?: string;
   rating?: number;
   userRatingCount?: number;
-  photos?: { name: string }[];
-  reviews?: PlaceReview[];
-  editorialSummary?: { text?: string };
   primaryTypeDisplayName?: { text?: string };
 }
-
-const photoUrl = (name: string) =>
-  `https://places.googleapis.com/v1/${name}/media?maxHeightPx=800&maxWidthPx=1200&key=${PLACES_KEY}`;
 
 // Posts only show city & state (e.g. "Staten Island, New York"), never the street address.
 function cityStateOf(p: Place): string {
@@ -351,9 +340,12 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
           'X-Goog-Api-Key': PLACES_KEY,
           'X-Goog-FieldMask': [
             'nextPageToken',
+            // No photos, reviews or editorial summary: Google's Places policy
+            // forbids storing them, and posts now take photos from the
+            // business's own website (GIG-74). The rating stays for the admin
+            // preview only - it is shown while choosing, never saved on a post.
             'places.id', 'places.displayName', 'places.formattedAddress', 'places.rating',
-            'places.userRatingCount', 'places.photos', 'places.reviews',
-            'places.editorialSummary', 'places.primaryTypeDisplayName',
+            'places.userRatingCount', 'places.primaryTypeDisplayName',
             'places.websiteUri', 'places.addressComponents', 'places.location',
           ].join(','),
         },
@@ -416,22 +408,16 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
         logo: faviconPreview(p.websiteUri ?? ''),
         rating: p.rating ?? 0,
         reviewCount: p.userRatingCount ?? 0,
-        description: p.editorialSummary?.text ?? '',
+        description: '',
         type: p.primaryTypeDisplayName?.text ?? '',
-        images: (p.photos ?? []).slice(0, 5).map((ph) => photoUrl(ph.name)),
-        reviews: (p.reviews ?? []).slice(0, 5).map((r) => ({
-          rating: r.rating ?? 0,
-          text: r.text?.text ?? '',
-          author: r.authorAttribution?.displayName ?? '',
-          photo: r.authorAttribution?.photoUri ?? '',
-          time: r.publishTime ? new Date(r.publishTime).getTime() : Date.now(),
-        })),
       }));
 
-    // Scrape contact emails up front (parallel, email-only) so the admin can see
-    // which businesses are reachable before choosing what to generate.
-    const emails = await Promise.all(mapped.map((b) => scrapeEmail(b.website)));
-    const businesses = mapped.map((b, i) => ({ ...b, email: emails[i] }));
+    // Visit each website once, up front (parallel), for the contact email and
+    // the photos the post will use - so the admin sees which businesses are
+    // reachable and what their post will look like before generating. Photo
+    // candidates are unverified here; generation downloads and checks them.
+    const contacts = await Promise.all(mapped.map((b) => scrapeContact(b.website)));
+    const businesses = mapped.map((b, i) => ({ ...b, email: contacts[i].email, images: contacts[i].photos }));
 
     res.json({ businesses });
   } catch (err) {
@@ -1007,17 +993,18 @@ function pageEmail(html: string): string {
 }
 
 // Email-only scrape used at search time: homepage, then contact pages.
-async function scrapeEmail(website: string): Promise<string> {
+async function scrapeContact(website: string): Promise<{ email: string; photos: string[] }> {
   let origin = '';
-  try { origin = new URL(website).origin; } catch { return ''; }
+  try { origin = new URL(website).origin; } catch { return { email: '', photos: [] }; }
   const home = await fetchPage(website);
   let email = home ? pageEmail(home) : '';
+  const photos = home ? pageImageCandidates(home, website) : [];
   for (const p of ['/contact', '/contact-us']) {
     if (email) break;
     const html = await fetchPage(origin + p);
     if (html) email = pageEmail(html);
   }
-  return email;
+  return { email, photos };
 }
 
 interface ScrapedSite { title: string; description: string; email: string; iconUrls: string[] }
@@ -1134,9 +1121,11 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     // business's files are stored under its own id.
     const refs = businesses.map(() => db.ref('services').push());
 
-    // Post images are the business's Google Business Profile photos (owner
-    // uploads), copied into our own Storage so viewing a post never calls — or
-    // gets billed by — Google again. The avatar is resolved the same way.
+    // Post images come from the business's own website (GIG-74): up to three
+    // checked photos per post, copied into our Storage under descriptive names.
+    // Google's photos are no longer used - its Places policy forbids storing
+    // them. Google photo URLs are filtered out explicitly, so a preview loaded
+    // before this change can't sneak one through.
     //
     // Businesses are processed together rather than one after another: this runs
     // in a serverless function with a hard duration ceiling, and a couple of
@@ -1144,11 +1133,23 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     const media = await Promise.all(
       businesses.map(async (b, i) => {
         const id = refs[i].key as string;
-        const [images, logo] = await Promise.all([
-          rehostPhotos(Array.isArray(b.images) ? b.images : [], id, photoStem(b)),
+        const candidates = (Array.isArray(b.images) ? b.images : []).filter((u) => !isGooglePhotoUrl(u));
+        const [photos, logo] = await Promise.all([
+          b.website ? pickSitePhotos(candidates, b.website) : Promise.resolve([]),
           b.website ? resolveLogo(scraped[i].iconUrls, b.website, id) : Promise.resolve(''),
         ]);
-        return { images, logo };
+        const stem = photoStem(b);
+        const images = await Promise.all(
+          photos.map((p, n) =>
+            saveToStorage(p.body, p.contentType, `${STORAGE_PREFIX}/${id}/${stem}-${n + 1}.${EXT_BY_TYPE[p.contentType] ?? 'jpg'}`),
+          ),
+        );
+        // The share-card image is whichever photo survives a 1.91:1 crop best.
+        let best = 0;
+        photos.forEach((p, n) => {
+          if (cardScore({ w: p.width, h: p.height }) < cardScore({ w: photos[best].width, h: photos[best].height })) best = n;
+        });
+        return { images, logo, ogImage: images[best] ?? null };
       }),
     );
 
@@ -1158,15 +1159,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
       const ref = refs[i];
       const id = ref.key as string;
       const now = Date.now();
-      const { images, logo } = media[i];
-      const reviews = Array.isArray(b.reviews) ? b.reviews : [];
-      // The Places API returns at most 5 review texts, but the business's REAL
-      // totals come from rating/userRatingCount — store those so the post shows
-      // e.g. "5.0 · 85 reviews" instead of counting the 5 snippets.
-      const reviewCount = Number(b.reviewCount) || reviews.length;
-      const avgRating = Number(b.rating)
-        || (reviews.length ? reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length : 0);
-      const totalStars = Math.round(avgRating * reviewCount);
+      const { images, logo, ogImage } = media[i];
       const location = b.location || b.address || '';
 
       await ref.set({
@@ -1177,7 +1170,6 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         title: polished[i] || composed[i],
         description:
           site.description ||
-          b.description ||
           `${b.name ?? ''}: ${humanizeService(serviceLabel(b))}. ${location}`.trim(),
         category: category ?? '',
         subcategory: subcategory ?? '',
@@ -1185,6 +1177,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         priceMax: null,
         priceType: 'contact_for_pricing',
         images,
+        ogImage,
         languages: language ? [language] : ['English'],
         primaryLocation: location,
         primaryLocationLat: typeof b.lat === 'number' ? b.lat : null,
@@ -1199,27 +1192,13 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         placeId: b.placeId ?? '',
         website: b.website ?? '',
         contactEmail: b.email || site.email,  // powers the "Message seller" mailto on unclaimed posts
-        reviewCount,
-        totalStars,
+        // No Google rating or review texts (GIG-74): Places content may not be
+        // stored. The post shows "New seller" until it earns Gigspace reviews.
+        reviewCount: 0,
+        totalStars: 0,
         createdAt: now,
         updatedAt: now,
       });
-
-      // Denormalize reviews so they render on the public detail page.
-      if (reviews.length) {
-        const updates: Record<string, unknown> = {};
-        reviews.forEach((r, i) => {
-          updates[`serviceReviews/${id}/g${i}`] = {
-            rating: Number(r.rating) || 0,
-            text: String(r.text || ''),
-            reviewerName: String(r.author || 'Google reviewer'),
-            reviewerPhoto: String(r.photo || ''),
-            serviceTitle: b.name ?? '',
-            timestamp: Number(r.time) || now,
-          };
-        });
-        await db.ref().update(updates);
-      }
 
       created.push({ id, name: b.name ?? '' });
     }

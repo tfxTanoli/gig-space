@@ -207,6 +207,12 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
 
       const allImages = [...existingImages, ...uploadedURLs];
 
+      // The share-card image must be one of the post's photos. If the admin just
+      // removed it, fall back to the first remaining photo rather than leave
+      // social previews pointing at a picture the post no longer shows.
+      const currentOg = (await get(dbRef(database, `services/${service.id}/ogImage`))).val() as string | null;
+      const ogImage = currentOg && allImages.includes(currentOg) ? currentOg : (allImages[0] ?? null);
+
       // Once an admin has written a title themselves, the listings backfill must
       // never rebuild it — this flag is what makes that guarantee real rather
       // than a guess about how "hand-written" the wording looks.
@@ -223,6 +229,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
         priceType,
         status,
         images:         allImages,
+        ogImage,
         primaryLocation: primaryLocation.trim(),
         extraLocations,
         offeredRemotely,

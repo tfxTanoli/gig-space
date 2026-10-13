@@ -16,6 +16,7 @@ import { ref, onValue, get } from 'firebase/database';
 import { database } from './firebase';
 import { useCategories } from './CategoriesContext';
 import { useAuth } from './AuthContext';
+import { useSellerSales, isNewSeller } from './useSellerSales';
 import { formatAmount } from './utils/currency';
 
 const filters = [
@@ -58,6 +59,7 @@ function formatPrice(post: ServicePost) {
 const BuyerSearchFiltered = () => {
   const { categoryOptions } = useCategories();
   const { userProfile } = useAuth();
+  const sellerSales = useSellerSales();
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category') ?? '';
 
@@ -212,6 +214,7 @@ const BuyerSearchFiltered = () => {
                 const svcReviewCount = post.reviewCount ?? 0;
                 const svcAvgRating = svcReviewCount > 0 ? (post.totalStars ?? 0) / svcReviewCount : 0;
                 const hasReviews = svcReviewCount > 0;
+                const newSeller = sellerSales === null ? null : isNewSeller(post.sellerId, sellerSales);
                 const isVerified = meta?.verified ?? false;
 
                 const allLocations = post.offeredRemotely
@@ -281,20 +284,24 @@ const BuyerSearchFiltered = () => {
                         )}
                       </div>
 
-                      {/* Reviews / New Seller badge — fixed height keeps price aligned across cards */}
+                      {/* New seller until the seller's first completed sale, then the
+                          post's Gigspace rating (GIG-74) — fixed height keeps price
+                          aligned across cards */}
                       <div className="flex items-center mb-2 h-[24px]">
-                        {hasReviews ? (
+                        {newSeller ? (
+                          <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-md">
+                            New seller
+                          </span>
+                        ) : hasReviews ? (
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                             <span className="text-xs text-slate-400">
                               {svcAvgRating.toFixed(1)} ({fmt(svcReviewCount)})
                             </span>
                           </div>
-                        ) : (
-                          <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-md">
-                            New seller
-                          </span>
-                        )}
+                        ) : newSeller === false ? (
+                          <span className="text-xs text-slate-500">No reviews yet</span>
+                        ) : null}
                       </div>
 
                       {/* Price */}

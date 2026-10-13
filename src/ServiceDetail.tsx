@@ -15,6 +15,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { formatAmount } from './utils/currency';
 import { useSavedServices } from './useSavedServices';
+import { useSellerSales, isNewSeller as sellerIsNew } from './useSellerSales';
 import { useCategories } from './CategoriesContext';
 import { geocodeLocation, isCountryName } from './photon';
 import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from 'react-leaflet';
@@ -311,22 +312,17 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
   const isOwnService = !!(user && post && user.uid === post.sellerId);
   const viewTrackedRef = useRef(false);
 
-  // Generated (Google) posts — and posts claimed from one (marked by placeId) —
-  // carry the business's real Google totals in reviewCount/totalStars. Show those
-  // instead of counting the ≤5 review texts the Places API hands over. On claimed
-  // posts, new Gigspace reviews increment the same aggregates (OrderDetail), so
-  // the count and stars blend Google + Gigspace automatically.
-  const googleTotals = post && (post.isGenerated || post.placeId) && (post.reviewCount ?? 0) > 0
-    ? { count: post.reviewCount as number, avg: (post.totalStars ?? 0) / (post.reviewCount as number) }
-    : null;
-
-  const isNewSeller = !reviewsLoading && reviews.length === 0 && !googleTotals;
-  const avgRating = googleTotals
-    ? googleTotals.avg
-    : reviews.length > 0
-      ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-      : 0;
-  const reviewTotal = googleTotals?.count ?? reviews.length;
+  // Ratings are Gigspace's own reviews only (GIG-74): Google's review scores
+  // can't be stored under its Places policy, so they are no longer copied in.
+  // "New seller" shows until the seller's first completed sale, then the
+  // rating, or "No reviews yet" if no buyer has left one.
+  const sellerSales = useSellerSales();
+  // Unknown until the counts load; then a post with no seller sale is "new".
+  const isNewSeller = post && sellerSales !== null ? sellerIsNew(post.sellerId, sellerSales) : false;
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+    : 0;
+  const reviewTotal = reviews.length;
 
   // Build ordered media list (images + optional video)
   const mediaItems: MediaItem[] = (() => {
@@ -711,12 +707,14 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
           </div>
 
           {/* Rating / New seller badge (between seller and price) */}
-          {!reviewsLoading && (
+          {!reviewsLoading && (sellerSales !== null || reviewTotal > 0) && (
             <div className="order-5 mb-5">
               {isNewSeller ? (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-md">
                   <span className="text-emerald-400 text-xs font-semibold">New seller</span>
                 </div>
+              ) : reviewTotal === 0 ? (
+                <span className="text-slate-500 text-sm">No reviews yet</span>
               ) : (
                 <div className="flex items-center gap-2">
                   <FilledStars count={avgRating} size={14} />
@@ -1006,12 +1004,10 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
 
         {reviewsLoading ? (
           <p className="text-slate-500 text-sm">Loading reviews…</p>
-        ) : reviews.length === 0 && !googleTotals ? (
+        ) : reviews.length === 0 ? (
           <span className="text-slate-500 text-sm">No reviews yet</span>
         ) : (() => {
-          const avg = googleTotals ? googleTotals.avg : reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-          // Star breakdown comes from the loaded review texts; a generated post
-          // can have Google totals with no review texts, so guard the division.
+          const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
           const breakdown = [5, 4, 3, 2, 1].map((star) => ({
             star,
             pct: reviews.length === 0 ? 0 : Math.round((reviews.filter((r) => r.rating === star).length / reviews.length) * 100),

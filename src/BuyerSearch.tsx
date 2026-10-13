@@ -28,6 +28,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { formatAmount } from './utils/currency';
 import { useSavedServices } from './useSavedServices';
+import { useSellerSales, isNewSeller } from './useSellerSales';
 import { geocodeCache, geocodeLocation, haversineDistanceMiles, locationMatchKey } from './photon';
 import { useCategories } from './CategoriesContext';
 
@@ -199,9 +200,11 @@ interface ServiceCardProps {
   isSaved: boolean;
   onToggleSave: (id: string) => void;
   meta?: SellerMeta;
+  /** Seller has no completed sale yet; null while the counts are loading. */
+  newSeller: boolean | null;
 }
 
-const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProps) => {
+const ServiceCard = memo(({ post, isSaved, onToggleSave, meta, newSeller }: ServiceCardProps) => {
   const { prefix, price, suffix } = formatPrice(post);
   const serviceReviewCount = post.reviewCount ?? 0;
   const serviceAvgRating = serviceReviewCount > 0 ? (post.totalStars ?? 0) / serviceReviewCount : 0;
@@ -286,8 +289,16 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
           )}
         </div>
 
-        {/* Reviews / New Seller badge */}
-        {hasReviews ? (
+        {/* New seller badge until the seller's first completed sale, then the
+            post's Gigspace rating (GIG-74). Nothing while counts load, so an
+            established seller never flashes the badge. */}
+        {newSeller ? (
+          <div className="mb-2 h-[26px] flex items-center">
+            <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-md">
+              New seller
+            </span>
+          </div>
+        ) : hasReviews ? (
           <div className="flex items-center gap-1.5 mb-2 h-[26px]">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
             <span className="text-[13px] text-slate-400">
@@ -296,9 +307,7 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta }: ServiceCardProp
           </div>
         ) : (
           <div className="mb-2 h-[26px] flex items-center">
-            <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-md">
-              New seller
-            </span>
+            {newSeller === false && <span className="text-[12px] text-slate-500">No reviews yet</span>}
           </div>
         )}
 
@@ -405,6 +414,7 @@ const BuyerSearch = () => {
   const settingsPath = isSeller ? '/seller-dashboard?tab=Settings' : '/buyer-dashboard?tab=Settings';
   const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
   const { isSaved, toggleSave } = useSavedServices();
+  const sellerSales = useSellerSales();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -1535,6 +1545,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                   isSaved={isSaved(post.id)}
                   onToggleSave={handleToggleSave}
                   meta={sellerMeta[post.sellerId]}
+                  newSeller={sellerSales === null ? null : isNewSeller(post.sellerId, sellerSales)}
                 />
               ))}
             </div>

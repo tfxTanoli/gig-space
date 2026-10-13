@@ -639,6 +639,12 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
       [`orders/${orderId}/completedAt`]: now,
       [`orders/${orderId}/paymentStatus`]: 'released',
     };
+    // Public count of the seller's completed sales, written in the same atomic
+    // update as the status so the two can't drift. Posts show "New seller"
+    // until it is at least 1 (GIG-74). Clients can read it but never write it.
+    if (order.sellerId) {
+      updates[`sellerSales/${order.sellerId}`] = admin.database.ServerValue.increment(1);
+    }
     // Captured for the "funds released" emails sent after the DB update below.
     let releasedSellerId: string | null = null;
     let releasedCommission: { affiliateId: string; amount: number } | null = null;
