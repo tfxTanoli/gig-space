@@ -43,8 +43,9 @@ const BLUE_200 = '191, 219, 254';
 /**
  * Light mode (GIG-73): a glowing daytime atmosphere instead of stars. A soft
  * blue glow comes in from the left, right and bottom edges and fades to white
- * toward the middle, so the headline sits on clean white; the bottom fades into
- * the page colour so there is no line where the next section starts.
+ * toward the middle, so the headline sits on clean white. The bottom glow sits
+ * just above the hero's lower edge, and only the last stretch fades to the page
+ * white, so the glow stays visible with no line where the next section starts.
  */
 const DaytimeGlow = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ background: 'var(--color-background)' }}>
@@ -55,10 +56,16 @@ const DaytimeGlow = () => (
         background: [
           `radial-gradient(ellipse 34% 62% at 0% 58%, rgba(${BLUE_300}, 0.55) 0%, rgba(${BLUE_200}, 0.28) 45%, transparent 75%)`,
           `radial-gradient(ellipse 34% 62% at 100% 58%, rgba(${BLUE_300}, 0.55) 0%, rgba(${BLUE_200}, 0.28) 45%, transparent 75%)`,
-          `radial-gradient(ellipse 70% 34% at 50% 88%, rgba(${BLUE_300}, 0.45) 0%, rgba(${BLUE_200}, 0.25) 50%, transparent 80%)`,
+          `radial-gradient(ellipse 72% 30% at 50% 80%, rgba(${BLUE_300}, 0.5) 0%, rgba(${BLUE_200}, 0.28) 50%, transparent 80%)`,
         ].join(', '),
         filter: 'blur(28px)',
         animation: 'glow-pulse 6s infinite ease-in-out',
+        // The glow itself is gone before the hero's bottom edge. That edge
+        // often lands mid-pixel, where this layer and the fade below round
+        // differently and a faint blue line leaked through. (This box spans
+        // -10%..110% of the hero, so 89% here is 97% of the hero's height.)
+        maskImage: 'linear-gradient(to bottom, #000 0%, #000 76%, transparent 89%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 76%, transparent 89%)',
       }}
     />
     {/* Keep the space behind the hero text clean white. */}
@@ -66,11 +73,12 @@ const DaytimeGlow = () => (
       className="absolute inset-0"
       style={{ background: 'radial-gradient(ellipse 46% 42% at 50% 36%, #ffffff 0%, rgba(255,255,255,0.85) 45%, transparent 75%)' }}
     />
-    {/* Fade fully into the page below. Solid for the last stretch, not just the
-        last pixel, so no trace of blue meets the next section as a line. */}
+    {/* Fade fully into the page below over the hero's last stretch, reaching
+        solid page white a little before the edge so no trace of blue meets
+        the next section as a line. */}
     <div
-      className="absolute inset-x-0 bottom-0 h-[45%]"
-      style={{ background: 'linear-gradient(to bottom, transparent 0%, var(--color-background) 78%)' }}
+      className="absolute inset-x-0 bottom-0 h-[18%]"
+      style={{ background: 'linear-gradient(to bottom, transparent 0%, var(--color-background) 85%)' }}
     />
   </div>
 );

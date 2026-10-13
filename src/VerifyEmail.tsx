@@ -3,6 +3,7 @@ import Logo from './Logo';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
+import ThemeToggle from './ThemeToggle';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -108,8 +109,9 @@ const VerifyEmail = () => {
 
   return (
     <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">
-      <div className="w-full max-w-7xl flex items-center mb-16 lg:mb-32">
+      <div className="w-full max-w-7xl flex items-center justify-between mb-16 lg:mb-32">
         <Logo className="h-6" />
+        <ThemeToggle />
       </div>
 
       <div className="w-full max-w-md">

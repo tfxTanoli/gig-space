@@ -170,58 +170,63 @@
    The site is styled for dark. Every Tailwind colour resolves through a CSS
    variable (bg-slate-800 → var(--color-slate-800)), so light mode redefines
    those variables under html.light instead of restyling each component: the
-   neutral scale is mirrored, the brand surfaces turn white, and the light -300
-   and -400 accent tints used for text on dark become their deeper -600/-700
-   shades so links and badges stay readable on white. src/theme.ts sets the class.
+   neutral scale is mirrored, the page and surfaces turn white, and the light
+   accent tints used for text on dark become deeper shades that pass WCAG AA
+   (4.5:1) on white. src/theme.ts sets the class.
    ──────────────────────────────────────────────────────────────────────────── */
 html.light {
-  --color-background:           oklch(98.4% 0.003 247.858); /* slate-50 */
+  --color-background:           #ffffff;
   --color-background-deep:      oklch(96.8% 0.007 247.896); /* slate-100 */
   --color-surface:              #ffffff;
   --color-surface-raised:       oklch(96.8% 0.007 247.896); /* slate-100 */
   --color-surface-raised-hover: oklch(92.9% 0.013 255.508); /* slate-200 */
   --color-card:                 #ffffff;
-  --color-card-hover:           oklch(98.4% 0.003 247.858);
-  --color-brand-green:          oklch(62.7% 0.194 149.214); /* green-600 */
+  --color-card-hover:           oklch(98.4% 0.003 247.858); /* slate-50 */
+  --color-brand-green:          oklch(52.7% 0.154 150.069); /* green-700 */
   --color-brand-green-bg:       oklch(96.2% 0.044 156.743); /* green-100 */
 
-  /* Neutral scale mirrored: a dark-mode page (900) becomes white, a card or
-     input (800) a pale grey, a border (700) a light border, secondary text
-     (400) a mid grey that still passes contrast on white. */
-  --color-slate-950: oklch(98.4% 0.003 247.858);
+  /* Neutral scale mirrored: a dark-mode page (950/900) becomes white, a card
+     or input (800) a pale grey, a border (700) a light border, and secondary
+     text (400/300) slate-600, as the spec asks for subtext. */
+  --color-slate-950: #ffffff;
   --color-slate-900: #ffffff;
   --color-slate-800: oklch(96.8% 0.007 247.896);
   --color-slate-700: oklch(92.9% 0.013 255.508);
   --color-slate-600: oklch(86.9% 0.022 252.894);
-  --color-slate-500: oklch(55.4% 0.046 257.417);
+  --color-slate-500: oklch(52% 0.045 257.3);     /* a touch deeper: 5:1 on the grey inputs */
   --color-slate-400: oklch(44.6% 0.043 257.281);
-  --color-slate-300: oklch(37.2% 0.044 257.287);
+  --color-slate-300: oklch(44.6% 0.043 257.281);
   --color-slate-200: oklch(27.9% 0.041 260.031);
   --color-slate-100: oklch(20.8% 0.042 265.755);
   --color-slate-50:  oklch(12.9% 0.042 264.695);
 
-  /* Accent tints used as text on dark, deepened for white backgrounds. */
-  --color-blue-400: oklch(54.6% 0.245 262.881);
-  --color-red-400: oklch(57.7% 0.245 27.325);
-  --color-emerald-400: oklch(59.6% 0.145 163.225);
-  --color-yellow-400: oklch(68.1% 0.162 75.834);
-  --color-amber-400: oklch(66.6% 0.179 58.318);
-  --color-purple-400: oklch(55.8% 0.288 302.321);
-  --color-orange-400: oklch(64.6% 0.222 41.116);
-  --color-green-400: oklch(62.7% 0.194 149.214);
-  --color-violet-400: oklch(54.1% 0.281 293.009);
-  --color-sky-400: oklch(58.8% 0.158 241.966);
-  --color-indigo-400: oklch(51.1% 0.262 276.966);
-  --color-cyan-400: oklch(60.9% 0.126 221.723);
-  --color-blue-300: oklch(48.8% 0.243 264.376);
-  --color-red-300: oklch(50.5% 0.213 27.518);
-  --color-yellow-300: oklch(55.4% 0.135 66.442);
-  --color-amber-300: oklch(55.5% 0.163 48.998);
+  /* Accent tints used as text on dark (-300/-400) — links, status pills —
+     become shades that read at 4.5:1+ on white AND on their own pale pill
+     tint (bg-X-500/20): -700 for blue, purple, red, sky and violet, -800 for
+     the lighter families (emerald, amber, yellow, orange, green, cyan), and
+     indigo-600, which already passes. The -500 variables stay as they are,
+     so those tints stay pale; solid -500 fills are restyled below instead. */
+  --color-blue-400:    oklch(48.8% 0.243 264.376);
+  --color-blue-300:    oklch(48.8% 0.243 264.376);
+  --color-purple-400:  oklch(49.6% 0.265 301.924);
+  --color-red-400:     oklch(50.5% 0.213 27.518);
+  --color-red-300:     oklch(50.5% 0.213 27.518);
+  --color-sky-400:     oklch(50% 0.134 242.749);
+  --color-violet-400:  oklch(49.1% 0.27 292.581);
+  --color-indigo-400:  oklch(51.1% 0.262 276.966);
+  --color-emerald-400: oklch(43.2% 0.095 166.913);
+  --color-amber-400:   oklch(47.3% 0.137 46.201);
+  --color-amber-300:   oklch(47.3% 0.137 46.201);
+  --color-yellow-400:  oklch(47.6% 0.114 61.907);
+  --color-yellow-300:  oklch(47.6% 0.114 61.907);
+  --color-orange-400:  oklch(47% 0.157 37.304);
+  --color-green-400:   oklch(44.8% 0.119 151.328);
+  --color-cyan-400:    oklch(45% 0.085 224.283);
 
   /* Deep fills in the onboarding and upload illustrations turn pale. (The
      bg-blue-950 badges are restyled separately below, so they are unaffected.) */
-  --color-blue-950: oklch(97% 0.014 254.604);     /* blue-50 */
-  --color-emerald-900: oklch(97.9% 0.021 166.113); /* emerald-50 */
+  --color-blue-950:    oklch(97% 0.014 254.604);    /* blue-50 */
+  --color-emerald-900: oklch(97.9% 0.021 166.113);  /* emerald-50 */
 
   /* Buttons are blue-600 on light backgrounds (GIG-73 spec). */
   --color-primary: oklch(54.6% 0.245 262.881);
@@ -230,40 +235,7 @@ html.light {
   --light-ink: oklch(20.8% 0.042 265.755);
 }
 
-/* The body's text colour comes from @apply text-white above, which a class
-   selector can't reach, so it is set here. */
-html.light body { color: var(--light-ink); }
-
-/* text-white is "primary text" on the dark theme's surfaces, so on light ones
-   it becomes ink — except on solid colour fills (buttons, badges, avatars) and
-   dark photo overlays, where white is still the readable choice. */
-html.light .text-white { color: var(--light-ink); }
-html.light :is(.bg-primary, .bg-stripe, .bg-blue-500, .bg-blue-600, .bg-blue-700,
-  .bg-red-500, .bg-red-600, .bg-red-700, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
-  .bg-green-600, [class*="bg-[#2b7fff]" i], [class*="bg-black"], [class*="bg-gradient"]).text-white,
-html.light :is(.bg-primary, .bg-stripe, .bg-blue-500, .bg-blue-600, .bg-blue-700,
-  .bg-red-500, .bg-red-600, .bg-red-700, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
-  .bg-green-600, [class*="bg-[#2b7fff]" i], [class*="bg-black"], [class*="bg-gradient"]) .text-white {
-  color: #fff;
-}
-/* Same for hover: grey links and icons brighten to white on dark, which would
-   make them vanish on light, so they deepen to ink instead. A button that turns
-   a solid colour on hover (the red Delete) keeps its white text. */
-html.light .hover\:text-white:hover,
-html.light .group:hover .group-hover\:text-white { color: var(--light-ink); }
-html.light :is(.bg-primary, .bg-stripe, .bg-blue-500, .bg-blue-600, .bg-blue-700,
-  .bg-red-500, .bg-red-600, .bg-red-700, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
-  .bg-green-600, [class*="bg-[#2b7fff]" i], [class*="bg-black"], [class*="bg-gradient"], .hover\:bg-red-600).hover\:text-white:hover {
-  color: #fff;
-}
-
-/* The silver landing headline would vanish on white; use plain ink instead. */
-html.light .gradient-heading {
-  background: none;
-  -webkit-text-fill-color: var(--light-ink);
-  color: var(--light-ink);
-}
-
+/* Leaflet's stylesheet isn't layered, so these stay unlayered too. */
 html.light .leaflet-control-zoom a {
   background-color: #ffffff !important;
   color: var(--light-ink) !important;
@@ -273,48 +245,103 @@ html.light .leaflet-control-zoom a:hover {
   background-color: oklch(96.8% 0.007 247.896) !important;
 }
 
-/* blue-400 now holds blue-600 for readable links, which is also the new
-   primary — so the primary buttons' hover:bg-blue-400 would no longer change
-   anything. Deepen it to blue-700 instead. */
-html.light .hover\:bg-blue-400:hover { background-color: oklch(48.8% 0.243 264.376); }
-/* The landing pages' white call-to-action pill sits on the dark sky; on a light
-   page it would be white on white, so it becomes a primary blue button. */
-html.light .bg-white.text-background { background-color: var(--color-primary); color: #fff; }
-html.light .bg-white.text-background:hover { background-color: oklch(48.8% 0.243 264.376); }
-html.light .bg-white.text-background .text-blue-500 { color: #fff; } /* the blue arrow inside */
-/* slate-600 does two jobs: borders (wanted pale on white, which the scale
-   gives) and deliberately dim helper text (which on white needs to stay
-   readable). Text gets slate-400 — about as faint against white as the dark
-   theme's slate-600 is against its background. text-slate-700 (two uses) too. */
-html.light .text-slate-600 { color: oklch(70.4% 0.04 256.788); }
-html.light .text-slate-700 { color: oklch(55.4% 0.046 257.417); }
-/* Sidebar/tab count badges are a near-black tint with a bright number on dark.
-   On light they become solid colour badges with a white number — a pale tint
-   would leave the amber and emerald numbers too faint to read. */
-html.light .bg-blue-950    { background-color: var(--color-blue-500);    color: #fff; }
-html.light .bg-emerald-950 { background-color: var(--color-emerald-500); color: #fff; }
-html.light .bg-amber-950   { background-color: var(--color-amber-500);   color: #fff; }
-/* Card and divider edges. border-slate-800 is the dark theme's quiet edge;
-   mirrored it would be slate-100, which all but disappears on a slate-50 page,
-   so it gets the standard light-theme slate-200 (same as border-slate-700). */
-html.light .border-slate-800,
-html.light .divide-slate-800 > :not(:last-child) { border-color: var(--color-slate-700); }
+/* The rules below restyle individual utility classes. They live in the
+   utilities layer behind :where(html.light), which gives them exactly the
+   weight of the class they replace while coming later in the layer — so they
+   win over that class, but still lose to its hover:, focus: and group-hover:
+   variants, which therefore keep working in light mode. */
+@layer utilities {
+  /* body's text colour comes from @apply text-white in the base layer. */
+  :where(html.light) body { color: var(--light-ink); }
 
-/* The overrides above are unlayered, so they also outrank the few hover
-   colours used alongside them. Put those back. */
-html.light .hover\:border-slate-700:hover { border-color: var(--color-slate-700); }
-html.light .hover\:border-slate-600:hover { border-color: var(--color-slate-600); }
-html.light .text-white.hover\:text-primary:hover,
-html.light .group:hover .text-white.group-hover\:text-primary { color: var(--color-primary); }
-html.light .group:hover .text-white.group-hover\:text-blue-400 { color: var(--color-blue-400); }
-html.light .text-white.hover\:text-slate-300:hover { color: var(--color-slate-300); }
-html.light .text-white.hover\:text-slate-400:hover { color: var(--color-slate-400); }
+  /* text-white is "primary text" on the dark theme's surfaces, so on light
+     ones it becomes ink — except on solid colour fills (buttons, badges,
+     avatars) and dark photo overlays, where white is still the readable choice. */
+  :where(html.light) .text-white { color: var(--light-ink); }
+  :where(html.light) :is(.bg-primary, .bg-stripe, .bg-blue-500, .bg-blue-600, .bg-blue-700,
+    .bg-red-500, .bg-red-600, .bg-red-700, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
+    .bg-green-600, .bg-amber-500, [class*="bg-[#2b7fff]" i], [class*="bg-black"], [class*="bg-gradient"]).text-white,
+  :where(html.light) :is(.bg-primary, .bg-stripe, .bg-blue-500, .bg-blue-600, .bg-blue-700,
+    .bg-red-500, .bg-red-600, .bg-red-700, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
+    .bg-green-600, .bg-amber-500, [class*="bg-[#2b7fff]" i], [class*="bg-black"], [class*="bg-gradient"]) .text-white {
+    color: #fff;
+  }
+  /* Same for hover: grey links and icons brighten to white on dark, which
+     would make them vanish on light, so they deepen to ink instead. A button
+     that turns a solid colour on hover (the red Delete) keeps its white text. */
+  :where(html.light) .hover\:text-white:hover,
+  :where(html.light) .group:hover .group-hover\:text-white { color: var(--light-ink); }
+  :where(html.light) .hover\:bg-red-600.hover\:text-white:hover { color: #fff; }
+  /* Bold text in rich-text blocks (policy pages, post descriptions) is styled
+     through [&_b]:text-white / [&_strong]:text-white. */
+  :where(html.light) [class*="[&_b]:text-white"] b,
+  :where(html.light) [class*="[&_strong]:text-white"] strong { color: var(--light-ink); }
 
-/* A card-coloured button on a surface panel (Upload logo on the profile
-   setup screens): both are white in light mode, so lift it to the raised grey. */
-html.light .bg-surface .bg-card { background-color: var(--color-surface-raised); }
-html.light .bg-surface .bg-card.hover\:bg-card-hover:hover { background-color: var(--color-surface-raised-hover); }
+  /* The silver landing headline would vanish on white; use plain ink instead. */
+  :where(html.light) .gradient-heading {
+    background: none;
+    -webkit-text-fill-color: var(--light-ink);
+    color: var(--light-ink);
+  }
 
-/* Fades that blend a scroll arrow into the page behind it. */
-html.light .from-\[\#0E1422\] { --tw-gradient-from: var(--color-background); }
-html.light .via-\[\#0E1422\]\/90 { --tw-gradient-via: color-mix(in oklab, var(--color-background) 90%, transparent); }
+  /* The landing pages' white call-to-action pill sits on the dark sky; on a
+     light page it would be white on white, so it becomes a primary button. */
+  :where(html.light) .bg-white.text-background { background-color: var(--color-primary); color: #fff; }
+  :where(html.light) .bg-white.text-background:hover { background-color: oklch(48.8% 0.243 264.376); }
+  :where(html.light) .bg-white.text-background .text-blue-500 { color: #fff; } /* the arrow inside */
+
+  /* slate-600/-700 do two jobs: borders (wanted pale on white, which the
+     scale gives) and deliberately dim helper text, which on white still needs
+     4.5:1 — so as text they become slate-500. */
+  :where(html.light) .text-slate-600,
+  :where(html.light) .text-slate-700 { color: var(--color-slate-500); }
+  /* Placeholders: slate-500 (5:1 on inputs) rather than the near-text slate-600 that placeholder-slate-400 now holds. */
+  :where(html.light) .placeholder-slate-400::placeholder { color: var(--color-slate-500); }
+  /* Two notes use a translucent tint; on white the tint drops below 4.5:1. */
+  :where(html.light) .text-blue-300\/60 { color: var(--color-blue-300); }
+  :where(html.light) .text-amber-300\/80 { color: var(--color-amber-300); }
+
+  /* The profile-setup Continue buttons use a literal blue-500 (3.8:1 with
+     white text); give them the primary blue. */
+  :where(html.light) [class*="bg-[#2b7fff]" i] { background-color: var(--color-primary); }
+
+  /* Solid accent fills carry white text (badges, buttons). The pale ones read
+     at 2.2–3.8:1 on light, so they take the shade where white reaches 4.5:1,
+     on hover too. -500/-600 used as text deepens the same way. */
+  :where(html.light) :is(.bg-blue-500, .hover\:bg-blue-500:hover)          { background-color: oklch(54.6% 0.245 262.881); }
+  :where(html.light) :is(.bg-red-500, .hover\:bg-red-500:hover)            { background-color: oklch(57.7% 0.245 27.325); }
+  :where(html.light) :is(.bg-emerald-500, .bg-emerald-600, .hover\:bg-emerald-500:hover, .hover\:bg-emerald-600:hover) { background-color: oklch(50.8% 0.118 165.612); }
+  :where(html.light) :is(.bg-green-600, .hover\:bg-green-600:hover)        { background-color: oklch(52.7% 0.154 150.069); }
+  :where(html.light) :is(.bg-amber-500, .hover\:bg-amber-500:hover)        { background-color: oklch(55.5% 0.163 48.998); }
+  :where(html.light) .bg-yellow-500  { background-color: oklch(55.4% 0.135 66.442); }
+  :where(html.light) .bg-purple-500  { background-color: oklch(55.8% 0.288 302.321); }
+  :where(html.light) .bg-cyan-500    { background-color: oklch(52% 0.105 223.128); }
+  :where(html.light) .text-blue-500    { color: oklch(54.6% 0.245 262.881); }
+  :where(html.light) .text-red-500     { color: oklch(57.7% 0.245 27.325); }
+  :where(html.light) .text-emerald-500 { color: oklch(50.8% 0.118 165.612); }
+  :where(html.light) .text-green-500   { color: oklch(52.7% 0.154 150.069); }
+  :where(html.light) .text-amber-500   { color: oklch(55.5% 0.163 48.998); }
+  :where(html.light) .text-violet-500  { color: oklch(54.1% 0.281 293.009); }
+  :where(html.light) .text-indigo-500  { color: oklch(51.1% 0.262 276.966); }
+
+  /* Sidebar/tab count badges are a near-black tint with a bright number on
+     dark. On light they become solid colour badges with a white number. */
+  :where(html.light) .bg-blue-950    { background-color: oklch(54.6% 0.245 262.881); color: #fff; }
+  :where(html.light) .bg-emerald-950 { background-color: oklch(50.8% 0.118 165.612); color: #fff; }
+  :where(html.light) .bg-amber-950   { background-color: oklch(55.5% 0.163 48.998);  color: #fff; }
+
+  /* Card and divider edges. border-slate-800 is the dark theme's quiet edge;
+     mirrored it would be slate-100, which all but disappears on white, so it
+     gets the standard light-theme slate-200 (the same as border-slate-700). */
+  :where(html.light) .border-slate-800,
+  :where(html.light) .divide-slate-800 > :not(:last-child) { border-color: var(--color-slate-700); }
+
+  /* A card-coloured button on a surface panel (Upload logo on the profile
+     setup screens): both are white in light mode, so lift it to the raised grey. */
+  :where(html.light) .bg-surface .bg-card { background-color: var(--color-surface-raised); }
+  :where(html.light) .bg-surface .bg-card.hover\:bg-card-hover:hover { background-color: var(--color-surface-raised-hover); }
+
+  /* Fades that blend a scroll arrow into the page behind it. */
+  :where(html.light) .from-\[\#0E1422\] { --tw-gradient-from: var(--color-background); }
+  :where(html.light) .via-\[\#0E1422\]\/90 { --tw-gradient-via: color-mix(in oklab, var(--color-background) 90%, transparent); }
+}

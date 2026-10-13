@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { ref as dbRef, get } from 'firebase/database';
 import { auth, database } from './firebase';
 import { useAuth } from './AuthContext';
+import ThemeToggle from './ThemeToggle';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -144,8 +145,9 @@ const Signup = () => {
   if (signupsClosed) {
     return (
       <div className="min-h-screen flex flex-col px-4 md:px-8 lg:px-16 items-center">
-        <div className="w-full max-w-7xl h-16 flex items-center mb-6 lg:mb-10">
+        <div className="w-full max-w-7xl h-16 flex items-center justify-between mb-6 lg:mb-10">
           <Logo className="h-6" />
+          <ThemeToggle />
         </div>
         <div className="w-full max-w-md text-center mt-10 space-y-3">
           <h1 className="text-2xl font-bold text-white">Registration is currently closed</h1>
@@ -158,8 +160,9 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen flex flex-col px-4 md:px-8 lg:px-16 items-center">
-      <div className="w-full max-w-7xl h-16 flex items-center mb-6 lg:mb-10">
+      <div className="w-full max-w-7xl h-16 flex items-center justify-between mb-6 lg:mb-10">
         <Logo className="h-6" />
+        <ThemeToggle />
       </div>
 
       <div className="w-full max-w-md">
