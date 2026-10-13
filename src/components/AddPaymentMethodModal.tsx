@@ -3,7 +3,8 @@ import { X, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import type { Stripe, StripeElements } from '@stripe/stripe-js';
 import { createSetupIntent } from '../stripe/paymentHelpers';
-import { STRIPE_APPEARANCE, STRIPE_FONTS } from '../stripe/stripeAppearance';
+import { stripeAppearance, STRIPE_FONTS } from '../stripe/stripeAppearance';
+import { useTheme } from '../theme';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
 
@@ -13,6 +14,7 @@ interface AddPaymentMethodModalProps {
 }
 
 export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPaymentMethodModalProps) {
+  const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
         stripeRef.current = stripe;
         const elements = stripe.elements({
           clientSecret,
-          appearance: STRIPE_APPEARANCE,
+          appearance: stripeAppearance(theme),
           fonts: STRIPE_FONTS,
         });
         elementsRef.current = elements;
@@ -50,7 +52,15 @@ export default function AddPaymentMethodModal({ onClose, onSuccess }: AddPayment
 
     init();
     return () => { active = false; };
+    // Mount-only: re-running would create a second SetupIntent. The theme it
+    // starts with is read here; later switches go through the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Follow a light/dark switch while the form is open.
+  useEffect(() => {
+    elementsRef.current?.update({ appearance: stripeAppearance(theme) });
+  }, [theme]);
 
   const handleSave = async () => {
     if (!stripeRef.current || !elementsRef.current) return;

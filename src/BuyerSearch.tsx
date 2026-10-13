@@ -31,6 +31,7 @@ import { useSavedServices } from './useSavedServices';
 import { useSellerSales, isNewSeller } from './useSellerSales';
 import { geocodeCache, geocodeLocation, haversineDistanceMiles, locationMatchKey } from './photon';
 import { useCategories } from './CategoriesContext';
+import ThemeToggle from './ThemeToggle';
 
 const MessagesIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1031,6 +1032,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           </div>
 
           <div className="flex items-center gap-4 md:gap-6 ml-auto shrink-0">
+            <ThemeToggle />
             {user && !isAdmin && (
               <>
                 <Link to="/post-service" className="text-sm font-medium hover:text-primary transition-colors text-slate-300 whitespace-nowrap">

@@ -4,6 +4,7 @@ import { Search, Menu, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CurrentUserAvatar } from '../../UserAvatar';
 import { useAuth } from '../../AuthContext';
+import ThemeToggle from '../../ThemeToggle';
 
 export interface AdminTopbarNavItem<TTab extends string = string> {
   name: TTab;
@@ -75,6 +76,7 @@ const AdminTopbar = <TTab extends string = string>({
       </div>
 
       <div className="relative flex items-center gap-3" ref={menuRef}>
+        <ThemeToggle />
         <button
           onClick={() => setShowMenu((v) => !v)}
           className="rounded-full ring-2 ring-transparent hover:ring-slate-600 transition-all focus:outline-none focus-visible:ring-blue-500 cursor-pointer"

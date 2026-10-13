@@ -2,7 +2,8 @@
 import { X, Loader2, Lock } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { STRIPE_APPEARANCE, STRIPE_FONTS } from '../stripe/stripeAppearance';
+import { stripeAppearance, STRIPE_FONTS } from '../stripe/stripeAppearance';
+import { useTheme } from '../theme';
 import { formatAmount } from '../utils/currency';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
@@ -104,6 +105,7 @@ export default function PaymentModal({
   onClose,
   onSuccess,
 }: PaymentModalProps) {
+  const theme = useTheme();
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
@@ -124,7 +126,7 @@ export default function PaymentModal({
           </button>
         </div>
 
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance: STRIPE_APPEARANCE, fonts: STRIPE_FONTS }}>
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance: stripeAppearance(theme), fonts: STRIPE_FONTS }}>
           <CheckoutForm offerAmount={offerAmount} onSuccess={onSuccess} onClose={onClose} />
         </Elements>
       </div>

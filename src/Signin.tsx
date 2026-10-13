@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
+import ThemeToggle from './ThemeToggle';
 
 const b64url = (buf: Uint8Array) =>
   btoa(String.fromCharCode(...buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -140,8 +141,9 @@ const Signin = () => {
 
   return (
     <div className="min-h-screen flex flex-col px-4 md:px-8 lg:px-16 items-center">
-      <div className="w-full max-w-7xl h-16 flex items-center mb-6 lg:mb-10">
+      <div className="w-full max-w-7xl h-16 flex items-center justify-between mb-6 lg:mb-10">
         <Logo className="h-6" />
+        <ThemeToggle />
       </div>
 
       <div className="w-full max-w-md">

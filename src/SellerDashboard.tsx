@@ -59,6 +59,7 @@ import OrdersTab from './OrdersTab';
 import SettingsTab from './SettingsTab';
 import WalletTab from './components/WalletTab';
 import StatementsTab from './components/StatementsTab';
+import ThemeToggle from './ThemeToggle';
 
 interface ServicePost {
   id: string;
@@ -333,9 +334,9 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
                     <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
                   </linearGradient>
                 </defs>
-                <line x1="0" y1={yOf(tickMax * 0.25)} x2="100" y2={yOf(tickMax * 0.25)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-                <line x1="0" y1={yOf(tickMax * 0.5)}  x2="100" y2={yOf(tickMax * 0.5)}  stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-                <line x1="0" y1={yOf(tickMax * 0.75)} x2="100" y2={yOf(tickMax * 0.75)} stroke="#1e293b" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1={yOf(tickMax * 0.25)} x2="100" y2={yOf(tickMax * 0.25)} className="stroke-slate-800" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1={yOf(tickMax * 0.5)}  x2="100" y2={yOf(tickMax * 0.5)}  className="stroke-slate-800" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1={yOf(tickMax * 0.75)} x2="100" y2={yOf(tickMax * 0.75)} className="stroke-slate-800" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
                 {hasData ? (
                   <>
                     <path d={areaPath('views')} fill="url(#seller-grad-views)" />
@@ -350,7 +351,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
                     )}
                   </>
                 ) : (
-                  <path d="M0,20 L100,20" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" vectorEffect="non-scaling-stroke" />
+                  <path d="M0,20 L100,20" className="stroke-slate-800" strokeWidth="0.5" strokeDasharray="2,2" vectorEffect="non-scaling-stroke" />
                 )}
               </svg>
 
@@ -398,7 +399,7 @@ const AnalyticsChart = ({ data }: { data: Array<{ date: string; views: number; c
                         top: `calc(${upperPct}% - 9px)`,
                         borderLeft: '4px solid transparent',
                         borderRight: '4px solid transparent',
-                        borderTop: '5px solid #0f172a',
+                        borderTop: '5px solid var(--color-slate-900)', // matches the tooltip's bg-slate-900 in either theme
                       }}
                     />
                   </>
@@ -928,6 +929,7 @@ const handleTabChange = useCallback((tab: string) => {
             />
           </div>
           <div className="flex items-center gap-2 md:gap-4">
+            <ThemeToggle />
             <NotificationBell onNavigate={handleTabChange} dashboardType="seller" />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
             <Link to="/post-service" className="hidden sm:flex items-center gap-2 bg-primary hover:bg-blue-400 text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg transition-colors">

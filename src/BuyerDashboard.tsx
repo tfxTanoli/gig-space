@@ -29,6 +29,7 @@ import { useSavedServices } from './useSavedServices';
 import { useAppHeight } from './useAppHeight';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { database } from './firebase';
+import ThemeToggle from './ThemeToggle';
 
 const MessagesIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -321,6 +322,7 @@ const BuyerDashboard = () => {
           </span>
           <div className="flex-1" />
           <div className="flex items-center gap-2 md:gap-4">
+            <ThemeToggle />
             <NotificationBell onNavigate={setActiveTab} dashboardType="buyer" />
             <div className="w-px h-6 bg-slate-700 hidden md:block" />
 

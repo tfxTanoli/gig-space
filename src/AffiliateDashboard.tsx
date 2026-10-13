@@ -22,6 +22,7 @@ import AffiliateHomeTab from './affiliate/AffiliateHomeTab';
 import AffiliatePayoutsTab from './affiliate/AffiliatePayoutsTab';
 import AffiliateSettingsTab from './affiliate/AffiliateSettingsTab';
 import StatementsTab from './components/StatementsTab';
+import ThemeToggle from './ThemeToggle';
 
 type TabName = 'Home' | 'Payouts' | 'Statements' | 'Settings';
 
@@ -128,6 +129,7 @@ const AffiliateDashboard = () => {
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <NotificationBell
               onNavigate={(tab) => {
                 const t = TABS.find(t => t.name === tab);
