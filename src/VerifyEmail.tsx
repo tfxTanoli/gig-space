@@ -79,8 +79,11 @@ const VerifyEmail = () => {
         setSubmitting(false);
         return;
       }
-      // Refresh so the account's new verified state (and the Verified badge) is reflected.
+      // Refresh so the account's new verified state (and the Verified badge) is
+      // reflected — including in the sign-in token, whose email_verified claim
+      // the database rules require before a profile can be marked verified.
       await auth.currentUser?.reload().catch(() => {});
+      await auth.currentUser?.getIdToken(true).catch(() => {});
       sessionStorage.removeItem('otpPending');
       navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
     } catch {

@@ -11,8 +11,20 @@
     "users": {
       ".read": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
       "$uid": {
-        ".read": "auth !== null",
-        ".write": "auth !== null && ((auth.uid === $uid && (!newData.hasChild('role') || newData.child('role').val() !== 'admin')) || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        ".read": "auth !== null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth !== null && ((auth.uid === $uid && (!newData.hasChild('role') || newData.child('role').val() !== 'admin')) || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        "username": { ".read": true },
+        "name": { ".read": true },
+        "photoURL": { ".read": true },
+        "emailVerified": {
+          ".read": true,
+          ".validate": "newData.isBoolean() && (newData.val() === false || auth.token.email_verified === true || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        },
+        "lastSeen": { ".read": "auth !== null" },
+        "online": { ".read": "auth !== null" },
+        "stripeCustomerId": {
+          ".validate": "newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        }
       }
     },
     "usernames": {
@@ -23,7 +35,7 @@
     },
     "services": {
       ".read": true,
-      ".indexOn": ["sellerId", "createdAt"],
+      ".indexOn": ["sellerId", "createdAt", "subscriptionId"],
       "$postId": {
         ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && newData.child('sellerId').val() === auth.uid) || (data.exists() && data.child('sellerId').val() === auth.uid && data.child('status').val() !== 'deleted' && (!newData.exists() || newData.child('sellerId').val() === auth.uid)))",
         "views": {
@@ -33,6 +45,15 @@
         "clicks": {
           ".write": "auth !== null",
           ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+        },
+        "extraLocations": {
+          ".validate": "root.child('users').child(auth.uid).child('role').val() === 'admin' || newData.parent().child('status').val() === 'draft' || (root.child('listingPaid').child($postId).child('qkey').isString() && !newData.child(root.child('listingPaid').child($postId).child('qkey').val()).exists())"
+        },
+        "status": {
+          ".validate": "root.child('users').child(auth.uid).child('role').val() === 'admin' || newData.val() === 'draft' || !newData.parent().child('extraLocations').exists() || (root.child('listingPaid').child($postId).child('qkey').isString() && !newData.parent().child('extraLocations').child(root.child('listingPaid').child($postId).child('qkey').val()).exists())"
+        },
+        "subscriptionId": {
+          ".validate": "root.child('users').child(auth.uid).child('role').val() === 'admin' || newData.val() === data.val() || newData.val() === root.child('listingPaid').child($postId).child('subscriptionId').val()"
         },
         "reviewCount": {
           ".validate": "newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() === 'admin'"
@@ -47,7 +68,7 @@
       ".indexOn": ["buyerId", "sellerId"],
       "$conversationId": {
         ".read": "auth !== null && (!data.exists() || data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
-        ".write": "auth !== null && (!data.exists() || data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)"
+        ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() ? ((newData.child('buyerId').val() === auth.uid || newData.child('sellerId').val() === auth.uid) && $conversationId === newData.child('buyerId').val() + '_' + newData.child('sellerId').val()) : (data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)))"
       }
     },
     "messages": {
@@ -59,7 +80,10 @@
     "userConversations": {
       "$uid": {
         ".read": "auth !== null && auth.uid === $uid",
-        ".write": "auth !== null"
+        ".write": "auth !== null && auth.uid === $uid",
+        "$convId": {
+          ".write": "auth !== null && newData.val() === true && ($convId === auth.uid + '_' + $uid || $convId === $uid + '_' + auth.uid)"
+        }
       }
     },
     "orders": {
@@ -208,14 +232,21 @@
     "notifications": {
       "$uid": {
         ".read": "auth !== null && auth.uid === $uid",
-        ".write": "auth !== null"
+        ".write": "auth !== null && auth.uid === $uid",
+        "$notifId": {
+          ".write": "auth !== null && !data.exists() && newData.child('senderId').val() === auth.uid"
+        }
       }
     },
 
     "notificationCounts": {
       "$uid": {
         ".read": "auth !== null && auth.uid === $uid",
-        ".write": "auth !== null"
+        ".write": "auth !== null && auth.uid === $uid",
+        "unread": {
+          ".write": "auth !== null",
+          ".validate": "newData.isNumber() && (auth.uid === $uid || newData.val() === (data.exists() ? data.val() : 0) + 1)"
+        }
       }
     },
 
@@ -234,7 +265,25 @@
     "sellerStats": {
       "$uid": {
         ".read": "auth !== null && auth.uid === $uid",
-        ".write": "auth !== null"
+        "daily": {
+          "$day": {
+            "views": {
+              ".write": "auth !== null",
+              ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+            },
+            "clicks": {
+              ".write": "auth !== null",
+              ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+            }
+          }
+        }
+      }
+    },
+
+    "listingPaid": {
+      "$serviceId": {
+        ".read": "auth !== null && (root.child('services').child($serviceId).child('sellerId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": false
       }
     },
 

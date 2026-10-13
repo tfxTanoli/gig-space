@@ -4,13 +4,21 @@
     {
       "src": "api/index.ts",
       "use": "@vercel/node",
-      "config": { "maxDuration": 60 }
+      "config": {
+        "maxDuration": 60
+      }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
       "dest": "api/index.ts"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/reconcile-listing-subscriptions",
+      "schedule": "0 6 * * *"
     }
   ]
 }

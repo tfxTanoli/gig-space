@@ -211,6 +211,15 @@ export async function cancelListingSubscription(subscriptionId: string, opts: { 
   });
 }
 
+/**
+ * After paying for extra locations and before saving the post: the server
+ * records the paid quantity (the database only accepts that many extra
+ * locations on a live post) and cancels the subscription this one replaces.
+ */
+export async function confirmListingSubscription(serviceId: string, subscriptionId: string): Promise<{ subscriptionId: string; paidExtraLocations: number }> {
+  return apiFetch('/api/subscriptions/confirm-listing-subscription', { serviceId, subscriptionId });
+}
+
 /** How many extra locations the post's subscription currently pays for. */
 export async function getListingSubscriptionStatus(serviceId: string): Promise<{ subscriptionId: string | null; paidExtraLocations: number }> {
   return apiFetch('/api/subscriptions/listing-subscription-status', { serviceId });

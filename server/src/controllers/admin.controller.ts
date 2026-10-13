@@ -5,6 +5,7 @@ import { sendTransactionalEmail, buildAccountDeactivatedEmail } from '../email';
 import { stripe } from '../stripeClient';
 import { recountSellerSales } from '../sellerSales';
 import { leaveOutreach } from '../saleshandy';
+import { reconcileAll, applyPaid } from '../listingPaid';
 
 // Resolve a user's first name for emails — the real name lives in the DB
 // (users/{uid}/name); Firebase Auth displayName is often empty.
@@ -385,8 +386,10 @@ export async function deleteService(req: AdminRequest, res: Response): Promise<v
     const ordersData = ((await db.ref('orders').get()).val() ?? {}) as Record<string, { serviceId?: string }>;
     const hasOrders = Object.values(ordersData).some((o) => o?.serviceId === id);
 
-    // Either way the post stops being public, so it leaves the sitemap.
+    // Either way the post stops being public, so it leaves the sitemap, and
+    // its paid-locations record goes with the cancelled subscription.
     await db.ref(`seoIndex/${id}`).remove();
+    await db.ref(`listingPaid/${id}`).remove();
 
     if (hasOrders) {
       await db.ref(`services/${id}`).update({
@@ -511,6 +514,19 @@ export async function getOrderMessages(req: AdminRequest, res: Response): Promis
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/orders/:orderId/messages error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ─── Paid extra locations: check every post against Stripe now ──────────────────
+// Same as the daily cron (listingPaid.ts). Run once after deploying the rules
+// that enforce paid locations, so existing paid posts have their record.
+export async function reconcileListingSubscriptions(_req: AdminRequest, res: Response): Promise<void> {
+  try {
+    res.json(await reconcileAll());
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/listing-subscriptions/reconcile error:', msg);
     res.status(500).json({ error: msg });
   }
 }
@@ -871,14 +887,13 @@ export async function cancelSubscription(req: AdminRequest, res: Response): Prom
     if (!id) { res.status(400).json({ error: 'subscription id is required' }); return; }
     await stripe.subscriptions.cancel(id);
 
-    // Clear the subscriptionId from any post that referenced it.
+    // Any post it paid for loses its subscriptionId, its paid-locations record
+    // and (unless it is a draft) the extra locations that are no longer paid.
     const db = admin.database();
     const data = ((await db.ref('services').get()).val() ?? {}) as Record<string, { subscriptionId?: string }>;
-    const updates: Record<string, unknown> = {};
     for (const [sid, svc] of Object.entries(data)) {
-      if (svc?.subscriptionId === id) updates[`services/${sid}/subscriptionId`] = null;
+      if (svc?.subscriptionId === id) await applyPaid(sid, null, 0);
     }
-    if (Object.keys(updates).length) await db.ref().update(updates);
 
     res.json({ success: true });
   } catch (err) {

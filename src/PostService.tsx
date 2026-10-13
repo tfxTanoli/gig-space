@@ -31,7 +31,7 @@ import { useCategories } from './CategoriesContext';
 import { ensureSeoPath } from './seo/ensureSeoPath';
 import { slugify } from './seo/slug';
 import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
-import { createListingSubscription, previewSubscriptionTax, getListingSubscriptionStatus, reduceListingSubscription, cancelListingSubscription } from './stripe/paymentHelpers';
+import { createListingSubscription, previewSubscriptionTax, getListingSubscriptionStatus, reduceListingSubscription, confirmListingSubscription } from './stripe/paymentHelpers';
 import type { BillingAddress, TaxBreakdown } from './stripe/types';
 import { stripeAppearance, STRIPE_FONTS } from './stripe/stripeAppearance';
 import { useTheme } from './theme';
@@ -882,14 +882,23 @@ const PostService = () => {
       // Fewer extra locations than the subscription pays for: bill for fewer
       // from now on (or end it at none) before saving. Without this the seller
       // kept paying for locations they had removed.
-      let reduced: { subscriptionId: string | null; count: number } | undefined;
-      if (!subscriptionId && existingSubscriptionId && currentPostId && extraLocations.length < paidExtraCount) {
+      let paid: { subscriptionId: string | null; count: number } | undefined;
+      if (subscriptionId) {
+        // Just paid for extra locations: the server records the paid quantity
+        // (the database only accepts that many on a live post) and cancels the
+        // subscription this one replaces, before the post is saved.
+        if (!currentPostId) throw new Error('No post to attach the payment to');
+        const r = await confirmListingSubscription(currentPostId, subscriptionId);
+        paid = { subscriptionId, count: r.paidExtraLocations };
+      } else if (existingSubscriptionId && currentPostId && extraLocations.length < paidExtraCount) {
         const r = await reduceListingSubscription(currentPostId, extraLocations.length);
-        reduced = { subscriptionId: r.subscriptionId, count: r.paidExtraLocations };
-        setExistingSubscriptionId(r.subscriptionId);
-        setPaidExtraCount(r.paidExtraLocations);
+        paid = { subscriptionId: r.subscriptionId, count: r.paidExtraLocations };
       }
-      const payload = await buildPayload(finalStatus, subscriptionId, reduced);
+      if (paid) {
+        setExistingSubscriptionId(paid.subscriptionId);
+        setPaidExtraCount(paid.count);
+      }
+      const payload = await buildPayload(finalStatus, undefined, paid);
       let publishedId = currentPostId;
       if (currentPostId) {
         // update() (not set) so counters the form doesn't manage — views, clicks,
@@ -900,17 +909,6 @@ const PostService = () => {
         await set(newPostRef, { ...payload, createdAt: Date.now() });
         if (newPostRef.key) await set(dbRef(database, `users/${user.uid}/posts/${newPostRef.key}`), true);
         publishedId = newPostRef.key;
-      }
-
-      // A newly paid subscription (the seller added locations) replaces the old
-      // one only now that payment went through; its unused time is credited.
-      if (subscriptionId && existingSubscriptionId && existingSubscriptionId !== subscriptionId) {
-        cancelListingSubscription(existingSubscriptionId, { replaced: true })
-          .catch((err) => console.error('Could not cancel the replaced subscription', existingSubscriptionId, err));
-      }
-      if (subscriptionId) {
-        setExistingSubscriptionId(subscriptionId);
-        setPaidExtraCount(extraLocations.length);
       }
 
       // Give the live post its permanent /posts/ address (no-op once it has one).

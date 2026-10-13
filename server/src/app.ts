@@ -34,6 +34,7 @@ import {
 } from './email';
 import { leaveOutreach } from './saleshandy';
 import { submitReview, legacyServiceReviews } from './reviews';
+import { syncService, confirmPaid, applyPaid, syncSubscriptionEvent, reconcileAll } from './listingPaid';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -213,6 +214,10 @@ app.post(
         await handleDisputeChange(event.data.object as Stripe.Dispute, 'closed');
       } else if (event.type === 'account.updated') {
         await handleAccountUpdated(event.data.object as Stripe.Account);
+      } else if (event.type === 'customer.subscription.deleted' || event.type === 'customer.subscription.updated') {
+        // A post's location subscription ended or changed in Stripe: its paid
+        // extra locations follow (see listingPaid.ts).
+        await syncSubscriptionEvent(event.data.object as Stripe.Subscription);
       }
     } catch (err) {
       console.error(`Error handling ${event.type}:`, err);
@@ -1878,6 +1883,21 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
       return;
     }
 
+    // This sends a Gigspace-branded email with text the browser supplies, so
+    // it is only for people who actually deal with each other — a chat or an
+    // order between them — and the sender's name comes from their profile,
+    // not the request. Otherwise anyone signed in could email any user
+    // anything "from Gigspace".
+    const senderUid = req.uid!;
+    if (senderUid === recipientUid || !(await haveDealings(senderUid, recipientUid))) {
+      res.status(403).json({ error: 'No conversation or order with this user' });
+      return;
+    }
+    const senderProfileName = (await db.ref(`users/${senderUid}/name`).get()).val();
+    payload.senderName = typeof senderProfileName === 'string' && senderProfileName ? senderProfileName : 'A Gigspace user';
+    payload.title = String(payload.title).slice(0, 200);
+    payload.body = String(payload.body ?? '').slice(0, 1000);
+
     // The buyer's payment-success notification reuses type 'offer_accepted'
     // (a seller-only email). Never email an offer_accepted to the buyer side.
     if (payload.type === 'offer_accepted' && payload.dashboardType === 'buyer') {
@@ -1903,6 +1923,24 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
     res.status(500).json({ error: msg });
   }
 });
+
+// Whether two users have a conversation or an order together. Conversation ids
+// are `${buyerId}_${sellerId}` (ChatMessages.getConversationId).
+async function haveDealings(a: string, b: string): Promise<boolean> {
+  const [c1, c2] = await Promise.all([
+    db.ref(`conversations/${a}_${b}/buyerId`).get(),
+    db.ref(`conversations/${b}_${a}/buyerId`).get(),
+  ]);
+  if (c1.exists() || c2.exists()) return true;
+  const [asBuyer, asSeller] = await Promise.all([
+    db.ref('orders').orderByChild('buyerId').equalTo(a).get(),
+    db.ref('orders').orderByChild('sellerId').equalTo(a).get(),
+  ]);
+  let found = false;
+  asBuyer.forEach((o) => { if (o.child('sellerId').val() === b) found = true; });
+  asSeller.forEach((o) => { if (o.child('buyerId').val() === b) found = true; });
+  return found;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/outreach/leave  (requires auth)
@@ -2540,9 +2578,10 @@ app.post('/api/subscriptions/preview-tax', requireAuth, async (req: AuthRequest,
 //   4. Return { clientSecret, subscriptionId }.
 //
 // A post that already has a subscription keeps it until the new one is paid:
-// the editor then calls cancel-listing-subscription with replaced:true. It used
-// to be cancelled here, before payment, so a seller who added a location and
-// abandoned checkout lost the locations they had already paid for.
+// the editor then calls confirm-listing-subscription, which records the new
+// one and cancels the old. It used to be cancelled here, before payment, so a
+// seller who added a location and abandoned checkout lost the locations they
+// had already paid for.
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -2700,7 +2739,9 @@ app.post('/api/subscriptions/listing-subscription-status', requireAuth, async (r
     const { serviceId } = req.body as { serviceId?: string };
     if (!serviceId) { res.status(400).json({ error: 'serviceId is required' }); return; }
     if (!(await sellerOwnsService(req.uid!, serviceId))) { res.status(403).json({ error: 'Not your post' }); return; }
-    const { subscriptionId, paid } = await paidExtraLocations(serviceId);
+    // Also brings the post's paid record in line with Stripe (listingPaid.ts).
+    const paid = await syncService(serviceId);
+    const subscriptionId = (await db.ref(`services/${serviceId}/subscriptionId`).get()).val() as string | null;
     res.json({ subscriptionId, paidExtraLocations: paid });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
@@ -2729,17 +2770,56 @@ app.post('/api/subscriptions/reduce-listing-subscription', requireAuth, async (r
     }
     if (count === 0) {
       await stripe.subscriptions.cancel(subscriptionId, { prorate: true });
-      await db.ref(`services/${serviceId}`).update({ subscriptionId: null, extraLocations: null });
     } else {
       await stripe.subscriptions.update(subscriptionId, {
         items: [{ id: itemId, quantity: count }],
         proration_behavior: 'create_prorations',
       });
     }
+    await applyPaid(serviceId, count === 0 ? null : subscriptionId, count);
     res.json({ subscriptionId: count === 0 ? null : subscriptionId, paidExtraLocations: count });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/subscriptions/reduce-listing-subscription error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/subscriptions/confirm-listing-subscription
+// After the seller pays for extra locations, and before the editor saves the
+// post: records the paid quantity (which the database rules check the post's
+// extra locations against) and cancels the subscription it replaces.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/subscriptions/confirm-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { serviceId, subscriptionId } = req.body as { serviceId?: string; subscriptionId?: string };
+    if (!serviceId || !subscriptionId) { res.status(400).json({ error: 'serviceId and subscriptionId are required' }); return; }
+    const paid = await confirmPaid(req.uid!, serviceId, subscriptionId);
+    res.json({ subscriptionId, paidExtraLocations: paid });
+  } catch (err) {
+    const status = (err as { status?: number }).status ?? 500;
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    if (status >= 500) console.error('/api/subscriptions/confirm-listing-subscription error:', msg);
+    res.status(status).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Daily reconcile of paid extra locations with Stripe (Vercel cron, see
+// vercel.json), so a subscription that ended takes its locations off the post
+// even if the webhook event is not enabled. Also runnable by an admin.
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/cron/reconcile-listing-subscriptions', async (req: Request, res: Response) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) { res.status(401).json({ error: 'Unauthorized' }); return; }
+  try {
+    const result = await reconcileAll();
+    console.log('[listingPaid] reconcile', JSON.stringify(result));
+    res.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/cron/reconcile-listing-subscriptions error:', msg);
     res.status(500).json({ error: msg });
   }
 });
@@ -2765,6 +2845,9 @@ app.post('/api/subscriptions/cancel-listing-subscription', requireAuth, async (r
     } catch {
       // Non-fatal: subscription may already be cancelled
     }
+    // The post it paid for (if any still points at it) loses those locations.
+    const owner = await db.ref('services').orderByChild('subscriptionId').equalTo(subscriptionId).limitToFirst(1).get();
+    if (owner.exists()) await applyPaid(Object.keys(owner.val())[0], null, 0);
     // A replacement is an upgrade, so no "downgraded" email.
     if (replaced) { res.json({ success: true }); return; }
 
