@@ -650,7 +650,7 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
       // Out of the sitemap first: the rules only let the seller touch seoIndex
       // while services/{id} still names them as owner. Non-fatal — a stale entry
       // just 404s, and Admin → Listings → "Generate SEO URLs" drops it.
-      try { await removeFromSitemap(post.id); } catch { /* non-fatal */ }
+      try { await removeFromSitemap(post.id); } catch (err) { console.error('[seo] could not remove from the sitemap', post.id, err); }
       await remove(ref(database, `services/${post.id}`));
       await remove(ref(database, `users/${user.uid}/posts/${post.id}`));
       onSuccess(post.id);
@@ -768,6 +768,9 @@ const SellerDashboard = () => {
     const unsub = onValue(q, (snap) => {
       const result: ServicePost[] = [];
       snap.forEach((child) => {
+        // Posts an admin removed are archived as 'deleted' (kept only for
+        // order history), not drafts: the seller can't see, edit or re-publish them.
+        if (child.child('status').val() === 'deleted') return;
         result.push({ id: child.key!, ...child.val() });
       });
       setPosts(result.sort((a, b) => b.createdAt - a.createdAt));

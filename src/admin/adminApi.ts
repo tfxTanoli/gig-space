@@ -62,6 +62,10 @@ export interface AdminMessage {
 export const adminGetOrderMessages = (orderId: string) =>
   authedFetch<{ messages: AdminMessage[]; conversationId: string }>(`/api/admin/orders/${orderId}/messages`);
 
+/** Recounts the order's seller's completed sales (the "New seller" badge, GIG-74). */
+export const adminRecountSellerSales = (orderId: string) =>
+  authedFetch<{ sellerId: string; sales: number }>(`/api/admin/orders/${orderId}/recount-seller-sales`, { method: 'POST' });
+
 export interface ListingBusiness {
   placeId: string;
   name: string;

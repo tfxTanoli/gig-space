@@ -32,7 +32,8 @@ import {
   buildOrderPlacedBuyerEmail,
   buildRefundIssuedBuyerEmail,
 } from './email';
-import { outreachConfigured, unsubscribeFromOutreach } from './saleshandy';
+import { leaveOutreach } from './saleshandy';
+import { submitReview, legacyServiceReviews } from './reviews';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -593,6 +594,12 @@ app.post('/api/checkout/verify-payment-intent', requireAuth, async (req: AuthReq
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/reviews/submit · GET /api/services/:id/reviews — see reviews.ts
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/reviews/submit', requireAuth, submitReview);
+app.get('/api/services/:id/reviews', legacyServiceReviews);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/orders/approve-delivery
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -638,8 +645,9 @@ app.post('/api/orders/approve-delivery', requireAuth, async (req: AuthRequest, r
     const updates: Record<string, unknown> = {
       [`orders/${orderId}/status`]: 'completed',
       [`orders/${orderId}/completedAt`]: now,
-      [`orders/${orderId}/paymentStatus`]: 'released',
     };
+    // Legacy orders from before escrow have no payment, so nothing is released.
+    if (order.paymentId) updates[`orders/${orderId}/paymentStatus`] = 'released';
     // Public count of the seller's completed sales, written in the same atomic
     // update as the status so the two can't drift. Posts show "New seller"
     // until it is at least 1 (GIG-74). Clients can read it but never write it.
@@ -1897,6 +1905,24 @@ app.post('/api/notifications/email', requireAuth, async (req: AuthRequest, res: 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/outreach/leave  (requires auth)
+// A new account leaves the Saleshandy cold-email sequence (GIG-76). Google
+// sign-ups create the account in the browser, so the account-type screen —
+// the first stop for every new account — calls this. Safe to repeat.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/outreach/leave', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const userRecord = await admin.auth().getUser(req.uid!);
+    await leaveOutreach(userRecord.email, 'new account');
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/outreach/leave error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/email/welcome
 // Sends a welcome email (seller / buyer / affiliate) after profile setup.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1911,16 +1937,10 @@ app.post('/api/email/welcome', requireAuth, async (req: AuthRequest, res: Respon
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
 
     // A business that creates an account leaves the cold-email sequence
-    // (GIG-76). This endpoint runs once, when the account is set up, for email
-    // and Google sign-ups alike. Best-effort: outreach must never stop a signup.
-    if (outreachConfigured()) {
-      try {
-        const n = await unsubscribeFromOutreach(userRecord.email);
-        if (n) console.log(`[outreach] ${userRecord.email} signed up; unsubscribed ${n} prospect(s)`);
-      } catch (e) {
-        console.error('[outreach] unsubscribe failed for', userRecord.email, e instanceof Error ? e.message : e);
-      }
-    }
+    // (GIG-76). That already happened when the account was created (see
+    // /api/outreach/leave); this repeat at profile setup is a backstop. It runs
+    // alongside the email rather than ahead of it, and never throws.
+    const leaving = leaveOutreach(userRecord.email, 'profile setup');
 
     const firstName = await getFirstNameByUid(uid, userRecord.displayName);
 
@@ -1940,6 +1960,7 @@ app.post('/api/email/welcome', requireAuth, async (req: AuthRequest, res: Respon
     html = html.replace(/Hi there,/g, `Hi ${firstName},`);
 
     await sendTransactionalEmail(userRecord.email, subject, html);
+    await leaving;
     res.json({ sent: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
@@ -2125,6 +2146,10 @@ app.post('/api/auth/send-verification-code', requireAuth, async (req: AuthReques
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
     const firstName = await getFirstNameByUid(uid, userRecord.displayName);
 
+    // The account exists now, so the business leaves the cold-email sequence
+    // even if they never finish verifying (GIG-76). Runs alongside the email.
+    const leaving = leaveOutreach(userRecord.email, 'email signup');
+
     const code = String(Math.floor(100000 + Math.random() * 900000));
     await db.ref(`verificationCodes/${uid}`).set({
       code,
@@ -2136,6 +2161,7 @@ app.post('/api/auth/send-verification-code', requireAuth, async (req: AuthReques
       'Your Gigspace verification code',
       buildVerificationCodeEmail(firstName, code)
     );
+    await leaving;
     res.json({ sent: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
@@ -2509,11 +2535,14 @@ app.post('/api/subscriptions/preview-tax', requireAuth, async (req: AuthRequest,
 //   2. Get/create the reusable "$5/month extra location" Price, cached in
 //      Firebase at settings/stripe/extraLocationPriceId so it's only created
 //      once. Override with env STRIPE_EXTRA_LOCATION_PRICE_ID if set.
-//   3. Cancel any existing subscription already stored on the service record
-//      (handles re-publishing after editing extra locations).
-//   4. Create a new subscription with payment_behavior:'default_incomplete'
+//   3. Create a new subscription with payment_behavior:'default_incomplete'
 //      so we get a PaymentIntent that the frontend must confirm with the card.
-//   5. Return { clientSecret, subscriptionId }.
+//   4. Return { clientSecret, subscriptionId }.
+//
+// A post that already has a subscription keeps it until the new one is paid:
+// the editor then calls cancel-listing-subscription with replaced:true. It used
+// to be cancelled here, before payment, so a seller who added a location and
+// abandoned checkout lost the locations they had already paid for.
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -2575,23 +2604,11 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
       await db.ref('settings/stripe/extraLocationPriceId').set(priceId);
     }
 
-    // 3. Cancel any existing subscription on this service ────────────────────
-    if (serviceId) {
-      const existingSubSnap = await db.ref(`services/${serviceId}/subscriptionId`).get();
-      const existingSubId = existingSubSnap.val() as string | null;
-      if (existingSubId) {
-        try {
-          await stripe.subscriptions.cancel(existingSubId);
-        } catch {
-          // Non-fatal: subscription may already be cancelled or not found.
-        }
-      }
-    }
-
-    // 4. Create subscription in incomplete state ───────────────────────────────
+    // 3. Create subscription in incomplete state ───────────────────────────────
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId, quantity: extraLocationCount }],
+      ...(serviceId ? { metadata: { serviceId } } : {}),
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription', payment_method_types: ['card', 'us_bank_account'] },
       automatic_tax: { enabled: true },
@@ -2635,20 +2652,121 @@ app.post('/api/subscriptions/create-listing-subscription', requireAuth, async (r
   }
 });
 
+// Whether this user is the Stripe customer a subscription bills, or an admin.
+async function ownsSubscription(uid: string, subscriptionId: string): Promise<boolean> {
+  const user = (await db.ref(`users/${uid}`).get()).val() as { role?: string; stripeCustomerId?: string } | null;
+  if (user?.role === 'admin') return true;
+  if (!user?.stripeCustomerId) return false;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    const customer = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
+    return customer === user.stripeCustomerId;
+  } catch {
+    return false;
+  }
+}
+
+/** The post's subscription and how many extra locations it currently pays for. */
+async function paidExtraLocations(serviceId: string): Promise<{ subscriptionId: string | null; paid: number; itemId: string | null }> {
+  const subscriptionId = (await db.ref(`services/${serviceId}/subscriptionId`).get()).val() as string | null;
+  if (!subscriptionId) return { subscriptionId: null, paid: 0, itemId: null };
+  try {
+    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    const item = sub.items.data[0];
+    // past_due still counts: Stripe is retrying the card and the seller keeps
+    // the locations until it gives up and the subscription ends.
+    const paying = ['active', 'trialing', 'past_due'].includes(sub.status);
+    return { subscriptionId, paid: paying ? (item?.quantity ?? 0) : 0, itemId: item?.id ?? null };
+  } catch {
+    return { subscriptionId, paid: 0, itemId: null };
+  }
+}
+
+async function sellerOwnsService(uid: string, serviceId: string): Promise<boolean> {
+  const [sellerId, role] = await Promise.all([
+    db.ref(`services/${serviceId}/sellerId`).get().then((s) => s.val()),
+    db.ref(`users/${uid}/role`).get().then((s) => s.val()),
+  ]);
+  return sellerId === uid || role === 'admin';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/subscriptions/listing-subscription-status
+// How many extra locations the post's subscription pays for, so editing a post
+// only asks for payment when the seller adds locations beyond that.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/subscriptions/listing-subscription-status', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { serviceId } = req.body as { serviceId?: string };
+    if (!serviceId) { res.status(400).json({ error: 'serviceId is required' }); return; }
+    if (!(await sellerOwnsService(req.uid!, serviceId))) { res.status(403).json({ error: 'Not your post' }); return; }
+    const { subscriptionId, paid } = await paidExtraLocations(serviceId);
+    res.json({ subscriptionId, paidExtraLocations: paid });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/subscriptions/listing-subscription-status error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/subscriptions/reduce-listing-subscription
+// The seller removed extra locations: bill for fewer from now on (prorated),
+// or end the subscription when none are left. Increases never come here —
+// they go through checkout.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/subscriptions/reduce-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { serviceId, extraLocationCount } = req.body as { serviceId?: string; extraLocationCount?: number };
+    const count = Number(extraLocationCount);
+    if (!serviceId || !Number.isInteger(count) || count < 0) {
+      res.status(400).json({ error: 'serviceId and a whole extraLocationCount are required' }); return;
+    }
+    if (!(await sellerOwnsService(req.uid!, serviceId))) { res.status(403).json({ error: 'Not your post' }); return; }
+    const { subscriptionId, paid, itemId } = await paidExtraLocations(serviceId);
+    if (!subscriptionId || !itemId || count >= paid) {
+      res.status(400).json({ error: 'Nothing to reduce' }); return;
+    }
+    if (count === 0) {
+      await stripe.subscriptions.cancel(subscriptionId, { prorate: true });
+      await db.ref(`services/${serviceId}`).update({ subscriptionId: null, extraLocations: null });
+    } else {
+      await stripe.subscriptions.update(subscriptionId, {
+        items: [{ id: itemId, quantity: count }],
+        proration_behavior: 'create_prorations',
+      });
+    }
+    res.json({ subscriptionId: count === 0 ? null : subscriptionId, paidExtraLocations: count });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/subscriptions/reduce-listing-subscription error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/subscriptions/cancel-listing-subscription
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/subscriptions/cancel-listing-subscription', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { subscriptionId } = req.body as { subscriptionId: string };
+    const { subscriptionId, replaced } = req.body as { subscriptionId: string; replaced?: boolean };
     if (!subscriptionId) {
       res.status(400).json({ error: 'subscriptionId is required' }); return;
     }
+    // Subscription ids are public on posts, so check the caller is the
+    // customer it bills (or an admin) before cancelling anything.
+    if (!(await ownsSubscription(req.uid!, subscriptionId))) {
+      res.status(403).json({ error: 'Not your subscription' }); return;
+    }
     try {
-      await stripe.subscriptions.cancel(subscriptionId);
+      // When a paid replacement takes over (the seller added locations), the
+      // unused time on the old one is credited to the next invoice.
+      await stripe.subscriptions.cancel(subscriptionId, replaced ? { prorate: true } : undefined);
     } catch {
       // Non-fatal: subscription may already be cancelled
     }
+    // A replacement is an upgrade, so no "downgraded" email.
+    if (replaced) { res.json({ success: true }); return; }
 
     // Send downgrade email BEFORE responding — serverless containers freeze after res.json()
     try {

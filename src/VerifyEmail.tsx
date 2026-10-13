@@ -4,13 +4,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
 import ThemeToggle from './ThemeToggle';
+import { safeNextPath } from './safeNext';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const next = searchParams.get('next');
+  const next = safeNextPath(searchParams.get('next'));
   const { user, loading: authLoading } = useAuth();
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState('');

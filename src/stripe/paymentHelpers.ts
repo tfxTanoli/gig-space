@@ -112,6 +112,14 @@ export async function approveDelivery(orderId: string): Promise<void> {
 }
 
 /**
+ * Leaves the buyer's or seller's review on a completed order. The server checks
+ * the order and updates every rating total; clients can no longer write those.
+ */
+export async function submitOrderReview(orderId: string, rating: number, text: string): Promise<void> {
+  await apiFetch<{ review: unknown }>('/api/reviews/submit', { orderId, rating, text });
+}
+
+/**
  * Returns the Stripe Connect onboarding URL for the seller.
  */
 export async function getStripeConnectLink(returnUrl?: string): Promise<string> {
@@ -191,6 +199,24 @@ export async function createListingSubscription(payload: {
   );
 }
 
-export async function cancelListingSubscription(subscriptionId: string): Promise<void> {
-  return apiFetch<void>('/api/subscriptions/cancel-listing-subscription', { subscriptionId });
+/**
+ * Ends a post's location subscription. `replaced` is for when a newly paid
+ * subscription takes over (the seller added locations): the old one's unused
+ * time is credited and no "downgraded" email goes out.
+ */
+export async function cancelListingSubscription(subscriptionId: string, opts: { replaced?: boolean } = {}): Promise<void> {
+  return apiFetch<void>('/api/subscriptions/cancel-listing-subscription', {
+    subscriptionId,
+    ...(opts.replaced ? { replaced: true } : {}),
+  });
+}
+
+/** How many extra locations the post's subscription currently pays for. */
+export async function getListingSubscriptionStatus(serviceId: string): Promise<{ subscriptionId: string | null; paidExtraLocations: number }> {
+  return apiFetch('/api/subscriptions/listing-subscription-status', { serviceId });
+}
+
+/** Bills for fewer extra locations from now on, or ends the subscription at 0. */
+export async function reduceListingSubscription(serviceId: string, extraLocationCount: number): Promise<{ subscriptionId: string | null; paidExtraLocations: number }> {
+  return apiFetch('/api/subscriptions/reduce-listing-subscription', { serviceId, extraLocationCount });
 }

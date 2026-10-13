@@ -5,13 +5,13 @@ import {
   FileText, FileArchive, Film, ImageIcon, Download,
   Star, Loader2, ShieldCheck,
 } from 'lucide-react';
-import { ref, onValue, push, update, increment } from 'firebase/database';
+import { ref, onValue, push, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { database, storage } from './firebase';
 import { useAuth } from './AuthContext';
 import { UserAvatar } from './UserAvatar';
 import ReviewModal from './ReviewModal';
-import { approveDelivery as approveDeliveryFn } from './stripe/paymentHelpers';
+import { approveDelivery as approveDeliveryFn, submitOrderReview } from './stripe/paymentHelpers';
 import { sendNotification } from './notifications/notificationHelpers';
 import { formatAmount, formatMoney } from './utils/currency';
 
@@ -255,23 +255,15 @@ export default function OrderDetail({
     }
   };
 
-  // Calls the Cloud Function which atomically marks the order complete
-  // and releases escrow funds from pendingBalance → availableBalance.
-  // Falls back gracefully for legacy orders without a paymentId.
+  // The server atomically marks the order complete, releases escrow funds
+  // from pendingBalance → availableBalance, and counts the seller's sale.
+  // Legacy orders without a paymentId go the same way; there is just nothing
+  // to release.
   const handleApproveDelivery = async () => {
     if (approvingDelivery) return;
     setApprovingDelivery(true);
     try {
-      if (order.paymentId) {
-        // New orders — use the Cloud Function for atomic escrow release
-        await approveDeliveryFn(order.id);
-      } else {
-        // Legacy orders — no escrow, just update status directly
-        await update(ref(database, `orders/${order.id}`), {
-          status: 'completed',
-          completedAt: Date.now(),
-        });
-      }
+      await approveDeliveryFn(order.id);
       showToastMsg('Delivery accepted! Payment released to seller.');
       // Notify the seller that the buyer approved their delivery
       sendNotification(order.sellerId, {
@@ -365,33 +357,10 @@ export default function OrderDetail({
   const submitReview = async (rating: number, reviewText: string) => {
     if (!user || !userProfile) return;
     const reviewedUserId = mode === 'buyer' ? order.sellerId : order.buyerId;
-    const reviewKey = mode === 'buyer' ? 'buyerReview' : 'sellerReview';
-    const reviewData: ReviewData = {
-      rating,
-      text: reviewText,
-      reviewerId: user.uid,
-      reviewerName: userProfile.name,
-      reviewerPhoto: userProfile.photoURL || '',
-      reviewedUserId,
-      timestamp: Date.now(),
-    };
-    const updates: Record<string, unknown> = {
-      [`reviews/${order.id}/${reviewKey}`]: reviewData,
-      [`userRatings/${reviewedUserId}/totalStars`]: increment(rating),
-      [`userRatings/${reviewedUserId}/reviewCount`]: increment(1),
-    };
-
-    // Denormalize buyer reviews so ServiceDetail can display them per service
-    if (mode === 'buyer') {
-      updates[`serviceReviews/${order.serviceId}/${order.id}`] = {
-        ...reviewData,
-        serviceTitle: order.serviceTitle,
-      };
-      updates[`services/${order.serviceId}/reviewCount`] = increment(1);
-      updates[`services/${order.serviceId}/totalStars`] = increment(rating);
-    }
-
-    await update(ref(database), updates);
+    // The server checks the order is completed and this user's to review, then
+    // writes the review with every total it feeds (the post's rating, the
+    // reviewed user's rating). The review itself arrives through the listener.
+    await submitOrderReview(order.id, rating, reviewText);
 
     // Notify the reviewed user (fire-and-forget)
     // Buyer reviews seller → notification goes to seller dashboard; seller reviews buyer → buyer dashboard

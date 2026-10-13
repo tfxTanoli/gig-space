@@ -3,6 +3,8 @@ import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 import { sendTransactionalEmail, buildAccountDeactivatedEmail } from '../email';
 import { stripe } from '../stripeClient';
+import { recountSellerSales } from '../sellerSales';
+import { leaveOutreach } from '../saleshandy';
 
 // Resolve a user's first name for emails — the real name lives in the DB
 // (users/{uid}/name); Firebase Auth displayName is often empty.
@@ -513,6 +515,25 @@ export async function getOrderMessages(req: AdminRequest, res: Response): Promis
   }
 }
 
+// ─── Seller's completed-sale count after an admin status change ─────────────────
+// The admin order editor writes the order straight to RTDB, and marking an order
+// Completed there is how a dispute is settled in the seller's favour. sellerSales
+// is server-only, so the editor calls this afterwards to bring the seller's
+// "New seller" badge in line (see sellerSales.ts).
+export async function recountOrderSellerSales(req: AdminRequest, res: Response): Promise<void> {
+  try {
+    const { orderId } = req.params;
+    const sellerId = (await admin.database().ref(`orders/${orderId}/sellerId`).get()).val();
+    if (typeof sellerId !== 'string' || !sellerId) { res.status(404).json({ error: 'Order or seller not found' }); return; }
+    const sales = await recountSellerSales(sellerId);
+    res.json({ sellerId, sales });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('/api/admin/orders/:orderId/recount-seller-sales error:', msg);
+    res.status(500).json({ error: msg });
+  }
+}
+
 // ─── Deactivate / reactivate (auth-level, reversible) ───────────────────────────
 // Soft, reversible alternative to deleteUser: disables the Firebase Auth account
 // (blocking sign-in) and mirrors a `disabled` flag into RTDB. Revokes existing
@@ -621,6 +642,8 @@ export async function createUser(req: AdminRequest, res: Response): Promise<void
       createdAt: Date.now(),
     };
     await admin.database().ref(`users/${rec.uid}`).set(profile);
+    // A business with an account leaves the cold-email sequence (GIG-76).
+    await leaveOutreach(profile.email, 'admin-created user');
 
     res.json({ uid: rec.uid, ...profile });
   } catch (err) {
@@ -908,6 +931,7 @@ export async function createAffiliate(req: AdminRequest, res: Response): Promise
       }),
       db.ref(`affiliateCodes/${referralCode}`).set(rec.uid),
     ]);
+    await leaveOutreach(profile.email, 'admin-created affiliate');
 
     res.json({ uid: rec.uid, referralCode, ...profile });
   } catch (err) {

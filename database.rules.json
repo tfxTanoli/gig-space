@@ -25,18 +25,20 @@
       ".read": true,
       ".indexOn": ["sellerId", "createdAt"],
       "$postId": {
-        ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.exists() ? newData.child('sellerId').val() === auth.uid : data.child('sellerId').val() === auth.uid))",
+        ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && newData.child('sellerId').val() === auth.uid) || (data.exists() && data.child('sellerId').val() === auth.uid && data.child('status').val() !== 'deleted' && (!newData.exists() || newData.child('sellerId').val() === auth.uid)))",
         "views": {
-          ".write": "auth !== null"
+          ".write": "auth !== null",
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
         },
         "clicks": {
-          ".write": "auth !== null"
+          ".write": "auth !== null",
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
         },
         "reviewCount": {
-          ".write": "auth !== null"
+          ".validate": "newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() === 'admin'"
         },
         "totalStars": {
-          ".write": "auth !== null"
+          ".validate": "newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() === 'admin'"
         }
       }
     },
@@ -62,7 +64,7 @@
     },
     "orders": {
       ".indexOn": ["buyerId", "sellerId", "serviceId"],
-      ".read": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'buyerId' && query.equalTo === auth.uid) || (query.orderByChild === 'sellerId' && query.equalTo === auth.uid) || (query.orderByChild === 'serviceId'))",
+      ".read": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'buyerId' && query.equalTo === auth.uid) || (query.orderByChild === 'sellerId' && query.equalTo === auth.uid))",
       "$orderId": {
         ".read": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid)",
         ".write": "auth !== null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() ? newData.child('buyerId').val() === auth.uid : data.child('buyerId').val() === auth.uid || data.child('sellerId').val() === auth.uid))"
@@ -94,13 +96,13 @@
     "userRatings": {
       "$uid": {
         ".read": true,
-        ".write": "auth !== null && auth.uid !== $uid"
+        ".write": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
       }
     },
     "serviceReviews": {
       "$serviceId": {
         ".read": true,
-        ".write": "auth !== null"
+        ".write": "auth !== null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
       }
     },
 
@@ -172,7 +174,7 @@
       ".indexOn": [".value"],
       "$code": {
         ".read": true,
-        ".write": "auth !== null && newData.val() === auth.uid"
+        ".write": "auth !== null && newData.val() === auth.uid && (!data.exists() || data.val() === auth.uid)"
       }
     },
 

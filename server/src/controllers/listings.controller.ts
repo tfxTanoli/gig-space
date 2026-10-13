@@ -4,6 +4,7 @@ import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 import { cardScore, pageImageCandidates, pickSitePhotos } from '../sitePhotos';
 import { addToOutreach, outreachConfigured } from '../saleshandy';
+import { safeFetch, readCapped } from '../safeFetch';
 
 // Google Places API (new). Provide GOOGLE_PLACES_API_KEY (or GOOGLE_MAPS_API_KEY)
 // in the server environment with Places API (New) enabled.
@@ -110,18 +111,20 @@ async function saveToStorage(body: Buffer, contentType: string, path: string): P
 }
 
 async function rehostPhoto(sourceUrl: string, folder: string, index: number, stem?: string): Promise<string> {
-  const resp = await fetch(sourceUrl, { redirect: 'follow' });
+  const resp = await safeFetch(sourceUrl, { timeoutMs: 15_000 });
   if (!resp.ok) throw new Error(`Google returned ${resp.status}`);
 
   const contentType = (resp.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
   if (!contentType.startsWith('image/')) throw new Error(`unexpected content-type "${contentType}"`);
+  const body = await readCapped(resp, 10_000_000);
+  if (!body) throw new Error('image over 10 MB');
 
   // The filename lands in the public image URL, and it is one of the few
   // image-SEO signals Google reads besides alt text. Fall back to the index
   // when no descriptive stem is available (older callers, repair runs).
   const name = stem ? `${stem}-${index + 1}` : String(index);
   const path = `${STORAGE_PREFIX}/${folder}/${name}.${EXT_BY_TYPE[contentType] ?? 'jpg'}`;
-  return saveToStorage(Buffer.from(await resp.arrayBuffer()), contentType, path);
+  return saveToStorage(body, contentType, path);
 }
 
 /**
@@ -183,25 +186,20 @@ const IMAGE_FETCH_TIMEOUT = 4000;
 const LOGO_BUDGET_MS = 15000;
 
 async function fetchImage(url: string, timeoutMs = IMAGE_FETCH_TIMEOUT): Promise<FetchedImage | null> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const resp = await fetch(url, {
-      signal: ctrl.signal,
-      redirect: 'follow',
+    const resp = await safeFetch(url, {
+      timeoutMs,
       headers: { 'User-Agent': BROWSER_UA, Accept: 'image/*' },
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) { await resp.body?.cancel(); return null; }
     const contentType = (resp.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-    if (!contentType.startsWith('image/')) return null;
-    const body = Buffer.from(await resp.arrayBuffer());
+    if (!contentType.startsWith('image/')) { await resp.body?.cancel(); return null; }
+    const body = await readCapped(resp, 2_000_000);
     // Anything this small is a tracking pixel or a broken placeholder, not a logo.
-    if (body.length < 256) return null;
+    if (!body || body.length < 256) return null;
     return { body, contentType };
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -434,23 +432,20 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
 // business's own website. Every step degrades gracefully to the Places data.
 
 async function fetchPage(url: string, timeoutMs = 6000): Promise<string> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const resp = await fetch(url, {
-      signal: ctrl.signal,
-      redirect: 'follow',
+    const resp = await safeFetch(url, {
+      timeoutMs,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; GigspaceBot/1.0; +https://gigspace.co)',
         Accept: 'text/html,application/xhtml+xml',
       },
     });
-    if (!resp.ok || !(resp.headers.get('content-type') ?? '').includes('html')) return '';
-    return await resp.text();
+    if (!resp.ok || !(resp.headers.get('content-type') ?? '').includes('html')) { await resp.body?.cancel(); return ''; }
+    // A homepage over 3 MB is not worth scraping; give up rather than buffer it.
+    const body = await readCapped(resp, 3_000_000);
+    return body ? body.toString('utf8') : '';
   } catch {
     return '';
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -1479,8 +1474,18 @@ export async function addListingToOutreach(req: AdminRequest, res: Response): Pr
     const s = (await db.ref(`services/${serviceId}`).get()).val() as Record<string, unknown> | null;
     if (!s) { res.status(404).json({ error: 'Post not found' }); return; }
     if (s.status !== 'active') { res.json({ added: false, reason: 'not_live' }); return; }
+    if (s.source !== 'google') { res.json({ added: false, reason: 'not_generated' }); return; }
     const email = String(s.contactEmail ?? '').trim();
     if (!email) { res.json({ added: false, reason: 'no_email' }); return; }
+    // A business that already has a Gigspace account must not be cold-emailed
+    // to "claim" it (their signup already took them out of the sequence).
+    try {
+      await admin.auth().getUserByEmail(email.toLowerCase());
+      res.json({ added: false, reason: 'has_account' });
+      return;
+    } catch (e) {
+      if ((e as { code?: string }).code !== 'auth/user-not-found') throw e;
+    }
 
     const category = String(s.category ?? '');
     const subcategory = String(s.subcategory ?? '');

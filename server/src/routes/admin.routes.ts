@@ -4,7 +4,7 @@ import {
   getStats,
   getUsers, updateUser, deleteUser, setUserDisabled, impersonateUser, createUser,
   getServices, updateService, deleteService,
-  getOrders, getOrderMessages,
+  getOrders, getOrderMessages, recountOrderSellerSales,
   getAffiliates, createAffiliate,
   getSubscriptions, cancelSubscription,
   getUserStats,
@@ -28,6 +28,7 @@ router.patch('/services/:id',    verifyAdmin, updateService);
 router.delete('/services/:id',   verifyAdmin, deleteService);
 router.get('/orders',         verifyAdmin, getOrders);
 router.get('/orders/:orderId/messages', verifyAdmin, getOrderMessages);
+router.post('/orders/:orderId/recount-seller-sales', verifyAdmin, recountOrderSellerSales);
 router.get('/affiliates',     verifyAdmin, getAffiliates);
 router.post('/affiliates',    verifyAdmin, createAffiliate);
 router.get('/subscriptions',           verifyAdmin, getSubscriptions);
