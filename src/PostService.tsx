@@ -31,7 +31,7 @@ import { useCategories } from './CategoriesContext';
 import { ensureSeoPath } from './seo/ensureSeoPath';
 import { slugify } from './seo/slug';
 import { geocodeLocation, searchLocations, isCountryName, type LocationResult } from './photon';
-import { createListingSubscription, previewSubscriptionTax } from './stripe/paymentHelpers';
+import { createListingSubscription, previewSubscriptionTax, getListingSubscriptionStatus, reduceListingSubscription, confirmListingSubscription } from './stripe/paymentHelpers';
 import type { BillingAddress, TaxBreakdown } from './stripe/types';
 import { stripeAppearance, STRIPE_FONTS } from './stripe/stripeAppearance';
 import { useTheme } from './theme';
@@ -365,6 +365,10 @@ const PostService = () => {
   const [extraLocations, setExtraLocations] = useState<string[]>([]);
   // Existing listing subscription (when editing) — preserved so edits don't drop it.
   const [existingSubscriptionId, setExistingSubscriptionId] = useState<string | null>(null);
+  // How many extra locations the post's subscription already pays for. Editing
+  // only asks for payment when the seller goes beyond it; it used to ask again
+  // (and replace the subscription) on every save of a post with extras.
+  const [paidExtraCount, setPaidExtraCount] = useState(0);
   const [extraLocationInput, setExtraLocationInput] = useState('');
   const [extraLocationSuggestions, setExtraLocationSuggestions] = useState<LocationResult[]>([]);
   const [extraLocationLoading, setExtraLocationLoading] = useState(false);
@@ -461,6 +465,8 @@ const PostService = () => {
         if (!snap.exists()) { navigate('/seller-dashboard'); return; }
         const d = snap.val() as Record<string, unknown>;
         if (d.sellerId !== user.uid) { navigate('/seller-dashboard'); return; }
+        // Removed by an admin and archived for order history: not editable.
+        if (d.status === 'deleted') { navigate('/seller-dashboard'); return; }
 
         setLoadedStatus(typeof d.status === 'string' ? d.status : 'active');
         setOriginalCreatedAt(Number(d.createdAt ?? 0));
@@ -479,6 +485,15 @@ const PostService = () => {
         const loadedPrimaryLocation = String(d.primaryLocation ?? '');
         setPrimaryLocation(loadedPrimaryLocation);
         setExistingSubscriptionId(typeof d.subscriptionId === 'string' ? d.subscriptionId : null);
+        if (typeof d.subscriptionId === 'string' && d.subscriptionId) {
+          // The live post's saved extras are the paid ones; start from that so a
+          // quick save can't drop them, then take Stripe's answer, which also
+          // catches a subscription that has since ended.
+          setPaidExtraCount(Array.isArray(d.extraLocations) ? d.extraLocations.length : 0);
+          getListingSubscriptionStatus(id)
+            .then((r) => setPaidExtraCount(r.paidExtraLocations))
+            .catch(() => { /* keep the saved count */ });
+        }
         setOfferedRemotely(Boolean(d.offeredRemotely ?? false));
         // Whether the primary location is a country gates the Remote toggle. A recognised
         // country name always qualifies (self-healing for older posts, and for posts whose
@@ -741,7 +756,12 @@ const PostService = () => {
   };
 
   // ── Build payload ──────────────────────────────────────────────────────────
-  const buildPayload = async (status: 'draft' | 'active' | 'paused', subscriptionId?: string) => {
+  const buildPayload = async (
+    status: 'draft' | 'active' | 'paused',
+    subscriptionId?: string,
+    // Overrides for a publish that just changed the subscription (reduced to 0).
+    paid?: { subscriptionId: string | null; count: number },
+  ) => {
     let currentDescription = description;
     if (descriptionRef.current) {
       currentDescription = sanitizeHtml(descriptionRef.current.innerHTML);
@@ -763,7 +783,12 @@ const PostService = () => {
       if (coords) { primaryLocationLat = coords.lat; primaryLocationLng = coords.lng; }
     }
 
-    const effectiveSubscriptionId = subscriptionId ?? existingSubscriptionId ?? null;
+    const effectiveSubscriptionId = paid ? paid.subscriptionId : (subscriptionId ?? existingSubscriptionId ?? null);
+    // A fresh payment covers every selected location; otherwise only what the
+    // existing subscription pays for, and nothing without one.
+    const paidCount = subscriptionId ? extraLocations.length
+      : paid ? paid.count
+      : effectiveSubscriptionId ? paidExtraCount : 0;
 
     return {
       sellerId: user!.uid,
@@ -785,10 +810,11 @@ const PostService = () => {
       primaryLocationLng,
       primaryLocationIsCountry,
       offeredRemotely,
-      // Extra (paid) locations only stick on an ACTIVE post backed by a listing
-      // subscription — otherwise they'd be free. Kept on drafts so the seller's
-      // selections survive until they pay at the final step.
-      extraLocations: (status === 'active' && !effectiveSubscriptionId) ? [] : extraLocations,
+      // Extra locations are paid for. A live or paused post keeps only the ones
+      // its subscription covers, so none go live unpaid — including through a
+      // paused post an admin later re-activates. Drafts keep every selection
+      // until the seller pays at the final step.
+      extraLocations: status === 'draft' ? extraLocations : extraLocations.slice(0, paidCount),
       subscriptionId: effectiveSubscriptionId,
       status,
       updatedAt: Date.now(),
@@ -852,8 +878,27 @@ const PostService = () => {
       // A paused post (paused by an admin, say) stays paused when its seller saves
       // an edit — saving changes is not the same as un-pausing.
       const finalStatus = isLiveEdit && loadedStatus === 'paused' ? 'paused' : 'active';
-      const payload = await buildPayload(finalStatus, subscriptionId);
       const currentPostId = editId ?? draftId;
+      // Fewer extra locations than the subscription pays for: bill for fewer
+      // from now on (or end it at none) before saving. Without this the seller
+      // kept paying for locations they had removed.
+      let paid: { subscriptionId: string | null; count: number } | undefined;
+      if (subscriptionId) {
+        // Just paid for extra locations: the server records the paid quantity
+        // (the database only accepts that many on a live post) and cancels the
+        // subscription this one replaces, before the post is saved.
+        if (!currentPostId) throw new Error('No post to attach the payment to');
+        const r = await confirmListingSubscription(currentPostId, subscriptionId);
+        paid = { subscriptionId, count: r.paidExtraLocations };
+      } else if (existingSubscriptionId && currentPostId && extraLocations.length < paidExtraCount) {
+        const r = await reduceListingSubscription(currentPostId, extraLocations.length);
+        paid = { subscriptionId: r.subscriptionId, count: r.paidExtraLocations };
+      }
+      if (paid) {
+        setExistingSubscriptionId(paid.subscriptionId);
+        setPaidExtraCount(paid.count);
+      }
+      const payload = await buildPayload(finalStatus, undefined, paid);
       let publishedId = currentPostId;
       if (currentPostId) {
         // update() (not set) so counters the form doesn't manage — views, clicks,
@@ -1481,7 +1526,7 @@ const PostService = () => {
 
       // ── STEP 8: Publish Post ──────────────────────────────────────────────
       case 8: {
-        const hasExtraLocations = extraLocations.length > 0;
+        const hasExtraLocations = extraLocations.length > paidExtraCount;
 
         return (
           <div className="space-y-8">
@@ -1581,7 +1626,9 @@ const PostService = () => {
                 {isLiveEdit ? 'Post updated!' : 'Your post is live!'}
               </h2>
               <p className="text-slate-400 text-sm mb-6 text-center">
-                {isLiveEdit
+                {isLiveEdit && loadedStatus === 'paused'
+                  ? 'Your changes have been saved. This post is paused, so buyers won\u2019t see it until it is active again.'
+                  : isLiveEdit
                   ? 'Your changes have been saved. Buyers can now see the updated listing.'
                   : 'Sellers who share their posts on social media get up to 3× more views. Share yours now!'}
               </p>
@@ -1628,7 +1675,7 @@ const PostService = () => {
     );
   }
 
-  const isStep8WithPayment = step === 8 && extraLocations.length > 0;
+  const isStep8WithPayment = step === 8 && extraLocations.length > paidExtraCount;
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col items-center">

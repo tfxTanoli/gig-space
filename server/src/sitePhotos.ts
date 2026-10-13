@@ -13,6 +13,7 @@
  * badge on two of the first six sites tested, so both stages filter hard.
  */
 import { createHash } from 'crypto';
+import { safeFetch, readCapped } from './safeFetch';
 
 // Words that mark an image as page furniture rather than a photo of the work.
 // Matched against whole tokens of the URL, alt text and class, so "silicone"
@@ -207,12 +208,11 @@ export interface SitePhoto {
 const CONTENT_EXT: Record<string, true> = { 'image/jpeg': true, 'image/png': true, 'image/webp': true };
 
 async function download(url: string, referer: string, timeoutMs: number): Promise<SitePhoto | null> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const resp = await fetch(url, {
-      signal: ctrl.signal,
-      redirect: 'follow',
+    // safeFetch refuses private/internal addresses at every redirect hop: these
+    // URLs come from third-party HTML.
+    const resp = await safeFetch(url, {
+      timeoutMs,
       headers: {
         // Some hosts refuse obvious bots or requests without a referring page.
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',
@@ -220,13 +220,13 @@ async function download(url: string, referer: string, timeoutMs: number): Promis
         ...(referer ? { Referer: referer } : {}),
       },
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) { await resp.body?.cancel(); return null; }
     const contentType = (resp.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-    if (!CONTENT_EXT[contentType]) return null;
-    const body = Buffer.from(await resp.arrayBuffer());
+    if (!CONTENT_EXT[contentType]) { await resp.body?.cancel(); return null; }
     // Over 3 MB is an unoptimised original (one site served a 7.7 MB PNG) —
-    // too heavy to put in front of every visitor.
-    if (body.length < 10_000 || body.length > 3_000_000) return null;
+    // too heavy to put in front of every visitor. Abandoned mid-download.
+    const body = await readCapped(resp, 3_000_000);
+    if (!body || body.length < 10_000) return null;
     if (looksLikeGraphic(body)) return null;
     const d = imageDimensions(body);
     if (!d) return null;
@@ -240,8 +240,6 @@ async function download(url: string, referer: string, timeoutMs: number): Promis
     return { url, body, contentType, width: d.w, height: d.h };
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
 

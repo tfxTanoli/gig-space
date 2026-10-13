@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
 import ThemeToggle from './ThemeToggle';
+import { safeNextPath } from './safeNext';
 
 const b64url = (buf: Uint8Array) =>
   btoa(String.fromCharCode(...buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -35,7 +36,7 @@ const Signin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // Kept at component scope so the link across to signup can carry it too.
-  const nextParam = searchParams.get('next');
+  const nextParam = safeNextPath(searchParams.get('next'));
   const { user, userProfile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,13 +46,13 @@ const Signin = () => {
   // Navigate as soon as auth state resolves with a signed-in user.
   useEffect(() => {
     if (authLoading || !user) return;
-    // Honour an explicit ?next= redirect from the referring page (relative paths only)
-    const next = searchParams.get('next');
+    // Honour an explicit ?next= redirect from the referring page (same-site paths only)
+    const next = safeNextPath(searchParams.get('next'));
     if (!userProfile?.accountType) {
-      navigate(next && next.startsWith('/') ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
+      navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
       return;
     }
-    if (next && next.startsWith('/')) {
+    if (next) {
       navigate(next);
       return;
     }
@@ -109,7 +110,7 @@ const Signin = () => {
       sessionStorage.setItem('oauthCodeVerifier', codeVerifier);
       sessionStorage.setItem('oauthState', state);
 
-      const next = searchParams.get('next');
+      const next = safeNextPath(searchParams.get('next'));
       if (next) sessionStorage.setItem('oauthNext', next);
 
       const params = new URLSearchParams({

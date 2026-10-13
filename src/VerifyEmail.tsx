@@ -4,13 +4,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
 import ThemeToggle from './ThemeToggle';
+import { safeNextPath } from './safeNext';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const next = searchParams.get('next');
+  const next = safeNextPath(searchParams.get('next'));
   const { user, loading: authLoading } = useAuth();
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState('');
@@ -78,8 +79,11 @@ const VerifyEmail = () => {
         setSubmitting(false);
         return;
       }
-      // Refresh so the account's new verified state (and the Verified badge) is reflected.
+      // Refresh so the account's new verified state (and the Verified badge) is
+      // reflected — including in the sign-in token, whose email_verified claim
+      // the database rules require before a profile can be marked verified.
       await auth.currentUser?.reload().catch(() => {});
+      await auth.currentUser?.getIdToken(true).catch(() => {});
       sessionStorage.removeItem('otpPending');
       navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
     } catch {

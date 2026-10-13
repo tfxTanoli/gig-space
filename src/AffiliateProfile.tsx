@@ -8,6 +8,7 @@ import { useAuth } from './AuthContext';
 import UsernameField from './UsernameField';
 import { normalizeUsername, validateUsername, claimUsername } from './username';
 import { useUsernameAvailability } from './useUsernameAvailability';
+import { safeNextPath } from './safeNext';
 
 const AffiliateProfile = () => {
   const { user } = useAuth();
@@ -26,7 +27,7 @@ const AffiliateProfile = () => {
   // Last step of signup: honour an onward redirect carried from the
   // signup link (relative paths only) instead of the default landing.
   const [searchParams] = useSearchParams();
-  const next = searchParams.get('next');
+  const next = safeNextPath(searchParams.get('next'));
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,7 +114,7 @@ const AffiliateProfile = () => {
         })
       ).catch(() => {});
 
-      if (next && next.startsWith('/')) { navigate(next); return; }
+      if (next) { navigate(next); return; }
       navigate('/affiliate-dashboard');
     } catch {
       setError('Failed to save profile. Please try again.');

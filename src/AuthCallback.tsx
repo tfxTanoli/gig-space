@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from './firebase';
 import { useAuth } from './AuthContext';
+import { safeNextPath } from './safeNext';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -96,13 +97,13 @@ const AuthCallback = () => {
     // Clean up the success marker now that we're leaving this route, so a
     // future sign-in from the same tab can run the exchange again.
     sessionStorage.removeItem('oauthExchangeComplete');
-    const next = sessionStorage.getItem('oauthNext');
+    const next = safeNextPath(sessionStorage.getItem('oauthNext'));
     sessionStorage.removeItem('oauthNext');
     if (!userProfile?.accountType) {
-      navigate(next && next.startsWith('/') ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
+      navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
       return;
     }
-    if (next && next.startsWith('/')) {
+    if (next) {
       navigate(next);
       return;
     }

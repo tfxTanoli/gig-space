@@ -11,7 +11,8 @@ import { ensureSeoPath, indexForSitemap, removeFromSitemap } from '../../seo/ens
 import type { SeoListing } from '../../seo/meta';
 import { LANGUAGES } from '../../data/languages';
 import { searchLocations, type LocationResult } from '../../photon';
-import { adminSearchListings, adminGenerateListings, adminRehostListingPhotos, adminAddListingToOutreach, type ListingBusiness } from '../adminApi';
+import { adminSearchListings, adminGenerateListings, adminRehostListingPhotos, type ListingBusiness } from '../adminApi';
+import { addToOutreachWithToast } from '../outreachToast';
 import AdminPostEditDrawer from './AdminPostEditDrawer';
 import AdminPagination from './AdminPagination';
 import { type AdminService } from './AdminServicesTable';
@@ -330,13 +331,7 @@ export default function AdminListingsTab() {
     if (g) { try { await ensureSeoPath(id, g, seoLabels); } catch { /* covered by the bulk action */ } }
     // Now that the post is live with its /posts/ address, the business enters
     // the Saleshandy sequence (GIG-76). Never blocks the publish itself.
-    try {
-      const r = await adminAddListingToOutreach(id);
-      if (r.added) toast.success('Added to the Saleshandy sequence.');
-      else if (r.reason === 'no_email') toast.warning('Not added to Saleshandy: this post has no contact email.');
-    } catch (err) {
-      toast.error(`Published, but not added to Saleshandy: ${err instanceof Error ? err.message : 'request failed'}`);
-    }
+    await addToOutreachWithToast(id);
   };
 
   // Every live listing (generated or seller-made) that has no permanent

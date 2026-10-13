@@ -10,7 +10,7 @@ import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
 import { UserAvatar } from './UserAvatar';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
-import { ref, get, onValue, query, orderByChild, equalTo, update, increment } from 'firebase/database';
+import { ref, get, onValue, update, increment } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { formatAmount } from './utils/currency';
@@ -22,6 +22,8 @@ import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from 'rea
 import L from 'leaflet';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 /* ─── Types ─── */
 
@@ -529,42 +531,24 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
           ).map(([orderId, r]) => ({ orderId, ...r }));
           setReviews(list.sort((a, b) => b.timestamp - a.timestamp));
           setReviewsLoading(false);
-        } else {
-          const ordersQ = query(
-            ref(database, 'orders'),
-            orderByChild('serviceId'),
-            equalTo(post.id)
-          );
-          get(ordersQ)
-            .then((ordersSnap) => {
-              if (!ordersSnap.exists()) { setReviews([]); setReviewsLoading(false); return; }
-              const completedIds: string[] = [];
-              ordersSnap.forEach((c) => {
-                if (c.val().status === 'completed') completedIds.push(c.key!);
-              });
-              if (completedIds.length === 0) { setReviews([]); setReviewsLoading(false); return; }
-              Promise.all(
-                completedIds.map((id) => get(ref(database, `reviews/${id}/buyerReview`)))
-              ).then((snaps) => {
-                const list: ReviewItem[] = snaps
-                  .filter((s) => s.exists())
-                  .map((s) => ({
-                    orderId: s.ref.parent!.key!,
-                    ...s.val(),
-                    serviceTitle: post.title,
-                  }));
-                setReviews(list.sort((a, b) => b.timestamp - a.timestamp));
-                setReviewsLoading(false);
-              });
-            })
+        } else if ((post.reviewCount ?? 0) > 0) {
+          // Reviews left before they were copied onto the post. The server
+          // finds them (and copies them, so the next visit reads them above);
+          // reading the post's orders from the browser exposed every order.
+          fetch(`${API_URL}/api/services/${encodeURIComponent(post.id)}/reviews`)
+            .then((r) => (r.ok ? r.json() : { reviews: [] }))
+            .then((d: { reviews?: ReviewItem[] }) => { setReviews(d.reviews ?? []); setReviewsLoading(false); })
             .catch(() => { setReviews([]); setReviewsLoading(false); });
+        } else {
+          setReviews([]);
+          setReviewsLoading(false);
         }
       },
       () => { setReviews([]); setReviewsLoading(false); }
     );
 
     return () => unsub();
-  }, [post?.id, post?.title]);
+  }, [post?.id, post?.title, post?.reviewCount]);
 
   /* ── Loading ── */
   if (loading) {

@@ -304,16 +304,16 @@ export default function ChatMessages({
     const conv = conversations.find((c) => c.id === selectedConvId) ?? null;
     if (!conv) { setOtherUserInfo(null); return; }
     const otherId = mode === 'buyer' ? conv.sellerId : conv.buyerId;
-    const userRef = ref(database, `users/${otherId}`);
-    const unsub = onValue(userRef, (snap) => {
-      const d = snap.val();
-      setOtherUserInfo({
-        username: d?.username ?? '',
-        lastSeen: typeof d?.lastSeen === 'number' ? d.lastSeen : null,
-        online: d?.online === true,
-      });
-    });
-    return () => unsub();
+    // Only the public fields: another user's profile as a whole (email etc.)
+    // is private, so the node itself can't be read.
+    const info = { username: '', lastSeen: null as number | null, online: false };
+    const push = () => setOtherUserInfo({ ...info });
+    const unsubs = [
+      onValue(ref(database, `users/${otherId}/username`), (s) => { info.username = s.val() ?? ''; push(); }, () => {}),
+      onValue(ref(database, `users/${otherId}/lastSeen`), (s) => { info.lastSeen = typeof s.val() === 'number' ? s.val() : null; push(); }, () => {}),
+      onValue(ref(database, `users/${otherId}/online`), (s) => { info.online = s.val() === true; push(); }, () => {}),
+    ];
+    return () => unsubs.forEach((u) => u());
   }, [selectedConvId, conversations, mode]);
 
   // ── Auto-scroll ──

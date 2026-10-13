@@ -1,5 +1,7 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { safeNextPath } from './safeNext';
+import { useAuth } from './AuthContext';
 
 type AccountTypeOption = 'buyer' | 'seller' | 'affiliate';
 
@@ -28,9 +30,26 @@ const AccountType = () => {
   // Keep an onward redirect (e.g. a listing claim the user arrived for)
   // alive across the profile step — this screen sits in the middle of
   // signup, so dropping it here strands the user on their dashboard.
-  const next = searchParams.get('next');
+  const next = safeNextPath(searchParams.get('next'));
   const withNext = (path: string) =>
-    next && next.startsWith('/') ? `${path}?next=${encodeURIComponent(next)}` : path;
+    next ? `${path}?next=${encodeURIComponent(next)}` : path;
+
+  // Every new account passes through here, including Google sign-ups, whose
+  // accounts are created in the browser. A business that signs up leaves the
+  // Saleshandy cold-email sequence now, even if they never finish setup
+  // (GIG-76). Fire-and-forget; the server never fails the request over it.
+  const { user } = useAuth();
+  const leftOutreach = useRef(false);
+  useEffect(() => {
+    if (!user || leftOutreach.current) return;
+    leftOutreach.current = true;
+    user.getIdToken()
+      .then((token) => fetch(`${import.meta.env.VITE_API_URL || ''}/api/outreach/leave`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }))
+      .catch(() => { /* best-effort */ });
+  }, [user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

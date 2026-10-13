@@ -5,6 +5,7 @@ import { database } from '../../firebase';
 import { type AdminOrder } from './AdminOrdersTable';
 import AdminOrderMessagesModal from './AdminOrderMessagesModal';
 import { formatMoney } from '../../utils/currency';
+import { adminRecountSellerSales } from '../adminApi';
 
 interface Props {
   order: AdminOrder;
@@ -79,6 +80,14 @@ const AdminOrderEditModal = ({ order, onClose, onSuccess }: Props) => {
       }
 
       await update(dbRef(database), updates);
+
+      // Moving an order into or out of Completed changes the seller's sale
+      // count, which only the server can write. The order itself is already
+      // saved, so a failure here is logged rather than shown as a save error.
+      if ((status === 'completed') !== (order.status === 'completed')) {
+        await adminRecountSellerSales(order.orderId).catch((err) =>
+          console.error('Recounting seller sales failed:', err));
+      }
 
       onSuccess({
         ...order,

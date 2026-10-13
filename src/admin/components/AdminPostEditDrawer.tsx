@@ -8,6 +8,7 @@ import { adminDeleteService, adminRewriteTitle } from '../adminApi';
 import { type AdminService } from './AdminServicesTable';
 import { useCategories } from '../../CategoriesContext';
 import { ensureSeoPath, removeFromSitemap } from '../../seo/ensureSeoPath';
+import { addToOutreachWithToast } from '../outreachToast';
 import { type SeoListing } from '../../seo/meta';
 
 interface Props {
@@ -249,6 +250,11 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
         }
       } catch (err) {
         console.error('[seo] could not sync the sitemap for', service.id, err);
+      }
+      // A generated post taken live from here enters the Saleshandy sequence,
+      // the same as publishing it from the Listings tab (GIG-76).
+      if (fresh?.status === 'active' && service.status !== 'active' && fresh?.source === 'google') {
+        await addToOutreachWithToast(service.id);
       }
       const imgs  = Array.isArray(fresh?.images) ? (fresh.images as string[]) : [];
 

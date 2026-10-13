@@ -6,6 +6,7 @@ import { ref as dbRef, get } from 'firebase/database';
 import { auth, database } from './firebase';
 import { useAuth } from './AuthContext';
 import ThemeToggle from './ThemeToggle';
+import { safeNextPath } from './safeNext';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -47,7 +48,7 @@ const Signup = () => {
     }).catch(() => {});
   }, []);
 
-  const next = searchParams.get('next');
+  const next = safeNextPath(searchParams.get('next'));
 
   // As soon as auth resolves with a signed-in user, navigate away.
   // This fires for popup sign-in, email sign-up, and redirect returns.
@@ -62,7 +63,7 @@ const Signup = () => {
     if (!userProfile?.accountType) {
       navigate(next ? `/account-type?next=${encodeURIComponent(next)}` : '/account-type');
     } else {
-      if (next && next.startsWith('/')) {
+      if (next) {
         navigate(next);
         return;
       }
