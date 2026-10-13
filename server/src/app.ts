@@ -32,6 +32,7 @@ import {
   buildOrderPlacedBuyerEmail,
   buildRefundIssuedBuyerEmail,
 } from './email';
+import { outreachConfigured, unsubscribeFromOutreach } from './saleshandy';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -1908,6 +1909,19 @@ app.post('/api/email/welcome', requireAuth, async (req: AuthRequest, res: Respon
     }
     const userRecord = await admin.auth().getUser(uid);
     if (!userRecord.email) { res.json({ sent: false, reason: 'no_email' }); return; }
+
+    // A business that creates an account leaves the cold-email sequence
+    // (GIG-76). This endpoint runs once, when the account is set up, for email
+    // and Google sign-ups alike. Best-effort: outreach must never stop a signup.
+    if (outreachConfigured()) {
+      try {
+        const n = await unsubscribeFromOutreach(userRecord.email);
+        if (n) console.log(`[outreach] ${userRecord.email} signed up; unsubscribed ${n} prospect(s)`);
+      } catch (e) {
+        console.error('[outreach] unsubscribe failed for', userRecord.email, e instanceof Error ? e.message : e);
+      }
+    }
+
     const firstName = await getFirstNameByUid(uid, userRecord.displayName);
 
     let subject: string;

@@ -114,6 +114,13 @@ export interface RehostPhotosResult {
  * Asks the AI for a better headline for one post. Returns a suggestion only —
  * the caller drops it into the title field and the admin still has to save.
  */
+/** Adds a live generated post's business to the Saleshandy sequence (GIG-76). */
+export const adminAddListingToOutreach = (serviceId: string) =>
+  authedFetch<{ added: boolean; status?: number | null; reason?: string }>('/api/admin/listings/outreach', {
+    method: 'POST',
+    body: JSON.stringify({ serviceId }),
+  });
+
 export const adminRewriteTitle = (body: {
   name: string;
   service: string;
