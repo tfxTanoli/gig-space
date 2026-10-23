@@ -782,7 +782,7 @@ export default function OrderDetail({
             {canBuyerReview && (
               <button
                 onClick={() => setShowReviewModal(true)}
-                className="ml-auto flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+                className="ml-auto flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 light:bg-yellow-500/10 light:hover:bg-yellow-500/20 light:border-yellow-500/40 light:text-yellow-600 text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
               >
                 <Star className="w-4 h-4 fill-amber-400" />
                 Leave a review
@@ -791,7 +791,7 @@ export default function OrderDetail({
             {canSellerReview && (
               <button
                 onClick={() => setShowReviewModal(true)}
-                className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+                className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 light:bg-yellow-500/10 light:hover:bg-yellow-500/20 light:border-yellow-500/40 light:text-yellow-600 text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
               >
                 <Star className="w-4 h-4 fill-amber-400" />
                 Leave a review

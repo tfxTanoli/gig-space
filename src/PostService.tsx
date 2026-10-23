@@ -974,7 +974,7 @@ const PostService = () => {
                   <button
                     type="button"
                     onClick={() => setCategoryOpen((v) => !v)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-slate-800 border border-slate-700 light:bg-white light:border-[#cad5e2] rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors"
                   >
                     <span className={selectedCatLabel ? 'text-slate-200' : (categoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedCatLabel ?? 'Category'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${categoryOpen ? 'rotate-180' : ''}`} />
@@ -1001,7 +1001,7 @@ const PostService = () => {
                     type="button"
                     disabled={!category}
                     onClick={() => setSubcategoryOpen((v) => !v)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-800 border border-slate-700 light:bg-white light:border-[#cad5e2] rounded-lg text-sm px-4 py-2 flex items-center justify-between focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className={selectedSubLabel ? 'text-slate-200' : (subcategoryOpen ? 'text-slate-400' : 'text-slate-500')}>{selectedSubLabel ?? 'Subcategory'}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${subcategoryOpen ? 'rotate-180' : ''}`} />
@@ -1052,7 +1052,7 @@ const PostService = () => {
               <p className="text-slate-400 text-sm mb-4">Add a detailed description of your service. Do not include any URLs or web addresses.</p>
 
               {/* WYSIWYG toolbar */}
-              <div className="flex items-center gap-1 mb-0 bg-slate-900 border border-b-0 border-slate-700 rounded-t-lg px-2 py-1.5">
+              <div className="flex items-center gap-1 mb-0 bg-slate-900 border border-b-0 border-slate-700 light:border-[#cad5e2] rounded-t-lg px-2 py-1.5">
                 {[
                   { label: <strong>B</strong>, cmd: 'bold', title: 'Bold' },
                   { label: <em>I</em>, cmd: 'italic', title: 'Italic' },
@@ -1087,7 +1087,7 @@ const PostService = () => {
                   document.execCommand('insertText', false, text);
                   setDescriptionLength(descriptionRef.current?.textContent?.length ?? 0);
                 }}
-                className="w-full min-h-[180px] bg-slate-800 border border-slate-700 rounded-b-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                className="w-full min-h-[180px] bg-slate-800 border border-slate-700 light:bg-white light:border-[#cad5e2] rounded-b-lg text-slate-100 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 style={{ resize: 'vertical', overflow: 'auto', outline: 'none' }}
               />
               <div className={`text-right text-xs mt-1 ${descriptionLength > 5000 ? 'text-red-400' : 'text-slate-500'}`}>
@@ -1679,7 +1679,7 @@ const PostService = () => {
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col items-center">
-      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center mb-8">
+      <header className="safe-header sticky top-0 z-40 bg-background w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center mb-8">
         <Logo className="h-6" />
         <div className="flex items-center gap-2">
           <ThemeToggle />

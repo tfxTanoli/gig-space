@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 import ThemeToggle from './ThemeToggle';
+import { useScrolled } from './useScrolled';
 
 const categories = [
   { name: 'Automotive', icon: Car },
@@ -93,6 +94,7 @@ const LandingPage = () => {
   const catScrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const scrolled = useScrolled();
 
   const goToSearch = () => {
     const params = new URLSearchParams();
@@ -141,7 +143,8 @@ const LandingPage = () => {
         <StarryBackground />
 
         {/* Header */}
-        <header className="relative z-20 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+        <div aria-hidden className="safe-header shrink-0" />
+        <header className={`safe-header fixed top-0 inset-x-0 z-40 w-full px-4 md:px-6 lg:px-12 flex justify-between items-center transition-colors ${scrolled ? 'bg-background/90 backdrop-blur-md border-b border-slate-800' : 'border-b border-transparent'}`}>
           <Logo className="h-6 shrink-0" />
 
           {/* Desktop nav */}

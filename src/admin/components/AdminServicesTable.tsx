@@ -171,6 +171,8 @@ const AdminServicesTable = ({ services, loading, pageSize = 100, onEdit, onNew }
                           ? 'bg-emerald-500/10 text-emerald-400'
                           : s.status === 'paused'
                           ? 'bg-yellow-500/10 text-yellow-400'
+                          : s.status === 'deleted'
+                          ? 'bg-red-500/10 text-red-400'
                           : 'bg-slate-700 text-slate-400'
                       }`}>
                         {s.status || 'active'}

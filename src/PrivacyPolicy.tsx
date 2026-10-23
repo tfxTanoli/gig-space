@@ -30,7 +30,7 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
       {/* Header */}
-      <header className="w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+      <header className="safe-header sticky top-0 z-40 bg-background w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
         <div className="flex items-center">
           <Logo className="h-6" />
         </div>

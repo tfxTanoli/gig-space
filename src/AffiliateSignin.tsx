@@ -87,7 +87,7 @@ const AffiliateSignin = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col pt-8 px-8 lg:px-16 items-center">
+    <div className="min-h-screen flex flex-col pt-[calc(2rem+var(--safe-top))] px-8 lg:px-16 items-center">
       <div className="w-full max-w-7xl flex items-center justify-between mb-16 lg:mb-32">
         <Logo className="h-6" />
         <ThemeToggle />
@@ -168,7 +168,7 @@ const AffiliateSignin = () => {
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="mt-8 w-full flex items-center justify-center bg-surface-raised hover:bg-surface-raised-hover disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700/50 text-white font-medium py-3 px-4 rounded-md transition-colors"
+          className="mt-8 w-full flex items-center justify-center bg-surface-raised hover:bg-surface-raised-hover light:bg-white light:hover:bg-[#f8fafc] disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700/50 light:border-[#cad5e2] text-white font-medium py-3 px-4 rounded-md transition-colors"
         >
           <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
