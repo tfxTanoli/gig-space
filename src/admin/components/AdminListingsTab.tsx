@@ -76,11 +76,11 @@ const GEN_STATUS_BADGE: Record<GenStatus, { label: string; cls: string }> = {
 // broken one falls back to the business's initial, matching how the post page
 // renders it — the admin should never see an avatar the public page won't show.
 /**
- * The photo the post will most likely use, taken from the business's own
- * website (GIG-74). Walks the candidates in the order the server will try
- * them and shows the first one that loads at photo size. The server applies
- * stricter checks when generating (it also drops logos and badges by file
- * type), so treat this as a preview, not a promise.
+ * A photo the post will likely use, taken from the business's own website
+ * (GIG-74). Walks the candidates in page order and shows the first one that
+ * loads at photo size. When generating, the server applies stricter checks
+ * (it also drops logos and badges by file type) and puts the photos that best
+ * show the work first, so treat this as a preview, not a promise.
  */
 function SitePhotoPreview({ urls }: { urls: string[] }) {
   const [i, setI] = useState(0);
@@ -530,7 +530,7 @@ export default function AdminListingsTab() {
             <button
               onClick={doRehostPhotos}
               disabled={rehosting}
-              title="One-time repair for older listings: copies Google-hosted photos and logos into our own storage, and rebuilds titles that are broken (e.g. just 'Home'). Hand-edited titles are left alone. New listings get all of this automatically — you only need this once."
+              title="One-time repair for older listings: copies Google-hosted photos and logos into our own storage, rebuilds titles that are broken (e.g. just 'Home'), and rewrites titles built around the business name into titles that describe the service, written from each post's About text. Hand-edited titles are left alone. New listings get all of this automatically — you only need this once."
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700/50 bg-surface-raised text-xs text-slate-300 hover:text-white hover:border-slate-600 disabled:opacity-50 transition-colors"
             >
               {rehosting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageDown className="w-3.5 h-3.5" />}

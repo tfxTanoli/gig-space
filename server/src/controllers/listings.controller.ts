@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'crypto';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 import { cardScore, pageImageCandidates, pickSitePhotos } from '../sitePhotos';
+import { scoreSitePhotos } from '../photoRank';
 import { addToOutreach, outreachConfigured } from '../saleshandy';
 import { safeFetch, readCapped } from '../safeFetch';
 
@@ -488,12 +489,15 @@ function pageTitle(html: string): string {
 }
 
 /* ─── Post titles ──────────────────────────────────────────────────────────────
- * A business's own <title> is frequently just "Home" or "Welcome | Acme" — fine
- * as a browser tab, useless as a marketplace headline. We drop those junk
- * segments and compose what's left into "<Business> — <what they do> in <city>",
- * which always yields something readable from the Places data alone. When an
- * Anthropic key is configured the batch then gets a single rewrite pass for a
- * more enticing headline, falling back to the composed title on any failure.
+ * A title says what service the buyer gets, the way a good classified ad or
+ * gig title does ("Junk Removal - Home Cleanouts, Furniture & Appliance
+ * Hauling"), not who the business is: every card and post already shows the
+ * business name beside the title, and titles that were "some version of the
+ * business name" told buyers nothing more (GIG-74). With an AI key the title
+ * is written from the business's About text. Without one, or on any failure,
+ * a title is composed from the site's own <title> (minus junk like "Home" and
+ * the business name) and the Places data, which always yields something
+ * readable.
  */
 
 const TITLE_JUNK = /^(home|home\s?page|welcome|index|untitled|main|start|default|landing(\s?page)?|site|web\s?site|our\s?website|official\s?(site|website))$/i;
@@ -580,13 +584,31 @@ function fitTitle(candidates: string[]): string {
 const includesCI = (haystack: string, needle: string) =>
   Boolean(needle) && haystack.toLowerCase().includes(needle.toLowerCase());
 
-/* ─── Separator variety ────────────────────────────────────────────────────────
- * An em dash between the business name and the service is the giveaway that a
- * machine wrote the title: fine once in a while, obviously templated when every
- * listing has one. The separator is therefore chosen from the business name, so
- * it is stable for a given business (regenerating gives the same style, not a
- * different one each time) while varying across the marketplace. The em dash
- * still appears, just as the minority.
+const SEPARATOR_CHARS = '\\s|•·–—:,>»-';
+
+/**
+ * The text with the business name, and the punctuation or "by" that joined it,
+ * taken out: "Acme Plumbing: Drain Repair" and "Drain Repair by Acme Plumbing"
+ * both become "Drain Repair".
+ */
+function withoutName(text: string, name: string): string {
+  const n = name.trim();
+  if (n.length < 3) return text;
+  const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text
+    .replace(new RegExp(`(?:\\bby\\s+)?${escaped}[${SEPARATOR_CHARS}]*`, 'gi'), ' ')
+    .replace(new RegExp(`^[${SEPARATOR_CHARS}]+|[${SEPARATOR_CHARS}]+$`, 'g'), '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+const wordCount = (text: string) => text.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+
+/* ─── Shape variety ────────────────────────────────────────────────────────────
+ * The same construction on every listing is the giveaway that a machine wrote
+ * the titles. The shape is therefore chosen from the business name, so it is
+ * stable for a given business (regenerating gives the same style, not a
+ * different one each time) while varying across the marketplace.
  */
 const EM_DASH = ' — ';
 
@@ -600,18 +622,17 @@ const EM_DASH = ' — ';
 interface TitleShape {
   /** Told to the model for this business. */
   instruction: string;
-  /** Used by the non-AI composed title, which can only join name and detail. */
+  /** This shape's separator, swapped in for an em dash the model used anyway. */
   joiner: string;
 }
 
 const TITLE_SHAPES: TitleShape[] = [
-  { joiner: ', ', instruction: 'Business name, then a comma, then what they do. Example: "Acme Plumbing, Emergency Drain Repair in Austin".' },
-  { joiner: ': ', instruction: 'Business name, then a colon, then what they do. Example: "Acme Plumbing: Emergency Drain Repair".' },
-  { joiner: ': ', instruction: 'Lead with the service, then "by" and the business name. Example: "Emergency Drain Repair in Austin by Acme Plumbing".' },
-  { joiner: ' ',  instruction: 'One natural phrase, no punctuation between the name and the service. Example: "Acme Plumbing Emergency Drain Repair in Austin".' },
-  { joiner: EM_DASH, instruction: 'Business name, then an em dash, then what they do. Example: "Acme Plumbing — Emergency Drain Repair".' },
+  { joiner: ' - ', instruction: 'The main service, then " - ", then the specific jobs. Example: "Junk Removal - Home Cleanouts, Furniture & Appliance Hauling".' },
+  { joiner: ', ',  instruction: 'Two or three services as a list, the last joined with "&". Example: "Drain Cleaning, Water Heater Installs & Leak Repair".' },
+  { joiner: ' - ', instruction: 'One phrase: the service with who it is for or where. Example: "Residential & Commercial Junk Removal in Dallas".' },
+  { joiner: ': ',  instruction: 'The main service, then a colon, then the specifics. Example: "Lawn Care: Weekly Mowing, Edging & Seasonal Cleanups".' },
+  { joiner: ' - ', instruction: 'The main service "with" its standout specialty. Example: "Emergency Plumbing with Same-Day Water Heater Installs".' },
 ];
-const EM_DASH_SHAPE = 4;
 
 /**
  * FNV-1a with a final avalanche. The obvious `hash * 31` variant leans on the
@@ -636,16 +657,12 @@ function seedOf(text: string): number {
 /** Stable per business, so regenerating gives the same shape rather than a new one. */
 function shapeIndex(seed: string): number {
   const n = seedOf(seed) % 100;
-  // "HaulAway Junk Removal Service, LLC, Junk Removal" reads as a list rather
-  // than a name and a service, so a name with a comma never gets another.
-  if (n < 30) return seed.includes(',') ? 1 : 0;
-  if (n < 60) return 1;
-  if (n < 80) return 2;
+  if (n < 30) return 0;
+  if (n < 55) return 1;
+  if (n < 75) return 2;
   if (n < 90) return 3;
-  return EM_DASH_SHAPE;  // roughly one business in ten
+  return 4;
 }
-
-const titleJoiner = (seed: string) => TITLE_SHAPES[shapeIndex(seed)].joiner;
 
 /**
  * Whole-word containment. A plain substring test is wrong for deciding whether a
@@ -691,33 +708,23 @@ function composeTitle(name: string, siteTitle: string, rawService: string, locat
   // "HVAC contractor in Austin, Texas", or just one half when that's all we have
   // — the "in" only makes sense once there's a service in front of it.
   const fromPlaces = [service, location && (service ? `in ${location}` : location)].filter(Boolean).join(' ');
-  const siteSegments = cleanSiteSegments(siteTitle, name);
-  const fromSite = cleanSiteTitle(siteTitle, name);
 
-  // A site title that only echoes the business name tells a buyer nothing the
-  // name already did, so the Places data wins that tie.
-  const echoesName = fromSite.toLowerCase() === name.trim().toLowerCase();
-  const detail = (echoesName ? fromPlaces || fromSite : fromSite || fromPlaces).trim();
-
-  const joiner = titleJoiner(name || rawService || location);
-  const join = (d: string) =>
-    !name ? d : includesCI(d, name) ? d : [name, d].filter(Boolean).join(joiner);
+  // The site's own claims about what it does, minus the business name and
+  // greetings ("Welcome to Acme" is "Welcome to" once the name goes). A
+  // one-word leftover ("Plumbing") says less than the Places wording.
+  const siteSegments = cleanSiteSegments(siteTitle, name)
+    .map((s) => withoutName(s, name))
+    .filter((s) => wordCount(s) >= 2 && !/^(welcome|home|about)\b/i.test(s));
 
   // Richest first. A long scraped title usually stacks several claims — keeping
-  // only its first segment loses the least, and dropping to the Places wording
-  // ("HVAC in Cleveland, Ohio") is the last stop before the name alone. The
-  // segments are taken from before they were joined, so the joiner can be any
-  // punctuation without breaking this.
-  const detailSegments = detail === fromSite && siteSegments.length ? siteSegments : titleSegments(detail);
-  const firstSegment = detailSegments[0] ?? '';
+  // only its first segment loses the least, and the Places wording ("HVAC in
+  // Cleveland, Ohio") comes next. The business name alone is the last resort.
   return fitTitle([
-    join(detail),
-    join(firstSegment),
-    join(fromPlaces),
-    join(service),
-    name,
-    detail,
+    siteSegments.join(', '),
+    siteSegments[0] ?? '',
+    fromPlaces,
     service,
+    name,
     'Local service provider',
   ]);
 }
@@ -734,20 +741,24 @@ function composeTitle(name: string, siteTitle: string, rawService: string, locat
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
+const AI_TITLES = Boolean(GEMINI_KEY || ANTHROPIC_KEY);
 
 const TITLE_SYSTEM_PROMPT =
-  'You write listing headlines for a local-services marketplace. For each business, ' +
-  'write one title that names the business and what it actually does, so a buyer ' +
-  `browsing search results knows whether to click. Hard limit ${TITLE_MAX} characters — ` +
-  'aim for 50 to 70. Use title case, with no quotes, emoji, or trailing punctuation. ' +
-  'Copy the business name verbatim, including "&" and any Inc. or LLC suffix. ' +
-  'Each business carries a "shape" field describing how its title must be built — ' +
-  'follow that shape exactly for that business, and do not use any other separator. ' +
-  'Prefer noun phrases to sentences: "Acme Plumbing: Emergency Drain Repair" reads ' +
-  'better than "Acme Plumbing Provides Drain Repair", so avoid filler verbs such as ' +
-  '"provides" and "offers". Mention the city only when it fits naturally. Never ' +
-  'invent services, credentials, awards, or claims that are not in the supplied data. ' +
-  'Return exactly one title per business, in the order given.';
+  'You write listing titles for a local-services marketplace. A title tells a buyer ' +
+  'scanning search results exactly what service they get, the way a good classified ad ' +
+  'or gig title does: "Junk Removal - Home Cleanouts, Furniture & Appliance Hauling", ' +
+  'not "Acme Hauling LLC". Write each title from the business\'s "about" text, as a short ' +
+  'headline that complements it: lead with the main service, then the specific jobs, ' +
+  'specialties or customers the text mentions. When the about text is empty or vague, ' +
+  'describe the "service" field plainly. Never include the business name; the listing ' +
+  `already shows it beside the title. Hard limit ${TITLE_MAX} characters; aim for 45 to 75. ` +
+  'Use title case, with no quotes, emoji, em dashes or trailing punctuation. Prefer noun ' +
+  'phrases to sentences, and leave out filler and hype such as "provides", "offers", ' +
+  '"best", "top-rated", "quality" or "affordable". Mention the city only when it fits ' +
+  'naturally. Never invent services, credentials, awards, prices or claims that are not ' +
+  'in the supplied data. Each business carries a "shape" field describing how its title ' +
+  'must be built; follow that shape exactly for that business. Return exactly one title ' +
+  'per business, in the order given.';
 
 interface TitleSubject {
   name: string;
@@ -768,15 +779,14 @@ const shapeFor = (s: TitleSubject) =>
   (shapeIndex(s.name || s.fallback) + (s.variant ?? 0)) % TITLE_SHAPES.length;
 
 /**
- * Backstop for the prompt's "avoid the em dash" rule. Models drift back to a
+ * Backstop for the prompt's "no em dashes" rule. Models drift back to a
  * favourite construction, and one dash per title across a whole marketplace is
- * exactly the tell we're trying to remove — so a title that used one keeps it
- * only if this business is one of the minority the joiner picks it for.
- * Deterministic, so rewriting the same listing doesn't flip-flop.
+ * exactly the tell we're trying to remove, so a dash becomes this business's
+ * own separator. Deterministic, so rewriting the same listing doesn't
+ * flip-flop.
  */
 function swapEmDash(title: string, shape: number): string {
-  if (!title.includes(EM_DASH)) return title;
-  return shape === EM_DASH_SHAPE ? title : title.replace(EM_DASH, TITLE_SHAPES[shape].joiner);
+  return title.split(EM_DASH).join(TITLE_SHAPES[shape].joiner);
 }
 
 /** For stored titles, which have only a business name to go on. */
@@ -788,11 +798,15 @@ const easeOffEmDashFor = (title: string, subject: TitleSubject) => swapEmDash(ti
 const titlePayload = (subjects: TitleSubject[]) =>
   JSON.stringify(
     subjects.map((s) => ({
+      // Context only: the prompt keeps the name out of the title.
       business: s.name,
       service: s.service,
       location: s.location,
-      currentTitle: s.fallback,
-      about: s.description.slice(0, 400),
+      // An old-style title that leads with the name would anchor the model
+      // back onto it, so only a service-style title goes in as the baseline.
+      currentTitle: includesCI(s.fallback, s.name) ? undefined : s.fallback,
+      // Seller-written descriptions are HTML from the post editor.
+      about: s.description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1500),
       shape: TITLE_SHAPES[shapeFor(s)].instruction,
     })),
   );
@@ -887,7 +901,12 @@ export async function polishTitles(subjects: TitleSubject[]): Promise<string[]> 
 
   try {
     const titles = provider === 'gemini' ? await geminiTitles(subjects) : await anthropicTitles(subjects);
-    return titles.map((t, i) => trimToWords(easeOffEmDashFor(t, subjects[i])));
+    // A model that slipped the business name in anyway loses it; if too little
+    // is left, that one title is dropped and the caller's fallback stands.
+    return titles.map((t, i) => {
+      const title = trimToWords(easeOffEmDashFor(withoutName(t, subjects[i].name), subjects[i]));
+      return wordCount(title) >= 2 ? title : '';
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[listings] ${provider} title polish unavailable, using composed titles: ${msg}`);
@@ -1080,6 +1099,9 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
 
     const db = admin.database();
     const created: { id: string; name: string }[] = [];
+    // The function is killed at 60s (vercel.json). Photo downloads stop
+    // starting at 30s and scoring must finish by 50s, leaving time to save.
+    const started = Date.now();
 
     // Scrape all selected websites up front (parallel) — title, description,
     // email, and the page's icon links (the raw material for the post's logo).
@@ -1103,7 +1125,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         b.location || b.address || '',
       ),
     );
-    const polished = await polishTitles(
+    const titlesPromise = polishTitles(
       businesses.map((b, i) => ({
         name: b.name ?? '',
         service: humanizeService(serviceLabel(b)),
@@ -1117,21 +1139,33 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     // business's files are stored under its own id.
     const refs = businesses.map(() => db.ref('services').push());
 
-    // Post images come from the business's own website (GIG-74): up to three
-    // checked photos per post, copied into our Storage under descriptive names.
-    // Google's photos are no longer used - its Places policy forbids storing
-    // them. Google photo URLs are filtered out explicitly, so a preview loaded
-    // before this change can't sneak one through.
+    // Post images come from the business's own website (GIG-74): up to six
+    // checked photos per post, the ones that best show the work first, copied
+    // into our Storage under descriptive names. Google's photos are no longer
+    // used - its Places policy forbids storing them. Google photo URLs are
+    // filtered out explicitly, so a preview loaded before this change can't
+    // sneak one through.
     //
-    // Businesses are processed together rather than one after another: this runs
-    // in a serverless function with a hard duration ceiling, and a couple of
-    // slow-responding sites in a batch used to add up past it.
-    const media = await Promise.all(
+    // Businesses are processed together rather than one after another, and
+    // alongside the titles: this runs in a serverless function with a hard
+    // duration ceiling, and a couple of slow-responding sites in a batch used to
+    // add up past it.
+    const mediaPromise = Promise.all(
       businesses.map(async (b, i) => {
         const id = refs[i].key as string;
         const candidates = (Array.isArray(b.images) ? b.images : []).filter((u) => !isGooglePhotoUrl(u));
+        const subject = {
+          business: b.name ?? '',
+          service: humanizeService(serviceLabel(b)),
+          location: b.location || b.address || '',
+        };
         const [photos, logo] = await Promise.all([
-          b.website ? pickSitePhotos(candidates, b.website) : Promise.resolve([]),
+          b.website
+            ? pickSitePhotos(candidates, b.website, {
+                deadline: started + 30_000,
+                score: (pool) => scoreSitePhotos(pool, subject, Math.min(15_000, started + 50_000 - Date.now())),
+              })
+            : Promise.resolve([]),
           b.website ? resolveLogo(scraped[i].iconUrls, b.website, id) : Promise.resolve(''),
         ]);
         const stem = photoStem(b);
@@ -1140,14 +1174,16 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
             saveToStorage(p.body, p.contentType, `${STORAGE_PREFIX}/${id}/${stem}-${n + 1}.${EXT_BY_TYPE[p.contentType] ?? 'jpg'}`),
           ),
         );
-        // The share-card image is whichever photo survives a 1.91:1 crop best.
+        // The share-card image is whichever of the top three photos survives a
+        // 1.91:1 crop best; past those, a better crop isn't worth a weaker photo.
         let best = 0;
-        photos.forEach((p, n) => {
+        photos.slice(0, 3).forEach((p, n) => {
           if (cardScore({ w: p.width, h: p.height }) < cardScore({ w: photos[best].width, h: photos[best].height })) best = n;
         });
         return { images, logo, ogImage: images[best] ?? null };
       }),
     );
+    const [polished, media] = await Promise.all([titlesPromise, mediaPromise]);
 
     for (let i = 0; i < businesses.length; i++) {
       const b = businesses[i];
@@ -1302,9 +1338,12 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       website: string;      // '' when neither repair below needs the homepage
       staleLogo: boolean;
       brokenTitle: boolean;
+      /** A readable title in the old style, built around the business name — AI rewrite only. */
+      nameTitle: boolean;
       /** Existing title whose em dash should be swapped — no refetch, no AI. */
       dashTitle: string;
       rawDescription: string;   // '' unless it still carries undecoded entities
+      description: string;
       name: string;
       service: string;
       location: string;
@@ -1325,19 +1364,28 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       const brokenTitle =
         service.titleEditedByAdmin !== true && needsTitleRepair(service.title, name, trade, location);
       const rawDescription = hasRawEntity(service.description) ? service.description : '';
+      // Titles from before GIG-74 were built around the business name, which
+      // the listing already shows. They are rewritten from the About text by
+      // the AI pass below, so this needs a key; without one they're left as is.
+      const currentTitle = String(service.title ?? '');
+      const nameTitle =
+        AI_TITLES &&
+        !brokenTitle &&
+        service.titleEditedByAdmin !== true &&
+        name.trim().length >= 3 &&
+        includesCI(currentTitle, name.trim());
       // Titles written before the joiner varied are all em dash. Swapping the
       // punctuation is a pure text edit, so it needs neither a refetch nor the
       // AI — but it still respects a title the admin wrote.
-      const currentTitle = String(service.title ?? '');
       const dashTitle =
         !brokenTitle &&
+        !nameTitle &&
         service.titleEditedByAdmin !== true &&
-        currentTitle.includes(EM_DASH) &&
-        easeOffEmDash(currentTitle, name) !== currentTitle
+        currentTitle.includes(EM_DASH)
           ? currentTitle
           : '';
 
-      if (images.some(isGooglePhotoUrl) || staleLogo || brokenTitle || rawDescription || dashTitle) {
+      if (images.some(isGooglePhotoUrl) || staleLogo || brokenTitle || nameTitle || rawDescription || dashTitle) {
         pending.push({
           id: child.key as string,
           images,
@@ -1345,8 +1393,10 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
           website: staleLogo || brokenTitle ? String(service.website ?? '') : '',
           staleLogo,
           brokenTitle,
+          nameTitle,
           dashTitle,
           rawDescription,
+          description: String(service.description ?? ''),
           name,
           service: trade,
           location,
@@ -1382,6 +1432,20 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       const description = item.rawDescription ? decodeHtmlEntities(item.rawDescription) : '';
       if (description) patch.description = description;
       if (item.dashTitle) patch.title = easeOffEmDash(item.dashTitle, item.name);
+      const about = description || item.description;
+
+      if (item.nameTitle) {
+        titleWork.push({
+          id: item.id,
+          subject: {
+            name: item.name,
+            service: humanizeService(item.service),
+            location: item.location,
+            fallback: composeTitle(item.name, '', item.service, item.location),
+            description: about,
+          },
+        });
+      }
 
       if (item.website) {
         // One homepage fetch serves both repairs below.
@@ -1411,7 +1475,7 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
                 service: humanizeService(item.service),
                 location: item.location,
                 fallback: rebuilt,
-                description,
+                description: about,
               },
             });
           }
@@ -1422,10 +1486,13 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
     }
 
     // Same graceful degradation as generation: no key or any failure leaves the
-    // composed titles in place.
+    // composed titles in place (and old-style titles as they were).
     const polished = await polishTitles(titleWork.map((t) => t.subject));
     titleWork.forEach((t, i) => {
-      if (polished[i]) patches.get(t.id)!.title = polished[i];
+      if (!polished[i]) return;
+      const patch = patches.get(t.id) ?? {};
+      patch.title = polished[i];
+      patches.set(t.id, patch);
     });
 
     for (const [id, patch] of patches) {
