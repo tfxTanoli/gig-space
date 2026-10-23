@@ -108,14 +108,14 @@ const LocationSearch = ({
           the bar's own surface-raised (#314158) background, so it never read as
           a divider. Short, centred and one step lighter, like the hero's. */}
       {variant === 'header' && (
-        <span aria-hidden className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-px h-5 bg-slate-600" />
+        <span aria-hidden className="md:hidden pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-px h-5 bg-slate-600" />
       )}
 
       {open && (
         <div className="absolute left-0 top-full mt-2 w-[22rem] max-w-[calc(100vw-2rem)] bg-surface border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
           {/* Search input */}
           <div className="p-2 border-b border-slate-800">
-            <div className="flex items-center bg-slate-700 border border-slate-700 rounded-lg px-3 h-9">
+            <div className="flex items-center bg-slate-700 border border-slate-700 light:bg-slate-800 rounded-lg px-3 h-9">
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
               <input
                 ref={inputRef}
@@ -135,7 +135,7 @@ const LocationSearch = ({
               onClick={() => select(null)}
               className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                 !value
-                  ? 'text-white bg-slate-800'
+                  ? 'text-white bg-slate-800 light:bg-surface'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >

@@ -8,6 +8,7 @@ import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 import ThemeToggle from './ThemeToggle';
+import { useScrolled } from './useScrolled';
 
 // Reads admin-managed FAQs from the CMS, falling back to the provided defaults.
 function useCmsFaqs(defaults: { question: string; answer: string }[]) {
@@ -151,6 +152,7 @@ const SellerLandingPage = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
+  const scrolled = useScrolled();
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -164,7 +166,8 @@ const SellerLandingPage = () => {
         <StarryBackground />
 
         {/* Header */}
-        <header className="relative z-20 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+        <div aria-hidden className="safe-header shrink-0" />
+        <header className={`safe-header fixed top-0 inset-x-0 z-40 w-full px-4 md:px-6 lg:px-12 flex justify-between items-center transition-colors ${scrolled ? 'bg-background/90 backdrop-blur-md border-b border-slate-800' : 'border-b border-transparent'}`}>
           <div className="flex items-center">
             <Logo className="h-6" />
           </div>

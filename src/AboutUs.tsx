@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 import ThemeToggle from './ThemeToggle';
+import { useScrolled } from './useScrolled';
 
 const IconTrust = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -99,6 +100,7 @@ const values = [
 
 const AboutUs = () => {
   const { user } = useAuth();
+  const scrolled = useScrolled();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -109,7 +111,8 @@ const AboutUs = () => {
         <StarryBackground />
 
         {/* Header */}
-        <header className="relative z-20 w-full px-4 md:px-6 lg:px-12 h-16 flex justify-between items-center">
+        <div aria-hidden className="safe-header shrink-0" />
+        <header className={`safe-header fixed top-0 inset-x-0 z-40 w-full px-4 md:px-6 lg:px-12 flex justify-between items-center transition-colors ${scrolled ? 'bg-background/90 backdrop-blur-md border-b border-slate-800' : 'border-b border-transparent'}`}>
           <div className="flex items-center">
             <Logo className="h-6" />
           </div>

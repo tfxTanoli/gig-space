@@ -85,7 +85,7 @@ function LineChart({
           const ty = PAD_T + (i / (ticks.length - 1)) * plotH;
           return (
             <g key={i}>
-              <line x1={PAD_L} y1={ty} x2={W - PAD_R} y2={ty} stroke="#1e293b" strokeWidth="1" />
+              <line x1={PAD_L} y1={ty} x2={W - PAD_R} y2={ty} className="stroke-slate-800 light:stroke-[#cad5e2]" strokeWidth="1" />
               <text x={PAD_L - 5} y={ty + 3} textAnchor="end" className="fill-slate-500" style={{ fontSize: '8px' }}>
                 {compact(t)}
               </text>
@@ -102,7 +102,7 @@ function LineChart({
           <line x1={pts[hover].x} y1={PAD_T} x2={pts[hover].x} y2={PAD_T + plotH} stroke={stroke} strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
         )}
         {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={hover === i ? 3.5 : 2} fill={stroke} stroke="#0f172a" strokeWidth={hover === i ? 1.5 : 0} />
+          <circle key={i} cx={p.x} cy={p.y} r={hover === i ? 3.5 : 2} fill={stroke} className="stroke-slate-900" strokeWidth={hover === i ? 1.5 : 0} />
         ))}
 
         {/* Invisible hover bands — one per point, robust to SVG scaling */}

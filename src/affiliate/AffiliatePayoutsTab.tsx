@@ -355,7 +355,7 @@ export default function AffiliatePayoutsTab() {
         <ArrowUpRight className="w-4 h-4" />
         Withdraw funds
         {available < 10 && (
-          <span className="text-blue-300 font-normal">(min $10)</span>
+          <span className="text-blue-300 light:text-white/85 font-normal">(min $10)</span>
         )}
       </button>
 

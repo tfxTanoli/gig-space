@@ -548,7 +548,7 @@ const AdminDashboard = () => {
         border-r border-slate-800 h-screen lg:h-full transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
       `}>
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+        <div className="safe-header h-16 flex items-center justify-between px-6 border-b border-slate-800">
           <div onClick={() => setSidebarOpen(false)}>
             <Logo className="h-6" />
           </div>
