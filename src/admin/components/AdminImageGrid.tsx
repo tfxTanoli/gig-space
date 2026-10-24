@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, Upload } from 'lucide-react';
+import { GripVertical, Trash2, Upload } from 'lucide-react';
 import { type GridImage } from './gridImages';
 
 const isVideo = (img: GridImage) =>
@@ -41,6 +41,9 @@ export default function AdminImageGrid({ items, onChange, onAddClick }: Props) {
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>, id: string) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
+    // A finger on a tile is usually scrolling the drawer; on touch screens a
+    // drag starts only from the tile's handle (the one touch-none area).
+    if (e.pointerType !== 'mouse' && !(e.target as HTMLElement).closest('[data-drag-handle]')) return;
     press.current = { id, x: e.clientX, y: e.clientY, moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -85,7 +88,7 @@ export default function AdminImageGrid({ items, onChange, onAddClick }: Props) {
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`group relative aspect-square rounded-lg overflow-hidden border bg-slate-800 select-none touch-none cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            className={`group relative aspect-square rounded-lg overflow-hidden border bg-slate-800 select-none cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               img.file ? 'border-blue-500/40' : 'border-slate-700'
             } ${draggingId === img.id ? 'opacity-60 ring-2 ring-blue-500' : ''}`}
           >
@@ -101,11 +104,19 @@ export default function AdminImageGrid({ items, onChange, onAddClick }: Props) {
               <button
                 type="button"
                 onClick={() => move(i, 0)}
-                className="absolute top-1.5 left-1.5 bg-black/70 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity hover:bg-black/90"
+                className="absolute top-1.5 left-1.5 bg-black/70 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity hover:bg-black/90"
               >
                 Set cover
               </button>
             )}
+
+            <span
+              data-drag-handle
+              aria-hidden
+              className="absolute bottom-1.5 left-1.5 w-7 h-7 rounded-full bg-black/70 flex items-center justify-center touch-none"
+            >
+              <GripVertical className="w-3.5 h-3.5 text-white" />
+            </span>
 
             <button
               type="button"
@@ -128,7 +139,7 @@ export default function AdminImageGrid({ items, onChange, onAddClick }: Props) {
         </button>
       </div>
       <p className="text-xs text-slate-500">
-        Drag images to reorder. The first is the cover, shown first on the post and in search results.
+        Drag images to reorder (on a touch screen, by the handle in the corner). The first is the cover, shown first on the post and in search results.
       </p>
     </>
   );

@@ -587,19 +587,29 @@ const includesCI = (haystack: string, needle: string) =>
 const SEPARATOR_CHARS = '\\s|•·–—:,>»-';
 
 /**
- * The text with the business name, and the punctuation or "by" that joined it,
- * taken out: "Acme Plumbing: Drain Repair" and "Drain Repair by Acme Plumbing"
- * both become "Drain Repair".
+ * The text with the business name taken out where titles put a name: at the
+ * start ("Acme Plumbing: Drain Repair"), at the end ("Drain Repair - Acme
+ * Plumbing") or after "by" ("Drain Repair by Acme Plumbing in Austin"), along
+ * with the punctuation that joined it. Whole words only, and a name in the
+ * middle of the wording is left alone, so a generic name can't eat part of
+ * the description: "Pro" never touches "Professional", and "Quality Cleaning"
+ * stays in "The Best Quality Cleaning in Town".
  */
 function withoutName(text: string, name: string): string {
   const n = name.trim();
   if (n.length < 3) return text;
-  const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text
-    .replace(new RegExp(`(?:\\bby\\s+)?${escaped}[${SEPARATOR_CHARS}]*`, 'gi'), ' ')
-    .replace(new RegExp(`^[${SEPARATOR_CHARS}]+|[${SEPARATOR_CHARS}]+$`, 'g'), '')
+  const nameRe = `(?<![A-Za-z0-9])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9])`;
+  const sep = `[${SEPARATOR_CHARS}]`;
+  const stripped = text
+    .replace(new RegExp(`^\\s*${nameRe}${sep}*`, 'i'), '')
+    .replace(new RegExp(`(?:${sep}+|\\s+by\\s+)${nameRe}\\s*$`, 'i'), '')
+    .replace(new RegExp(`\\s+by\\s+${nameRe}(?=[\\s,]|$)`, 'gi'), '')
+    .replace(new RegExp(`^${sep}+|${sep}+$`, 'g'), '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+  // "Quality Cleaning for Homes" from a business called Quality Cleaning:
+  // what's left ("for Homes") isn't a title, so the name was the wording.
+  return /^(for|in|and|with|by|of|to|at|on|&)\b/i.test(stripped) ? text : stripped;
 }
 
 const wordCount = (text: string) => text.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
@@ -1100,7 +1110,9 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     const db = admin.database();
     const created: { id: string; name: string }[] = [];
     // The function is killed at 60s (vercel.json). Photo downloads stop
-    // starting at 30s and scoring must finish by 50s, leaving time to save.
+    // starting at 25s (a batch in flight can run 8s more) and scoring must
+    // finish by 42s, leaving ~18s for the Storage uploads and database writes
+    // — which run in parallel across businesses.
     const started = Date.now();
 
     // Scrape all selected websites up front (parallel) — title, description,
@@ -1159,11 +1171,17 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
           service: humanizeService(serviceLabel(b)),
           location: b.location || b.address || '',
         };
+        // Whether the AI ranked this post's photos; null when it wasn't asked.
+        let ranked: boolean | null = null;
         const [photos, logo] = await Promise.all([
           b.website
             ? pickSitePhotos(candidates, b.website, {
-                deadline: started + 30_000,
-                score: (pool) => scoreSitePhotos(pool, subject, Math.min(15_000, started + 50_000 - Date.now())),
+                deadline: started + 25_000,
+                score: async (pool) => {
+                  const scores = await scoreSitePhotos(pool, subject, Math.min(15_000, started + 42_000 - Date.now()));
+                  ranked = scores !== null;
+                  return scores;
+                },
               })
             : Promise.resolve([]),
           b.website ? resolveLogo(scraped[i].iconUrls, b.website, id) : Promise.resolve(''),
@@ -1180,21 +1198,23 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         photos.slice(0, 3).forEach((p, n) => {
           if (cardScore({ w: p.width, h: p.height }) < cardScore({ w: photos[best].width, h: photos[best].height })) best = n;
         });
-        return { images, logo, ogImage: images[best] ?? null };
+        return { images, logo, ogImage: images[best] ?? null, ranked };
       }),
     );
     const [polished, media] = await Promise.all([titlesPromise, mediaPromise]);
 
-    for (let i = 0; i < businesses.length; i++) {
-      const b = businesses[i];
+    // All posts are written at once, not one after another: the clock above
+    // is still running.
+    await Promise.all(businesses.map((b, i) => {
       const site = scraped[i];
       const ref = refs[i];
       const id = ref.key as string;
       const now = Date.now();
       const { images, logo, ogImage } = media[i];
       const location = b.location || b.address || '';
+      created.push({ id, name: b.name ?? '' });
 
-      await ref.set({
+      return ref.set({
         sellerId: '',
         sellerName: b.name ?? '',
         sellerUsername: '',
@@ -1231,11 +1251,20 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
         createdAt: now,
         updatedAt: now,
       });
+    }));
 
-      created.push({ id, name: b.name ?? '' });
-    }
-
-    res.json({ created, count: created.length });
+    // The AI steps fall back silently by design (a post is still created), so
+    // say when they did: the admin sees it straight away instead of a run of
+    // posts quietly getting composed titles and page-order photos.
+    const asked = media.filter((m) => m.ranked !== null);
+    res.json({
+      created,
+      count: created.length,
+      ai: {
+        titles: { written: polished.filter(Boolean).length, of: businesses.length },
+        photos: { ranked: asked.filter((m) => m.ranked).length, of: asked.length },
+      },
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/listings/generate error:', msg);
@@ -1344,6 +1373,10 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       dashTitle: string;
       rawDescription: string;   // '' unless it still carries undecoded entities
       description: string;
+      /** The title as stored now, kept aside when a repair replaces it. */
+      title: string;
+      /** A copy from an earlier run is the true original; never overwrite it. */
+      hasTitleBackup: boolean;
       name: string;
       service: string;
       location: string;
@@ -1397,6 +1430,8 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
           dashTitle,
           rawDescription,
           description: String(service.description ?? ''),
+          title: currentTitle,
+          hasTitleBackup: typeof service.titleBeforeBackfill === 'string',
           name,
           service: trade,
           location,
@@ -1495,7 +1530,14 @@ export async function rehostListingPhotos(req: AdminRequest, res: Response): Pro
       patches.set(t.id, patch);
     });
 
+    // Every rewritten title keeps the one it replaced, so a run can be undone
+    // post by post (Admin → edit, paste it back) or in bulk from the database.
+    const byId = new Map(batch.map((item) => [item.id, item]));
     for (const [id, patch] of patches) {
+      const item = byId.get(id);
+      if (patch.title && item && !item.hasTitleBackup && patch.title !== item.title) {
+        patch.titleBeforeBackfill = item.title;
+      }
       patch.updatedAt = Date.now();
       await db.ref(`services/${id}`).update(patch);
       migrated += 1;

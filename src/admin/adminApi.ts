@@ -90,7 +90,12 @@ export const adminSearchListings = (body: { keyword: string; city: string }) =>
   });
 
 export const adminGenerateListings = (body: { category: string; subcategory: string; language: string; businesses: ListingBusiness[] }) =>
-  authedFetch<{ created: { id: string; name: string }[]; count: number }>('/api/admin/listings/generate', {
+  authedFetch<{
+    created: { id: string; name: string }[];
+    count: number;
+    /** How many titles the AI wrote, and how many photo sets it ranked (the rest fell back). */
+    ai?: { titles: { written: number; of: number }; photos: { ranked: number; of: number } };
+  }>('/api/admin/listings/generate', {
     method: 'POST',
     body: JSON.stringify(body),
   });
