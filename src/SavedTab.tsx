@@ -161,7 +161,7 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
                     className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
                     title="Remove from saved"
                   >
-                    <Bookmark className={`w-4 h-4 ${isSaved(svc.id) ? 'fill-primary text-primary' : 'text-white'}`} />
+                    <Bookmark className={`w-4 h-4 ${isSaved(svc.id) ? 'fill-primary text-primary light:fill-[#3B82F6] light:text-[#3B82F6]' : 'text-white'}`} />
                   </button>
                 </div>
 

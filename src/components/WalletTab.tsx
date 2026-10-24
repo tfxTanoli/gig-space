@@ -187,7 +187,7 @@ export default function WalletTab() {
             <ArrowUpRight className="w-4 h-4" />
             Withdraw funds
             {available < minWithdrawal && (
-              <span className="text-blue-300 font-normal">(min ${formatMoney(minWithdrawal)})</span>
+              <span className="text-blue-300 light:text-white/85 font-normal">(min ${formatMoney(minWithdrawal)})</span>
             )}
           </button>
           {/* Without this, a seller who just had an order approved sees a

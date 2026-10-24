@@ -249,7 +249,7 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta, newSeller }: Serv
           className="absolute top-2 right-2 z-10 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
           title={isSaved ? 'Remove from saved' : 'Save service'}
         >
-          <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-primary text-primary' : 'text-white'}`} />
+          <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-primary text-primary light:fill-[#3B82F6] light:text-[#3B82F6]' : 'text-white'}`} />
         </button>
       </div>
 
@@ -997,7 +997,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
       {/* Header */}
-      <header className="w-full px-4 md:px-6 lg:px-12 border-b border-slate-800">
+      <header className="safe-header sticky top-0 z-40 bg-background w-full px-4 md:px-6 lg:px-12 border-b border-slate-800">
         {/* Top row: logo + right actions */}
         <div className="h-16 flex items-center gap-3">
           <Logo className="h-6 shrink-0" onClick={(e) => { e.preventDefault(); window.location.href = '/search'; }} />
@@ -1226,7 +1226,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                       setHoveredCategory(null);
                       if (flyoutTimeoutRef.current) clearTimeout(flyoutTimeoutRef.current);
                     }}
-                    className={`text-left py-2 text-sm border-b border-slate-800/50 transition-colors cursor-pointer ${
+                    className={`text-left py-2 text-sm border-b border-slate-800/50 light:border-transparent transition-colors cursor-pointer ${
                       activeCategory === hoveredCategory && activeSubcategory === sub.value
                         ? 'text-primary font-medium'
                         : 'text-slate-400 hover:text-white'
@@ -1343,7 +1343,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
             >
               <div className="p-4 w-56">
                 <label className="block text-xs text-slate-400 mb-2">Up to</label>
-                <div className="flex items-center bg-slate-700 border border-slate-600 rounded-lg px-3 h-10">
+                <div className="flex items-center bg-slate-700 border border-slate-600 light:bg-slate-800 light:border-slate-700 rounded-lg px-3 h-10">
                   <span className="text-slate-500 text-sm">$</span>
                   <input
                     type="text"
@@ -1630,7 +1630,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
               <DrawerSection title="Budget">
                 <div className="px-4">
                   <label className="block text-xs text-slate-400 mb-2">Up to</label>
-                  <div className="flex items-center bg-slate-700 border border-slate-600 rounded-lg px-3 h-10">
+                  <div className="flex items-center bg-slate-700 border border-slate-600 light:bg-slate-800 light:border-slate-700 rounded-lg px-3 h-10">
                     <span className="text-slate-500 text-sm">$</span>
                     <input
                       type="text"

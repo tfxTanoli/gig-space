@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* light:… utilities apply only in light mode (GIG-73), for one-off tweaks a
+   component needs on top of the shared light-mode rules below. The :is()
+   gives them a little more weight than those rules, so they win where both
+   touch the same property. */
+@custom-variant light (&:is(html.light *));
+
 @theme {
   --color-background:           #0f172a;
   --color-background-deep:      #0b1120;
@@ -18,24 +24,19 @@
 
 @layer base {
   html {
+    /* clip, not hidden: hidden turns the element into a scroll container,
+       which stops sticky headers from sticking. hidden stays as the fallback. */
     overflow-x: hidden;
+    overflow-x: clip;
     scrollbar-gutter: stable;
 
-    /* Height of the status bar to keep top-anchored UI clear of. env() covers
-       notched devices, but it is 0 on non-notch iPhones and drops to 0 on the
-       dashboards (their overflow:hidden app shell makes iOS stop reporting it).
-       --safe-top-measured is the largest inset JS has observed (see index.html)
-       and holds the true notch height across those env() dropouts. */
-    --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-top-measured, 0px));
-  }
-
-  /* On iPhone the page top is under the status bar (bottom address bar in modern
-     Safari; no chrome in standalone), and env() is unreliable there — 0 on
-     non-notch iPhones. Floor the inset to the 20px status-bar height; max() keeps
-     the larger real/measured inset on notched devices (~47px). Only iPhone/iPod
-     get .ios-phone, so iPad/desktop/Android keep a 0 inset and no gap appears. */
-  html.ios-phone {
-    --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-top-measured, 0px), 20px);
+    /* The status-bar area each device actually needs, straight from the
+       browser (viewport-fit=cover is set in index.html). It is exactly the
+       space content would otherwise sit under, and 0 wherever the browser
+       already keeps the page below the status bar — so headers sit right
+       under it on every phone, notch or not (GIG-73 review #16). Headers carry
+       it as padding via .safe-header; nothing else offsets the page. */
+    --safe-top: env(safe-area-inset-top, 0px);
   }
 
   /* Prevent browser autofill from overriding dark input backgrounds */
@@ -53,11 +54,7 @@
     @apply bg-background text-white min-h-screen font-sans;
     scroll-behavior: smooth;
     overflow-x: hidden;
-    /* Push every normal document-scroll page (search, service detail, post
-       service, landing, auth, legal…) below the status bar in one place, so no
-       page's header can end up behind it. 0 everywhere it isn't needed. The
-       fixed-height dashboard shells opt out via .app-shell below. */
-    padding-top: var(--safe-top);
+    overflow-x: clip;
   }
 
   /* Global form field text colours */
@@ -78,6 +75,31 @@
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+}
+
+/* Native <select>s drew the OS arrow hard against the right edge. Draw our
+   own chevron 12px in, matching the selects that already overlay a
+   ChevronDown (those carry appearance-none and are left alone). Unlayered so
+   the extra right padding wins over px-* utilities. */
+select:not(.appearance-none):not([multiple]) {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2362748e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.875rem 0.875rem;
+  padding-inline-end: 2.25rem;
+}
+
+/* Switching theme changes every colour at once; elements with
+   transition-colors then animate from their old colour for a moment, which
+   showed as a flash of dark blocks on mobile (GIG-73 #15). src/theme.ts adds
+   this class for the instant of the switch. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
 }
 
 /* Stop iOS Safari from zooming in when a form field is focused. iOS zooms
@@ -123,18 +145,8 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* The dashboards are fixed-height app shells (h-dvh + overflow-hidden, height
-     re-pinned to innerHeight in useAppHeight); they can't take the body's top
-     padding without their bottom nav falling off-screen. Cancel it with a
-     matching negative margin so the shell fills the viewport edge-to-edge, and
-     let its sticky header carry the inset via .safe-header instead. --safe-top is
-     0 when no inset is needed, so this is a no-op on desktop/regular browsers. */
-  .app-shell {
-    margin-top: calc(-1 * var(--safe-top));
-  }
-
-  /* Pad a sticky/top header by the status-bar / notch height so its content
-     never sits behind the clock & indicators. min-height keeps the 4rem row
+  /* Every header is pinned to the top (fixed or sticky) and padded by the
+     status-bar height so its content never sits behind the clock & indicators. min-height keeps the 4rem row
      intact *below* the inset instead of the inset eating into it (border-box
      would otherwise shrink the visible header). The header background fills the
      inset strip too, so it reads as one clean bar under the status bar. */
@@ -344,4 +356,29 @@ html.light .leaflet-control-zoom a:hover {
   /* Fades that blend a scroll arrow into the page behind it. */
   :where(html.light) .from-\[\#0E1422\] { --tw-gradient-from: var(--color-background); }
   :where(html.light) .via-\[\#0E1422\]\/90 { --tw-gradient-via: color-mix(in oklab, var(--color-background) 90%, transparent); }
+
+  /* Form fields: white, slate-300 border, slate-900 text (GIG-73 review #4).
+     Only fields that paint their own background; inputs that sit transparent
+     inside a composite bar keep the bar's look. [class] lifts this just above
+     the bg/border utilities it replaces while focus:/hover: variants still win. */
+  :where(html.light) :is(input, textarea, select)[class]:where([class*="bg-slate-"], [class*="bg-surface"], [class*="bg-card"], [class*="bg-background"]):where(:not([type="checkbox"], [type="radio"], [type="range"], [type="file"])) {
+    background-color: #fff;
+    border-color: oklch(86.9% 0.022 252.894); /* slate-300 */
+    color: var(--light-ink);
+  }
+
+  /* The one Gigspace blue: icons drawn with a literal #2B7FFF (blue-500) next
+     to tiles already on the primary blue-600 looked mismatched (#2, #3), and
+     the search button too (#5). */
+  :where(html.light) [fill="#2B7FFF" i] { fill: var(--color-primary); }
+  :where(html.light) [stroke="#2B7FFF" i] { stroke: var(--color-primary); }
+  :where(html.light) .fill-\[\#2B7FFF\] { fill: var(--color-primary); }
+
+  /* Rating stars and the review meter are yellow-500 (#7, #9). Their -400
+     classes are deepened above for text contrast; icons don't need that. */
+  :where(html.light) svg:is(.fill-amber-400, .fill-yellow-400) {
+    fill: oklch(79.5% 0.184 86.047);
+    color: oklch(79.5% 0.184 86.047);
+  }
+  :where(html.light) .bg-amber-400 { background-color: oklch(79.5% 0.184 86.047); }
 }

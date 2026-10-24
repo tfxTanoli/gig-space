@@ -53,7 +53,7 @@ const AdminTopbar = <TTab extends string = string>({
   };
 
   return (
-    <header className="h-16 flex items-center justify-between gap-3 px-4 sm:px-6 bg-background border-b border-slate-800 sticky top-0 z-10">
+    <header className="safe-header h-16 flex items-center justify-between gap-3 px-4 sm:px-6 bg-background border-b border-slate-800 sticky top-0 z-10">
       {onMenuClick && (
         <button
           onClick={onMenuClick}

@@ -33,8 +33,8 @@
     <meta name="twitter:image" content="https://gigspace.co/og-default.png" />
     <!--/seo-defaults-->
 
-    <!-- viewport-fit=cover exposes env(safe-area-inset-*) so fixed/sticky UI can
-         clear the iOS status bar / notch instead of hiding behind it. -->
+    <!-- viewport-fit=cover exposes env(safe-area-inset-*): pinned headers pad
+         themselves by exactly the status-bar space each device needs. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Match the browser/status-bar chrome to the app background on mobile. -->
     <meta name="theme-color" content="#0f172a" />
@@ -63,54 +63,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>Gigspace</title>
 
-    <!-- On iPhone the top of the page sits directly under the status bar: modern
-         Safari puts its address bar at the BOTTOM, and home-screen apps have no
-         chrome at all. env(safe-area-inset-top) is meant to cover this, but Apple
-         reports it as 0 on non-notch iPhones (SE/8-class) — so the env()-only
-         padding silently did nothing and the logo/hamburger stayed under the
-         clock. Flag every iPhone/iPod here (covers Safari *and* standalone) so CSS
-         can floor the inset to the 20px status-bar height. Gated to iPhone/iPod
-         only: iPad/desktop/Android keep a 0 inset and gain no unwanted gap. -->
-    <script>
-      (function () {
-        var root = document.documentElement;
-        if (/iPhone|iPod/.test(window.navigator.userAgent)) root.classList.add('ios-phone');
-
-        // Capture the real top inset and remember the largest value ever seen.
-        // The dashboards lock scrolling (overflow:hidden on <html>) to run as a
-        // fixed app shell, and iOS then reports env(safe-area-inset-top) as 0 —
-        // which drops a notch / Dynamic-Island header back under the status bar
-        // (the CSS floor is only 20px, ~24px short of a 44px notch). env() is
-        // still correct on the scrollable browse/detail pages and at first load,
-        // so measure there and keep the max: the dashboard then reuses the true
-        // notch height even when its own env() reads 0. Non-notch iPhones never
-        // report an inset, so they keep relying on the 20px floor in CSS.
-        var max = 0;
-        function measure() {
-          var probe = measure.el;
-          if (!probe) return;
-          var h = probe.getBoundingClientRect().height;
-          if (h > max) { max = h; root.style.setProperty('--safe-top-measured', max + 'px'); }
-        }
-        function init() {
-          var probe = document.createElement('div');
-          probe.style.cssText =
-            'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
-          document.body.appendChild(probe);
-          measure.el = probe;
-          measure();
-          // env settles a frame or two after load / bfcache restore / toolbar
-          // transitions — re-measure on the events that mark those moments.
-          window.addEventListener('resize', measure, { passive: true });
-          window.addEventListener('orientationchange', measure);
-          window.addEventListener('pageshow', measure);
-          if (window.visualViewport)
-            window.visualViewport.addEventListener('resize', measure, { passive: true });
-        }
-        if (document.body) init();
-        else document.addEventListener('DOMContentLoaded', init);
-      })();
-    </script>
 
     <!-- Warm up the connections the first paint depends on so auth/db/storage
          requests don't pay TLS setup on the critical path. -->

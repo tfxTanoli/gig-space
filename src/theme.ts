@@ -35,6 +35,10 @@ const listeners = new Set<() => void>();
 
 function apply(theme: Theme): void {
   const root = document.documentElement;
+  // Every colour changes at once; without this, elements with
+  // transition-colors fade from their old colour and flash (index.css).
+  root.classList.add('theme-switching');
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')));
   root.classList.toggle('light', theme === 'light');
   root.classList.toggle('dark', theme === 'dark');
   root.style.colorScheme = theme;
