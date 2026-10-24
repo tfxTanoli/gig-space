@@ -244,7 +244,7 @@ const BuyerDashboard = () => {
   const isMessagesTab = activeTab === 'Messages';
 
   return (
-    <div ref={shellRef} className="app-shell h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
+    <div ref={shellRef} className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-background flex text-white font-sans">
 
       {/* Payment success toast */}
       {paymentSuccessToast && (
