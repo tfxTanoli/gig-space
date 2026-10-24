@@ -8,7 +8,7 @@
 // its content already in the HTML. The React app then boots and takes over.
 // Any failure falls back to the plain shell, so the site never breaks over SEO.
 import { searchMeta, searchHeading, buildPageHeadHtml, STATIC_PAGES, type StaticPath } from '../src/seo/pages.js';
-import { matchesSearch, readSearchState } from '../src/seo/search.js';
+import { ITEMS_PER_PAGE, matchesSearch, readSearchState } from '../src/seo/search.js';
 import { renderAbout, renderAffiliate, renderHome, renderLegal, renderSearch, renderSellers, type CardListing } from '../src/seo/render.js';
 import { AFFILIATE, SELLERS, cmsFaqList } from '../src/content/marketing.js';
 import {
@@ -39,7 +39,8 @@ async function render(route: StaticPath | '/search', req: Req): Promise<{ head: 
     const state = readSearchState(req.query);
     const [labels, services] = await Promise.all([loadLabels(), loadServices()]);
     const results = services.filter((s) => s.status === 'active' && matchesSearch(s as CardListing, state)) as CardListing[];
-    const meta = searchMeta(state, labels, results.length);
+    const pages = Math.max(1, Math.ceil(results.length / ITEMS_PER_PAGE));
+    const meta = searchMeta(state, labels, results.length > 0 && state.page <= pages);
     return {
       head: buildPageHeadHtml(meta),
       body: renderSearch({

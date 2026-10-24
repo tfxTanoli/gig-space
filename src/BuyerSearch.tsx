@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, memo, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { listingPath } from './seo/meta';
-import { ITEMS_PER_PAGE, readSearchState, searchPath, searchQueryString, servesLocation } from './seo/search';
+import { ITEMS_PER_PAGE, canonicalLocation, readSearchState, searchPath, searchQueryString, servesLocation } from './seo/search';
 import { searchHeading, searchMeta } from './seo/pages';
 import { useDocumentMeta } from './seo/useDocumentMeta';
 import { useSsrReady } from './ssrHandoff';
@@ -443,7 +443,7 @@ const BuyerSearch = () => {
   const dashboardPath = isAdmin ? '/admin-dashboard' : isSeller ? '/seller-dashboard' : '/buyer-dashboard';
   const messagesPath = isSeller ? '/seller-dashboard?tab=Messages' : '/buyer-dashboard?tab=Messages';
   const settingsPath = isSeller ? '/seller-dashboard?tab=Settings' : '/buyer-dashboard?tab=Settings';
-  const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
+  const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel, loading: labelsLoading } = useCategories();
   const { isSaved, toggleSave } = useSavedServices();
   const sellerSales = useSellerSales();
   const navigate = useNavigate();
@@ -460,7 +460,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const [activeSearch, setActiveSearch] = useState(() => searchParams.get('q') ?? '');
   const [activeCategory, setActiveCategory] = useState(() => searchParams.get('category') ?? '');
   const [activeSubcategory, setActiveSubcategory] = useState(() => searchParams.get('subcategory') ?? '');
-  const [activeLocation, setActiveLocation] = useState(() => searchParams.get('location') ?? '');
+  const [activeLocation, setActiveLocation] = useState(() => canonicalLocation(searchParams.get('location') ?? ''));
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationType, setLocationType] = useState<'precise' | 'broad' | ''>('');
   const [searchRadius, setSearchRadius] = useState(0);
@@ -799,26 +799,39 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts, searchRadius, locationCoords]);
 
+  // Where the next batch starts: the oldest createdAt in any batch so far,
+  // drafts and paused posts included. Judging by live posts alone made a
+  // batch with one draft in it look like the last, so later posts were never
+  // loaded; and a batch of nothing but drafts would never move the cursor.
+  const cursorRef = useRef<number | null>(null);
+
   const fetchPage = useCallback(async (beforeTimestamp?: number) => {
-    const q = beforeTimestamp
+    const q = beforeTimestamp != null
       ? query(ref(database, 'services'), orderByChild('createdAt'), endBefore(beforeTimestamp), limitToLast(PAGE_SIZE))
       : query(ref(database, 'services'), orderByChild('createdAt'), limitToLast(PAGE_SIZE));
 
     const snap = await get(q);
     const result: ServicePost[] = [];
+    let read = 0;
+    let oldest: number | null = null;
     snap.forEach((child) => {
       const val = child.val();
-      if (val.status === 'active') result.push({ id: child.key!, ...val });
+      read += 1;
+      const at = Number(val?.createdAt);
+      if (Number.isFinite(at) && (oldest === null || at < oldest)) oldest = at;
+      if (val?.status === 'active') result.push({ id: child.key!, ...val });
     });
     result.sort((a, b) => b.createdAt - a.createdAt);
-    return result;
+    // A full batch means there may be more before it.
+    return { posts: result, more: read === PAGE_SIZE && oldest !== null, oldest };
   }, []);
 
   useEffect(() => {
     fetchPage()
-      .then((result) => {
+      .then(({ posts: result, more, oldest }) => {
+        cursorRef.current = oldest;
         setPosts(result);
-        setHasMore(result.length === PAGE_SIZE);
+        setHasMore(more);
       })
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
@@ -853,22 +866,22 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   }, [posts, sellerMeta]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || posts.length === 0) return;
+    if (loadingMore || cursorRef.current === null) return;
     setLoadingMore(true);
-    const oldest = posts[posts.length - 1].createdAt;
     try {
-      const more = await fetchPage(oldest);
+      const { posts: batch, more, oldest } = await fetchPage(cursorRef.current);
+      cursorRef.current = oldest;
       setPosts((prev) => {
         const ids = new Set(prev.map((p) => p.id));
-        return [...prev, ...more.filter((p) => !ids.has(p.id))];
+        return [...prev, ...batch.filter((p) => !ids.has(p.id))];
       });
-      setHasMore(more.length === PAGE_SIZE);
+      setHasMore(more);
     } catch {
       // silently ignore
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, posts, fetchPage]);
+  }, [loadingMore, fetchPage]);
 
   const handlePageSelect = useCallback((page: number) => {
     setCurrentPage(page);
@@ -1014,27 +1027,35 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
 
   const totalPages = Math.max(1, Math.ceil(displayedPosts.length / ITEMS_PER_PAGE));
   totalPagesRef.current = totalPages;
-  const urlState = { q: activeSearch, category: activeCategory, subcategory: activeSubcategory, location: activeLocation, page: currentPage + 1 };
+  // The URL-level search, location in its one canonical spelling — as the
+  // server reads the same URL, so headings and tags match it word for word.
+  const urlState = { q: activeSearch, category: activeCategory, subcategory: activeSubcategory, location: canonicalLocation(activeLocation), page: currentPage + 1 };
   const pageHref = (page: number) => searchPath({ ...urlState, page: page + 1 });
   const labels = { category: getCategoryLabel, subcategory: getSubcategoryLabel };
-  // Same head tags as the server sends for this URL (GIG-77). Counted on the
-  // posts loaded so far, which only matters past the first batch.
-  useDocumentMeta(searchMeta(urlState, labels, displayedPosts.length));
-  useSsrReady(!loading);
 
-  // A page opened by its URL (?page=N) may need more posts than the first
-  // batch holds; keep loading until it can be filled or there are no more.
+  // Posts load newest first, PAGE_SIZE at a time, and the filters run on what
+  // has loaded. Keep loading until the page on screen is full or there is
+  // nothing left — a filtered search or a page opened by its URL (?page=N)
+  // would otherwise show fewer results than the server-rendered page for the
+  // same URL (GIG-77), which reads every listing.
   const matched = displayedPosts.length;
+  const pageFilled = matched >= (currentPage + 1) * ITEMS_PER_PAGE;
+  const resultsSettled = !loading && !labelsLoading && (pageFilled || !hasMore);
   useEffect(() => {
-    if (loading || loadingMore || !hasMore || currentPage === 0) return;
-    if (matched >= (currentPage + 1) * ITEMS_PER_PAGE) return;
+    if (loading || loadingMore || !hasMore || pageFilled) return;
     const id = window.setTimeout(() => { void loadMore(); }, 0);
     return () => window.clearTimeout(id);
-  }, [loading, loadingMore, hasMore, currentPage, matched, loadMore]);
+  }, [loading, loadingMore, hasMore, pageFilled, loadMore]);
   const paginatedPosts = displayedPosts.slice(
     currentPage * ITEMS_PER_PAGE,
     (currentPage + 1) * ITEMS_PER_PAGE,
   );
+
+  // Head tags for this URL, the same ones the server sends (GIG-77). Only
+  // once the page's results are settled: until then the server's tags stand,
+  // rather than a first-batch guess overwriting them.
+  useDocumentMeta(resultsSettled ? searchMeta(urlState, labels, paginatedPosts.length > 0) : null);
+  useSsrReady(resultsSettled);
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">

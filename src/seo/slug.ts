@@ -20,6 +20,9 @@ const US_STATE_NAMES: Record<string, string> = Object.fromEntries(
   Object.entries(US_STATES).map(([name, code]) => [code, name.replace(/\b\w/g, (c) => c.toUpperCase())]),
 );
 
+/** "TX" → "Texas"; undefined for anything that isn't a US state code. */
+export const usStateName = (code: string): string | undefined => US_STATE_NAMES[code.trim().toUpperCase()];
+
 const COUNTRY_ALIASES: Record<string, string> = {
   us: 'United States', usa: 'United States', 'u.s.': 'United States', 'u.s.a.': 'United States',
   'united states': 'United States', 'united states of america': 'United States',

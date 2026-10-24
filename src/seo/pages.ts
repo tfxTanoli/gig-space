@@ -7,7 +7,7 @@
 
 import { SITE_NAME, SITE_URL, formatArea, parseLocation } from './slug.js';
 import { escapeAttr, type CategoryLabels } from './meta.js';
-import { ITEMS_PER_PAGE, searchPath, type SearchState } from './search.js';
+import { searchPath, type SearchState } from './search.js';
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-default.png`;
 
@@ -114,14 +114,17 @@ export const searchArea = (location: string) => formatArea(parseLocation(locatio
 
 /**
  * A search page is worth indexing when it is a stable topic — a category,
- * a service, a city or a mix — with results to show. Free-text searches are
- * an unbounded URL space and stay out of the index (still followed).
+ * a service, a city or a mix — with results on the page. Free-text searches
+ * are an unbounded URL space and stay out of the index (still followed).
+ *
+ * Nothing here depends on how many results there are in total: the app only
+ * ever knows about the posts it has loaded so far, and the tags it writes must
+ * match the ones the server sent for the same URL.
  */
-export function searchMeta(s: SearchState, labels: CategoryLabels, total: number): PageMeta {
+export function searchMeta(s: SearchState, labels: CategoryLabels, pageHasResults: boolean): PageMeta {
   const subject = searchSubject(s, labels);
   const area = s.location ? searchArea(s.location) : '';
-  const pages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
-  const index = !s.q && total > 0 && s.page <= pages;
+  const index = !s.q && pageHasResults;
   const pageSuffix = s.page > 1 ? ` - Page ${s.page}` : '';
 
   let heading: string;
@@ -131,10 +134,7 @@ export function searchMeta(s: SearchState, labels: CategoryLabels, total: number
   else heading = 'Browse Local Services and Freelancers';
 
   const what = (subject || 'local service').toLowerCase().replace(/ services$/, '');
-  const count = total === 1 ? '1 listing' : `${total} listings`;
-  const lead = total > 0
-    ? `Compare ${count} for ${what}${area ? ` in ${area}` : ''} on Gigspace.`
-    : `Find ${what} pros${area ? ` in ${area}` : ''} on Gigspace.`;
+  const lead = `Find and compare ${what} pros${area ? ` in ${area}` : ''} on Gigspace.`;
 
   const description = fitDescription([
     lead,

@@ -86,11 +86,9 @@ const BUYER_NAV: NavLink[] = [
   { href: '/signup', label: 'Sign up' },
 ];
 
-function footer(categories: string[] = POPULAR_CATEGORIES): string {
+/** The pages' footer exactly — nothing here that the live page doesn't show. */
+function footer(): string {
   return `<footer class="border-t border-slate-800 mt-12 py-12 px-6 lg:px-12 text-center text-sm text-slate-500">`
-    + `<nav aria-label="Categories" class="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-8">`
-    + categories.map((c) => `<a href="${esc(searchPath({ category: c }))}" class="hover:text-slate-300 transition-colors">${esc(c)}</a>`).join('')
-    + `</nav>`
     + `<div class="flex flex-wrap justify-center gap-6 md:gap-8 mb-8">`
     + FOOTER_LINKS.map((l) => `<a href="${esc(l.to)}" class="hover:text-slate-300 transition-colors">${esc(l.label)}</a>`).join('')
     + `</div><p>${esc(COPYRIGHT)}</p></footer>`;
@@ -361,7 +359,7 @@ export function renderSearch(r: SearchRender): string {
     + `</ul></nav>`
     + `<main class="flex-1 px-4 md:px-6 lg:px-12 py-6 md:py-10">${crumbs}`
     + `<h1 class="text-2xl md:text-3xl font-bold mb-5 md:mb-8">${esc(r.heading)}</h1>${results}</main>`
-    + footer(r.categories.map((c) => c.value)),
+    + footer(),
   );
 }
 
