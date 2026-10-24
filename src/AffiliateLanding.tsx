@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
+import { ArrowRight, Car, Palette, Home, Package, Code2, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, ChevronLeft, ChevronRight, ChevronDown, Menu, X, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ref as dbRef, get } from 'firebase/database';
 import Logo from './Logo';
@@ -9,24 +9,24 @@ import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 import ThemeToggle from './ThemeToggle';
 import { useScrolled } from './useScrolled';
+import { useSsrReady } from './ssrHandoff';
+import { useDocumentMeta } from './seo/useDocumentMeta';
+import { STATIC_PAGES } from './seo/pages';
+import { AFFILIATE, COPYRIGHT, FAQ_HEADING, FOOTER_LINKS, MISSION, POPULAR_CATEGORIES, POPULAR_CATEGORIES_HEADING, cmsFaqList, type Faq } from './content/marketing';
 
 // Reads admin-managed affiliate FAQs from the CMS, falling back to the provided
 // defaults. Affiliate FAQs live at cms/affiliateFaqs, separate from the seller
 // landing page's cms/faqs, so the two can be edited independently.
-function useCmsFaqs(defaults: { question: string; answer: string }[]) {
+function useCmsFaqs(path: string, defaults: Faq[]): [Faq[], boolean] {
   const [faqs, setFaqs] = useState(defaults);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    get(dbRef(database, 'cms/affiliateFaqs')).then((snap) => {
-      const v = snap.val();
-      if (v && typeof v === 'object') {
-        const list = Object.values(v as Record<string, { question?: string; answer?: string }>)
-          .filter((f) => f?.question && f?.answer)
-          .map((f) => ({ question: String(f.question), answer: String(f.answer) }));
-        if (list.length) setFaqs(list);
-      }
-    }).catch(() => {});
-  }, []);
-  return faqs;
+    get(dbRef(database, path))
+      .then((snap) => { const list = cmsFaqList(snap.val()); if (list) setFaqs(list); })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, [path]);
+  return [faqs, loaded];
 }
 
 const AffStepIcon1 = () => (
@@ -104,58 +104,30 @@ const earnIconComponents = [
   <div className="mb-5"><EarnIcon4 /></div>,
 ];
 
-const DEFAULT_FAQS = [
-  {
-    question: 'Who can become a Gigspace affiliate?',
-    answer: 'Anyone can become a Gigspace affiliate. Whether you\'re a content creator, blogger, business owner, or just someone with a network, you can earn commissions by referring new clients to Gigspace.',
-  },
-  {
-    question: 'Do I need to be a Gigspace customer?',
-    answer: 'No, you don\'t need to be a Gigspace customer to join the affiliate program. Simply sign up for a free affiliate account and start sharing your unique referral link.',
-  },
-  {
-    question: 'How do I join the program?',
-    answer: 'Click the "Become an Affiliate" button, create your free account, and you\'ll get instant access to your unique referral link and a real-time tracking dashboard.',
-  },
-  {
-    question: 'What promotion methods are accepted?',
-    answer: 'You can promote Gigspace through social media, blogs, email newsletters, YouTube, podcasts, or any platform where you have an audience. Spam and misleading promotions are not permitted.',
-  },
-  {
-    question: 'How do I track my referrals?',
-    answer: 'Your affiliate dashboard provides real-time tracking of clicks, referrals, and earnings so you can see exactly how your link is performing at all times.',
-  },
-  {
-    question: 'How do I get paid?',
-    answer: 'Commissions are paid out once the referred job is completed and payment is released. You can withdraw your earnings directly to your bank account.',
-  },
-];
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Automotive: Car,
+  'Graphics & Design': Palette,
+  'Home & Garden': Home,
+  'Labor & Moving': Package,
+  'Programming & Tech': Code2,
+  'Skilled Trade': Wrench,
+  Business: Briefcase,
+  Lessons: Music,
+  Marketing: Megaphone,
+  Legal: Scale,
+  'Real Estate': MapPinHouse,
+};
 
-const earningsCards = [
-  { label: 'Small Job', service: '$100 local repair job', commission: '+ $5 commission', emoji: '🔥' },
-  { label: 'Medium Job', service: '$1,000 home service project', commission: '+ $50 commission', emoji: '⚡' },
-  { label: 'High-Ticket Job', service: '$10,000 renovation project', commission: '+ $500 commission', emoji: '🌟' },
-  { label: 'Large Project (top-end example)', service: '$100,000 commercial contract', commission: '+ $5,000 commission', emoji: '💰' },
-];
-
-const categories = [
-  { name: 'Automotive', Icon: Car },
-  { name: 'Graphics & Design', Icon: Palette },
-  { name: 'Home & Garden', Icon: Home },
-  { name: 'Labor & Moving', Icon: Package },
-  { name: 'Programming & Tech', Icon: Code2 },
-  { name: 'Skilled Trade', Icon: Wrench },
-  { name: 'Business', Icon: Briefcase },
-  { name: 'Lessons', Icon: Music },
-  { name: 'Marketing', Icon: Megaphone },
-  { name: 'Legal', Icon: Scale },
-  { name: 'Real Estate', Icon: MapPinHouse },
-];
+const categories = POPULAR_CATEGORIES.map((name) => ({ name, Icon: CATEGORY_ICONS[name] ?? Briefcase }));
 
 const AffiliateLanding = () => {
   const { user, loading } = useAuth();
   const scrolled = useScrolled();
-  const faqs = useCmsFaqs(DEFAULT_FAQS);
+  const [faqs, faqsLoaded] = useCmsFaqs('cms/affiliateFaqs', AFFILIATE.defaultFaqs);
+  // Ready once the FAQs are final, so the swap from the server HTML (which
+  // already has the CMS FAQs) doesn't flash the defaults.
+  useSsrReady(faqsLoaded);
+  useDocumentMeta(STATIC_PAGES['/affiliate']);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -196,7 +168,7 @@ const AffiliateLanding = () => {
   };
 
   const ctaHref = user ? '/affiliate-dashboard' : '/signup?next=/affiliate-dashboard';
-  const ctaLabel = user ? 'Go to Dashboard' : 'Become an Affiliate';
+  const ctaLabel = user ? 'Go to Dashboard' : AFFILIATE.heroButton;
 
   return (
     <div className="min-h-screen bg-background text-white font-sans flex flex-col">
@@ -273,14 +245,14 @@ const AffiliateLanding = () => {
         {/* Hero */}
         <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-20 pb-16 md:pb-28 px-4 text-center relative">
           <div className="relative z-10 flex flex-col items-center">
-            <div className="inline-flex items-center border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold text-slate-300 mb-6 md:mb-8">The Gigspace affiliate program is now live!</div>
+            <div className="inline-flex items-center border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold text-slate-300 mb-6 md:mb-8">{AFFILIATE.badge}</div>
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight max-w-4xl mx-auto">
-              Earn Big Commissions for{' '}<br className="hidden md:block" />Every Job Booked
+              {AFFILIATE.h1[0]}{' '}<br className="hidden md:block" />{AFFILIATE.h1[1]}
             </h1>
             <p className="text-slate-300 text-base md:text-lg max-w-xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
-              Get paid every time someone hires a service through your link.{' '}
+              {AFFILIATE.intro[0]}{' '}
               <br className="hidden md:block" />
-              Earn 50% of our platform fee on every completed job.
+              {AFFILIATE.intro[1]}
             </p>
             <Link
               to={ctaHref}
@@ -295,43 +267,43 @@ const AffiliateLanding = () => {
       {/* How It Works */}
       <section className="px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
         <div className="mb-16 max-w-2xl">
-          <h2 className="text-3xl font-bold gradient-heading mb-4">How it works</h2>
+          <h2 className="text-3xl font-bold gradient-heading mb-4">{AFFILIATE.howHeading}</h2>
           <p className="text-slate-400 leading-relaxed">
-            Sign up in minutes, share your link, and earn commissions every time someone books a service through Gigspace.
+            {AFFILIATE.howIntro}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="flex flex-col items-start">
             <div className="mb-6"><AffStepIcon1 /></div>
-            <h3 className="text-white font-bold mb-3 text-lg">1. Sign Up as an Affiliate</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">{AFFILIATE.steps[0].title}</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              Create your free affiliate account in minutes and get instant access to your unique referral link and tracking dashboard.
+              {AFFILIATE.steps[0].description}
             </p>
             <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
-              Get started for free <ArrowRight className="w-4 h-4 ml-1" />
+              {AFFILIATE.steps[0].link} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
 
           <div className="flex flex-col items-start">
             <div className="mb-6"><AffStepIcon2 /></div>
-            <h3 className="text-white font-bold mb-3 text-lg">2. Share Your Link</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">{AFFILIATE.steps[1].title}</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              Promote Gigspace anywhere — social media, your audience, or direct outreach. Every click and referral is tracked automatically.
+              {AFFILIATE.steps[1].description}
             </p>
             <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
-              Get your referral link <ArrowRight className="w-4 h-4 ml-1" />
+              {AFFILIATE.steps[1].link} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
 
           <div className="flex flex-col items-start">
             <div className="w-10 h-10 bg-[#2B7FFF] rounded-lg flex items-center justify-center mb-6"><WalletIcon /></div>
-            <h3 className="text-white font-bold mb-3 text-lg">3. Get paid</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">{AFFILIATE.steps[2].title}</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              When someone books a service through your link, you earn 50% of our platform fee once the job is completed.
+              {AFFILIATE.steps[2].description}
             </p>
             <Link to={ctaHref} className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
-              Start getting paid <ArrowRight className="w-4 h-4 ml-1" />
+              {AFFILIATE.steps[2].link} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
         </div>
@@ -341,16 +313,16 @@ const AffiliateLanding = () => {
       <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="mb-16 text-center">
           <span className="inline-block text-primary text-xs font-bold tracking-widest border border-primary/30 bg-primary/10 rounded-full px-4 py-1.5 mb-6">
-            Earnings that scale
+            {AFFILIATE.earningsEyebrow}
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-4">See What You Can Earn</h2>
+          <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-4">{AFFILIATE.earningsHeading}</h2>
           <p className="text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            From small local services to high-ticket contracts, your earnings scale with every referral. Get paid when any service is completed.
+            {AFFILIATE.earningsIntro}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {earningsCards.map((card, i) => (
+          {AFFILIATE.earnings.map((card, i) => (
             <div key={i} className="bg-surface-raised rounded-xl p-6 border border-slate-700/40">
               {earnIconComponents[i]}
               <p className="text-slate-400 text-sm font-medium mb-1">{card.label}</p>
@@ -366,7 +338,7 @@ const AffiliateLanding = () => {
       {/* Popular Service Categories */}
       <section className="px-4 md:px-6 lg:px-12 py-10 md:py-16">
         <div className="flex justify-between items-center mb-6 md:mb-10 max-w-7xl mx-auto">
-          <h2 className="text-base md:text-lg font-semibold text-slate-300">Popular Service Categories</h2>
+          <h2 className="text-base md:text-lg font-semibold text-slate-300">{POPULAR_CATEGORIES_HEADING}</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => scrollCats('left')}
@@ -407,7 +379,7 @@ const AffiliateLanding = () => {
 
       {/* FAQ */}
       <section className="px-6 lg:px-12 py-24 max-w-4xl mx-auto w-full">
-        <h2 className="text-2xl font-bold gradient-heading mb-10">Frequently asked questions</h2>
+        <h2 className="text-2xl font-bold gradient-heading mb-10">{FAQ_HEADING}</h2>
         <div>
           {faqs.map((faq, index) => (
             <div key={index} className="border-b border-slate-800/80 overflow-hidden">
@@ -436,30 +408,19 @@ const AffiliateLanding = () => {
       <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div>
-            <h2 className="text-3xl font-bold gradient-heading mb-6">Our mission</h2>
+            <h2 className="text-3xl font-bold gradient-heading mb-6">{MISSION.heading}</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
-              <p>
-                At Gigspace, our mission is to connect talented professionals with the people and businesses who need them—whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
-              </p>
-              <p>
-                By combining the flexibility of digital freelance platforms with the reach of local service marketplaces, we make hiring faster, safer, and more efficient for everyone. Our platform is built to remove unnecessary fees, streamline communication, and provide secure transactions, so professionals can focus on what they do best and buyers can get their work done with confidence.
-              </p>
+              {MISSION.paragraphs.map((p) => <p key={p.slice(0, 24)}>{p}</p>)}
             </div>
           </div>
 
           <div className="flex flex-col justify-start space-y-10 lg:pl-32 lg:pt-[60px]">
-            <div>
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2">$1.95 trillion</div>
-              <div className="text-slate-500 text-sm">Spent annually on services worldwide</div>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2">62%</div>
-              <div className="text-slate-500 text-sm">People who prefer hiring local talent</div>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2">$20 - $100K</div>
-              <div className="text-slate-500 text-sm">Price range sellers can set</div>
-            </div>
+            {MISSION.stats.map((s) => (
+              <div key={s.label}>
+                <div className="text-4xl md:text-5xl font-bold text-white mb-2">{s.value}</div>
+                <div className="text-slate-500 text-sm">{s.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -467,8 +428,8 @@ const AffiliateLanding = () => {
       {/* CTA */}
       <section className="py-24 px-6 text-center">
         <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
-          Join hundreds of affiliates earning big <span style={{ WebkitTextFillColor: 'initial' }}>💰</span><br />
-          with Gigspace
+          {AFFILIATE.ctaHeading[0].replace(' 💰', '')} <span style={{ WebkitTextFillColor: 'initial' }}>💰</span><br />
+          {AFFILIATE.ctaHeading[1]}
         </h2>
         <Link
           to={ctaHref}
@@ -481,14 +442,11 @@ const AffiliateLanding = () => {
       {/* Footer */}
       <footer className="border-t border-slate-800 py-12 px-6 lg:px-12 text-center text-sm text-slate-500">
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-8">
-          <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
-          <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
-          <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
-          <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
+          {FOOTER_LINKS.map((l) => (
+            <Link key={l.to} to={l.to} className="hover:text-slate-300 transition-colors">{l.label}</Link>
+          ))}
         </div>
-        <p>© Gigspace, LLC. All rights reserved.</p>
+        <p>{COPYRIGHT}</p>
       </footer>
 
     </div>

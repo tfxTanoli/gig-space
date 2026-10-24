@@ -2,6 +2,9 @@
 import { sanitizeHtml } from './utils/sanitize';
 import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { buildSeoContext, listingPath } from './seo/meta';
+import { pickRelated, relatedHeading, RELATED_POOL, type RelatableListing } from './seo/related';
+import { useSsrReady } from './ssrHandoff';
+import { searchPath } from './seo/search';
 import {
   ChevronLeft, ChevronRight,
   Bookmark, Star, Play, ArrowRight, Globe,
@@ -10,7 +13,7 @@ import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
 import { UserAvatar } from './UserAvatar';
 import VerifiedBadgeIcon from './VerifiedBadgeIcon';
-import { ref, get, onValue, update, increment } from 'firebase/database';
+import { ref, get, onValue, update, increment, query, orderByChild, limitToLast } from 'firebase/database';
 import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import { formatAmount } from './utils/currency';
@@ -24,6 +27,17 @@ import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+
+/** A listing as the related-listings cards read it. */
+type RelatedPost = RelatableListing & {
+  title?: string;
+  sellerName?: string;
+  sellerPhotoURL?: string;
+  images?: string[];
+  priceMin?: number;
+  priceMax?: number | null;
+  priceType?: string;
+};
 
 /* ─── Types ─── */
 
@@ -550,6 +564,26 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
     return () => unsub();
   }, [post?.id, post?.title, post?.reviewCount]);
 
+  // Related listings (GIG-77): crawlable links between listings, picked from
+  // the same window and by the same rules as the server-rendered page, so the
+  // first HTML and the live page link to the same ones.
+  const [related, setRelated] = useState<RelatedPost[]>([]);
+  useEffect(() => {
+    if (!post?.id) return;
+    let cancelled = false;
+    get(query(ref(database, 'services'), orderByChild('createdAt'), limitToLast(RELATED_POOL)))
+      .then((snap) => {
+        const pool: RelatedPost[] = [];
+        snap.forEach((child) => { pool.push({ id: child.key!, ...child.val() }); });
+        if (!cancelled) setRelated(pickRelated(post, pool));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-pick only when what decides relatedness changes
+  }, [post?.id, post?.category, post?.subcategory, post?.primaryLocation]);
+
+  useSsrReady(!loading);
+
   /* ── Loading ── */
   if (loading) {
     return (
@@ -658,7 +692,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
             <Link to="/search" className="text-slate-400 hover:text-slate-200 transition-colors shrink-0">All Services</Link>
             <span className="text-slate-600 shrink-0">/</span>
             <Link
-              to={`/search?category=${encodeURIComponent(post.category)}`}
+              to={searchPath({ category: post.category })}
               className="text-slate-400 hover:text-slate-200 transition-colors shrink-0"
             >
               {categoryLabel}
@@ -667,7 +701,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
               <>
                 <span className="text-slate-600 shrink-0">/</span>
                 <Link
-                  to={`/search?category=${encodeURIComponent(post.category)}&subcategory=${encodeURIComponent(post.subcategory)}`}
+                  to={searchPath({ category: post.category, subcategory: post.subcategory })}
                   className="text-slate-300 hover:text-slate-200 transition-colors"
                 >
                   {subcategoryLabel}
@@ -1064,6 +1098,34 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
           );
         })()}
       </div>
+
+      {related.length > 0 && seo && (
+        <section className="border-t border-slate-700/60 pt-8 pb-12">
+          <h2 className="text-xl font-medium text-white mb-6">{relatedHeading(seo)}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-12">
+            {related.map((r) => (
+              <Link key={r.id} to={listingPath(r)} className="group block">
+                <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised">
+                  {r.images?.[0] && (
+                    <img src={r.images[0]} alt={r.title ?? ''} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <UserAvatar photoURL={r.sellerPhotoURL ?? ''} name={r.sellerName ?? ''} size="sm" />
+                  <span className="text-sm text-slate-300 truncate min-w-0">{r.sellerName}</span>
+                </div>
+                <h3 className="text-sm font-medium text-white mb-2 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:underline">{r.title}</h3>
+                <p className="text-slate-400 text-[13px] mb-2 truncate">{[r.primaryLocation, ...(r.extraLocations ?? [])].filter(Boolean).join(' · ')}</p>
+                <p className="text-[13px] text-slate-100">
+                  {r.priceType === 'contact_for_pricing' || !(Number(r.priceMin) > 0) ? 'Contact for pricing' : (
+                    <>From <span className="font-bold text-white text-base">${fmtPrice(Number(r.priceMin))}{r.priceMax ? ` – $${fmtPrice(r.priceMax)}` : ''}</span> {r.priceType === 'per_hour' ? 'per hour' : 'per project'}</>
+                  )}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
       </main>
 
       {/* ── Footer ── */}

@@ -1,5 +1,9 @@
 {
   "trailingSlash": false,
+  "functions": {
+    "api/page.ts": { "includeFiles": "dist/app.html" },
+    "api/post-page.ts": { "includeFiles": "dist/app.html" }
+  },
   "redirects": [
     {
       "source": "/(.*)",
@@ -27,7 +31,14 @@
     { "source": "/posts/(.*)", "destination": "/api/post-page?notfound=1" },
     { "source": "/service-detail", "destination": "/api/post-page" },
     { "source": "/share", "destination": "/api/og" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/", "destination": "/api/page?ssr_route=home" },
+    { "source": "/search", "destination": "/api/page?ssr_route=search" },
+    { "source": "/for-sellers", "destination": "/api/page?ssr_route=for-sellers" },
+    { "source": "/about", "destination": "/api/page?ssr_route=about" },
+    { "source": "/affiliate", "destination": "/api/page?ssr_route=affiliate" },
+    { "source": "/terms", "destination": "/api/page?ssr_route=terms" },
+    { "source": "/privacy", "destination": "/api/page?ssr_route=privacy" },
+    { "source": "/(.*)", "destination": "/app.html" }
   ],
   "headers": [
     {

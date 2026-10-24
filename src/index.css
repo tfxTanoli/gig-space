@@ -91,6 +91,18 @@ select:not(.appearance-none):not([multiple]) {
   padding-inline-end: 2.25rem;
 }
 
+/* While a public page's server-rendered content is on screen (GIG-77), the
+   app boots behind it: laid out normally so it measures correctly, but
+   invisible and out of the way until src/ssrHandoff.ts swaps the two. */
+#root[data-ssr-pending] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Switching theme changes every colour at once; elements with
    transition-colors then animate from their old colour for a moment, which
    showed as a flash of dark blocks on mobile (GIG-73 #15). src/theme.ts adds

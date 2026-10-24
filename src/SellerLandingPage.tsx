@@ -9,22 +9,23 @@ import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 import ThemeToggle from './ThemeToggle';
 import { useScrolled } from './useScrolled';
+import { useSsrReady } from './ssrHandoff';
+import { useDocumentMeta } from './seo/useDocumentMeta';
+import { STATIC_PAGES } from './seo/pages';
+import { COPYRIGHT, FAQ_HEADING, FOOTER_LINKS, MISSION, SELLERS, cmsFaqList, type Faq } from './content/marketing';
 
-// Reads admin-managed FAQs from the CMS, falling back to the provided defaults.
-function useCmsFaqs(defaults: { question: string; answer: string }[]) {
+// Reads admin-managed FAQs from the CMS, falling back to the provided
+// defaults; `loaded` turns true once the CMS has answered either way.
+function useCmsFaqs(path: string, defaults: Faq[]): [Faq[], boolean] {
   const [faqs, setFaqs] = useState(defaults);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    get(dbRef(database, 'cms/faqs')).then((snap) => {
-      const v = snap.val();
-      if (v && typeof v === 'object') {
-        const list = Object.values(v as Record<string, { question?: string; answer?: string }>)
-          .filter((f) => f?.question && f?.answer)
-          .map((f) => ({ question: String(f.question), answer: String(f.answer) }));
-        if (list.length) setFaqs(list);
-      }
-    }).catch(() => {});
-  }, []);
-  return faqs;
+    get(dbRef(database, path))
+      .then((snap) => { const list = cmsFaqList(snap.val()); if (list) setFaqs(list); })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, [path]);
+  return [faqs, loaded];
 }
 
 const StepIconCreate = () => (
@@ -111,48 +112,18 @@ const IconBarChart = () => (
 
 const featureIcons = [IconScreen, IconBadgeCheck, IconChat, IconShieldCheck, IconBadgePercent, IconBarChart];
 
-const features = [
-  {
-    title: 'Photo & video portfolios.',
-    description: 'Show off your best work with clean portfolios that help build trust with buyers.'
-  },
-  {
-    title: 'Custom pricing.',
-    description: "Send tailored quotes for each customer's project and charge exactly what your work is worth."
-  },
-  {
-    title: 'Real-time messaging.',
-    description: 'Chat instantly with customers to answer questions, confirm details, and close deals without delays.'
-  },
-  {
-    title: 'Secure escrow payments.',
-    description: 'Transact with confidence knowing funds are locked in and released when the job is approved.'
-  },
-  {
-    title: 'Fair, low seller fees.',
-    description: "Keep more of what you earn with a simple fee structure that's lower than every other marketplace."
-  },
-  {
-    title: 'Performance insights.',
-    description: 'Track views, messages, orders, and earnings to see what\'s working and optimize your growth.'
-  }
-];
-
-const DEFAULT_FAQS = [
-  { question: "What can I sell?", answer: "You can offer any service that falls inside our diverse categories ranging from digital professional services to localized trade work." },
-  { question: "How much money can I make?", answer: "Your earning potential is entirely up to you. You set your own prices and determine how much work you want to take on." },
-  { question: "How much does it cost?", answer: "Joining and setting up your primary listing is completely free. We charge a flat platform fee on completed orders and optional subscriptions for multiple local reach." },
-  { question: "How much time will I need to invest?", answer: "It is highly flexible. You can freelance part-time or scale it to a full-time business. Setup usually takes under 15 minutes." },
-  { question: "How do I price my service?", answer: "We recommend reviewing similar services to gauge local/remote market rates. You can always adjust your prices as your profile grows." },
-  { question: "How do I get paid?", answer: "Payments are securely held in escrow and released to you upon project approval. You can withdraw directly to your bank account." }
-];
+const features = SELLERS.features;
 
 const SellerLandingPage = () => {
-  const faqs = useCmsFaqs(DEFAULT_FAQS);
+  const [faqs, faqsLoaded] = useCmsFaqs('cms/faqs', SELLERS.defaultFaqs);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
   const scrolled = useScrolled();
+  // Ready once the FAQs are final, so the swap from the server HTML (which
+  // already has the CMS FAQs) doesn't flash the defaults.
+  useSsrReady(faqsLoaded);
+  useDocumentMeta(STATIC_PAGES['/for-sellers']);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -223,20 +194,20 @@ const SellerLandingPage = () => {
         <section className="flex-1 flex flex-col items-center justify-center pt-12 md:pt-24 pb-16 md:pb-20 px-4 text-center relative">
           <div className="relative z-10 flex flex-col items-center">
             <div className="inline-flex flex-row items-center bg-surface-raised text-white border border-slate-700 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 md:mb-8 space-x-2">
-              <span>Stripe integration is now live 💸</span>
+              <span>{SELLERS.badge}</span>
             </div>
 
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading mb-4 md:mb-6 tracking-tight max-w-4xl mx-auto">
-              Get Discovered. Get Hired.{' '}<br/>Get Paid.
+              {SELLERS.h1[0]}{' '}<br/>{SELLERS.h1[1]}
             </h1>
             <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed text-balance">
-              From home repairs to digital work and everything in between.{' '}
+              {SELLERS.intro[0]}{' '}
               <br className="hidden md:block" />
-              Turn any skill into income and earn doing what you do best.
+              {SELLERS.intro[1]}
             </p>
 
             <Link to="/signup" className="inline-flex flex-row items-center bg-white hover:bg-slate-200 text-background font-semibold py-2 px-5 text-sm rounded-full transition-colors">
-              Become a Seller <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
+              {SELLERS.heroButton} <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
             </Link>
           </div>
         </section>
@@ -245,9 +216,9 @@ const SellerLandingPage = () => {
       {/* How it works */}
       <section className="px-6 lg:px-12 py-20 max-w-7xl mx-auto w-full">
         <div className="mb-16 max-w-2xl">
-          <h2 className="text-3xl font-bold gradient-heading mb-4">How it works</h2>
+          <h2 className="text-3xl font-bold gradient-heading mb-4">{SELLERS.howHeading}</h2>
           <p className="text-slate-400 leading-relaxed">
-            Gigspace makes selling your services easy. With simple tools for posting, messaging, and payments, you can scale your business faster than ever.
+            {SELLERS.howIntro}
           </p>
         </div>
 
@@ -256,12 +227,12 @@ const SellerLandingPage = () => {
             <div className="mb-6">
               <StepIconCreate />
             </div>
-            <h3 className="text-white font-bold mb-3 text-lg">1. Create a post</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">{SELLERS.steps[0].title}</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              Sign up for free, create your first post, and start showcasing your skills to a growing audience.
+              {SELLERS.steps[0].description}
             </p>
             <Link to="/signup" className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
-              Create your first post <ArrowRight className="w-4 h-4 ml-1" />
+              {SELLERS.steps[0].link} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
 
@@ -269,12 +240,12 @@ const SellerLandingPage = () => {
             <div className="mb-6">
               <StepIconDeliver />
             </div>
-            <h3 className="text-white font-bold mb-3 text-lg">2. Deliver excellent work</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">{SELLERS.steps[1].title}</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              Get order notifications, chat with customers, and track everything via your dashboard.
+              {SELLERS.steps[1].description}
             </p>
             <Link to="/signup" className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
-              Get your first order <ArrowRight className="w-4 h-4 ml-1" />
+              {SELLERS.steps[1].link} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
 
@@ -282,12 +253,12 @@ const SellerLandingPage = () => {
             <div className="w-10 h-10 bg-[#2B7FFF] rounded-lg flex items-center justify-center mb-6">
               <WalletIcon />
             </div>
-            <h3 className="text-white font-bold mb-3 text-lg">3. Get paid</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">{SELLERS.steps[2].title}</h3>
             <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed">
-              Accept payments directly through Stripe and funds remit to your bank account.
+              {SELLERS.steps[2].description}
             </p>
             <Link to="/signup" className="text-primary text-sm font-semibold flex items-center hover:text-blue-400 transition-colors">
-              Start getting paid <ArrowRight className="w-4 h-4 ml-1" />
+              {SELLERS.steps[2].link} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
         </div>
@@ -297,30 +268,19 @@ const SellerLandingPage = () => {
       <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div>
-            <h2 className="text-3xl font-bold gradient-heading mb-6">Our mission</h2>
+            <h2 className="text-3xl font-bold gradient-heading mb-6">{MISSION.heading}</h2>
             <div className="space-y-6 text-slate-400 leading-relaxed text-[15px]">
-              <p>
-                At Gigspace, our mission is to connect talented professionals with the people and businesses who need them—whether it's a hands-on home project, a virtual task, or anything in between. We empower sellers to turn their skills into income, while giving buyers a simple, reliable, and transparent way to hire the right pro for the job.
-              </p>
-              <p>
-                By combining the flexibility of digital freelance platforms with the reach of local service marketplaces, we make hiring faster, safer, and more efficient for everyone. Our platform is built to remove unnecessary fees, streamline communication, and provide secure transactions, so professionals can focus on what they do best and buyers can get their work done with confidence.
-              </p>
+              {MISSION.paragraphs.map((p) => <p key={p.slice(0, 24)}>{p}</p>)}
             </div>
           </div>
 
           <div className="flex flex-col justify-start space-y-10 lg:pl-32 lg:pt-[60px]">
-            <div>
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2">$1.95 trillion</div>
-              <div className="text-slate-500 text-sm">Spent annually on services worldwide</div>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2">62%</div>
-              <div className="text-slate-500 text-sm">People who prefer hiring local talent</div>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2">$20 - $100K</div>
-              <div className="text-slate-500 text-sm">Price range sellers can set</div>
-            </div>
+            {MISSION.stats.map((s) => (
+              <div key={s.label}>
+                <div className="text-4xl md:text-5xl font-bold text-white mb-2">{s.value}</div>
+                <div className="text-slate-500 text-sm">{s.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -329,13 +289,13 @@ const SellerLandingPage = () => {
       <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="mb-16 max-w-2xl">
           <span className="text-primary text-xs font-bold tracking-widest block mb-3">
-            Finally, a marketplace built for sellers
+            {SELLERS.featuresEyebrow}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
-            A better way to sell your services
+            {SELLERS.featuresHeading}
           </h2>
           <p className="text-slate-400 text-lg leading-relaxed">
-            We remove the limits of traditional freelance platforms by giving you control and flexibility to scale your business on your terms.
+            {SELLERS.featuresIntro}
           </p>
         </div>
 
@@ -362,7 +322,7 @@ const SellerLandingPage = () => {
       {/* FAQ */}
       <section className="px-6 lg:px-12 py-24 max-w-4xl mx-auto w-full">
         <h2 className="text-2xl font-bold gradient-heading mb-10 text-center md:text-left">
-          Frequently asked questions
+          {FAQ_HEADING}
         </h2>
 
         <div className="space-y-2">
@@ -394,26 +354,23 @@ const SellerLandingPage = () => {
       {/* CTA Section */}
       <section className="py-24 px-6 text-center">
         <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-10 leading-tight">
-          Work smarter, not harder.<br />
-          Earn more with Gigspace today.
+          {SELLERS.ctaHeading[0]}<br />
+          {SELLERS.ctaHeading[1]}
         </h2>
 
         <Link to="/signup" className="inline-flex items-center px-5 py-2 text-sm bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors">
-          Get started for free <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
+          {SELLERS.ctaButton} <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
         </Link>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-slate-800 py-12 px-6 lg:px-12 text-center text-sm text-slate-500">
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-8">
-          <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
-          <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
-          <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
-          <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
+          {FOOTER_LINKS.map((l) => (
+            <Link key={l.to} to={l.to} className="hover:text-slate-300 transition-colors">{l.label}</Link>
+          ))}
         </div>
-        <p>© Gigspace, LLC. All rights reserved.</p>
+        <p>{COPYRIGHT}</p>
       </footer>
     </div>
   );

@@ -1,5 +1,5 @@
 ﻿import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, Car, Palette, Home, Package, Code, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, Menu, X, Search } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Car, Palette, Home, Package, Code, Wrench, Briefcase, Music, Megaphone, Scale, MapPinHouse, Menu, X, Search, type LucideIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import LocationSearch from './LocationSearch';
@@ -8,20 +8,26 @@ import HeaderUserMenu from './HeaderUserMenu';
 import StarryBackground from './StarryBackground';
 import ThemeToggle from './ThemeToggle';
 import { useScrolled } from './useScrolled';
+import { useSsrReady } from './ssrHandoff';
+import { useDocumentMeta } from './seo/useDocumentMeta';
+import { STATIC_PAGES } from './seo/pages';
+import { COPYRIGHT, FOOTER_LINKS, HOME, POPULAR_CATEGORIES, POPULAR_CATEGORIES_HEADING } from './content/marketing';
 
-const categories = [
-  { name: 'Automotive', icon: Car },
-  { name: 'Graphics & Design', icon: Palette },
-  { name: 'Home & Garden', icon: Home },
-  { name: 'Labor & Moving', icon: Package },
-  { name: 'Programming & Tech', icon: Code },
-  { name: 'Skilled Trade', icon: Wrench },
-  { name: 'Business', icon: Briefcase },
-  { name: 'Lessons', icon: Music },
-  { name: 'Marketing', icon: Megaphone },
-  { name: 'Legal', icon: Scale },
-  { name: 'Real Estate', icon: MapPinHouse },
-];
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Automotive: Car,
+  'Graphics & Design': Palette,
+  'Home & Garden': Home,
+  'Labor & Moving': Package,
+  'Programming & Tech': Code,
+  'Skilled Trade': Wrench,
+  Business: Briefcase,
+  Lessons: Music,
+  Marketing: Megaphone,
+  Legal: Scale,
+  'Real Estate': MapPinHouse,
+};
+
+const categories = POPULAR_CATEGORIES.map((name) => ({ name, icon: CATEGORY_ICONS[name] ?? Briefcase }));
 
 const IconSearch = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -78,14 +84,9 @@ const IconBadgePercent = () => (
   </svg>
 );
 
-const features = [
-  { icon: IconSearch,       title: 'Instant search results.',      description: 'Find local or remote pros in seconds — no scrolling through irrelevant listings.' },
-  { icon: IconChat,         title: 'Real-time messaging.',          description: 'Chat instantly without filling out forms, sharing personal details, or waiting for bids.' },
-  { icon: IconBadgeCheck,   title: 'Transparent profiles.',         description: 'See upfront rates and service areas before reaching out.' },
-  { icon: IconShieldCheck,  title: 'Secure escrow payments.',       description: 'Transact with confidence and only pay when services are completed and fully approved.' },
-  { icon: IconScreen,       title: 'Photo & video portfolios.',     description: "Preview real work quality so you know exactly who you're hiring and how talented they are." },
-  { icon: IconBadgePercent, title: '0% buyer fees.',                description: 'Skip the added fees other platforms sneak in — your budget should go to the work, not the platform.' },
-];
+// Same order as HOME.features.
+const FEATURE_ICONS = [IconSearch, IconChat, IconBadgeCheck, IconShieldCheck, IconScreen, IconBadgePercent];
+const features = HOME.features.map((f, i) => ({ ...f, icon: FEATURE_ICONS[i] }));
 
 const LandingPage = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -95,6 +96,8 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const scrolled = useScrolled();
+  useSsrReady();
+  useDocumentMeta(STATIC_PAGES['/']);
 
   const goToSearch = () => {
     const params = new URLSearchParams();
@@ -198,14 +201,14 @@ const LandingPage = () => {
         <section className="flex-1 flex flex-col items-center justify-center pt-10 md:pt-24 pb-12 md:pb-16 px-4 text-center relative">
           <div className="relative z-10 w-full flex flex-col items-center">
             <h1 className="text-[2.75rem] leading-[1.08] md:text-5xl md:leading-tight lg:text-6xl font-bold gradient-heading tracking-tight mb-4 md:mb-6">
-              Local talent.{' '}
+              {HOME.h1[0]}{' '}
               <br className="md:hidden" />
-              On demand.
+              {HOME.h1[1]}
             </h1>
             <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto mb-8 md:mb-12 text-balance">
-              Hire talented pros for in-person services or remote experts for digital work.{' '}
+              {HOME.intro[0]}{' '}
               <br className="hidden md:block"/>
-              One marketplace for everything you need.
+              {HOME.intro[1]}
             </p>
 
             {/* Search Bar — two separate fields on mobile, combined pill on desktop */}
@@ -221,7 +224,7 @@ const LandingPage = () => {
               <div className="flex-1 w-full flex items-center bg-surface-raised rounded-xl border border-slate-700/50 shadow-lg p-1.5 md:bg-transparent md:rounded-none md:border-none md:shadow-none md:p-0 md:pr-2">
                 <input
                   type="text"
-                  placeholder="Search for a service"
+                  placeholder={HOME.searchPlaceholder}
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && goToSearch()}
@@ -242,7 +245,7 @@ const LandingPage = () => {
       {/* Categories Section */}
       <section className="px-4 md:px-6 lg:px-12 py-10 md:py-16">
         <div className="flex justify-between items-center mb-6 md:mb-10 max-w-7xl mx-auto">
-          <h2 className="text-base md:text-lg font-semibold text-slate-300">Popular Service Categories</h2>
+          <h2 className="text-base md:text-lg font-semibold text-slate-300">{POPULAR_CATEGORIES_HEADING}</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => scrollCats('left')}
@@ -288,13 +291,13 @@ const LandingPage = () => {
       <section className="px-6 lg:px-12 py-24 max-w-7xl mx-auto w-full">
         <div className="mb-16">
           <span className="text-primary text-sm font-semibold tracking-wide block mb-3">
-            Everything you need, all in one place
+            {HOME.featuresEyebrow}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
-            Hire the right pro for any project
+            {HOME.featuresHeading}
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl">
-            Find trusted professionals for any project {'—'} home repairs, digital tasks, and everything in between.
+            {HOME.featuresIntro}
           </p>
         </div>
 
@@ -321,28 +324,25 @@ const LandingPage = () => {
       {/* CTA Section */}
       <section className="py-24 px-6 text-center">
         <h2 className="text-3xl md:text-4xl font-bold gradient-heading mb-6">
-          Work smarter, not harder.<br />
-          Get more done with Gigspace today.
+          {HOME.ctaHeading[0]}<br />
+          {HOME.ctaHeading[1]}
         </h2>
         <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">
-          See why we're the #1 platform that helps you move from planning to done in a fraction of the time.
+          {HOME.ctaText}
         </p>
         <Link to="/signup" className="inline-flex items-center px-5 py-2 text-sm bg-white text-background font-semibold rounded-full hover:bg-slate-200 transition-colors">
-          Get started for free <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
+          {HOME.ctaButton} <ArrowRight className="w-4 h-4 ml-2 text-blue-500" />
         </Link>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-slate-800 mt-12 py-12 px-6 lg:px-12 text-center text-sm text-slate-500">
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-8">
-          <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
-          <Link to="/for-sellers" className="hover:text-slate-300 transition-colors">For Sellers</Link>
-          <Link to="/" className="hover:text-slate-300 transition-colors">For Buyers</Link>
-          <Link to="/affiliate" className="hover:text-slate-300 transition-colors">Affiliate Program</Link>
-          <Link to="/terms" className="hover:text-slate-300 transition-colors cursor-pointer">Terms &amp; Conditions</Link>
-          <Link to="/privacy" className="hover:text-slate-300 transition-colors cursor-pointer">Privacy Policy</Link>
+          {FOOTER_LINKS.map((l) => (
+            <Link key={l.to} to={l.to} className="hover:text-slate-300 transition-colors">{l.label}</Link>
+          ))}
         </div>
-        <p>© Gigspace, LLC. All rights reserved.</p>
+        <p>{COPYRIGHT}</p>
       </footer>
     </div>
   );

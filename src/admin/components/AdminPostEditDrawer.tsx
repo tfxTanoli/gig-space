@@ -211,6 +211,8 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
 
       await update(dbRef(database, `services/${service.id}`), {
         ...(titleChanged ? { titleEditedByAdmin: true } : {}),
+        // The sitemap's lastmod for this post (GIG-77).
+        updatedAt:      Date.now(),
         title:          title.trim(),
         description:    description.trim(),
         category,
