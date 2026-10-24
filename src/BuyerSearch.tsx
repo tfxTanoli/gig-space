@@ -1,6 +1,10 @@
 ﻿import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, memo, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { listingPath } from './seo/meta';
+import { ITEMS_PER_PAGE, readSearchState, searchPath, searchQueryString, servesLocation } from './seo/search';
+import { searchHeading, searchMeta } from './seo/pages';
+import { useDocumentMeta } from './seo/useDocumentMeta';
+import { useSsrReady } from './ssrHandoff';
 import {
   ChevronDown,
   ChevronLeft,
@@ -29,7 +33,7 @@ import { useAuth } from './AuthContext';
 import { formatAmount } from './utils/currency';
 import { useSavedServices } from './useSavedServices';
 import { useSellerSales, isNewSeller } from './useSellerSales';
-import { geocodeCache, geocodeLocation, haversineDistanceMiles, locationMatchKey } from './photon';
+import { geocodeCache, geocodeLocation, haversineDistanceMiles } from './photon';
 import { useCategories } from './CategoriesContext';
 import ThemeToggle from './ThemeToggle';
 
@@ -40,7 +44,13 @@ const MessagesIcon = ({ className }: { className?: string }) => (
 );
 
 const PAGE_SIZE = 50;
-const ITEMS_PER_PAGE = 20;
+
+/**
+ * A plain left click, which the app handles in place. Anything else (a new
+ * tab, a new window) is left to the browser so the link's real href opens.
+ */
+const isPlainClick = (e: React.MouseEvent) =>
+  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
 type RemoteOption = '' | 'remote' | 'in_person';
@@ -336,12 +346,15 @@ const PaginationBar = ({
   hasMore,
   loadingMore,
   onPageChange,
+  hrefFor,
 }: {
   currentPage: number;
   totalPages: number;
   hasMore: boolean;
   loadingMore: boolean;
   onPageChange: (page: number) => void;
+  /** URL of a page (0-based), so each page is a crawlable link. */
+  hrefFor: (page: number) => string;
 }) => {
   const getPageNumbers = (): (number | '...')[] => {
     if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i);
@@ -360,30 +373,40 @@ const PaginationBar = ({
 
   return (
     <div className="flex items-center justify-center gap-1 flex-wrap">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={!canPrev}
-        className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-slate-800"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        Prev
-      </button>
+      {canPrev ? (
+        <a
+          href={hrefFor(currentPage - 1)}
+          rel="prev"
+          onClick={(e) => { if (isPlainClick(e)) { e.preventDefault(); onPageChange(currentPage - 1); } }}
+          className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Prev
+        </a>
+      ) : (
+        <span className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 opacity-30 cursor-not-allowed rounded-lg">
+          <ChevronLeft className="w-4 h-4" />
+          Prev
+        </span>
+      )}
 
       {getPageNumbers().map((page, idx) =>
         page === '...' ? (
           <span key={`e-${idx}`} className="px-2 py-2 text-slate-500 text-sm select-none">…</span>
         ) : (
-          <button
+          <a
             key={page}
-            onClick={() => onPageChange(page as number)}
-            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+            href={hrefFor(page as number)}
+            aria-current={page === currentPage ? 'page' : undefined}
+            onClick={(e) => { if (isPlainClick(e)) { e.preventDefault(); onPageChange(page as number); } }}
+            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
               page === currentPage
                 ? 'bg-primary text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
             {(page as number) + 1}
-          </button>
+          </a>
         ),
       )}
 
@@ -391,17 +414,24 @@ const PaginationBar = ({
         <span className="px-1 py-2 text-slate-500 text-sm select-none">…</span>
       )}
 
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={!canNext}
-        className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-slate-800"
-      >
-        {loadingMore && currentPage >= totalPages - 1 ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <>Next <ChevronRight className="w-4 h-4" /></>
-        )}
-      </button>
+      {canNext ? (
+        <a
+          href={hrefFor(currentPage + 1)}
+          rel="next"
+          onClick={(e) => { if (isPlainClick(e)) { e.preventDefault(); onPageChange(currentPage + 1); } }}
+          className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800"
+        >
+          {loadingMore && currentPage >= totalPages - 1 ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <>Next <ChevronRight className="w-4 h-4" /></>
+          )}
+        </a>
+      ) : (
+        <span className="flex items-center gap-1 px-3 py-2 text-sm text-slate-400 opacity-30 cursor-not-allowed rounded-lg">
+          Next <ChevronRight className="w-4 h-4" />
+        </span>
+      )}
     </div>
   );
 };
@@ -447,7 +477,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Which collapsible section inside the filter drawer is expanded (one at a time).
   const [drawerSection, setDrawerSection] = useState<'rating' | 'language' | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(() => readSearchState(searchParams).page - 1);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   // Pending states for radio-group filters (committed on Apply).
@@ -663,10 +693,17 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
 
   const languageKey = useMemo(() => selectedLanguages.slice().sort().join(','), [selectedLanguages]);
 
-  // Reset to first page whenever any filter changes.
+  // Reset to first page whenever any filter changes. Compared against the
+  // previous filters rather than skipping the first run, so the page opened
+  // from the URL (?page=N) survives mounting — including React's dev-mode
+  // double run of effects.
+  const filterKey = JSON.stringify([activeSearch, activeCategory, activeSubcategory, activeLocation, budgetMax, minRating, verifiedFilter, languageKey, remoteFilter, onlineFilter, searchRadius, sortBy]);
+  const lastFilterKey = useRef(filterKey);
   useEffect(() => {
+    if (lastFilterKey.current === filterKey) return;
+    lastFilterKey.current = filterKey;
     setCurrentPage(0);
-  }, [activeSearch, activeCategory, activeSubcategory, activeLocation, budgetMax, minRating, verifiedFilter, languageKey, remoteFilter, onlineFilter, searchRadius, sortBy]);
+  }, [filterKey]);
 
   const commitSearch = useCallback(() => {
     setActiveSearch(inputValue.trim());
@@ -711,17 +748,22 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
     await logout();
   }, [logout]);
 
-  // Keep URL in sync with active search/location so browser back restores the correct state.
+  // Keep the URL in step with what's on screen — search, category, area and
+  // page — so every results page is a real address that can be shared,
+  // bookmarked and crawled (GIG-77), and browser back restores it.
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (activeSearch) params.set('q', activeSearch);
-    if (activeLocation) params.set('location', activeLocation);
-    const newSearch = params.toString() ? `?${params.toString()}` : '';
+    const newSearch = searchQueryString({
+      q: activeSearch,
+      category: activeCategory,
+      subcategory: activeSubcategory,
+      location: activeLocation,
+      page: currentPage + 1,
+    });
     if (newSearch !== urlSyncRef.current) {
       urlSyncRef.current = newSearch;
       navigate({ pathname: '/search', search: newSearch }, { replace: true });
     }
-  }, [activeSearch, activeLocation, navigate]);
+  }, [activeSearch, activeCategory, activeSubcategory, activeLocation, currentPage, navigate]);
 
   // Geocode the initial location label (seeded from URL param) so radius works on first load.
   useEffect(() => {
@@ -864,26 +906,9 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
       const matchesCategory = !activeCategory || p.category === activeCategory;
       const matchesSubcategory = !activeSubcategory || p.subcategory === activeSubcategory;
 
-      const matchesLocation = (() => {
-        if (!activeLocation) return true;
-        // Extra locations are a paid add-on and the card already lists them,
-        // so a post has to be findable by any area it serves.
-        const postLocations = [
-          ...(p.primaryLocation ? [p.primaryLocation] : []),
-          ...(p.extraLocations ?? []),
-        ];
-        if (postLocations.length === 0) return false;
-        // locationMatchKey folds the picker's disambiguating " City" suffix so
-        // "New York City, New York" finds a post stored as "New York, New York".
-        const a = locationMatchKey(activeLocation);
-        return postLocations.some((loc) => {
-          const b = locationMatchKey(loc);
-          if (a.includes(b) || b.includes(a)) return true;
-          const cityA = a.split(',')[0].trim();
-          const cityB = b.split(',')[0].trim();
-          return cityA.length > 0 && cityA === cityB;
-        });
-      })();
+      // Shared with the server renderer, so a /search URL lists the same posts
+      // in the first HTML and in the app.
+      const matchesLocation = servesLocation(p, activeLocation);
 
       const matchesBudget = budgetMax == null || p.priceMin <= budgetMax;
 
@@ -989,6 +1014,23 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
 
   const totalPages = Math.max(1, Math.ceil(displayedPosts.length / ITEMS_PER_PAGE));
   totalPagesRef.current = totalPages;
+  const urlState = { q: activeSearch, category: activeCategory, subcategory: activeSubcategory, location: activeLocation, page: currentPage + 1 };
+  const pageHref = (page: number) => searchPath({ ...urlState, page: page + 1 });
+  const labels = { category: getCategoryLabel, subcategory: getSubcategoryLabel };
+  // Same head tags as the server sends for this URL (GIG-77). Counted on the
+  // posts loaded so far, which only matters past the first batch.
+  useDocumentMeta(searchMeta(urlState, labels, displayedPosts.length));
+  useSsrReady(!loading);
+
+  // A page opened by its URL (?page=N) may need more posts than the first
+  // batch holds; keep loading until it can be filled or there are no more.
+  const matched = displayedPosts.length;
+  useEffect(() => {
+    if (loading || loadingMore || !hasMore || currentPage === 0) return;
+    if (matched >= (currentPage + 1) * ITEMS_PER_PAGE) return;
+    const id = window.setTimeout(() => { void loadMore(); }, 0);
+    return () => window.clearTimeout(id);
+  }, [loading, loadingMore, hasMore, currentPage, matched, loadMore]);
   const paginatedPosts = displayedPosts.slice(
     currentPage * ITEMS_PER_PAGE,
     (currentPage + 1) * ITEMS_PER_PAGE,
@@ -1174,15 +1216,16 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                   onMouseEnter={() => canHover && subcategoryMap[cat.value] && showFlyout(cat.value)}
                   onMouseLeave={() => canHover && hideFlyout()}
                 >
-                  <button
-                    onClick={() => handleCategoryClick(cat.value)}
+                  <a
+                    href={searchPath({ category: cat.value })}
+                    onClick={(e) => { if (isPlainClick(e)) { e.preventDefault(); handleCategoryClick(cat.value); } }}
                     className={`flex items-center gap-1 transition-colors py-1 cursor-pointer ${activeCategory === cat.value ? 'text-white' : 'hover:text-white'}`}
                   >
                     {cat.label}
                     {subcategoryMap[cat.value]?.length ? (
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform ${hoveredCategory === cat.value ? 'rotate-180' : ''}`} />
                     ) : null}
-                  </button>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -1207,20 +1250,24 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
           >
             <div className="px-4 md:px-6 lg:px-12 py-5">
               {/* "All …" selects the whole category */}
-              <button
-                onClick={() => selectWholeCategory(hoveredCategory)}
+              <a
+                href={searchPath({ category: hoveredCategory })}
+                onClick={(e) => { if (isPlainClick(e)) { e.preventDefault(); selectWholeCategory(hoveredCategory); } }}
                 className={`flex items-center gap-2 w-full text-left mb-3 pb-3 border-b border-slate-800 transition-colors ${
                   activeCategory === hoveredCategory && !activeSubcategory ? 'text-primary' : 'text-white hover:text-primary'
                 }`}
               >
                 <span className="font-semibold text-sm">All {getCategoryLabel(hoveredCategory)}</span>
                 <ArrowRight className="w-4 h-4 shrink-0 opacity-70" />
-              </button>
+              </a>
               <div className="grid gap-x-6 md:gap-x-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {subcategoryMap[hoveredCategory].map((sub) => (
-                  <button
+                  <a
                     key={sub.value}
-                    onClick={() => {
+                    href={searchPath({ category: hoveredCategory, subcategory: sub.value })}
+                    onClick={(e) => {
+                      if (!isPlainClick(e)) return;
+                      e.preventDefault();
                       setActiveCategory(hoveredCategory);
                       setActiveSubcategory(sub.value);
                       setHoveredCategory(null);
@@ -1233,7 +1280,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                     }`}
                   >
                     {sub.label}
-                  </button>
+                  </a>
                 ))}
               </div>
             </div>
@@ -1245,23 +1292,34 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
       <main className="flex-1 px-4 md:px-6 lg:px-12 py-6 md:py-10">
         {activeCategory && (
           <nav className="text-sm font-medium mb-3">
-            <button onClick={clearCategory} className="text-slate-400 hover:text-white transition-colors">
+            <a
+              href="/search"
+              onClick={(e) => { if (isPlainClick(e)) { e.preventDefault(); clearCategory(); } }}
+              className="text-slate-400 hover:text-white transition-colors"
+            >
               All Services
-            </button>
+            </a>
             <span className="text-slate-600 mx-2">/</span>
-            <span className="text-white">{getCategoryLabel(activeCategory)}</span>
+            {activeSubcategory ? (
+              <>
+                <a
+                  href={searchPath({ category: activeCategory, location: activeLocation })}
+                  onClick={(e) => { if (isPlainClick(e)) { e.preventDefault(); setActiveSubcategory(''); } }}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  {getCategoryLabel(activeCategory)}
+                </a>
+                <span className="text-slate-600 mx-2">/</span>
+                <span className="text-white">{getSubcategoryLabel(activeCategory, activeSubcategory)}</span>
+              </>
+            ) : (
+              <span className="text-white">{getCategoryLabel(activeCategory)}</span>
+            )}
           </nav>
         )}
 
         <h1 className="text-2xl md:text-3xl font-bold mb-5 md:mb-8">
-          {(() => {
-            const catLabel = activeCategory ? getCategoryLabel(activeCategory) : '';
-            const subLabel = activeSubcategory ? getSubcategoryLabel(activeCategory, activeSubcategory) : '';
-            if (activeSearch) return `Results for "${activeSearch}"${catLabel ? ` in ${catLabel}` : ''}`;
-            if (subLabel) return subLabel;
-            if (catLabel) return catLabel;
-            return 'All Services';
-          })()}
+          {searchHeading(urlState, labels)}
         </h1>
 
         {/* Filter bar — horizontally scrollable on mobile */}
@@ -1573,6 +1631,7 @@ const [posts, setPosts] = useState<ServicePost[]>([]);
                     hasMore={hasMore}
                     loadingMore={loadingMore}
                     onPageChange={handlePageSelect}
+                    hrefFor={pageHref}
                   />
                 )}
               </div>

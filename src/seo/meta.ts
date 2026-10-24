@@ -2,6 +2,7 @@
 // Nothing here may import firebase or touch the DOM.
 
 import { SITE_NAME, SITE_URL, formatArea, humanizeKey, parseLocation, type ParsedLocation } from './slug.js';
+import { searchPath } from './search.js';
 
 /** The subset of a `services/{id}` record the SEO layer reads. */
 export interface SeoListing {
@@ -284,13 +285,19 @@ export function buildJsonLd(listing: SeoListing, ctx: SeoContext, rating: Rating
   // LocalBusiness means a business with a real physical address. A seller whose
   // location parses only to a country or state — typically a remote freelancer —
   // is an Organization; claiming otherwise misrepresents them to Google.
+  // Only fields we actually have (GIG-77): the business's logo as its image,
+  // else the listing's own photo; the areas it serves; locality and region.
+  const served = areaServed(listing);
+  const providerImage = listing.sellerPhotoURL || ctx.image;
   const provider: Record<string, unknown> = {
     '@type': loc.city ? 'LocalBusiness' : 'Organization',
     '@id': `${url}#provider`,
     name: ctx.business,
     url: listing.website || url,
-    ...(listing.sellerPhotoURL ? { image: listing.sellerPhotoURL, logo: listing.sellerPhotoURL } : {}),
+    ...(providerImage ? { image: providerImage } : {}),
+    ...(listing.sellerPhotoURL ? { logo: listing.sellerPhotoURL } : {}),
     ...(address ? { address } : {}),
+    ...(served.length ? { areaServed: served } : {}),
     // Only ratings collected on Gigspace are published as structured data.
     // Imported Google ratings stay on the page for shoppers but are never
     // asserted as ours — doing so is what Google's review-snippet policy
@@ -319,18 +326,19 @@ export function buildJsonLd(listing: SeoListing, ctx: SeoContext, rating: Rating
     url,
     provider: { '@id': `${url}#provider` },
     ...(images.length ? { image: images } : {}),
-    ...(areaServed(listing).length ? { areaServed: areaServed(listing) } : {}),
+    ...(served.length ? { areaServed: served } : {}),
     ...(offer ? { offers: offer } : {}),
   };
 
   const crumbs: { name: string; item?: string }[] = [{ name: 'Home', item: `${SITE_URL}/` }];
   if (ctx.categoryLabel && listing.category) {
-    crumbs.push({ name: ctx.categoryLabel, item: `${SITE_URL}/search?category=${encodeURIComponent(listing.category)}` });
+    crumbs.push({ name: ctx.categoryLabel, item: `${SITE_URL}${searchPath({ category: listing.category })}` });
   }
   if (listing.subcategory && listing.category) {
     crumbs.push({
       name: ctx.serviceLabel,
-      item: `${SITE_URL}/search?category=${encodeURIComponent(listing.category)}&subcategory=${encodeURIComponent(listing.subcategory)}`,
+      // Same URL form as the search page's canonical, so both name one page.
+      item: `${SITE_URL}${searchPath({ category: listing.category, subcategory: listing.subcategory })}`,
     });
   }
   crumbs.push({ name: ctx.h1 });
@@ -372,7 +380,7 @@ export function buildJsonLd(listing: SeoListing, ctx: SeoContext, rating: Rating
   };
 }
 
-function escapeAttr(s: string): string {
+export function escapeAttr(s: string): string {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

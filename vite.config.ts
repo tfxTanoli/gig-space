@@ -1,9 +1,31 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+/**
+ * Names the built page shell app.html instead of index.html (GIG-77). On
+ * Vercel a static index.html is served for "/" before vercel.json's rewrites
+ * run, and "/" has to reach the server renderer (api/page.ts) like every
+ * other public page. The functions read the shell from /app.html, and every
+ * other path that isn't a file is rewritten to it. The dev server still
+ * serves index.html as usual.
+ */
+function shellAsAppHtml(): Plugin {
+  return {
+    name: 'gigspace:shell-as-app-html',
+    apply: 'build',
+    enforce: 'post',
+    generateBundle(_options, bundle) {
+      const shell = bundle['index.html']
+      if (!shell || shell.type !== 'asset') return
+      delete bundle['index.html']
+      this.emitFile({ type: 'asset', fileName: 'app.html', source: shell.source })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), shellAsAppHtml()],
 
   resolve: {
     dedupe: ['react', 'react-dom', 'react-dom/client'],

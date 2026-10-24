@@ -90,12 +90,14 @@
     <!-- Instant first-paint spinner. React's createRoot replaces #root's
          contents on mount, so this disappears the moment the app boots — it just
          fills the gap between the (render-blocking) CSS painting and the JS
-         bundle finishing, instead of showing an empty dark screen. -->
-    <div id="root">
+         bundle finishing, instead of showing an empty dark screen.
+         Public pages replace everything between the app-boot markers with the
+         page's server-rendered content instead (api/_lib/shell.ts, GIG-77). -->
+    <div id="root"><!--app-boot-->
       <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--color-background,#0f172a)">
         <div style="width:2rem;height:2rem;border:2px solid #3b82f6;border-top-color:transparent;border-radius:9999px;animation:appboot-spin .7s linear infinite"></div>
       </div>
-    </div>
+    <!--/app-boot--></div>
     <style>@keyframes appboot-spin{to{transform:rotate(360deg)}}</style>
     <script type="module" src="/src/main.tsx"></script>
   </body>

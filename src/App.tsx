@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode, useEffect, useState } from 'react';
+import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { ref as dbRef, get } from 'firebase/database';
 import { Toaster } from 'sonner'; // toast notifications
@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { CategoriesProvider } from './CategoriesContext';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useTheme } from './theme';
+import { releaseSsr, ssrHeld } from './ssrHandoff';
 
 // Route-based code splitting — each page is its own chunk
 const Signup              = lazy(() => import('./Signup'));
@@ -83,7 +84,18 @@ function ScrollToTop() {
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
+  const firstRoute = useRef(true);
   useEffect(() => {
+    if (firstRoute.current) {
+      firstRoute.current = false;
+      // A visitor may already be reading (and scrolling) the server-rendered
+      // page while the app loads behind it; don't yank them back to the top.
+      if (ssrHeld()) return;
+    } else {
+      // Navigated away before the first page took over: its server-rendered
+      // content no longer describes what's on screen.
+      releaseSsr();
+    }
     // Routes are lazy-loaded, so on navigation the Suspense fallback paints
     // first and a plain scrollTo lands on it, not the real page — iOS then
     // mounts the actual content already scrolled down. Reset immediately and
@@ -119,7 +131,9 @@ function PlatformGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     get(dbRef(database, 'settings/general')).then((snap) => {
       const g = (snap.val() ?? {}) as { platformName?: string; maintenanceMode?: boolean };
-      if (g.platformName?.trim()) document.title = g.platformName.trim();
+      // Only a page without a title of its own takes the platform name;
+      // public pages set theirs for search results (GIG-77).
+      if (g.platformName?.trim() && (!document.title || document.title === 'Gigspace')) document.title = g.platformName.trim();
       setMaintenance(Boolean(g.maintenanceMode));
     }).catch(() => {}).finally(() => setReady(true));
   }, []);

@@ -8,12 +8,18 @@ import { useAuth } from './AuthContext';
 import HeaderUserMenu from './HeaderUserMenu';
 import { sanitizeHtml } from './utils/sanitize';
 import ThemeToggle from './ThemeToggle';
+import { useSsrReady } from './ssrHandoff';
+import { useDocumentMeta } from './seo/useDocumentMeta';
+import { STATIC_PAGES } from './seo/pages';
 
 const PrivacyPolicy = () => {
   const { user } = useAuth();
   // Admin-managed content from the CMS overrides the default copy when present.
   const [cmsContent, setCmsContent] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  useSsrReady(loaded);
+  useDocumentMeta(STATIC_PAGES['/privacy']);
   useEffect(() => {
     Promise.all([
       get(dbRef(database, 'cms/privacy')),
@@ -24,7 +30,7 @@ const PrivacyPolicy = () => {
       if (typeof v === 'string' && v.replace(/<[^>]*>/g, '').trim()) setCmsContent(v);
       const ts = tsSnap.val();
       if (typeof ts === 'number' && ts > 0) setUpdatedAt(ts);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLoaded(true));
   }, []);
 
   return (
