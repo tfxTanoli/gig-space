@@ -719,16 +719,15 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
             </div>
           )}
 
-          {/* Price */}
+          {/* Price. No "Pricing" heading: the figures, or "Contact for pricing",
+              say it on their own (GIG-74). */}
           {post.priceType === 'contact_for_pricing' ? (
             <div className="order-6 mb-5">
-              <h2 className="text-sm font-medium text-white mb-1">Pricing</h2>
               {/* Per client: slate-100, 18px, medium weight */}
               <span className="text-slate-100 text-lg font-medium">Contact for pricing</span>
             </div>
           ) : post.priceMin != null && (
             <div className="order-6 mb-5">
-              <h2 className="text-sm font-medium text-white mb-1">Pricing</h2>
               {post.priceMax ? (
                 /* Range: From $X – $Y per project */
                 <>

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState, useRef } from 'react';
-import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown, Sparkles } from 'lucide-react';
+import { X, Plus, Trash2, AlertTriangle, Loader2, ChevronDown, Sparkles } from 'lucide-react';
 import { ref as dbRef, get, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'sonner';
@@ -10,6 +10,8 @@ import { useCategories } from '../../CategoriesContext';
 import { ensureSeoPath, removeFromSitemap } from '../../seo/ensureSeoPath';
 import { addToOutreachWithToast } from '../outreachToast';
 import { type SeoListing } from '../../seo/meta';
+import AdminImageGrid from './AdminImageGrid';
+import { filesToGridImages, urlsToGridImages, type GridImage } from './gridImages';
 
 interface Props {
   service: AdminService;
@@ -89,7 +91,8 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
   const [priceMax,       setPriceMax]       = useState(service.priceMax != null ? String(service.priceMax) : '');
   const [priceType,      setPriceType]      = useState<PriceType>(service.priceType ?? 'per_project');
   const [status,         setStatus]         = useState(service.status ?? 'active');
-  const [existingImages, setExistingImages] = useState<string[]>(service.images ?? (service.imageUrl ? [service.imageUrl] : []));
+  // Saved and newly picked images in one list, in the order the post shows them.
+  const [images,         setImages]         = useState<GridImage[]>(() => urlsToGridImages(service.images ?? (service.imageUrl ? [service.imageUrl] : [])));
   const [primaryLocation, setPrimaryLocation] = useState(service.primaryLocation ?? '');
   const [extraLocations, setExtraLocations]   = useState<string[]>(service.extraLocations ?? []);
   const [offeredRemotely, setOfferedRemotely] = useState(service.offeredRemotely ?? false);
@@ -97,8 +100,6 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
 
   const [locationInput, setLocationInput]   = useState('');
   const [languageInput, setLanguageInput]   = useState('');
-  const [newFiles,      setNewFiles]        = useState<File[]>([]);
-  const [newPreviews,   setNewPreviews]     = useState<string[]>([]);
   const [saving,        setSaving]          = useState(false);
   const [rewriting,     setRewriting]       = useState(false);
   const [rewriteCount,  setRewriteCount]    = useState(0);
@@ -116,20 +117,9 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
   }, [onClose]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    setNewFiles((prev) => [...prev, ...files]);
-    files.forEach((f) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => setNewPreviews((prev) => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(f);
-    });
+    const picked = filesToGridImages(Array.from(e.target.files ?? []));
+    setImages((prev) => [...prev, ...picked]);
     e.target.value = '';
-  };
-
-  const removeExisting = (url: string) => setExistingImages((prev) => prev.filter((u) => u !== url));
-  const removeNew      = (i: number) => {
-    setNewFiles((prev) => prev.filter((_, idx) => idx !== i));
-    setNewPreviews((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const addLocation = () => {
@@ -197,22 +187,22 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
     setSaving(true);
 
     try {
-      // Upload new images
-      const uploadedURLs: string[] = [];
-      for (const file of newFiles) {
-        const path = `services/${service.id}/${Date.now()}_${file.name}`;
-        const snap = await uploadBytes(storageRef(storage, path), file);
-        const url  = await getDownloadURL(snap.ref);
-        uploadedURLs.push(url);
+      // Upload new images, keeping each in the place the admin dragged it to.
+      const allImages: string[] = [];
+      for (const img of images) {
+        if (!img.file) { allImages.push(img.src); continue; }
+        const path = `services/${service.id}/${Date.now()}_${img.file.name}`;
+        const snap = await uploadBytes(storageRef(storage, path), img.file);
+        allImages.push(await getDownloadURL(snap.ref));
       }
 
-      const allImages = [...existingImages, ...uploadedURLs];
-
-      // The share-card image must be one of the post's photos. If the admin just
-      // removed it, fall back to the first remaining photo rather than leave
-      // social previews pointing at a picture the post no longer shows.
+      // The share-card image must be one of the post's photos. A new cover is
+      // the admin naming the best photo, so link previews follow it; otherwise
+      // keep the current one, or fall back to the cover if it was removed.
+      const savedImages = service.images ?? (service.imageUrl ? [service.imageUrl] : []);
+      const coverChanged = (allImages[0] ?? null) !== (savedImages[0] ?? null);
       const currentOg = (await get(dbRef(database, `services/${service.id}/ogImage`))).val() as string | null;
-      const ogImage = currentOg && allImages.includes(currentOg) ? currentOg : (allImages[0] ?? null);
+      const ogImage = !coverChanged && currentOg && allImages.includes(currentOg) ? currentOg : (allImages[0] ?? null);
 
       // Once an admin has written a title themselves, the listings backfill must
       // never rebuild it — this flag is what makes that guarantee real rather
@@ -410,38 +400,8 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
           {/* Images */}
           <div>
             <FieldLabel>Images / Video</FieldLabel>
-            <div className="grid grid-cols-4 gap-2 mb-2">
-              {existingImages.map((url) => (
-                <div key={url} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-700">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removeExisting(url)}
-                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </button>
-                </div>
-              ))}
-              {newPreviews.map((prev, i) => (
-                <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-blue-500/40">
-                  <img src={prev} alt="" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removeNew(i)}
-                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-lg border-2 border-dashed border-slate-700 hover:border-blue-500/50 flex items-center justify-center text-slate-500 hover:text-blue-400 transition-colors"
-              >
-                <Upload className="w-5 h-5" />
-              </button>
-            </div>
+            <AdminImageGrid items={images} onChange={setImages} onAddClick={() => fileInputRef.current?.click()} />
             <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileChange} />
-            <p className="text-xs text-slate-600">Hover an image and click the trash icon to remove it.</p>
           </div>
 
           {/* Primary Location */}

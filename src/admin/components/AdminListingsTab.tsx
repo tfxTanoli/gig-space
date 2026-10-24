@@ -76,11 +76,11 @@ const GEN_STATUS_BADGE: Record<GenStatus, { label: string; cls: string }> = {
 // broken one falls back to the business's initial, matching how the post page
 // renders it — the admin should never see an avatar the public page won't show.
 /**
- * The photo the post will most likely use, taken from the business's own
- * website (GIG-74). Walks the candidates in the order the server will try
- * them and shows the first one that loads at photo size. The server applies
- * stricter checks when generating (it also drops logos and badges by file
- * type), so treat this as a preview, not a promise.
+ * A photo the post will likely use, taken from the business's own website
+ * (GIG-74). Walks the candidates in page order and shows the first one that
+ * loads at photo size. When generating, the server applies stricter checks
+ * (it also drops logos and badges by file type) and puts the photos that best
+ * show the work first, so treat this as a preview, not a promise.
  */
 function SitePhotoPreview({ urls }: { urls: string[] }) {
   const [i, setI] = useState(0);
@@ -265,8 +265,17 @@ export default function AdminListingsTab() {
     if (!category) { toast.error('Choose a category to file these posts under.'); return; }
     setGenerating(true);
     try {
-      const { count } = await adminGenerateListings({ category, subcategory, language, businesses: chosen });
+      const { count, ai } = await adminGenerateListings({ category, subcategory, language, businesses: chosen });
       toast.success(`Generated ${count} draft post${count !== 1 ? 's' : ''}. Review and publish them below.`);
+      // The AI steps fall back quietly so a post is always created; say so
+      // when they did, rather than leave plain titles and page-order photos
+      // to be noticed later.
+      if (ai && ai.titles.written < ai.titles.of) {
+        toast.warning(`AI titles unavailable for ${ai.titles.of - ai.titles.written} of ${ai.titles.of} posts — they got a plain title. Use the rewrite button beside the title in the editor to retry.`);
+      }
+      if (ai && ai.photos.ranked < ai.photos.of) {
+        toast.warning(`AI photo ranking unavailable for ${ai.photos.of - ai.photos.ranked} of ${ai.photos.of} posts — their photos are in website order. Drag to reorder them in the editor.`);
+      }
       setResults(null);
       setSelected(new Set());
       await loadGenerated();
@@ -282,6 +291,14 @@ export default function AdminListingsTab() {
   // left — or stops making progress, so media Google refuses to hand over can't
   // spin this forever.
   const doRehostPhotos = async () => {
+    // It rewrites live posts in one go, so say what it will do first. Each
+    // replaced title is kept on the post as titleBeforeBackfill.
+    if (!window.confirm(
+      'Repair older generated listings?\n\n'
+      + '• Copies any Google-hosted photos and logos into our storage\n'
+      + "• Rebuilds broken titles, and rewrites titles built around the business name into titles that describe the service (from each post's About text)\n\n"
+      + 'Titles you edited yourself are never touched, and every replaced title is saved on the post so it can be restored.',
+    )) return;
     setRehosting(true);
     try {
       let listings = 0;
@@ -530,7 +547,7 @@ export default function AdminListingsTab() {
             <button
               onClick={doRehostPhotos}
               disabled={rehosting}
-              title="One-time repair for older listings: copies Google-hosted photos and logos into our own storage, and rebuilds titles that are broken (e.g. just 'Home'). Hand-edited titles are left alone. New listings get all of this automatically — you only need this once."
+              title="One-time repair for older listings: copies Google-hosted photos and logos into our own storage, rebuilds titles that are broken (e.g. just 'Home'), and rewrites titles built around the business name into titles that describe the service, written from each post's About text. Hand-edited titles are left alone. New listings get all of this automatically — you only need this once."
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700/50 bg-surface-raised text-xs text-slate-300 hover:text-white hover:border-slate-600 disabled:opacity-50 transition-colors"
             >
               {rehosting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageDown className="w-3.5 h-3.5" />}

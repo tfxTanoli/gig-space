@@ -26,6 +26,7 @@ const SKIP_TOKENS = new Set([
   'headshot', 'signature', 'qr', 'flag', 'map', 'bbb', 'angi', 'angieslist',
   'visa', 'amex', 'mastercard', 'paypal', 'payment', 'payments', 'financing',
   'certified', 'certification', 'accredited', 'emoji', 'clipart',
+  'flyer', 'flyers', 'poster', 'posters', 'brochure', 'promo',
 ]);
 // Brand names are distinctive enough to match inside a token
 // ("GoogleRatingColor-300x150.png", "facebook_round.png").
@@ -59,17 +60,19 @@ function attr(tag: string, name: string): string {
   return decode(m?.[1] ?? m?.[2] ?? m?.[3] ?? '');
 }
 
-/** The largest entry of a srcset ("a.jpg 480w, b.jpg 1200w" → b.jpg). */
-function largestFromSrcset(srcset: string): string {
-  let best = '';
-  let bestW = -1;
-  for (const part of srcset.split(',')) {
-    const [url, size] = part.trim().split(/\s+/);
-    if (!url) continue;
-    const w = parseFloat(size ?? '') || 0;
-    if (w > bestW) { best = url; bestW = w; }
-  }
-  return best;
+/**
+ * The smallest srcset entry that is still sharp at gallery size (1200px wide),
+ * or the largest when none is that big ("a.jpg 480w, b.jpg 1200w, c.jpg
+ * 2250w" → b.jpg). Anything bigger only adds weight for every visitor.
+ */
+function bestFromSrcset(srcset: string): string {
+  const entries = srcset
+    .split(',')
+    .map((part) => part.trim().split(/\s+/))
+    .filter(([url]) => Boolean(url))
+    .map(([url, size]) => ({ url, w: parseFloat(size ?? '') || 0 }));
+  const sharp = entries.filter((e) => e.w >= 1200).sort((a, b) => a.w - b.w)[0];
+  return sharp?.url ?? entries.sort((a, b) => b.w - a.w)[0]?.url ?? '';
 }
 
 function metaImage(html: string, key: string): string {
@@ -81,48 +84,109 @@ function metaImage(html: string, key: string): string {
   return decode(m?.[1] ?? m?.[2] ?? '');
 }
 
-/**
- * Photo candidates from a page, best guess first: the image the site itself
- * marks as its main one (og:image / twitter:image), then <img> and inline
- * background images in page order. Unverified — pickSitePhotos() checks them.
+/* ─── Site builders that hide the real image ───────────────────────────────────
+ * Some builders put only a placeholder in the HTML and swap the real image in
+ * with JavaScript, which we never run:
+ *  - Wix serves 50px blurred previews (…/v1/fill/w_50,h_33,blur_3/…) and
+ *    gallery images as AVIF, so as4less-landscaping.com gave us nothing but its
+ *    share image, which is a flyer (GIG-74). Every Wix image URL carries the
+ *    media id, so we ask Wix's CDN for that image at a size of our choosing.
+ *  - Squarespace serves the original upload unless ?format= picks a size, and
+ *    originals are routinely over the 3 MB download cap.
  */
-export function pageImageCandidates(html: string, pageUrl: string, max = 16): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  const add = (raw: string, ...context: string[]) => {
-    if (!raw || raw.startsWith('data:')) return;
-    let url: string;
-    try { url = new URL(raw.trim(), pageUrl).toString(); } catch { return; }
-    if (!/^https?:/i.test(url) || SKIP_EXT.test(url)) return;
-    if (looksLikeFurniture(url, ...context)) return;
-    if (seen.has(url)) return;
-    seen.add(url);
-    out.push(url);
+const WIX_MEDIA = /^https?:\/\/static\.wixstatic\.com\/media\/([^/?#]+)/i;
+// Wix's stock libraries: its free media (a bare 32-hex id) and its Unsplash
+// collection (11062b_). Template sites ship with these; they show nobody's work.
+const WIX_STOCK = /^(?:[0-9a-f]{32}\.[a-z]+$|11062b_)/i;
+// Uploads are filed under the uploading account's prefix ("96b0bb_…").
+const wixOwner = (url: string) => url.match(WIX_MEDIA)?.[1].match(/^([0-9a-f]{6})_/i)?.[1].toLowerCase() ?? '';
+
+/** The full-size form of a placeholder URL; null for stock images to skip. */
+export function fullSizeUrl(url: string): string | null {
+  const wix = url.match(WIX_MEDIA);
+  if (wix) {
+    let id = wix[1];
+    try { id = decodeURIComponent(id); } catch { /* keep as found */ }
+    if (WIX_STOCK.test(id)) return null;
+    return `https://static.wixstatic.com/media/${id}/v1/fit/w_1600,h_1600,q_85/${id}`;
+  }
+  if (/^https?:\/\/images\.squarespace-cdn\.com\//i.test(url)) {
+    const u = new URL(url);
+    u.searchParams.set('format', '1500w');
+    return u.toString();
+  }
+  return url;
+}
+
+/**
+ * Photo candidates from a page in page order: <img> tags, inline background
+ * images, then images a Wix page only names in its data. The share image
+ * (og:image / twitter:image) comes last: small businesses often set a flyer or
+ * logo there, and the page's own photos show the work better. Unverified —
+ * pickSitePhotos() checks them.
+ */
+export function pageImageCandidates(html: string, pageUrl: string, max = 24): string[] {
+  // Resolves, upgrades and filters one candidate; null when it should be skipped.
+  const resolve = (raw: string, ...context: string[]): { url: string; upgraded: boolean } | null => {
+    if (!raw || raw.startsWith('data:')) return null;
+    let abs: string;
+    try { abs = new URL(raw.trim(), pageUrl).toString(); } catch { return null; }
+    if (!/^https?:/i.test(abs) || SKIP_EXT.test(abs)) return null;
+    if (looksLikeFurniture(abs, ...context)) return null;
+    const url = fullSizeUrl(abs);
+    return url ? { url, upgraded: url !== abs } : null;
   };
 
-  add(metaImage(html, 'og:image:secure_url'));
-  add(metaImage(html, 'og:image'));
-  add(metaImage(html, 'twitter:image'));
+  const share = [...new Set(
+    ['og:image:secure_url', 'og:image', 'twitter:image']
+      .map((key) => resolve(metaImage(html, key))?.url ?? '')
+      .filter(Boolean),
+  )];
 
-  // Strip scripts/styles/noscript-free markup is not needed: we only read tags.
+  const out: string[] = [];
+  const seen = new Set<string>(share);
+  const push = (url: string) => { if (!seen.has(url)) { seen.add(url); out.push(url); } };
+
   for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
     const tag = m[0];
+    const srcset = attr(tag, 'srcset') || attr(tag, 'data-srcset');
+    const src = (srcset && bestFromSrcset(srcset))
+      || attr(tag, 'data-src') || attr(tag, 'data-lazy-src') || attr(tag, 'data-original') || attr(tag, 'src');
+    const c = resolve(src, attr(tag, 'alt'), attr(tag, 'class'), attr(tag, 'id'));
+    if (!c) continue;
+    // Small declared dimensions mean an icon — unless they describe a
+    // placeholder we have just swapped for the full-size image.
     const w = parseInt(attr(tag, 'width'), 10);
     const h = parseInt(attr(tag, 'height'), 10);
-    if ((w && w < 200) || (h && h < 150)) continue;
-    const srcset = attr(tag, 'srcset') || attr(tag, 'data-srcset');
-    const src = (srcset && largestFromSrcset(srcset))
-      || attr(tag, 'data-src') || attr(tag, 'data-lazy-src') || attr(tag, 'data-original') || attr(tag, 'src');
-    add(src, attr(tag, 'alt'), attr(tag, 'class'), attr(tag, 'id'));
-    if (out.length >= max) return out;
+    if (!c.upgraded && ((w && w < 200) || (h && h < 150))) continue;
+    push(c.url);
   }
 
   // Hero sections are often a CSS background rather than an <img>.
   for (const m of html.matchAll(/background(?:-image)?\s*:\s*url\(\s*['"]?([^'")]+)['"]?\s*\)/gi)) {
-    add(decode(m[1]));
-    if (out.length >= max) break;
+    const c = resolve(decode(m[1]));
+    if (c) push(c.url);
   }
-  return out.slice(0, max);
+
+  // Wix lists section backgrounds and gallery items in page data, not tags.
+  // Meta tags are left out so the share image keeps its place at the end.
+  const body = html.replace(/<meta\b[^>]*>/gi, '');
+  for (const m of body.matchAll(/static\.wixstatic\.com\/media\/([A-Za-z0-9_~%.-]+?\.(?:jpe?g|png|webp))/gi)) {
+    const c = resolve(`https://static.wixstatic.com/media/${m[1]}`);
+    if (c) push(c.url);
+  }
+
+  // On Wix, the site's own uploads go before images a template brought along
+  // (filed under another account). The share image is the owner's choice, so
+  // its account is the owner's. Without one there's no reliable way to tell
+  // (a template-heavy site has more template images than uploads), so page
+  // order stands and the photo scorer sorts it out.
+  const owner = share.map(wixOwner).find(Boolean) ?? '';
+  const ordered = owner
+    ? [...out.filter((u) => !wixOwner(u) || wixOwner(u) === owner), ...out.filter((u) => wixOwner(u) && wixOwner(u) !== owner)]
+    : out;
+
+  return [...ordered.slice(0, Math.max(0, max - share.length)), ...share];
 }
 
 /** Width/height straight from the file header — no image library needed. */
@@ -207,26 +271,60 @@ export interface SitePhoto {
 
 const CONTENT_EXT: Record<string, true> = { 'image/jpeg': true, 'image/png': true, 'image/webp': true };
 
-async function download(url: string, referer: string, timeoutMs: number): Promise<SitePhoto | null> {
+// Image CDNs pick the format from the Accept header. AVIF is never offered:
+// we can't read its dimensions, and offering it cost us every Wix photo. WebP
+// is, because lossy WebP is usually the smallest — but Jetpack re-encodes
+// photos as LOSSLESS WebP (990 KB for a photo that is 206 KB as JPEG), so an
+// image that comes back like that is fetched again as JPEG and the smaller
+// copy kept.
+const ACCEPT_ANY = 'image/webp,image/jpeg,image/png,image/*;q=0.8';
+const ACCEPT_JPEG = 'image/jpeg,image/png,image/*;q=0.8';
+
+/** Lossless WebP at photo-like weight: the Jetpack case above. */
+function isBloatedLosslessWebp(buf: Buffer): boolean {
+  if (buf.length < 30 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WEBP') return false;
+  const lossless = buf.toString('ascii', 12, 16) === 'VP8L' || buf.subarray(12, 200).includes('VP8L');
+  const d = imageDimensions(buf);
+  return lossless && Boolean(d) && buf.length / (d!.w * d!.h) > 0.5;
+}
+
+async function fetchImage(url: string, referer: string, timeoutMs: number, accept: string): Promise<{ body: Buffer; contentType: string } | null> {
+  // safeFetch refuses private/internal addresses at every redirect hop: these
+  // URLs come from third-party HTML.
+  const resp = await safeFetch(url, {
+    timeoutMs,
+    headers: {
+      // Some hosts refuse obvious bots or requests without a referring page.
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',
+      Accept: accept,
+      ...(referer ? { Referer: referer } : {}),
+    },
+  });
+  if (!resp.ok) { await resp.body?.cancel(); return null; }
+  const contentType = (resp.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+  if (!CONTENT_EXT[contentType]) { await resp.body?.cancel(); return null; }
+  // Over 3 MB is an unoptimised original (one site served a 7.7 MB PNG) —
+  // too heavy to put in front of every visitor. Abandoned mid-download.
+  const body = await readCapped(resp, 3_000_000);
+  return body ? { body, contentType } : null;
+}
+
+/**
+ * @param jpegHosts hosts already seen serving bloated lossless WebP: ask them
+ *   for JPEG straight away instead of paying for every image twice.
+ */
+async function download(url: string, referer: string, timeoutMs: number, jpegHosts: Set<string>): Promise<SitePhoto | null> {
   try {
-    // safeFetch refuses private/internal addresses at every redirect hop: these
-    // URLs come from third-party HTML.
-    const resp = await safeFetch(url, {
-      timeoutMs,
-      headers: {
-        // Some hosts refuse obvious bots or requests without a referring page.
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',
-        Accept: 'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8',
-        ...(referer ? { Referer: referer } : {}),
-      },
-    });
-    if (!resp.ok) { await resp.body?.cancel(); return null; }
-    const contentType = (resp.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-    if (!CONTENT_EXT[contentType]) { await resp.body?.cancel(); return null; }
-    // Over 3 MB is an unoptimised original (one site served a 7.7 MB PNG) —
-    // too heavy to put in front of every visitor. Abandoned mid-download.
-    const body = await readCapped(resp, 3_000_000);
-    if (!body || body.length < 10_000) return null;
+    const host = new URL(url).host;
+    let got = await fetchImage(url, referer, timeoutMs, jpegHosts.has(host) ? ACCEPT_JPEG : ACCEPT_ANY);
+    if (got && isBloatedLosslessWebp(got.body)) {
+      jpegHosts.add(host);
+      const jpeg = await fetchImage(url, referer, timeoutMs, ACCEPT_JPEG).catch(() => null);
+      if (jpeg && jpeg.body.length < got.body.length) got = jpeg;
+    }
+    if (!got) return null;
+    const { body, contentType } = got;
+    if (body.length < 10_000) return null;
     if (looksLikeGraphic(body)) return null;
     const d = imageDimensions(body);
     if (!d) return null;
@@ -243,31 +341,64 @@ async function download(url: string, referer: string, timeoutMs: number): Promis
   }
 }
 
+/** Photos a generated post takes from the business's site. */
+export const MAX_SITE_PHOTOS = 6;
+
+/** Scores at or below this mean "not a photo of the work" (see photoRank.ts). */
+const MIN_PHOTO_SCORE = 3;
+
+/** Scores 0–10 per photo; null for one it didn't score, or for the whole batch when unavailable. */
+export type PhotoScorer = (photos: SitePhoto[]) => Promise<(number | null)[] | null>;
+
+export interface PickOptions {
+  max?: number;
+  /** Per-image download timeout. */
+  timeoutMs?: number;
+  /** Wall-clock time (ms since epoch) after which no new download starts. */
+  deadline?: number;
+  /** Orders the photos by what they show; page order without it. */
+  score?: PhotoScorer;
+}
+
+/**
+ * Best first, page order breaking ties. Photos scored as not showing the work
+ * are dropped; unscored ones keep their page order after the scored ones.
+ */
+export function rankByScore<T>(items: T[], scores: (number | null)[]): T[] {
+  return items
+    .map((item, i) => ({ item, i, s: scores[i] ?? null }))
+    .filter(({ s }) => s === null || s >= MIN_PHOTO_SCORE)
+    .sort((a, b) => (b.s ?? -1) - (a.s ?? -1) || a.i - b.i)
+    .map(({ item }) => item);
+}
+
 /**
  * Downloads candidates in page order and keeps up to `max` genuine photos,
  * skipping duplicates (the same photo is often linked at several sizes, or from
- * og:image and the hero <img> both).
+ * og:image and the hero <img> both). With a scorer, a few spare photos are
+ * gathered and the best are kept, best first.
  *
  * A few at a time rather than all at once: small business hosts throttle a
  * burst of parallel requests, which silently cost one test site every photo but
- * the first. Stops as soon as it has enough.
+ * the first. Stops as soon as it has enough, or at the deadline.
  */
 export async function pickSitePhotos(
   candidates: string[],
   website: string,
-  max = 3,
-  timeoutMs = 8000,
+  { max = MAX_SITE_PHOTOS, timeoutMs = 8000, deadline = Infinity, score }: PickOptions = {},
 ): Promise<SitePhoto[]> {
   let referer = '';
   try { referer = new URL(website).origin + '/'; } catch { /* no referer */ }
-  const queue = candidates.slice(0, 12);
+  const queue = candidates.slice(0, 24);
+  const want = score ? max + 4 : max;
   const picked: SitePhoto[] = [];
   const seen = new Set<string>();
+  const jpegHosts = new Set<string>();
   const BATCH = 3;
-  for (let i = 0; i < queue.length && picked.length < max; i += BATCH) {
-    const results = await Promise.all(queue.slice(i, i + BATCH).map((u) => download(u, referer, timeoutMs)));
+  for (let i = 0; i < queue.length && picked.length < want && Date.now() < deadline; i += BATCH) {
+    const results = await Promise.all(queue.slice(i, i + BATCH).map((u) => download(u, referer, timeoutMs, jpegHosts)));
     for (const r of results) {
-      if (!r || picked.length >= max) continue;
+      if (!r || picked.length >= want) continue;
       const hash = createHash('sha1').update(r.body).digest('hex');
       const nameKey = photoNameKey(r.url);
       if (seen.has(hash) || seen.has(nameKey)) continue;
@@ -276,5 +407,7 @@ export async function pickSitePhotos(
       picked.push(r);
     }
   }
-  return picked;
+  if (!score || picked.length === 0) return picked.slice(0, max);
+  const scores = await score(picked).catch(() => null);
+  return (scores ? rankByScore(picked, scores) : picked).slice(0, max);
 }

@@ -1,5 +1,5 @@
 ﻿import { useState, useRef } from 'react';
-import { X, Plus, Trash2, Upload, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
+import { X, Plus, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
 import { ref as dbRef, push, set } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { database, storage } from '../../firebase';
@@ -7,6 +7,8 @@ import { type AdminService } from './AdminServicesTable';
 import { useCategories } from '../../CategoriesContext';
 import { useAuth } from '../../AuthContext';
 import { ensureSeoPath } from '../../seo/ensureSeoPath';
+import AdminImageGrid from './AdminImageGrid';
+import { filesToGridImages, type GridImage } from './gridImages';
 
 interface Props {
   onClose: () => void;
@@ -64,8 +66,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
 
   const [locationInput, setLocationInput]   = useState('');
   const [languageInput, setLanguageInput]   = useState('');
-  const [files,         setFiles]           = useState<File[]>([]);
-  const [previews,      setPreviews]        = useState<string[]>([]);
+  const [images,        setImages]          = useState<GridImage[]>([]);
   const [saving,        setSaving]          = useState(false);
   const [error,         setError]           = useState<string | null>(null);
 
@@ -73,19 +74,9 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
   const subcategoryOptions = subcategoryMap[category] ?? [];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const picked = Array.from(e.target.files ?? []);
-    setFiles((prev) => [...prev, ...picked]);
-    picked.forEach((f) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => setPreviews((prev) => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(f);
-    });
+    const picked = filesToGridImages(Array.from(e.target.files ?? []));
+    setImages((prev) => [...prev, ...picked]);
     e.target.value = '';
-  };
-
-  const removeFile = (i: number) => {
-    setFiles((prev) => prev.filter((_, idx) => idx !== i));
-    setPreviews((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const addLocation = () => {
@@ -125,7 +116,9 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
       const postRef = push(dbRef(database, 'services'));
       const newId = postRef.key!;
 
-      for (const file of files) {
+      // In the order shown, so the first tile is the cover.
+      for (const { file } of images) {
+        if (!file) continue;
         const path = `services/${newId}/${Date.now()}_${file.name}`;
         const snap = await uploadBytes(storageRef(storage, path), file);
         imageURLs.push(await getDownloadURL(snap.ref));
@@ -278,25 +271,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
           {/* Images */}
           <div>
             <FieldLabel>Images / Video</FieldLabel>
-            <div className="grid grid-cols-4 gap-2 mb-2">
-              {previews.map((prev, i) => (
-                <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-blue-500/40">
-                  <img src={prev} alt="" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removeFile(i)}
-                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-lg border-2 border-dashed border-slate-700 hover:border-blue-500/50 flex items-center justify-center text-slate-500 hover:text-blue-400 transition-colors"
-              >
-                <Upload className="w-5 h-5" />
-              </button>
-            </div>
+            <AdminImageGrid items={images} onChange={setImages} onAddClick={() => fileInputRef.current?.click()} />
             <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileChange} />
           </div>
 
