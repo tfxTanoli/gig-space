@@ -265,8 +265,17 @@ export default function AdminListingsTab() {
     if (!category) { toast.error('Choose a category to file these posts under.'); return; }
     setGenerating(true);
     try {
-      const { count } = await adminGenerateListings({ category, subcategory, language, businesses: chosen });
+      const { count, ai } = await adminGenerateListings({ category, subcategory, language, businesses: chosen });
       toast.success(`Generated ${count} draft post${count !== 1 ? 's' : ''}. Review and publish them below.`);
+      // The AI steps fall back quietly so a post is always created; say so
+      // when they did, rather than leave plain titles and page-order photos
+      // to be noticed later.
+      if (ai && ai.titles.written < ai.titles.of) {
+        toast.warning(`AI titles unavailable for ${ai.titles.of - ai.titles.written} of ${ai.titles.of} posts — they got a plain title. Use the rewrite button beside the title in the editor to retry.`);
+      }
+      if (ai && ai.photos.ranked < ai.photos.of) {
+        toast.warning(`AI photo ranking unavailable for ${ai.photos.of - ai.photos.ranked} of ${ai.photos.of} posts — their photos are in website order. Drag to reorder them in the editor.`);
+      }
       setResults(null);
       setSelected(new Set());
       await loadGenerated();
@@ -282,6 +291,14 @@ export default function AdminListingsTab() {
   // left — or stops making progress, so media Google refuses to hand over can't
   // spin this forever.
   const doRehostPhotos = async () => {
+    // It rewrites live posts in one go, so say what it will do first. Each
+    // replaced title is kept on the post as titleBeforeBackfill.
+    if (!window.confirm(
+      'Repair older generated listings?\n\n'
+      + '• Copies any Google-hosted photos and logos into our storage\n'
+      + "• Rebuilds broken titles, and rewrites titles built around the business name into titles that describe the service (from each post's About text)\n\n"
+      + 'Titles you edited yourself are never touched, and every replaced title is saved on the post so it can be restored.',
+    )) return;
     setRehosting(true);
     try {
       let listings = 0;

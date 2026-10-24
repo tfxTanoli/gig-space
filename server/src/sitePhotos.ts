@@ -178,13 +178,10 @@ export function pageImageCandidates(html: string, pageUrl: string, max = 24): st
 
   // On Wix, the site's own uploads go before images a template brought along
   // (filed under another account). The share image is the owner's choice, so
-  // its account is the owner's; failing that, the most common one.
-  let owner = share.map(wixOwner).find(Boolean) ?? '';
-  if (!owner) {
-    const counts = new Map<string, number>();
-    for (const u of out) { const o = wixOwner(u); if (o) counts.set(o, (counts.get(o) ?? 0) + 1); }
-    owner = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
-  }
+  // its account is the owner's. Without one there's no reliable way to tell
+  // (a template-heavy site has more template images than uploads), so page
+  // order stands and the photo scorer sorts it out.
+  const owner = share.map(wixOwner).find(Boolean) ?? '';
   const ordered = owner
     ? [...out.filter((u) => !wixOwner(u) || wixOwner(u) === owner), ...out.filter((u) => wixOwner(u) && wixOwner(u) !== owner)]
     : out;
@@ -274,30 +271,60 @@ export interface SitePhoto {
 
 const CONTENT_EXT: Record<string, true> = { 'image/jpeg': true, 'image/png': true, 'image/webp': true };
 
-async function download(url: string, referer: string, timeoutMs: number): Promise<SitePhoto | null> {
+// Image CDNs pick the format from the Accept header. AVIF is never offered:
+// we can't read its dimensions, and offering it cost us every Wix photo. WebP
+// is, because lossy WebP is usually the smallest — but Jetpack re-encodes
+// photos as LOSSLESS WebP (990 KB for a photo that is 206 KB as JPEG), so an
+// image that comes back like that is fetched again as JPEG and the smaller
+// copy kept.
+const ACCEPT_ANY = 'image/webp,image/jpeg,image/png,image/*;q=0.8';
+const ACCEPT_JPEG = 'image/jpeg,image/png,image/*;q=0.8';
+
+/** Lossless WebP at photo-like weight: the Jetpack case above. */
+function isBloatedLosslessWebp(buf: Buffer): boolean {
+  if (buf.length < 30 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WEBP') return false;
+  const lossless = buf.toString('ascii', 12, 16) === 'VP8L' || buf.subarray(12, 200).includes('VP8L');
+  const d = imageDimensions(buf);
+  return lossless && Boolean(d) && buf.length / (d!.w * d!.h) > 0.5;
+}
+
+async function fetchImage(url: string, referer: string, timeoutMs: number, accept: string): Promise<{ body: Buffer; contentType: string } | null> {
+  // safeFetch refuses private/internal addresses at every redirect hop: these
+  // URLs come from third-party HTML.
+  const resp = await safeFetch(url, {
+    timeoutMs,
+    headers: {
+      // Some hosts refuse obvious bots or requests without a referring page.
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',
+      Accept: accept,
+      ...(referer ? { Referer: referer } : {}),
+    },
+  });
+  if (!resp.ok) { await resp.body?.cancel(); return null; }
+  const contentType = (resp.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+  if (!CONTENT_EXT[contentType]) { await resp.body?.cancel(); return null; }
+  // Over 3 MB is an unoptimised original (one site served a 7.7 MB PNG) —
+  // too heavy to put in front of every visitor. Abandoned mid-download.
+  const body = await readCapped(resp, 3_000_000);
+  return body ? { body, contentType } : null;
+}
+
+/**
+ * @param jpegHosts hosts already seen serving bloated lossless WebP: ask them
+ *   for JPEG straight away instead of paying for every image twice.
+ */
+async function download(url: string, referer: string, timeoutMs: number, jpegHosts: Set<string>): Promise<SitePhoto | null> {
   try {
-    // safeFetch refuses private/internal addresses at every redirect hop: these
-    // URLs come from third-party HTML.
-    const resp = await safeFetch(url, {
-      timeoutMs,
-      headers: {
-        // Some hosts refuse obvious bots or requests without a referring page.
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',
-        // Image CDNs pick the format from this header. Naming AVIF cost us
-        // every Wix photo (we can't read its dimensions), and naming WebP gets
-        // Jetpack's lossless re-encode: 990 KB for a photo that is 206 KB as
-        // JPEG, multiplied by every visitor. Plain .webp files still come back.
-        Accept: 'image/jpeg,image/png,image/*;q=0.8',
-        ...(referer ? { Referer: referer } : {}),
-      },
-    });
-    if (!resp.ok) { await resp.body?.cancel(); return null; }
-    const contentType = (resp.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-    if (!CONTENT_EXT[contentType]) { await resp.body?.cancel(); return null; }
-    // Over 3 MB is an unoptimised original (one site served a 7.7 MB PNG) —
-    // too heavy to put in front of every visitor. Abandoned mid-download.
-    const body = await readCapped(resp, 3_000_000);
-    if (!body || body.length < 10_000) return null;
+    const host = new URL(url).host;
+    let got = await fetchImage(url, referer, timeoutMs, jpegHosts.has(host) ? ACCEPT_JPEG : ACCEPT_ANY);
+    if (got && isBloatedLosslessWebp(got.body)) {
+      jpegHosts.add(host);
+      const jpeg = await fetchImage(url, referer, timeoutMs, ACCEPT_JPEG).catch(() => null);
+      if (jpeg && jpeg.body.length < got.body.length) got = jpeg;
+    }
+    if (!got) return null;
+    const { body, contentType } = got;
+    if (body.length < 10_000) return null;
     if (looksLikeGraphic(body)) return null;
     const d = imageDimensions(body);
     if (!d) return null;
@@ -366,9 +393,10 @@ export async function pickSitePhotos(
   const want = score ? max + 4 : max;
   const picked: SitePhoto[] = [];
   const seen = new Set<string>();
+  const jpegHosts = new Set<string>();
   const BATCH = 3;
   for (let i = 0; i < queue.length && picked.length < want && Date.now() < deadline; i += BATCH) {
-    const results = await Promise.all(queue.slice(i, i + BATCH).map((u) => download(u, referer, timeoutMs)));
+    const results = await Promise.all(queue.slice(i, i + BATCH).map((u) => download(u, referer, timeoutMs, jpegHosts)));
     for (const r of results) {
       if (!r || picked.length >= want) continue;
       const hash = createHash('sha1').update(r.body).digest('hex');
