@@ -406,7 +406,9 @@ const PostService = () => {
   // ── Sync description contenteditable on step enter ─────────────────────────
   useEffect(() => {
     if (step !== 2 || !descriptionRef.current) return;
-    descriptionRef.current.innerHTML = description;
+    // Sanitized like everywhere else it's shown: a claimed post's description
+    // was scraped from the business's website, so it isn't the seller's own.
+    descriptionRef.current.innerHTML = sanitizeHtml(description);
     setDescriptionLength(descriptionRef.current.textContent?.length ?? 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
