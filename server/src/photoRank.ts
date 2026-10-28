@@ -7,8 +7,8 @@
  * same pass drops flyers, logos and merchandise that the byte-level checks in
  * sitePhotos.ts let through.
  *
- * Optional, like the AI titles: without GEMINI_API_KEY, or on any failure, the
- * photos keep their page order.
+ * Optional, like the AI titles: without GEMINI_API_KEY, or when scoring fails,
+ * the photos keep their page order.
  */
 import type { SitePhoto } from './sitePhotos';
 
@@ -17,6 +17,11 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
 // Inline images count toward Gemini's 20 MB request limit after base64 (+33%).
 const PAYLOAD_BUDGET = 12_000_000;
+
+// A post draws on up to 14 photos (sitePhotos.ts). They're scored a few per
+// request, in parallel, so a large set is still scored in full, and a reply that
+// loses count of its photos costs only its own group.
+const PHOTOS_PER_REQUEST = 7;
 
 export interface PhotoSubject {
   business: string;
@@ -40,9 +45,31 @@ const prompt = (s: PhotoSubject, count: number) =>
   `Return exactly ${count} scores, in the order the photos were given.`;
 
 /**
- * 0–10 per photo, best for showing the work highest. null for a photo left
- * out to stay under the request size limit, or for the whole batch when
- * scoring isn't configured or fails.
+ * Splits photos (by index) into requests of at most PHOTOS_PER_REQUEST photos
+ * and PAYLOAD_BUDGET bytes, in order. A photo over the budget on its own is
+ * left out.
+ */
+export function requestGroups(sizes: number[]): number[][] {
+  const groups: number[][] = [];
+  let bytes = 0;
+  sizes.forEach((size, i) => {
+    if (size > PAYLOAD_BUDGET) return;
+    const last = groups[groups.length - 1];
+    if (last && last.length < PHOTOS_PER_REQUEST && bytes + size <= PAYLOAD_BUDGET) {
+      last.push(i);
+      bytes += size;
+    } else {
+      groups.push([i]);
+      bytes = size;
+    }
+  });
+  return groups;
+}
+
+/**
+ * 0–10 per photo, best for showing the work highest. null for a photo whose
+ * request failed or that was too large to send, or for the whole batch when
+ * scoring isn't configured or every request failed.
  */
 export async function scoreSitePhotos(
   photos: SitePhoto[],
@@ -51,15 +78,22 @@ export async function scoreSitePhotos(
 ): Promise<(number | null)[] | null> {
   if (!GEMINI_KEY || photos.length === 0 || timeoutMs < 1000) return null;
 
-  const sent: number[] = [];
-  let bytes = 0;
-  photos.forEach((p, i) => {
-    if (bytes + p.body.length > PAYLOAD_BUDGET) return;
-    bytes += p.body.length;
-    sent.push(i);
-  });
-  if (sent.length === 0) return null;
+  const groups = requestGroups(photos.map((p) => p.body.length));
+  const results = await Promise.all(groups.map((g) => scoreGroup(g.map((i) => photos[i]), subject, timeoutMs)));
+  if (results.every((r) => r === null)) return null;
 
+  const out: (number | null)[] = photos.map(() => null);
+  groups.forEach((g, k) => g.forEach((photo, j) => { out[photo] = results[k]?.[j] ?? null; }));
+  console.log(`[photos] ${subject.business}: scores ${out.map((s) => s ?? '-').join(', ')}`);
+  return out;
+}
+
+/** One request's scores, in order; null when it fails. */
+async function scoreGroup(
+  photos: SitePhoto[],
+  subject: PhotoSubject,
+  timeoutMs: number,
+): Promise<(number | null)[] | null> {
   try {
     // Imported lazily so a deploy without the key never pays to load the SDK.
     const { GoogleGenAI, Type } = await import('@google/genai');
@@ -69,8 +103,8 @@ export async function scoreSitePhotos(
       contents: [{
         role: 'user',
         parts: [
-          { text: prompt(subject, sent.length) },
-          ...sent.map((i) => ({ inlineData: { mimeType: photos[i].contentType, data: photos[i].body.toString('base64') } })),
+          { text: prompt(subject, photos.length) },
+          ...photos.map((p) => ({ inlineData: { mimeType: p.contentType, data: p.body.toString('base64') } })),
         ],
       }],
       config: {
@@ -94,17 +128,17 @@ export async function scoreSitePhotos(
     const scores = (JSON.parse(response.text ?? '') as { scores?: unknown }).scores;
     // A short or long array means the model lost track of which photo is
     // which, and a mismatched score is worse than page order.
-    if (!Array.isArray(scores) || scores.length !== sent.length) return null;
-    const out: (number | null)[] = photos.map(() => null);
-    sent.forEach((photo, k) => {
-      const s = Number(scores[k]);
-      out[photo] = Number.isFinite(s) ? Math.min(10, Math.max(0, s)) : null;
+    if (!Array.isArray(scores) || scores.length !== photos.length) {
+      console.error(`[photos] ${subject.business}: ${Array.isArray(scores) ? scores.length : 'no'} scores for ${photos.length} photos, leaving them unscored`);
+      return null;
+    }
+    return scores.map((v) => {
+      const s = Number(v);
+      return Number.isFinite(s) ? Math.min(10, Math.max(0, s)) : null;
     });
-    console.log(`[photos] ${subject.business}: scores ${out.map((s) => s ?? '-').join(', ')}`);
-    return out;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[photos] scoring unavailable for ${subject.business}, keeping page order: ${msg}`);
+    console.error(`[photos] scoring unavailable for ${subject.business} (${photos.length} photos), leaving them unscored: ${msg}`);
     return null;
   }
 }

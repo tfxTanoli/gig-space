@@ -16,9 +16,12 @@ const VerifiedBadgeIcon = ({ className }: { className?: string }) => (
       strokeLinejoin="round"
     />
     <path d="M6.00781 7.20443L7.34115 8.53776L10.0078 5.87109" fill="#2B7FFF" />
+    {/* Dark check on dark mode; white on light mode, where it reads better
+        against the blue badge. The class wins over the attribute. */}
     <path
       d="M6.00781 7.20443L7.34115 8.53776L10.0078 5.87109"
       stroke="#0F172B"
+      className="light:stroke-white"
       strokeWidth="0.875"
       strokeLinecap="round"
       strokeLinejoin="round"

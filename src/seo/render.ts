@@ -15,6 +15,7 @@ import { listingPath, type SeoContext, type SeoListing } from './meta.js';
 import { ITEMS_PER_PAGE, searchPath, type SearchState } from './search.js';
 import { relatedHeading } from './related.js';
 import { formatAmount } from '../utils/currency.js';
+import { avatarImageClasses } from '../utils/avatar.js';
 import {
   ABOUT, AFFILIATE, COPYRIGHT, FAQ_HEADING, FOOTER_LINKS, HOME, MISSION,
   POPULAR_CATEGORIES, POPULAR_CATEGORIES_HEADING, SELLERS, type Faq, type Feature, type Step,
@@ -268,7 +269,7 @@ function card(l: CardListing, eager: boolean): string {
     ? (l.primaryLocation ? `Remote (${l.primaryLocation})` : 'Remote')
     : [l.primaryLocation, ...(l.extraLocations ?? [])].filter(Boolean).join(' · ');
   const avatar = l.sellerPhotoURL
-    ? `<img src="${esc(l.sellerPhotoURL)}" alt="" loading="lazy" class="w-8 h-8 rounded-full object-cover bg-white flex-shrink-0">`
+    ? `<img src="${esc(l.sellerPhotoURL)}" alt="" loading="lazy" class="w-8 h-8 rounded-full ${avatarImageClasses(l.sellerPhotoURL)} flex-shrink-0">`
     : `<span class="w-8 h-8 text-sm rounded-full bg-primary flex items-center justify-center text-white font-semibold flex-shrink-0">${esc((l.sellerName ?? '?').charAt(0).toUpperCase())}</span>`;
   return `<article class="group block">`
     + `<div class="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative"><a href="${href}" class="block w-full h-full" tabindex="-1">`
@@ -401,7 +402,7 @@ export function renderListing(r: ListingRender): string {
 
   const seller = `<div class="order-4 flex items-center gap-2 mb-5">`
     + (l.sellerPhotoURL
-      ? `<img src="${esc(l.sellerPhotoURL)}" alt="${esc(`${ctx.business} logo`)}" class="w-8 h-8 rounded-full object-cover bg-white flex-shrink-0">`
+      ? `<img src="${esc(l.sellerPhotoURL)}" alt="${esc(`${ctx.business} logo`)}" class="w-8 h-8 rounded-full ${avatarImageClasses(l.sellerPhotoURL)} flex-shrink-0">`
       : `<span class="w-8 h-8 text-sm rounded-full bg-primary flex items-center justify-center text-white font-semibold flex-shrink-0">${esc(ctx.business.charAt(0).toUpperCase())}</span>`)
     + `<span class="text-sm text-white font-medium">${esc(ctx.business)}</span></div>`;
 

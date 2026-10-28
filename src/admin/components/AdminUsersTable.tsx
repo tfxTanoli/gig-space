@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Eye, Pencil, UserX, UserCheck, Plus } from 'lucide-react';
 import AdminPagination from './AdminPagination';
+import { avatarImageClasses } from '../../utils/avatar';
 
 export interface AdminUser {
   uid: string;
@@ -113,7 +114,7 @@ const AdminUsersTable = ({ users, loading, pageSize = 100, onView, onEdit, onDel
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5">
                         {u.photoURL ? (
-                          <img src={u.photoURL} alt={u.name} loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                          <img src={u.photoURL} alt={u.name} loading="lazy" decoding="async" className={`w-8 h-8 rounded-full ${avatarImageClasses(u.photoURL)} flex-shrink-0`} />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
                             <span className="text-xs font-bold text-blue-400">{u.name?.charAt(0)?.toUpperCase() ?? '?'}</span>

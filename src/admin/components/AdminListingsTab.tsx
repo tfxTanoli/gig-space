@@ -16,6 +16,7 @@ import { addToOutreachWithToast } from '../outreachToast';
 import AdminPostEditDrawer from './AdminPostEditDrawer';
 import AdminPagination from './AdminPagination';
 import { type AdminService } from './AdminServicesTable';
+import { AVATAR_LIGHT_STROKE } from '../../utils/avatar';
 
 type GenListing = AdminService & {
   claimStatus?: 'unclaimed' | 'claimed';
@@ -118,7 +119,7 @@ function BusinessLogo({ url, name, className }: { url?: string; name?: string; c
         alt=""
         title="Business logo (post avatar)"
         onError={() => setBroken(true)}
-        className={`${className} rounded-full bg-white object-contain p-px flex-shrink-0`}
+        className={`${className} rounded-full bg-white object-contain p-px ${AVATAR_LIGHT_STROKE} flex-shrink-0`}
       />
     );
   }
@@ -192,6 +193,11 @@ function CityAutosuggest({ value, onChange }: { value: string; onChange: (v: str
   );
 }
 
+// Businesses per generate call. The server works on a call's businesses all at
+// once inside one time-limited function and rejects more than this
+// (MAX_GENERATE_BATCH in listings.controller.ts); keep the two in step.
+const GENERATE_BATCH = 10;
+
 export default function AdminListingsTab() {
   const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();
   const seoLabels = { category: getCategoryLabel, subcategory: getSubcategoryLabel };
@@ -208,6 +214,7 @@ export default function AdminListingsTab() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searching, setSearching] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [genProgress, setGenProgress] = useState(''); // "11–20 of 23" while a large selection generates
 
   // ── Generated listings ──
   const [generated, setGenerated] = useState<GenListing[] | null>(null);
@@ -264,24 +271,45 @@ export default function AdminListingsTab() {
     if (chosen.length === 0) { toast.error('Select at least one business.'); return; }
     if (!category) { toast.error('Choose a category to file these posts under.'); return; }
     setGenerating(true);
+    let count = 0;
+    const ai = { titles: { written: 0, of: 0 }, photos: { ranked: 0, of: 0 } };
+    const done = new Set<string>();
     try {
-      const { count, ai } = await adminGenerateListings({ category, subcategory, language, businesses: chosen });
+      // The server takes GENERATE_BATCH businesses a call, so a larger
+      // selection goes in several, one after another.
+      for (let i = 0; i < chosen.length; i += GENERATE_BATCH) {
+        const batch = chosen.slice(i, i + GENERATE_BATCH);
+        if (chosen.length > GENERATE_BATCH) setGenProgress(`${i + 1}–${i + batch.length} of ${chosen.length}`);
+        const r = await adminGenerateListings({ category, subcategory, language, businesses: batch });
+        count += r.count;
+        batch.forEach((b) => done.add(b.placeId));
+        if (r.ai) {
+          ai.titles.written += r.ai.titles.written; ai.titles.of += r.ai.titles.of;
+          ai.photos.ranked += r.ai.photos.ranked; ai.photos.of += r.ai.photos.of;
+        }
+      }
       toast.success(`Generated ${count} draft post${count !== 1 ? 's' : ''}. Review and publish them below.`);
       // The AI steps fall back quietly so a post is always created; say so
       // when they did, rather than leave plain titles and page-order photos
       // to be noticed later.
-      if (ai && ai.titles.written < ai.titles.of) {
+      if (ai.titles.written < ai.titles.of) {
         toast.warning(`AI titles unavailable for ${ai.titles.of - ai.titles.written} of ${ai.titles.of} posts — they got a plain title. Use the rewrite button beside the title in the editor to retry.`);
       }
-      if (ai && ai.photos.ranked < ai.photos.of) {
-        toast.warning(`AI photo ranking unavailable for ${ai.photos.of - ai.photos.ranked} of ${ai.photos.of} posts — their photos are in website order. Drag to reorder them in the editor.`);
+      if (ai.photos.ranked < ai.photos.of) {
+        toast.warning(`AI photo ranking didn't check every photo for ${ai.photos.of - ai.photos.ranked} of ${ai.photos.of} posts — the unchecked ones are in website order. Review them and drag to reorder in the editor.`);
       }
       setResults(null);
       setSelected(new Set());
       await loadGenerated();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to generate posts');
-    } finally { setGenerating(false); }
+      const msg = err instanceof Error ? err.message : 'Failed to generate posts';
+      if (done.size === 0) { toast.error(msg); return; }
+      // Earlier batches are already saved. Deselect them so a retry only
+      // sends the businesses that are left.
+      toast.error(`Generated ${count} of ${chosen.length} posts, then: ${msg}. The rest are still selected — try again.`);
+      setSelected((prev) => new Set([...prev].filter((id) => !done.has(id))));
+      await loadGenerated();
+    } finally { setGenerating(false); setGenProgress(''); }
   };
 
   // One-time backfill for posts generated before media was self-hosted: those
@@ -481,7 +509,7 @@ export default function AdminListingsTab() {
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              Generate {selectedCount} post{selectedCount !== 1 ? 's' : ''}
+              {genProgress ? `Generating ${genProgress}…` : `Generate ${selectedCount} post${selectedCount !== 1 ? 's' : ''}`}
             </button>
           </div>
           {results.length === 0 ? (

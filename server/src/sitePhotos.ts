@@ -125,7 +125,7 @@ export function fullSizeUrl(url: string): string | null {
  * logo there, and the page's own photos show the work better. Unverified —
  * pickSitePhotos() checks them.
  */
-export function pageImageCandidates(html: string, pageUrl: string, max = 24): string[] {
+export function pageImageCandidates(html: string, pageUrl: string, max = MAX_PHOTO_CANDIDATES): string[] {
   // Resolves, upgrades and filters one candidate; null when it should be skipped.
   const resolve = (raw: string, ...context: string[]): { url: string; upgraded: boolean } | null => {
     if (!raw || raw.startsWith('data:')) return null;
@@ -342,7 +342,13 @@ async function download(url: string, referer: string, timeoutMs: number, jpegHos
 }
 
 /** Photos a generated post takes from the business's site. */
-export const MAX_SITE_PHOTOS = 6;
+export const MAX_SITE_PHOTOS = 10;
+
+/**
+ * Candidates considered per site. Many are skipped (duplicates at other sizes,
+ * icons, flyers), so ten keepers need a longer list than ten.
+ */
+export const MAX_PHOTO_CANDIDATES = 40;
 
 /** Scores at or below this mean "not a photo of the work" (see photoRank.ts). */
 const MIN_PHOTO_SCORE = 3;
@@ -389,7 +395,7 @@ export async function pickSitePhotos(
 ): Promise<SitePhoto[]> {
   let referer = '';
   try { referer = new URL(website).origin + '/'; } catch { /* no referer */ }
-  const queue = candidates.slice(0, 24);
+  const queue = candidates.slice(0, MAX_PHOTO_CANDIDATES);
   const want = score ? max + 4 : max;
   const picked: SitePhoto[] = [];
   const seen = new Set<string>();

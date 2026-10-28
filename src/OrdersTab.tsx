@@ -6,6 +6,7 @@ import { database } from './firebase';
 import { useAuth } from './AuthContext';
 import OrderDetail, { type Order } from './OrderDetail';
 import { formatAmount } from './utils/currency';
+import { avatarImageClasses } from './utils/avatar';
 
 type OrderFilter = 'all' | 'pending' | 'in_progress' | 'delivered' | 'completed' | 'cancelled';
 
@@ -190,7 +191,7 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
                         <img
                           src={counterparty.photo}
                           alt=""
-                          className="w-4 h-4 rounded-full object-cover"
+                          className={`w-4 h-4 rounded-full ${avatarImageClasses(counterparty.photo)}`}
                         />
                       ) : (
                         <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[8px] text-white font-bold">
