@@ -15,6 +15,7 @@ import { useUsernameAvailability } from './useUsernameAvailability';
 import { normalizeUsername, validateUsername, claimUsername } from './username';
 import { useNavigate } from 'react-router-dom';
 import { formatMoney } from './utils/currency';
+import { avatarImageClasses } from './utils/avatar';
 
 type Section = 'profile' | 'security';
 
@@ -394,7 +395,7 @@ const SettingsTab = ({ mode }: { mode: 'buyer' | 'seller' | 'affiliate' }) => {
                 <img
                   src={userProfile.photoURL}
                   alt="avatar"
-                  className="w-16 h-16 rounded-full object-cover"
+                  className={`w-16 h-16 rounded-full ${avatarImageClasses(userProfile.photoURL)}`}
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-bold">

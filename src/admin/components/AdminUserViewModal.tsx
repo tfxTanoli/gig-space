@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { auth } from '../../firebase';
 import { adminImpersonate } from '../adminApi';
 import { type AdminUser } from './AdminUsersTable';
+import { avatarImageClasses } from '../../utils/avatar';
 
 interface Props {
   user: AdminUser;
@@ -67,7 +68,7 @@ const AdminUserViewModal = ({ user, onClose }: Props) => {
         {/* Avatar + name */}
         <div className="flex items-center gap-4 px-6 py-5 border-b border-slate-800">
           {user.photoURL ? (
-            <img src={user.photoURL} alt={user.name} loading="lazy" decoding="async" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+            <img src={user.photoURL} alt={user.name} loading="lazy" decoding="async" className={`w-14 h-14 rounded-full ${avatarImageClasses(user.photoURL)} flex-shrink-0`} />
           ) : (
             <div className="w-14 h-14 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center flex-shrink-0">
               <span className="text-xl font-bold text-blue-400">

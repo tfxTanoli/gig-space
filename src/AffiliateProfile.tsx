@@ -9,6 +9,7 @@ import UsernameField from './UsernameField';
 import { normalizeUsername, validateUsername, claimUsername } from './username';
 import { useUsernameAvailability } from './useUsernameAvailability';
 import { safeNextPath } from './safeNext';
+import { AVATAR_LIGHT_STROKE } from './utils/avatar';
 
 const AffiliateProfile = () => {
   const { user } = useAuth();
@@ -148,7 +149,7 @@ const AffiliateProfile = () => {
         <div className="w-full flex items-center gap-5 mb-7">
           <div className="w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             {photoPreview ? (
-              <img src={photoPreview} alt="Profile photo preview" decoding="async" className="w-full h-full object-cover" />
+              <img src={photoPreview} alt="Profile photo preview" decoding="async" className={`w-full h-full rounded-full object-cover ${AVATAR_LIGHT_STROKE}`} />
             ) : (
               <svg viewBox="0 0 72 72" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g clipPath="url(#clip0)">

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { startImpersonation } from '../../firebase';
 import { adminGetUserStats, adminImpersonate, type AdminUserStats } from '../adminApi';
 import { type AdminUser } from './AdminUsersTable';
+import { avatarImageClasses } from '../../utils/avatar';
 
 interface Props {
   user: AdminUser;
@@ -87,7 +88,7 @@ export default function AdminUserDetail({ user, onBack, onEdit, onDeactivate }: 
       {/* Identity */}
       <div className="bg-surface rounded-xl border border-slate-800 p-5 mb-5 flex items-center gap-4">
         {user.photoURL ? (
-          <img src={user.photoURL} alt={user.name} className="w-16 h-16 rounded-full object-cover flex-shrink-0" />
+          <img src={user.photoURL} alt={user.name} className={`w-16 h-16 rounded-full ${avatarImageClasses(user.photoURL)} flex-shrink-0`} />
         ) : (
           <div className="w-16 h-16 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center flex-shrink-0">
             <span className="text-2xl font-bold text-blue-400">{user.name?.charAt(0)?.toUpperCase() ?? '?'}</span>

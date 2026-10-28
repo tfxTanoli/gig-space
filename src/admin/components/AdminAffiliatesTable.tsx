@@ -2,6 +2,7 @@
 import { Eye, Pencil, UserX, UserCheck, Plus, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminPagination from './AdminPagination';
+import { avatarImageClasses } from '../../utils/avatar';
 
 export interface AdminAffiliate {
   uid: string;
@@ -140,7 +141,7 @@ export default function AdminAffiliatesTable({ affiliates, loading, pageSize = 1
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     {a.photoURL ? (
-                      <img src={a.photoURL} alt={a.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                      <img src={a.photoURL} alt={a.name} className={`w-8 h-8 rounded-full ${avatarImageClasses(a.photoURL)} shrink-0`} />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
                         {(a.name || '?').charAt(0).toUpperCase()}

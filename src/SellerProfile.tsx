@@ -9,6 +9,7 @@ import UsernameField from './UsernameField';
 import { normalizeUsername, validateUsername, claimUsername } from './username';
 import { useUsernameAvailability } from './useUsernameAvailability';
 import { safeNextPath } from './safeNext';
+import { AVATAR_LIGHT_STROKE } from './utils/avatar';
 
 const SellerProfile = () => {
   const { user } = useAuth();
@@ -164,7 +165,7 @@ const SellerProfile = () => {
         <div className="w-full flex items-center gap-5 mb-7">
           <div className="w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             {logoPreview ? (
-              <img src={logoPreview} alt="Logo preview" decoding="async" className="w-full h-full object-cover" />
+              <img src={logoPreview} alt="Logo preview" decoding="async" className={`w-full h-full rounded-full object-cover ${AVATAR_LIGHT_STROKE}`} />
             ) : (
               <svg viewBox="0 0 72 72" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 36C0 16.1178 16.1178 0 36 0C55.8823 0 72 16.1178 72 36C72 55.8823 55.8823 72 36 72C16.1178 72 0 55.8823 0 36Z" className="fill-slate-700"/>

@@ -1,34 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
+import { avatarImageClasses } from './utils/avatar';
 
 const sizes = {
   sm: 'w-8 h-8 text-sm',
   md: 'w-10 h-10 text-base',
   lg: 'w-12 h-12 text-lg',
 };
-
-// Generated listings use the business's logo as their avatar. Logos are square
-// and often transparent, so cropping them to fill (object-cover) either clips the
-// mark or leaves it invisible against a dark page — they need a white disc
-// behind them instead. We can tell them apart by where they're stored.
-//
-// The inset is a single pixel on purpose. How much white shows around a logo
-// depends on the source image — an opaque square fills the disc, a tall or
-// transparent mark leaves more visible — so any padding beyond a hairline reads
-// as a thick, uneven ring that varies from listing to listing.
-const isBusinessLogo = (url: string) => url.includes('listingLogos');
-
-// On light mode a logo with a white or transparent background has no visible
-// edge against the white page (GIG-73), so every image avatar gets a light
-// stroke. It is an inset outline rather than a border: it is drawn over the
-// image, takes no space, and leaves dark mode exactly as it was. slate-600 is
-// the variable that resolves to slate-300 on light mode.
-const LIGHT_STROKE = 'light:outline light:outline-1 light:-outline-offset-1 light:outline-slate-600';
-
-const imageClasses = (url: string) =>
-  isBusinessLogo(url)
-    ? `bg-white object-contain p-px ${LIGHT_STROKE}`
-    : `object-cover ${LIGHT_STROKE}`;
 
 // Shared by both avatars: the initial in a filled circle. This is what a missing
 // or broken photo falls back to, so there's always a complete circle on screen.
@@ -55,7 +33,7 @@ export const CurrentUserAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' | 'lg' }
         alt={userProfile.name}
         decoding="async"
         onError={() => setBroken(true)}
-        className={`${cls} rounded-full ${imageClasses(userProfile.photoURL)} cursor-pointer flex-shrink-0`}
+        className={`${cls} rounded-full ${avatarImageClasses(userProfile.photoURL)} cursor-pointer flex-shrink-0`}
       />
     );
   }
@@ -86,7 +64,7 @@ export const UserAvatar = ({
         loading="lazy"
         decoding="async"
         onError={() => setBroken(true)}
-        className={`${cls} rounded-full ${imageClasses(photoURL)} flex-shrink-0`}
+        className={`${cls} rounded-full ${avatarImageClasses(photoURL)} flex-shrink-0`}
       />
     );
   }

@@ -1098,6 +1098,12 @@ interface GenBusiness {
   reviews?: { rating?: number; text?: string; author?: string; photo?: string; time?: number }[];
 }
 
+// A call's businesses are all processed at once, each holding up to 14
+// downloaded photos in memory, inside one function with a 60s limit. The admin
+// UI sends a larger selection in calls of this size (GENERATE_BATCH in
+// AdminListingsTab.tsx); keep the two in step.
+const MAX_GENERATE_BATCH = 10;
+
 export async function generateListings(req: AdminRequest, res: Response): Promise<void> {
   try {
     const { category, subcategory, language, businesses } = (req.body ?? {}) as {
@@ -1105,6 +1111,9 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     };
     if (!Array.isArray(businesses) || businesses.length === 0) {
       res.status(400).json({ error: 'businesses[] is required' }); return;
+    }
+    if (businesses.length > MAX_GENERATE_BATCH) {
+      res.status(400).json({ error: `Generate at most ${MAX_GENERATE_BATCH} businesses at a time` }); return;
     }
 
     const db = admin.database();
@@ -1171,7 +1180,8 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
           service: humanizeService(serviceLabel(b)),
           location: b.location || b.address || '',
         };
-        // Whether the AI ranked this post's photos; null when it wasn't asked.
+        // Whether the AI checked every one of this post's photos; null when it
+        // wasn't asked.
         let ranked: boolean | null = null;
         const [photos, logo] = await Promise.all([
           b.website
@@ -1179,7 +1189,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
                 deadline: started + 25_000,
                 score: async (pool) => {
                   const scores = await scoreSitePhotos(pool, subject, Math.min(15_000, started + 42_000 - Date.now()));
-                  ranked = scores !== null;
+                  ranked = scores !== null && scores.every((s) => s !== null);
                   return scores;
                 },
               })
