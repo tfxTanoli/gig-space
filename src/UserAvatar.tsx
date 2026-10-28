@@ -18,10 +18,17 @@ const sizes = {
 // as a thick, uneven ring that varies from listing to listing.
 const isBusinessLogo = (url: string) => url.includes('listingLogos');
 
+// On light mode a logo with a white or transparent background has no visible
+// edge against the white page (GIG-73), so every image avatar gets a light
+// stroke. It is an inset outline rather than a border: it is drawn over the
+// image, takes no space, and leaves dark mode exactly as it was. slate-600 is
+// the variable that resolves to slate-300 on light mode.
+const LIGHT_STROKE = 'light:outline light:outline-1 light:-outline-offset-1 light:outline-slate-600';
+
 const imageClasses = (url: string) =>
   isBusinessLogo(url)
-    ? 'bg-white object-contain p-px'
-    : 'object-cover';
+    ? `bg-white object-contain p-px ${LIGHT_STROKE}`
+    : `object-cover ${LIGHT_STROKE}`;
 
 // Shared by both avatars: the initial in a filled circle. This is what a missing
 // or broken photo falls back to, so there's always a complete circle on screen.

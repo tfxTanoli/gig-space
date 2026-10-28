@@ -1151,7 +1151,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     // business's files are stored under its own id.
     const refs = businesses.map(() => db.ref('services').push());
 
-    // Post images come from the business's own website (GIG-74): up to six
+    // Post images come from the business's own website (GIG-74): up to ten
     // checked photos per post, the ones that best show the work first, copied
     // into our Storage under descriptive names. Google's photos are no longer
     // used - its Places policy forbids storing them. Google photo URLs are
