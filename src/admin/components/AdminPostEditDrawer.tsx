@@ -12,6 +12,7 @@ import { addToOutreachWithToast } from '../outreachToast';
 import { type SeoListing } from '../../seo/meta';
 import AdminImageGrid from './AdminImageGrid';
 import { filesToGridImages, urlsToGridImages, type GridImage } from './gridImages';
+import { LONG_CACHE } from '../../utils/uploadMetadata';
 
 interface Props {
   service: AdminService;
@@ -192,7 +193,7 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
       for (const img of images) {
         if (!img.file) { allImages.push(img.src); continue; }
         const path = `services/${service.id}/${Date.now()}_${img.file.name}`;
-        const snap = await uploadBytes(storageRef(storage, path), img.file);
+        const snap = await uploadBytes(storageRef(storage, path), img.file, { cacheControl: LONG_CACHE });
         allImages.push(await getDownloadURL(snap.ref));
       }
 

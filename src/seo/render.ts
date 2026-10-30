@@ -16,6 +16,7 @@ import { ITEMS_PER_PAGE, searchPath, type SearchState } from './search.js';
 import { relatedHeading } from './related.js';
 import { formatAmount } from '../utils/currency.js';
 import { avatarImageClasses } from '../utils/avatar.js';
+import { cardImage, thumbImage } from '../utils/imageVariants.js';
 import {
   ABOUT, AFFILIATE, COPYRIGHT, FAQ_HEADING, FOOTER_LINKS, HOME, MISSION,
   POPULAR_CATEGORIES, POPULAR_CATEGORIES_HEADING, SELLERS, type Faq, type Feature, type Step,
@@ -274,7 +275,7 @@ function card(l: CardListing, eager: boolean): string {
   return `<article class="group block">`
     + `<div class="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative"><a href="${href}" class="block w-full h-full" tabindex="-1">`
     + (image
-      ? `<img src="${esc(image)}" alt="${esc(l.title ?? '')}" ${eager ? '' : 'loading="lazy" '}decoding="async" class="w-full h-full object-cover">`
+      ? `<img src="${esc(cardImage(image))}" alt="${esc(l.title ?? '')}" ${eager ? '' : 'loading="lazy" '}decoding="async" class="w-full h-full object-cover">`
       : `<span class="w-full h-full flex items-center justify-center text-slate-600 text-xs">No image</span>`)
     + `</a></div>`
     + `<a href="${href}" class="block">`
@@ -425,7 +426,7 @@ export function renderListing(r: ListingRender): string {
     ? `<div class="order-2 mb-8"><div class="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3]">`
       + `<img src="${esc(images[0])}" alt="${esc(ctx.imageAlt(0))}" decoding="async" fetchpriority="high" class="w-full h-full object-cover"></div>`
       + (images.length > 1
-        ? `<div class="flex gap-2 overflow-x-auto pb-1">${images.map((src, i) => `<img src="${esc(src)}" alt="${esc(ctx.imageAlt(i))}" loading="lazy" decoding="async" width="72" height="54" class="shrink-0 rounded-lg object-cover w-[72px] h-[54px]">`).join('')}</div>`
+        ? `<div class="flex gap-2 overflow-x-auto pb-1">${images.map((src, i) => `<img src="${esc(thumbImage(src))}" alt="${esc(ctx.imageAlt(i))}" loading="lazy" decoding="async" width="72" height="54" class="shrink-0 rounded-lg object-cover w-[72px] h-[54px]">`).join('')}</div>`
         : '')
       + `</div>`
     : `<div class="order-2 rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8 aspect-[4/3]"><p class="text-slate-500 text-sm">No images uploaded</p></div>`;

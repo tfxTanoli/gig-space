@@ -35,6 +35,7 @@ import {
 import { leaveOutreach } from './saleshandy';
 import { submitReview, legacyServiceReviews } from './reviews';
 import { syncService, confirmPaid, applyPaid, syncSubscriptionEvent, reconcileAll } from './listingPaid';
+import { imageSupport } from './photoVariants';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -177,6 +178,17 @@ app.use(cors({
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/', (_req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Gigspace backend is running' });
+});
+
+// Whether this deployment can resize photos. If the native image library did not
+// make it into the function, generating posts still works but stores the photos
+// as they came, so check this after a deploy. Reveals nothing but library versions.
+app.get('/api/health/images', async (_req: Request, res: Response) => {
+  try {
+    res.json({ ok: true, ...(await imageSupport()) });
+  } catch (err) {
+    res.status(503).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // ── Stripe webhook MUST come before express.json() ───────────────────────────

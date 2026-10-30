@@ -6,8 +6,7 @@ import { pickRelated, relatedHeading, RELATED_POOL, type RelatableListing } from
 import { useSsrReady } from './ssrHandoff';
 import { searchPath } from './seo/search';
 import {
-  ChevronLeft, ChevronRight,
-  Bookmark, Star, Play, ArrowRight, Globe,
+  Bookmark, Star, ArrowRight, Globe,
 } from 'lucide-react';
 import Logo from './Logo';
 import HeaderUserMenu from './HeaderUserMenu';
@@ -25,6 +24,8 @@ import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from 'rea
 import L from 'leaflet';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
+import MediaGallery, { type MediaItem } from './MediaGallery';
+import SizedImg from './SizedImg';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -66,6 +67,8 @@ interface ServicePost {
   priceType: 'per_project' | 'per_hour' | 'contact_for_pricing';
   images: string[];
   video?: string;
+  /** A still from the video, so the gallery can show a preview without downloading it. */
+  videoPoster?: string;
   videoIsCover?: boolean;
   languages: string[];
   primaryLocation: string;
@@ -265,11 +268,6 @@ const SocialBtn = ({
   );
 };
 
-/* ─── Media item type for the gallery ─── */
-type MediaItem =
-  | { kind: 'image'; url: string }
-  | { kind: 'video'; url: string };
-
 /* ─── Helper: readable subcategory label ─── */
 function humanize(slug: string) {
   return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -323,7 +321,6 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
   const [post, setPost] = useState<ServicePost | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(0);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [sellerVerified, setSellerVerified] = useState(false);
@@ -349,15 +346,10 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
     if (!post) return [];
     const imgs: MediaItem[] = (post.images ?? []).map((u) => ({ kind: 'image', url: u }));
     if (!post.video) return imgs;
-    const vid: MediaItem = { kind: 'video', url: post.video };
+    const vid: MediaItem = { kind: 'video', url: post.video, poster: post.videoPoster || undefined };
     if (post.videoIsCover) return [vid, ...imgs];
     return [...imgs, vid];
   })();
-
-  const activeMedia = mediaItems[activeIdx] ?? null;
-
-  const prev = () => setActiveIdx((p) => (p === 0 ? mediaItems.length - 1 : p - 1));
-  const next = () => setActiveIdx((p) => (p === mediaItems.length - 1 ? 0 : p + 1));
 
   // Saving and messaging need an account. Guests go to sign in and come back
   // to this same listing afterwards, instead of the click doing nothing (GIG-75).
@@ -452,8 +444,6 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
     });
     return () => unsub();
   }, [postId]);
-
-  useEffect(() => { setActiveIdx(0); }, [post?.id]);
 
   useEffect(() => {
     if (!post?.sellerId) return;
@@ -921,83 +911,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
 
           {/* ── Media gallery ── */}
           {mediaItems.length > 0 ? (
-            <div className="order-2 mb-8">
-              {/* Main viewer — fixed 592×444 on desktop, responsive 4:3 below */}
-              <div
-                className="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3]"
-              >
-                {activeMedia?.kind === 'video' ? (
-                  <video
-                    key={activeMedia.url}
-                    src={activeMedia.url}
-                    controls
-                    className="w-full h-full object-cover"
-                  />
-                ) : activeMedia?.kind === 'image' ? (
-                  <img
-                    src={activeMedia.url}
-                    alt={imageAlt(activeMedia.url)}
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                  />
-                ) : null}
-
-                {/* Prev / Next arrows */}
-                {mediaItems.length > 1 && (
-                  <>
-                    <button
-                      onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-white" />
-                    </button>
-                    <button
-                      onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5 text-white" />
-                    </button>
-                    {/* Dot indicators */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                      {mediaItems.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setActiveIdx(i)}
-                          className={`w-1.5 h-1.5 rounded-full transition-colors ${i === activeIdx ? 'bg-white' : 'bg-white/40'}`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Thumbnail strip */}
-              {mediaItems.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                  {mediaItems.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveIdx(i)}
-                      className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
-                        i === activeIdx ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-80'
-                      }`}
-                      style={{ width: 72, height: 54 }}
-                    >
-                      {item.kind === 'video' ? (
-                        <>
-                          <video src={item.url} className="w-full h-full object-cover" muted />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <Play className="w-4 h-4 text-white fill-white" />
-                          </div>
-                        </>
-                      ) : (
-                        <img src={item.url} alt={imageAlt(item.url)} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <MediaGallery key={post.id} items={mediaItems} alt={imageAlt} />
           ) : (
             <div className="order-2 rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8" style={{ aspectRatio: '4/3' }}>
               <p className="text-slate-500 text-sm">No images uploaded</p>
@@ -1107,7 +1021,7 @@ const ServiceDetail = ({ postId: postIdProp }: { postId?: string | null } = {}) 
               <Link key={r.id} to={listingPath(r)} className="group block">
                 <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised">
                   {r.images?.[0] && (
-                    <img src={r.images[0]} alt={r.title ?? ''} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out" />
+                    <SizedImg src={r.images[0]} size="card" alt={r.title ?? ''} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out" />
                   )}
                 </div>
                 <div className="flex items-center gap-2 mb-2.5">

@@ -14,6 +14,7 @@ import ReviewModal from './ReviewModal';
 import { approveDelivery as approveDeliveryFn, submitOrderReview } from './stripe/paymentHelpers';
 import { sendNotification } from './notifications/notificationHelpers';
 import { formatAmount, formatMoney } from './utils/currency';
+import SizedImg from './SizedImg';
 
 export interface DeliveryFile {
   name: string;
@@ -616,7 +617,7 @@ export default function OrderDetail({
           <div className="flex flex-col sm:flex-row gap-4 p-5">
             <div className="w-full sm:w-28 h-24 shrink-0 rounded-lg bg-background overflow-hidden">
               {order.serviceImage ? (
-                <img src={order.serviceImage} alt={order.serviceTitle} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                <SizedImg src={order.serviceImage} size="card" alt={order.serviceTitle} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Package className="w-8 h-8 text-slate-600" />

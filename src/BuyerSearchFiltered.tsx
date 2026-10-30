@@ -19,6 +19,7 @@ import { useAuth } from './AuthContext';
 import { useSellerSales, isNewSeller } from './useSellerSales';
 import { formatAmount } from './utils/currency';
 import ThemeToggle from './ThemeToggle';
+import SizedImg from './SizedImg';
 
 const filters = [
   "Budget", "Rating", "Verified", "Remote", "Language", "Online Now"
@@ -243,8 +244,9 @@ const BuyerSearchFiltered = () => {
                     <Link to={listingPath(post)} className="block">
                       <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised">
                         {post.images?.[0] ? (
-                          <img
+                          <SizedImg
                             src={post.images[0]}
+                            size="card"
                             alt={post.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
                           />

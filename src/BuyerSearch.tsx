@@ -36,6 +36,7 @@ import { useSellerSales, isNewSeller } from './useSellerSales';
 import { geocodeCache, geocodeLocation, haversineDistanceMiles } from './photon';
 import { useCategories } from './CategoriesContext';
 import ThemeToggle from './ThemeToggle';
+import SizedImg from './SizedImg';
 
 const MessagesIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -240,8 +241,9 @@ const ServiceCard = memo(({ post, isSaved, onToggleSave, meta, newSeller }: Serv
       <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-3 bg-surface-raised relative">
         <Link to={listingPath(post)} className="block w-full h-full">
           {post.images?.[0] ? (
-            <img
+            <SizedImg
               src={post.images[0]}
+              size="card"
               alt={post.title}
               loading="lazy"
               decoding="async"
