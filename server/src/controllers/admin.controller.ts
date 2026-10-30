@@ -6,6 +6,7 @@ import { stripe } from '../stripeClient';
 import { recountSellerSales } from '../sellerSales';
 import { leaveOutreach } from '../saleshandy';
 import { reconcileAll, applyPaid } from '../listingPaid';
+import { purgePostMedia } from '../mediaCleanup';
 
 // Resolve a user's first name for emails — the real name lives in the DB
 // (users/{uid}/name); Firebase Auth displayName is often empty.
@@ -401,8 +402,14 @@ export async function deleteService(req: AdminRequest, res: Response): Promise<v
       res.json({ success: true, archived: true });
     } else {
       await db.ref(`services/${id}`).remove();
+      await db.ref(`serviceReviews/${id}`).remove();
       if (svc.sellerId) await db.ref(`users/${String(svc.sellerId)}/posts/${id}`).remove();
-      res.json({ success: true, archived: false });
+      // The record is gone, so its photos go too: deleting a post at a business's
+      // request has to mean the files are gone, not just hidden. (An archived
+      // post keeps its photos: its orders still refer to them.) Never fails the
+      // delete — the result says what couldn't be removed.
+      const media = await purgePostMedia(id, svc);
+      res.json({ success: true, archived: false, media });
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';

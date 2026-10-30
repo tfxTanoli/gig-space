@@ -12,6 +12,7 @@ import {
   getSettings, updateSettings,
 } from '../controllers/admin.controller';
 import { searchListings, generateListings, rehostListingPhotos, rewriteListingTitle, addListingToOutreach } from '../controllers/listings.controller';
+import { pruneServiceMedia, tidyMedia } from '../controllers/media.controller';
 
 const router = Router();
 
@@ -26,6 +27,8 @@ router.delete('/users/:uid',  verifyAdmin, deleteUser);
 router.get('/services',          verifyAdmin, getServices);
 router.patch('/services/:id',    verifyAdmin, updateService);
 router.delete('/services/:id',   verifyAdmin, deleteService);
+router.post('/services/:id/prune-media', verifyAdmin, pruneServiceMedia);
+router.post('/media/tidy',       verifyAdmin, tidyMedia);
 router.get('/orders',         verifyAdmin, getOrders);
 router.get('/orders/:orderId/messages', verifyAdmin, getOrderMessages);
 router.post('/orders/:orderId/recount-seller-sales', verifyAdmin, recountOrderSellerSales);

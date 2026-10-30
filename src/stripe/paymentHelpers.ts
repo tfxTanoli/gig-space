@@ -212,6 +212,15 @@ export async function cancelListingSubscription(subscriptionId: string, opts: { 
 }
 
 /**
+ * A seller deleting their own post: removes its photos and video from Storage so
+ * they are gone, not just unlisted. Call it just before the post record is
+ * deleted — the server checks the post is theirs while it still can.
+ */
+export async function purgePostMedia(postId: string): Promise<{ removed: number; failed: number }> {
+  return apiFetch(`/api/services/${encodeURIComponent(postId)}/purge-media`, {});
+}
+
+/**
  * After paying for extra locations and before saving the post: the server
  * records the paid quantity (the database only accepts that many extra
  * locations on a live post) and cancels the subscription this one replaces.
