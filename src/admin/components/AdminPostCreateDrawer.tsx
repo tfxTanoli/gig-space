@@ -9,6 +9,7 @@ import { useAuth } from '../../AuthContext';
 import { ensureSeoPath } from '../../seo/ensureSeoPath';
 import AdminImageGrid from './AdminImageGrid';
 import { filesToGridImages, type GridImage } from './gridImages';
+import { LONG_CACHE } from '../../utils/uploadMetadata';
 
 interface Props {
   onClose: () => void;
@@ -120,7 +121,7 @@ export default function AdminPostCreateDrawer({ onClose, onSuccess }: Props) {
       for (const { file } of images) {
         if (!file) continue;
         const path = `services/${newId}/${Date.now()}_${file.name}`;
-        const snap = await uploadBytes(storageRef(storage, path), file);
+        const snap = await uploadBytes(storageRef(storage, path), file, { cacheControl: LONG_CACHE });
         imageURLs.push(await getDownloadURL(snap.ref));
       }
 

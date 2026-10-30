@@ -1,9 +1,11 @@
 import * as admin from 'firebase-admin';
-import { createHash, randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import { type Response } from 'express';
 import { type AdminRequest } from '../middleware/verifyAdmin';
 import { cardScore, pageImageCandidates, pickSitePhotos } from '../sitePhotos';
 import { scoreSitePhotos } from '../photoRank';
+import { saveToStorage } from '../storage';
+import { storePhoto } from '../photoVariants';
 import { addToOutreach, outreachConfigured } from '../saleshandy';
 import { safeFetch, readCapped } from '../safeFetch';
 
@@ -85,30 +87,6 @@ function photoStem(b: { name?: string; location?: string; address?: string }): s
 
 export function isGooglePhotoUrl(url: unknown): url is string {
   return typeof url === 'string' && GOOGLE_PHOTO_URL.test(url);
-}
-
-// Resolved lazily: this module is imported before admin.initializeApp() runs,
-// which is where the default bucket gets configured.
-function storageBucket() {
-  return admin.storage().bucket();
-}
-
-async function saveToStorage(body: Buffer, contentType: string, path: string): Promise<string> {
-  const bucket = storageBucket();
-  // A download token makes the object publicly readable by URL, exactly like a
-  // client-side getDownloadURL() upload — no bucket ACL changes needed.
-  const token = randomUUID();
-
-  await bucket.file(path).save(body, {
-    resumable: false,
-    metadata: {
-      contentType,
-      cacheControl: 'public, max-age=31536000, immutable',
-      metadata: { firebaseStorageDownloadTokens: token },
-    },
-  });
-
-  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
 }
 
 async function rehostPhoto(sourceUrl: string, folder: string, index: number, stem?: string): Promise<string> {
@@ -1099,10 +1077,14 @@ interface GenBusiness {
 }
 
 // A call's businesses are all processed at once, each holding up to 14
-// downloaded photos in memory, inside one function with a 60s limit. The admin
-// UI sends a larger selection in calls of this size (GENERATE_BATCH in
-// AdminListingsTab.tsx); keep the two in step.
-const MAX_GENERATE_BATCH = 10;
+// downloaded photos in memory and then resizing the ten it keeps, inside one
+// function with a 60s limit. The admin UI sends a larger selection in calls of
+// this size (GENERATE_BATCH in AdminListingsTab.tsx); keep the two in step.
+const MAX_GENERATE_BATCH = 5;
+
+// Milliseconds after the start of a generate call past which photos are stored
+// as they came instead of being resized (see photoVariants.ts).
+const RESIZE_UNTIL_MS = 48_000;
 
 export async function generateListings(req: AdminRequest, res: Response): Promise<void> {
   try {
@@ -1120,8 +1102,9 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     const created: { id: string; name: string }[] = [];
     // The function is killed at 60s (vercel.json). Photo downloads stop
     // starting at 25s (a batch in flight can run 8s more) and scoring must
-    // finish by 42s, leaving ~18s for the Storage uploads and database writes
-    // — which run in parallel across businesses.
+    // finish by 42s, leaving ~18s to resize and store the photos and write the
+    // posts — which run in parallel across businesses. Resizing stops starting at
+    // RESIZE_UNTIL_MS, so the originals are stored instead if the run is late.
     const started = Date.now();
 
     // Scrape all selected websites up front (parallel) — title, description,
@@ -1197,9 +1180,19 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
           b.website ? resolveLogo(scraped[i].iconUrls, b.website, id) : Promise.resolve(''),
         ]);
         const stem = photoStem(b);
+        // Each photo is stored in the three sizes the site shows (photoVariants.ts);
+        // `images` holds the gallery size. Past RESIZE_UNTIL a photo is stored as it
+        // came, so a slow run still finishes inside the function's time limit.
         const images = await Promise.all(
           photos.map((p, n) =>
-            saveToStorage(p.body, p.contentType, `${STORAGE_PREFIX}/${id}/${stem}-${n + 1}.${EXT_BY_TYPE[p.contentType] ?? 'jpg'}`),
+            storePhoto(
+              p,
+              `${STORAGE_PREFIX}/${id}`,
+              stem,
+              n + 1,
+              `${STORAGE_PREFIX}/${id}/${stem}-${n + 1}.${EXT_BY_TYPE[p.contentType] ?? 'jpg'}`,
+              started + RESIZE_UNTIL_MS,
+            ),
           ),
         );
         // The share-card image is whichever of the top three photos survives a

@@ -196,7 +196,7 @@ function CityAutosuggest({ value, onChange }: { value: string; onChange: (v: str
 // Businesses per generate call. The server works on a call's businesses all at
 // once inside one time-limited function and rejects more than this
 // (MAX_GENERATE_BATCH in listings.controller.ts); keep the two in step.
-const GENERATE_BATCH = 10;
+const GENERATE_BATCH = 5;
 
 export default function AdminListingsTab() {
   const { categoryOptions, subcategoryMap, getCategoryLabel, getSubcategoryLabel } = useCategories();

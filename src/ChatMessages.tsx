@@ -19,6 +19,7 @@ import { startElementsCheckout, verifyPaymentIntent } from './stripe/paymentHelp
 import PaymentModal from './components/PaymentModal';
 import { sendNotification } from './notifications/notificationHelpers';
 import { formatAmount } from './utils/currency';
+import SizedImg from './SizedImg';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 // Mirrors MINIMUM_ORDER_AMOUNT_DEFAULT on the server; used only until
@@ -768,8 +769,9 @@ export default function ChatMessages({
                       >
                         <div className="w-14 h-14 shrink-0 rounded-lg bg-surface-raised overflow-hidden">
                           {service.images?.[0] ? (
-                            <img
+                            <SizedImg
                               src={service.images[0]}
+                              size="thumb"
                               alt={service.title}
                               className="w-full h-full object-cover"
                             />
@@ -801,8 +803,9 @@ export default function ChatMessages({
                 <div className="flex items-center gap-3 bg-background border border-slate-800 rounded-xl p-3">
                   <div className="w-12 h-12 shrink-0 rounded-lg bg-surface-raised overflow-hidden">
                     {selectedService.images?.[0] ? (
-                      <img
+                      <SizedImg
                         src={selectedService.images[0]}
+                        size="thumb"
                         alt={selectedService.title}
                         className="w-full h-full object-cover"
                       />
@@ -1054,8 +1057,9 @@ export default function ChatMessages({
                             <div className="bg-surface border border-slate-700 rounded-2xl overflow-hidden w-72 shadow-lg">
                               {/* Service image */}
                               {msg.offer.serviceImage && (
-                                <img
+                                <SizedImg
                                   src={msg.offer.serviceImage}
+                                  size="card"
                                   alt={msg.offer.serviceTitle}
                                   className="w-full h-36 object-cover"
                                 />
@@ -1162,8 +1166,9 @@ export default function ChatMessages({
                               }`}
                             >
                               {msg.serviceContext.serviceImage && (
-                                <img
+                                <SizedImg
                                   src={msg.serviceContext.serviceImage}
+                                  size="card"
                                   alt={msg.serviceContext.serviceTitle}
                                   className="w-full h-28 object-cover"
                                 />
@@ -1257,8 +1262,9 @@ export default function ChatMessages({
                       className="flex items-center gap-2.5 flex-1 min-w-0"
                     >
                       {serviceContext.serviceImage && (
-                        <img
+                        <SizedImg
                           src={serviceContext.serviceImage}
+                          size="thumb"
                           alt={serviceContext.serviceTitle}
                           className="w-10 h-10 rounded-lg object-cover shrink-0"
                         />

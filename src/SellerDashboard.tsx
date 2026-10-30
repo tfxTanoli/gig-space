@@ -60,6 +60,7 @@ import SettingsTab from './SettingsTab';
 import WalletTab from './components/WalletTab';
 import StatementsTab from './components/StatementsTab';
 import ThemeToggle from './ThemeToggle';
+import SizedImg from './SizedImg';
 
 interface ServicePost {
   id: string;
@@ -131,8 +132,9 @@ const PostCard = memo(({ post, sellerName, sellerPhotoURL, onSelect }: PostCardP
           className="block w-full h-full text-left"
         >
           {post.images?.[0] ? (
-            <img
+            <SizedImg
               src={post.images[0]}
+              size="card"
               alt={post.title}
               loading="lazy"
               decoding="async"

@@ -9,6 +9,7 @@ import { useSavedServices } from './useSavedServices';
 import { UserAvatar } from './UserAvatar';
 import LocationIcon from './LocationIcon';
 import { formatAmount } from './utils/currency';
+import SizedImg from './SizedImg';
 
 interface SavedService {
   id: string;
@@ -142,8 +143,9 @@ const SavedTab = ({ searchQuery = '' }: { searchQuery?: string }) => {
                 <div className="aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-surface-raised relative">
                   <Link to={listingPath(svc)} className="block w-full h-full">
                     {svc.images?.[0] ? (
-                      <img
+                      <SizedImg
                         src={svc.images[0]}
+                        size="card"
                         alt={svc.title}
                         loading="lazy"
                         decoding="async"

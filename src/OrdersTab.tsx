@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import OrderDetail, { type Order } from './OrderDetail';
 import { formatAmount } from './utils/currency';
 import { avatarImageClasses } from './utils/avatar';
+import SizedImg from './SizedImg';
 
 type OrderFilter = 'all' | 'pending' | 'in_progress' | 'delivered' | 'completed' | 'cancelled';
 
@@ -156,8 +157,9 @@ const OrdersTab = ({ mode, searchQuery = '' }: { mode: 'buyer' | 'seller'; searc
                 {/* Thumbnail */}
                 <div className="w-full sm:w-20 shrink-0 h-20 rounded-lg bg-background overflow-hidden">
                   {order.serviceImage ? (
-                    <img
+                    <SizedImg
                       src={order.serviceImage}
+                      size="card"
                       alt={order.serviceTitle}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

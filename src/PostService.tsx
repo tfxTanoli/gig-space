@@ -38,6 +38,7 @@ import { useTheme } from './theme';
 import { LANGUAGES } from './data/languages';
 import { sanitizeHtml } from './utils/sanitize';
 import { formatMoney } from './utils/currency';
+import { LONG_CACHE } from './utils/uploadMetadata';
 import ThemeToggle from './ThemeToggle';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string);
@@ -92,6 +93,48 @@ async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise
   } catch {
     return file;
   }
+}
+
+// A still from the video, stored beside it so the post can show a preview
+// without every visitor downloading the video itself. Null when the browser
+// can't decode the file or takes too long; the post then shows a plain play
+// button instead.
+function captureVideoPoster(file: File, maxWidth = 1200): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    let settled = false;
+    const timer = setTimeout(() => finish(null), 10_000);
+    const finish = (blob: Blob | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      video.removeAttribute('src');
+      video.load();
+      URL.revokeObjectURL(url);
+      resolve(blob);
+    };
+
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.onerror = () => finish(null);
+    // A moment in, past any black opening frame, but inside a very short clip.
+    video.onloadedmetadata = () => { video.currentTime = Math.min(1, (video.duration || 0) / 2); };
+    video.onseeked = () => {
+      try {
+        const scale = Math.min(1, maxWidth / (video.videoWidth || maxWidth));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+        canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+        canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => finish(blob), 'image/jpeg', 0.8);
+      } catch {
+        finish(null);
+      }
+    };
+    video.src = url;
+  });
 }
 
 interface Step8PaymentSectionProps {
@@ -347,6 +390,7 @@ const PostService = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewURL, setVideoPreviewURL] = useState('');
   const [existingVideoURL, setExistingVideoURL] = useState('');
+  const [existingVideoPoster, setExistingVideoPoster] = useState('');
   const [videoIsCover, setVideoIsCover] = useState(true);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const dragIndexRef = useRef<number | null>(null);
@@ -482,6 +526,7 @@ const PostService = () => {
         setPriceType((d.priceType as 'per_project' | 'per_hour') ?? 'per_project');
         setMediaItems(Array.isArray(d.images) ? (d.images as string[]).map((url) => ({ kind: 'existing' as const, url })) : []);
         setExistingVideoURL(String(d.video ?? ''));
+        setExistingVideoPoster(String(d.videoPoster ?? ''));
         setLanguages(Array.isArray(d.languages) ? (d.languages as string[]) : []);
         setExtraLocations(Array.isArray(d.extraLocations) ? (d.extraLocations as string[]) : []);
         const loadedPrimaryLocation = String(d.primaryLocation ?? '');
@@ -603,6 +648,7 @@ const PostService = () => {
     setVideoFile(null);
     setVideoPreviewURL('');
     setExistingVideoURL('');
+    setExistingVideoPoster('');
   };
 
   const handleDragStart = (index: number) => { dragIndexRef.current = index; };
@@ -688,7 +734,7 @@ const PostService = () => {
   };
 
   // ── Upload all media ───────────────────────────────────────────────────────
-  const uploadAllMedia = async (): Promise<{ imageUrls: string[]; videoUrl: string | null }> => {
+  const uploadAllMedia = async (): Promise<{ imageUrls: string[]; videoUrl: string | null; videoPoster: string | null }> => {
     // Compress + upload all new images in parallel (Promise.all preserves order).
     const imageUrls: string[] = await Promise.all(
       mediaItems.map(async (item, i) => {
@@ -708,17 +754,32 @@ const PostService = () => {
           storage,
           `serviceImages/${user!.uid}/${stem}-${i + 1}-${Math.random().toString(36).slice(2, 8)}.${ext}`,
         );
-        await uploadBytes(ref, blob, { contentType });
+        await uploadBytes(ref, blob, { contentType, cacheControl: LONG_CACHE });
         return getDownloadURL(ref);
       }),
     );
     let videoUrl: string | null = existingVideoURL || null;
+    let videoPoster: string | null = existingVideoPoster || null;
     if (videoFile) {
       const ref = storageRef(storage, `serviceVideos/${user!.uid}/${Date.now()}_${videoFile.name}`);
-      await uploadBytes(ref, videoFile);
+      await uploadBytes(ref, videoFile, { cacheControl: LONG_CACHE });
       videoUrl = await getDownloadURL(ref);
+
+      // A new video replaces the old one's poster, whether or not a still can be
+      // taken from it — never leave the previous video's frame on the new one.
+      videoPoster = null;
+      const frame = await captureVideoPoster(videoFile);
+      if (frame) {
+        const stem = slugify([title, primaryLocation].filter(Boolean).join(' ')) || 'service';
+        const posterRef = storageRef(
+          storage,
+          `serviceImages/${user!.uid}/${stem}-video-${Math.random().toString(36).slice(2, 8)}.jpg`,
+        );
+        await uploadBytes(posterRef, frame, { contentType: 'image/jpeg', cacheControl: LONG_CACHE });
+        videoPoster = await getDownloadURL(posterRef);
+      }
     }
-    return { imageUrls, videoUrl };
+    return { imageUrls, videoUrl, videoPoster };
   };
 
   // ── Validation ─────────────────────────────────────────────────────────────
@@ -770,10 +831,11 @@ const PostService = () => {
       setDescription(currentDescription);
     }
 
-    const { imageUrls, videoUrl } = await uploadAllMedia();
+    const { imageUrls, videoUrl, videoPoster } = await uploadAllMedia();
     setMediaItems(imageUrls.map((url) => ({ kind: 'existing' as const, url })));
     if (videoUrl && videoUrl !== existingVideoURL) {
       setExistingVideoURL(videoUrl);
+      setExistingVideoPoster(videoPoster ?? '');
       setVideoFile(null);
       if (videoPreviewURL) { URL.revokeObjectURL(videoPreviewURL); setVideoPreviewURL(''); }
     }
@@ -806,6 +868,7 @@ const PostService = () => {
       priceType,
       images: imageUrls,
       video: videoUrl,
+      videoPoster: videoUrl ? videoPoster : null,
       languages,
       primaryLocation: primaryLocation.trim(),
       primaryLocationLat,
