@@ -45,9 +45,25 @@ export const adminImpersonate = (uid: string) =>
   authedFetch<{ token: string }>(`/api/admin/users/${uid}/impersonate`, { method: 'POST' });
 
 // Deletes a post: cancels its Stripe location subscription, then hard-deletes a
-// clean post or archives one that has orders. Returns whether it was archived.
+// clean post (and its photos, which are removed from Storage) or archives one
+// that has orders. Returns whether it was archived.
 export const adminDeleteService = (id: string) =>
-  authedFetch<{ success: boolean; archived: boolean }>(`/api/admin/services/${id}`, { method: 'DELETE' });
+  authedFetch<{ success: boolean; archived: boolean; media?: { removed: number; failed: number } }>(`/api/admin/services/${id}`, { method: 'DELETE' });
+
+// After saving a post: removes from Storage the photos that were taken out of it.
+// The server only acts when it is certain which photos the post still uses.
+export const adminPruneServiceMedia = (id: string) =>
+  authedFetch<{ removed: number; failed: number; skipped?: string }>(`/api/admin/services/${id}/prune-media`, { method: 'POST' });
+
+export interface TidyReport {
+  applied: boolean;
+  orphans: { posts: number; files: number; bytes: number; removed: number; failed: number };
+  caching: { files: number; updated: number; failed: number };
+}
+
+// Storage housekeeping. Without `apply` it only reports what it would do.
+export const adminTidyStorage = (apply: boolean) =>
+  authedFetch<TidyReport>('/api/admin/media/tidy', { method: 'POST', body: JSON.stringify({ apply }) });
 
 export interface AdminMessage {
   id: string;

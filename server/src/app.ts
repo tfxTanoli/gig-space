@@ -36,6 +36,8 @@ import { leaveOutreach } from './saleshandy';
 import { submitReview, legacyServiceReviews } from './reviews';
 import { syncService, confirmPaid, applyPaid, syncSubscriptionEvent, reconcileAll } from './listingPaid';
 import { imageSupport } from './photoVariants';
+import { purgePostMedia, purgeUserUploads, type PostRecord } from './mediaCleanup';
+import { purgeOwnPostMedia } from './controllers/media.controller';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -615,6 +617,8 @@ app.post('/api/checkout/verify-payment-intent', requireAuth, async (req: AuthReq
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/reviews/submit', requireAuth, submitReview);
 app.get('/api/services/:id/reviews', legacyServiceReviews);
+// A seller deleting their own post clears its photos first (media.controller.ts).
+app.post('/api/services/:id/purge-media', requireAuth, purgeOwnPostMedia);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/orders/approve-delivery
@@ -2454,9 +2458,12 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
       deletions[`usernames/${userData.username}`] = null;
     }
 
-    // Remove all services owned by this user
+    // Remove all services owned by this user (remembering them, so their photos
+    // can be removed from Storage once the records are gone)
+    const ownedPosts: { id: string; record: PostRecord }[] = [];
     servicesSnap.forEach((child) => {
       deletions[`services/${child.key}`] = null;
+      ownedPosts.push({ id: String(child.key), record: child.val() as PostRecord });
     });
 
     // Remove affiliate referral code if one exists
@@ -2476,6 +2483,11 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
     }
 
     await db.ref().update(deletions);
+
+    // Their posts' photos go with the posts: left in Storage they would stay
+    // online, readable by anyone holding the URL. Never fails the deletion.
+    for (const post of ownedPosts) await purgePostMedia(post.id, post.record);
+    await purgeUserUploads(uid);
 
     if (forfeitureLogId && forfeited > 0) {
       await db.ref(`accountDeletionForfeits/${forfeitureLogId}`).set({

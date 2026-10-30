@@ -49,7 +49,7 @@ import { formatAmount, formatMoney } from './utils/currency';
 import { CurrentUserAvatar, UserAvatar } from './UserAvatar';
 import NotificationBell from './notifications/NotificationBell';
 import { ref, query, orderByChild, equalTo, onValue, remove } from 'firebase/database';
-import { cancelListingSubscription } from './stripe/paymentHelpers';
+import { cancelListingSubscription, purgePostMedia } from './stripe/paymentHelpers';
 import { removeFromSitemap } from './seo/ensureSeoPath';
 import { database } from './firebase';
 import ChatMessages from './ChatMessages';
@@ -649,6 +649,10 @@ const DeletePostModal = ({ post, onClose, onSuccess }: DeletePostModalProps) => 
       if (post.subscriptionId) {
         try { await cancelListingSubscription(post.subscriptionId); } catch { /* non-fatal */ }
       }
+      // Its photos and video go with it, so the files are gone rather than just
+      // unlisted. Done while the record still exists, so the server can check the
+      // post is theirs. Non-fatal: the post is deleted either way.
+      try { await purgePostMedia(post.id); } catch (err) { console.error('[media] could not clear the post’s files', post.id, err); }
       // Out of the sitemap first: the rules only let the seller touch seoIndex
       // while services/{id} still names them as owner. Non-fatal — a stale entry
       // just 404s, and Admin → Listings → "Generate SEO URLs" drops it.

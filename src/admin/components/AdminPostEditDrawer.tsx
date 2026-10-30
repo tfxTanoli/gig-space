@@ -4,7 +4,7 @@ import { ref as dbRef, get, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'sonner';
 import { database, storage } from '../../firebase';
-import { adminDeleteService, adminRewriteTitle } from '../adminApi';
+import { adminDeleteService, adminPruneServiceMedia, adminRewriteTitle } from '../adminApi';
 import { type AdminService } from './AdminServicesTable';
 import { useCategories } from '../../CategoriesContext';
 import { ensureSeoPath, removeFromSitemap } from '../../seo/ensureSeoPath';
@@ -231,6 +231,12 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
       });
 
       const fresh = (await get(dbRef(database, `services/${service.id}`))).val() as Record<string, unknown>;
+
+      // Photos taken out of the post leave storage too, so one removed at a
+      // business's request is gone rather than just unlisted. The server acts only
+      // when it is sure which photos the post still uses. Housekeeping: the post
+      // is saved either way, so the save doesn't wait for it.
+      adminPruneServiceMedia(service.id).catch(() => { /* retried by the next save, or by Tidy storage */ });
 
       // The status picker can take a post live or off the site, so the SEO
       // address and sitemap entry follow it (GIG-71): active gets an address

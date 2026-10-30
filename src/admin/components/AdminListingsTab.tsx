@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Search, MapPin, Star, ExternalLink, Pencil, Trash2, Sparkles, Loader2, CheckSquare, Square,
-  ImageDown, Link2,
+  ImageDown, Link2, Eraser,
 } from 'lucide-react';
-import { ref as dbRef, get, update, remove } from 'firebase/database';
+import { ref as dbRef, get, update } from 'firebase/database';
 import { toast } from 'sonner';
 import { database } from '../../firebase';
 import { useCategories } from '../../CategoriesContext';
@@ -11,7 +11,7 @@ import { ensureSeoPath, indexForSitemap, removeFromSitemap } from '../../seo/ens
 import type { SeoListing } from '../../seo/meta';
 import { LANGUAGES } from '../../data/languages';
 import { searchLocations, type LocationResult } from '../../photon';
-import { adminSearchListings, adminGenerateListings, adminRehostListingPhotos, type ListingBusiness } from '../adminApi';
+import { adminSearchListings, adminGenerateListings, adminRehostListingPhotos, adminDeleteService, adminTidyStorage, type ListingBusiness } from '../adminApi';
 import { addToOutreachWithToast } from '../outreachToast';
 import AdminPostEditDrawer from './AdminPostEditDrawer';
 import AdminPagination from './AdminPagination';
@@ -221,6 +221,7 @@ export default function AdminListingsTab() {
   const [editService, setEditService] = useState<GenListing | null>(null);
   const [rehosting, setRehosting] = useState(false);
   const [assigningSeo, setAssigningSeo] = useState(false);
+  const [tidying, setTidying] = useState(false);
 
   // ── Generated-listings table filters + pagination ──
   const GEN_PAGE_SIZE = 20;
@@ -420,17 +421,58 @@ export default function AdminListingsTab() {
     } finally { setAssigningSeo(false); }
   };
 
+  // Deleted on the server, which also removes the listing's photos from storage:
+  // when a business asks for its post to come down, the files have to be gone,
+  // not just hidden.
   const del = async (id: string) => {
-    if (!window.confirm('Delete this generated listing permanently?')) return;
+    if (!window.confirm('Delete this generated listing permanently?\n\nIts photos are removed from storage too.')) return;
     try {
-      await Promise.all([
-        remove(dbRef(database, `services/${id}`)),
-        remove(dbRef(database, `serviceReviews/${id}`)),
-        removeFromSitemap(id),
-      ]);
+      const { archived, media } = await adminDeleteService(id);
+      if (archived) {
+        toast.success('Listing archived. It has orders, so its record and photos are kept.');
+        await loadGenerated();
+        return;
+      }
       setGenerated((prev) => prev?.filter((g) => g.id !== id) ?? null);
-      toast.success('Listing deleted.');
-    } catch { toast.error('Failed to delete.'); }
+      if (media && media.failed > 0) {
+        toast.warning(`Listing deleted, but ${media.failed} file${media.failed !== 1 ? 's' : ''} could not be removed from storage. "Tidy storage" will clear them.`);
+      } else {
+        toast.success('Listing deleted, photos included.');
+      }
+    } catch (err) { toast.error(err instanceof Error ? err.message : 'Failed to delete.'); }
+  };
+
+  // Clears away what earlier deletes and regenerations left in storage, and lets
+  // browsers keep photos and videos for a year instead of re-checking each visit.
+  // It looks first and says what it found; nothing happens until it is confirmed,
+  // and files that belong to a live post are never touched.
+  const doTidyStorage = async () => {
+    setTidying(true);
+    try {
+      const plan = await adminTidyStorage(false);
+      const { orphans, caching } = plan;
+      if (orphans.files === 0 && caching.files === 0) {
+        toast.message('Storage is already tidy. Nothing to remove or update.');
+        return;
+      }
+      const plural = (n: number, word: string) => `${n} ${word}${n !== 1 ? 's' : ''}`;
+      const lines = [
+        orphans.files > 0 && `• Remove ${plural(orphans.files, 'file')} (${(orphans.bytes / 1_000_000).toFixed(1)} MB) left behind by ${plural(orphans.posts, 'deleted or regenerated post')}`,
+        caching.files > 0 && `• Let browsers keep ${plural(caching.files, 'photo/video file')} for a year (they re-check them on every visit now)`,
+      ].filter(Boolean).join('\n');
+      if (!window.confirm(`Tidy storage?\n\n${lines}\n\nFiles that belong to a live post are never removed.`)) return;
+
+      const done = await adminTidyStorage(true);
+      const bits = [
+        done.orphans.removed > 0 && `removed ${plural(done.orphans.removed, 'file')}`,
+        done.caching.updated > 0 && `updated caching on ${plural(done.caching.updated, 'file')}`,
+      ].filter(Boolean).join(' and ');
+      toast.success(bits ? `Storage tidied: ${bits}.` : 'Nothing needed changing.');
+      const failed = done.orphans.failed + done.caching.failed;
+      if (failed > 0) toast.warning(`${plural(failed, 'file')} could not be changed. Run it again to retry.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not tidy storage');
+    } finally { setTidying(false); }
   };
 
   const selectedCount = selected.size;
@@ -589,6 +631,15 @@ export default function AdminListingsTab() {
             >
               {assigningSeo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
               {assigningSeo ? 'Assigning…' : 'Generate SEO URLs'}
+            </button>
+            <button
+              onClick={doTidyStorage}
+              disabled={tidying}
+              title="Looks through storage for photos left behind by listings that were deleted or regenerated, and for photos and videos that browsers re-check on every visit. It tells you what it found and asks before changing anything. Files that belong to a live listing are never removed."
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700/50 bg-surface-raised text-xs text-slate-300 hover:text-white hover:border-slate-600 disabled:opacity-50 transition-colors"
+            >
+              {tidying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eraser className="w-3.5 h-3.5" />}
+              {tidying ? 'Checking…' : 'Tidy storage'}
             </button>
             <input
               value={genLocFilter}
