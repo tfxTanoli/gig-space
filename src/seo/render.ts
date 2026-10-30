@@ -263,6 +263,13 @@ function cardPrice(l: CardListing): string {
   return `<span class="text-[13px] text-slate-100">From</span> <span class="font-bold text-white">${esc(price)}</span> <span class="text-[13px] text-slate-100">${suffix}</span>`;
 }
 
+// The gallery's thumbnail strip shows the small version of each photo. Listing
+// the full-size file beside it as a srcset candidate keeps every photo's real
+// image discoverable to crawlers, while `sizes` tells browsers a 72px slot only
+// ever needs the small one.
+const stripSrcset = (src: string): string =>
+  thumbImage(src) === src ? '' : ` srcset="${esc(thumbImage(src))} 240w, ${esc(src)} 1200w" sizes="72px"`;
+
 function card(l: CardListing, eager: boolean): string {
   const href = esc(listingPath(l));
   const image = (l.images ?? []).find(Boolean);
@@ -426,7 +433,7 @@ export function renderListing(r: ListingRender): string {
     ? `<div class="order-2 mb-8"><div class="relative rounded-xl overflow-hidden bg-slate-900 mb-3 w-full aspect-[4/3]">`
       + `<img src="${esc(images[0])}" alt="${esc(ctx.imageAlt(0))}" decoding="async" fetchpriority="high" class="w-full h-full object-cover"></div>`
       + (images.length > 1
-        ? `<div class="flex gap-2 overflow-x-auto pb-1">${images.map((src, i) => `<img src="${esc(thumbImage(src))}" alt="${esc(ctx.imageAlt(i))}" loading="lazy" decoding="async" width="72" height="54" class="shrink-0 rounded-lg object-cover w-[72px] h-[54px]">`).join('')}</div>`
+        ? `<div class="flex gap-2 overflow-x-auto pb-1">${images.map((src, i) => `<img src="${esc(thumbImage(src))}"${stripSrcset(src)} alt="${esc(ctx.imageAlt(i))}" loading="lazy" decoding="async" width="72" height="54" class="shrink-0 rounded-lg object-cover w-[72px] h-[54px]">`).join('')}</div>`
         : '')
       + `</div>`
     : `<div class="order-2 rounded-xl bg-surface-raised border border-slate-800 flex items-center justify-center mb-8 aspect-[4/3]"><p class="text-slate-500 text-sm">No images uploaded</p></div>`;

@@ -36,7 +36,8 @@ import { leaveOutreach } from './saleshandy';
 import { submitReview, legacyServiceReviews } from './reviews';
 import { syncService, confirmPaid, applyPaid, syncSubscriptionEvent, reconcileAll } from './listingPaid';
 import { imageSupport } from './photoVariants';
-import { purgePostMedia, purgeUserUploads, type PostRecord } from './mediaCleanup';
+import { type PostRecord } from './mediaCleanup';
+import { purgeDeletedPostMedia } from './postMedia';
 import { purgeOwnPostMedia } from './controllers/media.controller';
 
 // ─── Firebase Admin ───────────────────────────────────────────────────────────
@@ -2485,9 +2486,13 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
     await db.ref().update(deletions);
 
     // Their posts' photos go with the posts: left in Storage they would stay
-    // online, readable by anyone holding the URL. Never fails the deletion.
-    for (const post of ownedPosts) await purgePostMedia(post.id, post.record);
-    await purgeUserUploads(uid);
+    // online, readable by anyone holding the URL. Started now and awaited just
+    // before the Auth user is deleted, so it overlaps the Stripe calls instead of
+    // delaying the forfeiture log and the money steps behind it. Posts with orders
+    // keep their photos for the order history (postMedia.ts). Never fails the
+    // deletion, and is cut off after a while rather than risk the function's
+    // time limit leaving the account half deleted.
+    const mediaPurge = Promise.all(ownedPosts.map((post) => purgeDeletedPostMedia(post.id, post.record)));
 
     if (forfeitureLogId && forfeited > 0) {
       await db.ref(`accountDeletionForfeits/${forfeitureLogId}`).set({
@@ -2530,6 +2535,11 @@ app.post('/api/account/delete', requireAuth, async (req: AuthRequest, res: Respo
         // Non-fatal — account may have a balance or already be deleted
       }
     }
+
+    // Give the photos until now to finish, but not much longer.
+    let cutoff: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([mediaPurge, new Promise((resolve) => { cutoff = setTimeout(resolve, 15_000); })]);
+    clearTimeout(cutoff);
 
     // 5. Delete Firebase Auth user — must be last
     await admin.auth().deleteUser(uid);

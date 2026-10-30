@@ -7,17 +7,22 @@
  *   listingImages/<postId>/…   generated photos, in every size
  *   services/<postId>/…        photos an admin uploaded from the editor
  *   listingLogos/<postId>.<ext> the logo found on the business's site
- * All three are named by the post's own id, which is unique to it, so a post
- * can be cleared out by prefix without being able to touch anything else.
- * A seller's own uploads sit under their user id instead
+ * All three are named by the post's own id, which is unique to it. A seller's
+ * own uploads sit under their user id instead
  *   serviceImages/<uid>/…, serviceVideos/<uid>/…
  * so those are removed only when the post's record names them, and only when
  * they are under the post's own seller.
  *
+ * A name is not proof of ownership, though. When a business claims a generated
+ * listing, the seller's new post is created holding the SAME photo URLs, and the
+ * original is only paused. Deleting that original must not take the live post's
+ * photos with it. So every removal here is handed `inUse`: every file any other
+ * post's record still points at, which is never touched.
+ *
  * Everything here is written to fail safe: it refuses on anything ambiguous
- * (a malformed id, an empty record, a URL it cannot place) instead of guessing,
- * leaves files younger than a grace period alone (an upload may be in flight),
- * and never throws — a post is deleted whether or not its files could be.
+ * (a malformed id, a URL it cannot place) instead of guessing, leaves files
+ * younger than a grace period alone (an upload may be in flight), and never
+ * throws — a post is deleted whether or not its files could be.
  */
 import { storageBucket, LONG_CACHE } from './storage';
 import { VARIANT_SUFFIX } from './photoVariants';
@@ -32,8 +37,14 @@ const UID = /^[A-Za-z0-9_-]{6,128}$/;
 export const isPostId = (id: unknown): id is string => typeof id === 'string' && POST_ID.test(id);
 const isUid = (id: unknown): id is string => typeof id === 'string' && UID.test(id);
 
-/** Files younger than this are left alone: an upload or a save may still be in flight. */
+/** Files younger than this are left alone by the sweep: a save may still be in flight. */
 export const GRACE_MS = 10 * 60 * 1000;
+/**
+ * After an admin saves a post, the photos they just took out are older than the
+ * save by definition; this only has to cover another admin's upload that has not
+ * been saved yet.
+ */
+export const PRUNE_GRACE_MS = 2 * 60 * 1000;
 /** A year, as set on everything we store. */
 const LONG_ENOUGH = 31_536_000;
 
@@ -51,6 +62,15 @@ export interface Removal {
   failed: number;
   /** Why nothing was done, when that is the case. */
   skipped?: string;
+  /** Files left because another post uses them. */
+  inUse?: number;
+  /** Unused files left because they are too new to be sure no save is in flight. */
+  recent?: number;
+}
+
+/** What a removal is told not to touch: every storage path some other post still uses. */
+export interface InUse {
+  inUse: ReadonlySet<string>;
 }
 
 interface StoredObject {
@@ -102,7 +122,7 @@ async function inChunks<T>(items: T[], size: number, task: (item: T) => Promise<
   for (let i = 0; i < items.length; i += size) await Promise.all(items.slice(i, i + size).map(task));
 }
 
-async function deleteAll(names: string[]): Promise<Removal> {
+async function deleteAll(names: string[]): Promise<{ removed: number; failed: number }> {
   const bucket = storageBucket();
   let removed = 0;
   let failed = 0;
@@ -135,10 +155,28 @@ export function referencedPaths(record: PostRecord, bucketName: string): Set<str
 }
 
 /**
- * Removes everything a post owns from Storage — for a post that has just been
- * deleted. Never throws; the post is gone either way.
+ * Every storage path any post's record points at, except `exceptId`'s own: the
+ * files that must survive the removal of that post. `posts` is all of /services.
  */
-export async function purgePostMedia(id: unknown, record: PostRecord | null): Promise<Removal> {
+export function referencedByPosts(
+  posts: Record<string, PostRecord | null> | null | undefined,
+  bucketName: string,
+  exceptId?: string,
+): Set<string> {
+  const all = new Set<string>();
+  for (const [id, record] of Object.entries(posts ?? {})) {
+    if (id === exceptId || !record || typeof record !== 'object') continue;
+    for (const p of referencedPaths(record, bucketName)) all.add(p);
+  }
+  return all;
+}
+
+/**
+ * Removes everything a post owns from Storage — for a post that has just been
+ * deleted — except files another post still uses. Never throws; the post is
+ * gone either way.
+ */
+export async function purgePostMedia(id: unknown, record: PostRecord | null, opts: InUse): Promise<Removal> {
   if (!isPostId(id)) return { removed: 0, failed: 0, skipped: 'not a post id' };
   try {
     const bucketName = storageBucket().name;
@@ -167,8 +205,10 @@ export async function purgePostMedia(id: unknown, record: PostRecord | null): Pr
       }
     }
 
-    const r = await deleteAll([...names]);
-    return { removed: r.removed, failed: r.failed + failed };
+    const doomed = [...names].filter((n) => !opts.inUse.has(n));
+    const shared = names.size - doomed.length;
+    const r = await deleteAll(doomed);
+    return { removed: r.removed, failed: r.failed + failed, ...(shared > 0 ? { inUse: shared } : {}) };
   } catch (err) {
     console.error(`[media] could not clear media for ${id}: ${err instanceof Error ? err.message : String(err)}`);
     return { removed: 0, failed: 1 };
@@ -177,18 +217,23 @@ export async function purgePostMedia(id: unknown, record: PostRecord | null): Pr
 
 /**
  * Removes the files in a post's own folders that the post no longer uses — the
- * photos an admin took out in the editor. Does nothing unless the record's
- * photos can all be placed in our bucket, so a URL it doesn't understand can
- * never make live photos look unused.
+ * photos an admin took out in the editor — unless another post uses them.
+ * Does nothing unless the record's photos can all be placed in our bucket, so a
+ * URL it doesn't understand can never make live photos look unused.
+ *
+ * A record with no photos is refused unless `allowEmpty` says that is the point
+ * (an admin removed every photo): an empty record is also what a bad read looks
+ * like.
  */
 export async function pruneUnusedMedia(
   id: unknown,
   record: PostRecord | null,
-  opts: { now?: number; graceMs?: number } = {},
+  opts: InUse & { now?: number; graceMs?: number; allowEmpty?: boolean },
 ): Promise<Removal> {
   if (!isPostId(id)) return { removed: 0, failed: 0, skipped: 'not a post id' };
-  const images = record && Array.isArray(record.images) ? record.images : [];
-  if (!record || images.length === 0) return { removed: 0, failed: 0, skipped: 'the post has no photos on record' };
+  if (!record) return { removed: 0, failed: 0, skipped: 'the post could not be read' };
+  const images = Array.isArray(record.images) ? record.images : [];
+  if (images.length === 0 && !opts.allowEmpty) return { removed: 0, failed: 0, skipped: 'the post has no photos on record' };
 
   try {
     const bucketName = storageBucket().name;
@@ -197,14 +242,19 @@ export async function pruneUnusedMedia(
     }
     const keep = referencedPaths(record, bucketName);
     const now = opts.now ?? Date.now();
-    const grace = opts.graceMs ?? GRACE_MS;
+    const grace = opts.graceMs ?? PRUNE_GRACE_MS;
 
     const unused: string[] = [];
+    let shared = 0;
+    let recent = 0;
     let failed = 0;
     for (const prefix of postPrefixes(id)) {
       try {
         for (const o of await list(prefix)) {
-          if (!keep.has(o.name) && now - o.created > grace) unused.push(o.name);
+          if (keep.has(o.name)) continue;
+          if (opts.inUse.has(o.name)) shared += 1;
+          else if (now - o.created <= grace) recent += 1;
+          else unused.push(o.name);
         }
       } catch (err) {
         failed += 1;
@@ -212,24 +262,14 @@ export async function pruneUnusedMedia(
       }
     }
     const r = await deleteAll(unused);
-    return { removed: r.removed, failed: r.failed + failed };
+    return {
+      removed: r.removed,
+      failed: r.failed + failed,
+      ...(shared > 0 ? { inUse: shared } : {}),
+      ...(recent > 0 ? { recent } : {}),
+    };
   } catch (err) {
     console.error(`[media] could not prune media for ${id}: ${err instanceof Error ? err.message : String(err)}`);
-    return { removed: 0, failed: 1 };
-  }
-}
-
-/** Removes every file a user uploaded for posts — for an account that has just been deleted. */
-export async function purgeUserUploads(uid: unknown): Promise<Removal> {
-  if (!isUid(uid)) return { removed: 0, failed: 0, skipped: 'not a user id' };
-  try {
-    const names: string[] = [];
-    for (const prefix of [`serviceImages/${uid}/`, `serviceVideos/${uid}/`]) {
-      for (const o of await list(prefix)) names.push(o.name);
-    }
-    return await deleteAll(names);
-  } catch (err) {
-    console.error(`[media] could not clear uploads for ${uid}: ${err instanceof Error ? err.message : String(err)}`);
     return { removed: 0, failed: 1 };
   }
 }
@@ -239,7 +279,12 @@ export async function purgeUserUploads(uid: unknown): Promise<Removal> {
 export interface TidyReport {
   applied: boolean;
   /** Files left behind by posts that no longer exist. */
-  orphans: { posts: number; files: number; bytes: number; removed: number; failed: number; sample: { id: string; files: number; bytes: number }[] };
+  orphans: {
+    posts: number; files: number; bytes: number; removed: number; failed: number;
+    /** Files of a deleted post that a live post still uses, so are kept. */
+    keptInUse: number;
+    sample: { id: string; files: number; bytes: number }[];
+  };
   /** Photos and videos not yet cached for a year. */
   caching: { files: number; updated: number; failed: number };
 }
@@ -261,13 +306,17 @@ const cachedLongEnough = (cacheControl: string): boolean => {
  * Finds (and, with `apply`, removes) files whose post no longer exists, and
  * gives photos and videos that lack it a year-long cache header.
  *
- * `existingIds` is every key under /services. An empty set — what a failed read
- * looks like — would make every file look orphaned, so it is refused outright,
- * and so is a result in which orphans wildly outnumber live posts.
+ * `existingIds` is every key under /services and `inUse` every path any of those
+ * posts points at: a file of a deleted post that a live post still uses (a
+ * claimed listing's photos, which the seller's new post shares) is not an orphan.
+ * An empty `existingIds` — what a failed read looks like — would make every file
+ * look orphaned, so it is refused outright. So is a result in which orphans
+ * wildly outnumber live posts, unless `force` says an admin has seen the number
+ * and wants it anyway.
  */
 export async function tidyStorage(
   existingIds: Set<string>,
-  opts: { apply: boolean; now?: number; graceMs?: number },
+  opts: InUse & { apply: boolean; force?: boolean; now?: number; graceMs?: number },
 ): Promise<TidyReport> {
   if (existingIds.size === 0) throw new Error('Refusing to tidy: no posts were found, so every file would look unused.');
   const now = opts.now ?? Date.now();
@@ -283,17 +332,19 @@ export async function tidyStorage(
 
   // ── Files of posts that are gone
   const byPost = new Map<string, { files: string[]; bytes: number }>();
+  let keptInUse = 0;
   for (const prefix of ownPrefixes) {
     for (const o of listed.get(prefix) ?? []) {
       const id = ownerOf(o.name);
       if (!id || existingIds.has(id) || now - o.created <= grace) continue;
+      if (opts.inUse.has(o.name)) { keptInUse += 1; continue; }
       const entry = byPost.get(id) ?? { files: [], bytes: 0 };
       entry.files.push(o.name);
       entry.bytes += o.size;
       byPost.set(id, entry);
     }
   }
-  if (byPost.size > existingIds.size * 3 + 25) {
+  if (!opts.force && byPost.size > existingIds.size * 3 + 25) {
     throw new Error(`Refusing to tidy: ${byPost.size} posts' files look unused against ${existingIds.size} live posts, which is more likely a bad read than a clean-up.`);
   }
 
@@ -304,6 +355,7 @@ export async function tidyStorage(
     bytes: [...byPost.values()].reduce((s, e) => s + e.bytes, 0),
     removed: 0,
     failed: 0,
+    keptInUse,
     sample: [...byPost.entries()].slice(0, 8).map(([id, e]) => ({ id, files: e.files.length, bytes: e.bytes })),
   };
   if (opts.apply && orphanNames.length > 0) {

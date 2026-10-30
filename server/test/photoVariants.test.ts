@@ -1,7 +1,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
-import { createLimiter, fitFourThree, makeVariants, storePhoto, VARIANT_SUFFIX } from '../src/photoVariants';
+import { createLimiter, fitFourThree, makeVariants, RESIZE_SLOTS, storePhoto, VARIANT_SUFFIX } from '../src/photoVariants';
 import { useBucketForTests } from '../src/storage';
 import { FakeBucket } from './fakeBucket';
 
@@ -164,4 +164,29 @@ test('storePhoto still returns when cleaning up a failed set also fails', async 
   bucket.failDeletes = /w\.webp$/;
   const url = await storePhoto(input(await photo(800, 600)), DIR, 'x', 1, `${DIR}/x-1.jpg`);
   assert.ok(url.includes(encodeURIComponent(`${DIR}/x-1.jpg`)));
+});
+
+test('the cutoff applies when a photo reaches the front of the queue, not only when it joins it', async () => {
+  // A batch admits every photo at once, then three at a time get resized. Checking
+  // the deadline only on admission lets all of them through and resizes the last
+  // ones long after it. Time one photo, then give the batch about four of them.
+  const sample = await photo(2400, 1800);
+  await makeVariants(sample); // warm the library
+  const t0 = Date.now();
+  await makeVariants(sample);
+  const unit = Math.max(Date.now() - t0, 5);
+
+  const bodies = await Promise.all(Array.from({ length: 30 }, () => photo(2400, 1800)));
+  const deadline = Date.now() + unit * 4;
+  const urls = await Promise.all(bodies.map((b, i) => storePhoto(input(b), DIR, 'x', i + 1, `${DIR}/x-${i + 1}.jpg`, deadline)));
+
+  const resized = urls.filter((u) => u.includes('-1200w.webp')).length;
+  const asCame = urls.length - resized;
+  assert.ok(resized > 0, 'photos at the front of the queue before the deadline are resized');
+  assert.ok(asCame > 0, `photos that reached the front after the deadline are stored as they came (${resized} resized, ${asCame} as they came)`);
+  assert.ok(asCame >= 10, 'and that is most of a long queue, not one straggler');
+});
+
+test('the shared resize limit is three at a time', () => {
+  assert.equal(RESIZE_SLOTS, 3);
 });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import SizedImg from './SizedImg';
-import { hasSizes, thumbImage } from './utils/imageVariants';
+import { cardImage, hasSizes, thumbImage } from './utils/imageVariants';
 
 export type MediaItem =
   | { kind: 'image'; url: string }
@@ -28,8 +28,10 @@ interface Props {
 export default function MediaGallery({ items, alt }: Props) {
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(false);
-  // The photo whose full-size file has finished loading in the viewer.
+  // The photo whose full-size file has finished loading in the viewer, and the
+  // one whose full-size file could not be loaded (it then shows its card size).
   const [loaded, setLoaded] = useState('');
+  const [failed, setFailed] = useState('');
 
   const index = Math.min(active, items.length - 1);
   const current = items[index];
@@ -53,9 +55,15 @@ export default function MediaGallery({ items, alt }: Props) {
   // The thumbnail the strip already loaded, shown behind the full-size photo so
   // a tap gives an instant (soft) picture rather than an empty box. A lone photo
   // has no strip, so there is nothing loaded to borrow and no reason to fetch one.
-  const placeholder = items.length > 1 && current.kind === 'image' && hasSizes(current.url)
+  // Only until the photo itself has loaded: left in place it would show through
+  // the transparent parts of a cut-out photo.
+  const photoLoaded = current.kind === 'image' && loaded === current.url;
+  const placeholder = !photoLoaded && items.length > 1 && current.kind === 'image' && hasSizes(current.url)
     ? { backgroundImage: `url("${thumbImage(current.url)}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : undefined;
+
+  // A full-size photo that won't load shows its card size instead of a broken image.
+  const shownUrl = current.kind === 'image' && failed === current.url && hasSizes(current.url) ? cardImage(current.url) : current.url;
 
   return (
     <div className="order-2 mb-8">
@@ -91,11 +99,13 @@ export default function MediaGallery({ items, alt }: Props) {
         ) : (
           <img
             key={current.url}
-            src={current.url}
+            src={shownUrl}
             alt={alt(current.url)}
             decoding="async"
             fetchPriority={index === 0 ? 'high' : undefined}
             onLoad={() => setLoaded(current.url)}
+            // Settled either way, so a failure doesn't hold up fetching the next photo.
+            onError={() => { setFailed(current.url); setLoaded(current.url); }}
             style={placeholder}
             className="w-full h-full object-cover"
           />
@@ -160,7 +170,11 @@ export default function MediaGallery({ items, alt }: Props) {
                   </div>
                 </>
               ) : (
-                <SizedImg src={item.url} size="thumb" alt={alt(item.url)} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                // A thumbnail is a few KB, and Marcus asked for every preview straight
+                // away, so a post's whole strip loads at once (lazy loading left phones
+                // with half of it). A photo with no small version is the full-size file,
+                // which stays lazy as before.
+                <SizedImg src={item.url} size="thumb" alt={alt(item.url)} loading={hasSizes(item.url) ? 'eager' : 'lazy'} decoding="async" className="w-full h-full object-cover" />
               )}
             </button>
           ))}

@@ -129,7 +129,9 @@ export function createLimiter(max: number) {
     }
   };
 }
-const limited = createLimiter(3);
+/** Photos resized at once, across every business in every request this instance serves. */
+export const RESIZE_SLOTS = 3;
+const limited = createLimiter(RESIZE_SLOTS);
 
 async function removeQuietly(paths: string[]): Promise<void> {
   const bucket = storageBucket();
@@ -158,7 +160,11 @@ export async function storePhoto(
   if (Date.now() < deadline) {
     let variants: PhotoVariants | null = null;
     try {
-      variants = await limited(() => makeVariants(photo.body));
+      // The deadline is checked again when this photo's turn comes, not only when
+      // it joins the queue: a batch queues dozens of photos behind a few slots at
+      // once, and most would otherwise be admitted before the cutoff and resized
+      // long after it.
+      variants = await limited(async () => (Date.now() < deadline ? makeVariants(photo.body) : null));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[photos] could not resize ${dir}/${stem}-${n}, storing the original: ${msg}`);

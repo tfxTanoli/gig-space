@@ -234,9 +234,25 @@ export default function AdminPostEditDrawer({ service, onClose, onSuccess, onDel
 
       // Photos taken out of the post leave storage too, so one removed at a
       // business's request is gone rather than just unlisted. The server acts only
-      // when it is sure which photos the post still uses. Housekeeping: the post
-      // is saved either way, so the save doesn't wait for it.
-      adminPruneServiceMedia(service.id).catch(() => { /* retried by the next save, or by Tidy storage */ });
+      // when it is sure which photos the post still uses, and says when it wasn't.
+      // The post is saved either way, so the save doesn't wait for this; but when
+      // the admin did remove a photo and it is NOT gone, they are told, because that
+      // is the one case where silence would look like success.
+      const removedAPhoto = savedImages.some((u) => !allImages.includes(u));
+      adminPruneServiceMedia(service.id, { allowEmpty: allImages.length === 0 })
+        .then((r) => {
+          if (!removedAPhoto) return;
+          if (r.failed > 0) {
+            toast.warning(`Saved, but ${r.failed} removed photo file${r.failed !== 1 ? 's' : ''} could not be deleted from storage. Save the post again to retry.`);
+          } else if (r.skipped) {
+            toast.warning(`Saved, but the removed photos may still be in storage: ${r.skipped}. If they must be gone, ask for them to be deleted by hand.`);
+          } else if (r.recent) {
+            toast.warning(`Saved. ${r.recent} removed file${r.recent !== 1 ? 's were' : ' was'} uploaded moments ago, so ${r.recent !== 1 ? 'they were' : 'it was'} kept for now. Save the post again in a couple of minutes to clear ${r.recent !== 1 ? 'them' : 'it'}.`);
+          }
+        })
+        .catch(() => {
+          if (removedAPhoto) toast.warning('Saved, but the removed photos could not be deleted from storage right now. Save the post again to retry.');
+        });
 
       // The status picker can take a post live or off the site, so the SEO
       // address and sitemap entry follow it (GIG-71): active gets an address
