@@ -449,7 +449,21 @@ export default function AdminListingsTab() {
   const doTidyStorage = async () => {
     setTidying(true);
     try {
-      const plan = await adminTidyStorage(false);
+      // The server refuses a clean-up far larger than the number of live listings,
+      // because that is also what a failed read looks like. An admin who has seen the
+      // number can go ahead with it deliberately.
+      let force = false;
+      let plan;
+      try {
+        plan = await adminTidyStorage(false);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '';
+        const large = msg.match(/Refusing to tidy: (\d+) posts' files look unused against (\d+) live/);
+        if (!large) throw err;
+        if (!window.confirm(`Storage holds files from ${large[1]} deleted or regenerated listings, against ${large[2]} live ones. That is far more than usual, so nothing has been changed.\n\nContinue and review exactly what would be removed?`)) return;
+        force = true;
+        plan = await adminTidyStorage(false, true);
+      }
       const { orphans, caching } = plan;
       if (orphans.files === 0 && caching.files === 0) {
         toast.message('Storage is already tidy. Nothing to remove or update.');
@@ -460,9 +474,12 @@ export default function AdminListingsTab() {
         orphans.files > 0 && `• Remove ${plural(orphans.files, 'file')} (${(orphans.bytes / 1_000_000).toFixed(1)} MB) left behind by ${plural(orphans.posts, 'deleted or regenerated post')}`,
         caching.files > 0 && `• Let browsers keep ${plural(caching.files, 'photo/video file')} for a year (they re-check them on every visit now)`,
       ].filter(Boolean).join('\n');
-      if (!window.confirm(`Tidy storage?\n\n${lines}\n\nFiles that belong to a live post are never removed.`)) return;
+      const shared = orphans.keptInUse > 0
+        ? `\n\n${plural(orphans.keptInUse, 'file')} of a deleted listing will be kept because a live listing (a claimed one) still shows them.`
+        : '';
+      if (!window.confirm(`Tidy storage?\n\n${lines}${shared}\n\nFiles that belong to a live post are never removed.`)) return;
 
-      const done = await adminTidyStorage(true);
+      const done = await adminTidyStorage(true, force);
       const bits = [
         done.orphans.removed > 0 && `removed ${plural(done.orphans.removed, 'file')}`,
         done.caching.updated > 0 && `updated caching on ${plural(done.caching.updated, 'file')}`,

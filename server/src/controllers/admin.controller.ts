@@ -6,7 +6,7 @@ import { stripe } from '../stripeClient';
 import { recountSellerSales } from '../sellerSales';
 import { leaveOutreach } from '../saleshandy';
 import { reconcileAll, applyPaid } from '../listingPaid';
-import { purgePostMedia } from '../mediaCleanup';
+import { purgeDeletedPostMedia } from '../postMedia';
 
 // Resolve a user's first name for emails — the real name lives in the DB
 // (users/{uid}/name); Firebase Auth displayName is often empty.
@@ -408,7 +408,7 @@ export async function deleteService(req: AdminRequest, res: Response): Promise<v
       // request has to mean the files are gone, not just hidden. (An archived
       // post keeps its photos: its orders still refer to them.) Never fails the
       // delete — the result says what couldn't be removed.
-      const media = await purgePostMedia(id, svc);
+      const media = await purgeDeletedPostMedia(id, svc);
       res.json({ success: true, archived: false, media });
     }
   } catch (err) {

@@ -50,20 +50,34 @@ export const adminImpersonate = (uid: string) =>
 export const adminDeleteService = (id: string) =>
   authedFetch<{ success: boolean; archived: boolean; media?: { removed: number; failed: number } }>(`/api/admin/services/${id}`, { method: 'DELETE' });
 
+export interface PruneResult {
+  removed: number;
+  failed: number;
+  /** Why nothing was done, when the server wasn't certain which photos the post still uses. */
+  skipped?: string;
+  /** Files kept because another post uses them. */
+  inUse?: number;
+  /** Unused files kept because they are too new to be sure a save isn't in flight. */
+  recent?: number;
+}
+
 // After saving a post: removes from Storage the photos that were taken out of it.
-// The server only acts when it is certain which photos the post still uses.
-export const adminPruneServiceMedia = (id: string) =>
-  authedFetch<{ removed: number; failed: number; skipped?: string }>(`/api/admin/services/${id}/prune-media`, { method: 'POST' });
+// The server only acts when it is certain which photos the post still uses, and
+// says so when it didn't. `allowEmpty` is the admin having removed every photo.
+export const adminPruneServiceMedia = (id: string, opts: { allowEmpty?: boolean } = {}) =>
+  authedFetch<PruneResult>(`/api/admin/services/${id}/prune-media`, { method: 'POST', body: JSON.stringify({ allowEmpty: opts.allowEmpty === true }) });
 
 export interface TidyReport {
   applied: boolean;
-  orphans: { posts: number; files: number; bytes: number; removed: number; failed: number };
+  orphans: { posts: number; files: number; bytes: number; removed: number; failed: number; keptInUse: number };
   caching: { files: number; updated: number; failed: number };
 }
 
-// Storage housekeeping. Without `apply` it only reports what it would do.
-export const adminTidyStorage = (apply: boolean) =>
-  authedFetch<TidyReport>('/api/admin/media/tidy', { method: 'POST', body: JSON.stringify({ apply }) });
+// Storage housekeeping. Without `apply` it only reports what it would do. `force`
+// goes ahead with a clean-up the server refused for being unusually large, after
+// the admin has seen the number.
+export const adminTidyStorage = (apply: boolean, force = false) =>
+  authedFetch<TidyReport>('/api/admin/media/tidy', { method: 'POST', body: JSON.stringify({ apply, force }) });
 
 export interface AdminMessage {
   id: string;
