@@ -6,6 +6,9 @@ import { cardScore, pageImageCandidates, pickSitePhotos } from '../sitePhotos';
 import { scoreSitePhotos } from '../photoRank';
 import { saveToStorage } from '../storage';
 import { storePhoto } from '../photoVariants';
+import {
+  dedupeBusinesses, findExisting, indexExisting, parseSearchedCity, placeInCity, splitGeneratable, type ExistingIndex,
+} from '../listingMatch';
 import { addToOutreach, outreachConfigured } from '../saleshandy';
 import { safeFetch, readCapped } from '../safeFetch';
 
@@ -298,6 +301,18 @@ async function resolveLogo(candidates: string[], website: string, folder: string
 }
 
 // ─── Search public businesses (preview, not persisted) ──────────────────────────
+// Every post, as an index of the businesses they stand for. null when the posts
+// can't be read: callers then offer everything rather than block on a guess.
+async function loadExistingIndex(): Promise<ExistingIndex | null> {
+  try {
+    const snap = await admin.database().ref('services').get();
+    return indexExisting(snap.val());
+  } catch (err) {
+    console.error('[listings] could not read existing posts to check for duplicates:', err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
 export async function searchListings(req: AdminRequest, res: Response): Promise<void> {
   try {
     if (!PLACES_KEY) {
@@ -306,6 +321,8 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
     }
     const { keyword, city } = (req.body ?? {}) as Record<string, string>;
     if (!keyword || !city) { res.status(400).json({ error: 'keyword and city are required' }); return; }
+    // Google's results spill into neighbouring cities; they are left out unless asked for.
+    const includeNearby = (req.body as { includeNearby?: unknown }).includeNearby === true;
 
     // Google Places caps each page at 20 places; walk nextPageToken to pull the
     // API's full result set (up to 60 per query — its hard maximum).
@@ -369,12 +386,22 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
     // Only businesses with a website are imported — we scrape it for a description
     // and a contact email that powers "Message seller" on unclaimed listings.
     const seen = new Set<string>();
-    const mapped = places
-      .filter((p) => {
-        if (!p.websiteUri || seen.has(p.id)) return false;
-        seen.add(p.id);
-        return true;
-      })
+    const withWebsite = places.filter((p) => {
+      if (!p.websiteUri || seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+
+    // Google ranks results by closeness to the city but doesn't confine them to
+    // it: a search for Miami Beach also returns Miami. The same business turns up
+    // from both searches, which is how duplicate posts get made, so only places
+    // whose own address is in the searched city are offered, and the admin is told
+    // how many were left out.
+    const searched = parseSearchedCity(city);
+    const inCity = includeNearby ? withWebsite : withWebsite.filter((p) => placeInCity(p.addressComponents, searched));
+    const hiddenNearby = withWebsite.length - inCity.length;
+
+    const mappedAll = inCity
       .map((p) => ({
         placeId: p.id,
         name: p.displayName?.text ?? '',
@@ -390,14 +417,27 @@ export async function searchListings(req: AdminRequest, res: Response): Promise<
         type: p.primaryTypeDisplayName?.text ?? '',
       }));
 
+    // Google lists some businesses twice under different place ids, so the id
+    // alone doesn't catch them: one business is one website and one name.
+    const { kept: mapped, removed: duplicatesRemoved } = dedupeBusinesses(mappedAll);
+
     // Visit each website once, up front (parallel), for the contact email and
     // the photos the post will use - so the admin sees which businesses are
     // reachable and what their post will look like before generating. Photo
     // candidates are unverified here; generation downloads and checks them.
-    const contacts = await Promise.all(mapped.map((b) => scrapeContact(b.website)));
-    const businesses = mapped.map((b, i) => ({ ...b, email: contacts[i].email, images: contacts[i].photos }));
+    // Alongside, which of them already have a post.
+    const [contacts, existing] = await Promise.all([
+      Promise.all(mapped.map((b) => scrapeContact(b.website))),
+      loadExistingIndex(),
+    ]);
+    const businesses = mapped.map((b, i) => ({
+      ...b,
+      email: contacts[i].email,
+      images: contacts[i].photos,
+      alreadyGenerated: findExisting(existing, b),
+    }));
 
-    res.json({ businesses });
+    res.json({ businesses, hiddenNearby, duplicatesRemoved });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('/api/admin/listings/search error:', msg);
@@ -1088,14 +1128,25 @@ const RESIZE_UNTIL_MS = 48_000;
 
 export async function generateListings(req: AdminRequest, res: Response): Promise<void> {
   try {
-    const { category, subcategory, language, businesses } = (req.body ?? {}) as {
+    const { category, subcategory, language, businesses: requested } = (req.body ?? {}) as {
       category?: string; subcategory?: string; language?: string; businesses?: GenBusiness[];
     };
-    if (!Array.isArray(businesses) || businesses.length === 0) {
+    if (!Array.isArray(requested) || requested.length === 0) {
       res.status(400).json({ error: 'businesses[] is required' }); return;
     }
-    if (businesses.length > MAX_GENERATE_BATCH) {
+    if (requested.length > MAX_GENERATE_BATCH) {
       res.status(400).json({ error: `Generate at most ${MAX_GENERATE_BATCH} businesses at a time` }); return;
+    }
+
+    // A business that already has a post, or that is selected twice, is skipped
+    // rather than given a second post. The search screen already marks these, but
+    // its results can be stale (another admin generated since) or the same
+    // business can be picked under two Google profiles, so this is checked again
+    // against the posts as they are now. The admin is told what was left out.
+    const { fresh: businesses, skipped } = splitGeneratable(requested, await loadExistingIndex());
+    if (businesses.length === 0) {
+      res.json({ created: [], count: 0, skipped });
+      return;
     }
 
     const db = admin.database();
@@ -1263,6 +1314,7 @@ export async function generateListings(req: AdminRequest, res: Response): Promis
     res.json({
       created,
       count: created.length,
+      ...(skipped.length > 0 ? { skipped } : {}),
       ai: {
         titles: { written: polished.filter(Boolean).length, of: businesses.length },
         photos: { ranked: asked.filter((m) => m.ranked).length, of: asked.length },

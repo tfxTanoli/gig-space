@@ -111,10 +111,15 @@ export interface ListingBusiness {
   description: string;
   type: string;
   images: string[];   // photo candidates from the business's own website, best first (GIG-74)
+  /** The post that already stands for this business (it can't be generated a second time), if any. */
+  alreadyGenerated?: { id: string; status: string } | null;
 }
 
-export const adminSearchListings = (body: { keyword: string; city: string }) =>
-  authedFetch<{ businesses: ListingBusiness[] }>('/api/admin/listings/search', {
+// Google also returns places just outside the searched city; they are left out
+// unless `includeNearby`, and the response says how many were. `duplicatesRemoved`
+// counts businesses Google listed twice under different profiles.
+export const adminSearchListings = (body: { keyword: string; city: string; includeNearby?: boolean }) =>
+  authedFetch<{ businesses: ListingBusiness[]; hiddenNearby: number; duplicatesRemoved: number }>('/api/admin/listings/search', {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -123,6 +128,8 @@ export const adminGenerateListings = (body: { category: string; subcategory: str
   authedFetch<{
     created: { id: string; name: string }[];
     count: number;
+    /** Businesses left out because they already have a post or were selected twice. */
+    skipped?: { name: string; reason: string }[];
     /** How many titles the AI wrote, and how many photo sets it ranked (the rest fell back). */
     ai?: { titles: { written: number; of: number }; photos: { ranked: number; of: number } };
   }>('/api/admin/listings/generate', {
