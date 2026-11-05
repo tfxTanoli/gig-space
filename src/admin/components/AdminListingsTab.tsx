@@ -211,6 +211,9 @@ export default function AdminListingsTab() {
   const subOptions = subcategoryMap[category] ?? [];
 
   const [results, setResults]   = useState<ListingBusiness[] | null>(null);
+  const [includeNearby, setIncludeNearby] = useState(false);
+  // What the search left out, so the screen can say so rather than silently show fewer.
+  const [searchNotes, setSearchNotes] = useState<{ hiddenNearby: number; duplicatesRemoved: number } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searching, setSearching] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -244,21 +247,29 @@ export default function AdminListingsTab() {
 
   useEffect(() => { loadGenerated(); }, []);
 
-  const doSearch = async () => {
+  // `nearby` overrides the checkbox for the "include them" link under the results,
+  // which re-runs the same search with the neighbouring cities let in.
+  const doSearch = async (nearby: boolean = includeNearby) => {
     if (!keyword.trim() || !city.trim()) { toast.error('Enter a service keyword and a city.'); return; }
     setSearching(true);
     setResults(null);
+    setSearchNotes(null);
+    if (nearby !== includeNearby) setIncludeNearby(nearby);
     try {
-      const { businesses } = await adminSearchListings({ keyword: keyword.trim(), city: city.trim() });
+      const { businesses, hiddenNearby, duplicatesRemoved } = await adminSearchListings({ keyword: keyword.trim(), city: city.trim(), includeNearby: nearby });
       setResults(businesses);
+      setSearchNotes({ hiddenNearby, duplicatesRemoved });
       setSelected(new Set()); // admin picks manually (e.g. only businesses with an email)
-      if (businesses.length === 0) toast.message('No businesses found for that search.');
+      if (businesses.length === 0 && hiddenNearby === 0) toast.message('No businesses found for that search.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Search failed');
     } finally { setSearching(false); }
   };
 
   const toggle = (placeId: string) => {
+    // A business that already has a post can't be generated again: delete that
+    // post first if it should be redone.
+    if (results?.find((b) => b.placeId === placeId)?.alreadyGenerated) return;
     setSelected((prev) => {
       const next = new Set(prev);
       next.has(placeId) ? next.delete(placeId) : next.add(placeId);
@@ -268,13 +279,14 @@ export default function AdminListingsTab() {
 
   const doGenerate = async () => {
     if (!results) return;
-    const chosen = results.filter((b) => selected.has(b.placeId));
+    const chosen = results.filter((b) => selected.has(b.placeId) && !b.alreadyGenerated);
     if (chosen.length === 0) { toast.error('Select at least one business.'); return; }
     if (!category) { toast.error('Choose a category to file these posts under.'); return; }
     setGenerating(true);
     let count = 0;
     const ai = { titles: { written: 0, of: 0 }, photos: { ranked: 0, of: 0 } };
     const done = new Set<string>();
+    const skipped: { name: string; reason: string }[] = [];
     try {
       // The server takes GENERATE_BATCH businesses a call, so a larger
       // selection goes in several, one after another.
@@ -283,13 +295,19 @@ export default function AdminListingsTab() {
         if (chosen.length > GENERATE_BATCH) setGenProgress(`${i + 1}–${i + batch.length} of ${chosen.length}`);
         const r = await adminGenerateListings({ category, subcategory, language, businesses: batch });
         count += r.count;
+        if (r.skipped) skipped.push(...r.skipped);
         batch.forEach((b) => done.add(b.placeId));
         if (r.ai) {
           ai.titles.written += r.ai.titles.written; ai.titles.of += r.ai.titles.of;
           ai.photos.ranked += r.ai.photos.ranked; ai.photos.of += r.ai.photos.of;
         }
       }
-      toast.success(`Generated ${count} draft post${count !== 1 ? 's' : ''}. Review and publish them below.`);
+      if (count > 0) toast.success(`Generated ${count} draft post${count !== 1 ? 's' : ''}. Review and publish them below.`);
+      // Never silent: say which businesses were left out and why (the server checks
+      // against the posts as they are now, which the search results may not show).
+      if (skipped.length > 0) {
+        toast.warning(`Left out ${skipped.length} business${skipped.length !== 1 ? 'es' : ''}: ${skipped.map((s) => `${s.name} (${s.reason})`).join(', ')}.`);
+      }
       // The AI steps fall back quietly so a post is always created; say so
       // when they did, rather than leave plain titles and page-order photos
       // to be noticed later.
@@ -546,8 +564,20 @@ export default function AdminListingsTab() {
               {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
-          <div className="flex items-end">
-            <button onClick={doSearch} disabled={searching} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
+          <div className="flex flex-col justify-end gap-2">
+            {/* Google ranks by closeness to the city but also returns places just outside it
+                (a Miami Beach search returns Miami). They are left out unless asked for, since
+                the same business then turns up from both searches. */}
+            <label className="flex items-start gap-2 text-xs text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeNearby}
+                onChange={(e) => setIncludeNearby(e.target.checked)}
+                className="mt-0.5 accent-blue-500"
+              />
+              <span>Include nearby cities <span className="text-slate-500">(only businesses whose address is in this exact city are shown otherwise)</span></span>
+            </label>
+            <button onClick={() => doSearch()} disabled={searching} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-blue-400 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
               {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               {searching ? 'Searching…' : 'Search businesses'}
             </button>
@@ -571,20 +601,45 @@ export default function AdminListingsTab() {
               {genProgress ? `Generating ${genProgress}…` : `Generate ${selectedCount} post${selectedCount !== 1 ? 's' : ''}`}
             </button>
           </div>
+          {searchNotes && (searchNotes.hiddenNearby > 0 || searchNotes.duplicatesRemoved > 0) && (
+            <div className="px-5 py-2.5 border-b border-slate-800 bg-slate-800/20 text-xs text-slate-400 flex flex-wrap items-center gap-x-4 gap-y-1">
+              {searchNotes.hiddenNearby > 0 && (
+                <span>
+                  {searchNotes.hiddenNearby} business{searchNotes.hiddenNearby !== 1 ? 'es' : ''} in nearby cities left out.{' '}
+                  <button onClick={() => doSearch(true)} disabled={searching} className="text-blue-400 hover:underline disabled:opacity-50">Include them</button>
+                </span>
+              )}
+              {searchNotes.duplicatesRemoved > 0 && (
+                <span>{searchNotes.duplicatesRemoved} duplicate listing{searchNotes.duplicatesRemoved !== 1 ? 's' : ''} merged (same business, same website).</span>
+              )}
+            </div>
+          )}
           {results.length === 0 ? (
-            <p className="text-center text-slate-500 text-sm py-10">No businesses found. Try a broader keyword or different city.</p>
+            <p className="text-center text-slate-500 text-sm py-10">No businesses found{searchNotes && searchNotes.hiddenNearby > 0 ? ' in this exact city' : ''}. Try a broader keyword or different city.</p>
           ) : (
             <ul className="divide-y divide-slate-800/60 max-h-[460px] overflow-y-auto">
               {results.map((b) => {
                 const checked = selected.has(b.placeId);
                 return (
                   <li key={b.placeId} className="flex items-start gap-3 px-5 py-4 hover:bg-slate-800/20 transition-colors">
-                    <button onClick={() => toggle(b.placeId)} className="mt-0.5 text-slate-400 hover:text-blue-400 flex-shrink-0">
+                    <button
+                      onClick={() => toggle(b.placeId)}
+                      disabled={!!b.alreadyGenerated}
+                      title={b.alreadyGenerated ? 'This business already has a post. Delete that post first to generate it again.' : undefined}
+                      className="mt-0.5 text-slate-400 hover:text-blue-400 flex-shrink-0 disabled:opacity-40 disabled:hover:text-slate-400 disabled:cursor-not-allowed"
+                    >
                       {checked ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5" />}
                     </button>
                     <BusinessLogo url={b.logo} name={b.name} className="w-9 h-9 text-sm" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-white font-medium text-sm">{b.name}</p>
+                      <p className="text-white font-medium text-sm">
+                        {b.name}
+                        {b.alreadyGenerated && (
+                          <span className="ml-2 align-middle px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-semibold uppercase tracking-wide">
+                            Already generated{b.alreadyGenerated.status ? ` · ${b.alreadyGenerated.status}` : ''}
+                          </span>
+                        )}
+                      </p>
                       <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{b.location || b.address || '—'}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
                         {b.rating > 0 && (
