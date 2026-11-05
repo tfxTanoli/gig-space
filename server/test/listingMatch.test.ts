@@ -35,6 +35,14 @@ test('the city must match exactly, not as a prefix or a suburb', () => {
   assert.equal(inCity(city('Miami Beach', FL), 'Miami, Florida'), false);
   assert.equal(inCity(city('Miami Gardens', FL), 'Miami, Florida'), false);
   assert.equal(inCity(city('Miami', FL), 'Miami, Florida'), true);
+  // The same when no state is typed at all.
+  for (const typed of ['Miami', 'miami', 'Miami FL', 'Miami Florida']) {
+    for (const other of ['Miami Beach', 'Miami Gardens', 'Miami Lakes', 'North Miami', 'South Miami']) {
+      assert.equal(inCity(city(other, FL), typed), false, `${other} for "${typed}"`);
+    }
+    assert.equal(inCity(city('Miami', FL), typed), true, `Miami for "${typed}"`);
+  }
+  assert.equal(inCity(city('Miami Beach Gardens', FL), 'Miami Beach'), false);
 });
 
 test('a city name shared by two states is told apart by the state', () => {
@@ -48,28 +56,59 @@ test('a city name shared by two states is told apart by the state', () => {
   assert.equal(inCity(portlandME, 'Portland'), true);
 });
 
-test('New York: a borough address is found by the borough or by the city', () => {
-  const brooklyn: AddressPart[] = [
-    part('Brooklyn', 'Brooklyn', 'sublocality_level_1', 'sublocality'),
-    part('New York', 'New York', 'locality'),
-    part('New York', 'NY', 'administrative_area_level_1'),
-    part('United States', 'US', 'country'),
-  ];
-  assert.equal(inCity(brooklyn, 'Brooklyn, New York'), true);
-  assert.equal(inCity(brooklyn, 'New York, New York'), true);
-  assert.equal(inCity(brooklyn, 'Queens, New York'), false);
-  // The spelling the picker used to produce.
-  assert.equal(inCity(brooklyn, 'New York City, New York'), true);
+// ─── Address shapes exactly as Google Places returns them ──────────────────────
+// Checked against live results (the businesses themselves are made up): Manhattan
+// has the city "New York", but Brooklyn, Queens, the Bronx and Staten Island have
+// only their borough name and no city at all; London has a postal town, not a
+// locality; Toronto has a locality and a district; some parts carry no type.
+const NY = part('New York', 'NY', 'administrative_area_level_1');
+const US = part('United States', 'US', 'country');
+const manhattan: AddressPart[] = [
+  part('Midtown', 'Midtown', 'neighborhood'), part('Manhattan', 'Manhattan', 'sublocality_level_1', 'sublocality'),
+  part('New York', 'New York', 'locality'), part('New York County', 'New York County', 'administrative_area_level_2'), NY, US,
+];
+const borough = (neighborhood: string, name: string, county: string): AddressPart[] => [
+  part(neighborhood, neighborhood, 'neighborhood'), part(name, name, 'sublocality_level_1', 'sublocality'),
+  part(county, county, 'administrative_area_level_2'), NY, US,
+];
+const brooklyn = borough('East Flatbush', 'Brooklyn', 'Kings County');
+const queens = borough('Astoria', 'Queens', 'Queens County');
+const bronx = borough('Fordham', 'The Bronx', 'Bronx County');
+const statenIsland = borough('Port Richmond', 'Staten Island', 'Richmond County');
+const allFive = { manhattan, brooklyn, queens, bronx, statenIsland };
+
+test('New York City is its five boroughs, and nothing around it', () => {
+  const yonkers = city('Yonkers', ['New York', 'NY']);
+  const newark = city('Newark', ['New Jersey', 'NJ']);
+  const brooklynOhio = city('Brooklyn', ['Ohio', 'OH']);
+  for (const typed of ['New York, New York', 'New York', 'New York City, New York', 'New York, NY', 'New York NY', 'New York City', 'NYC', 'nyc, ny']) {
+    for (const [name, place] of Object.entries(allFive)) assert.equal(inCity(place, typed), true, `${name} for "${typed}"`);
+    assert.equal(inCity(yonkers, typed), false, `Yonkers for "${typed}"`);
+    assert.equal(inCity(newark, typed), false, `Newark for "${typed}"`);
+    assert.equal(inCity(brooklynOhio, typed), false, `Brooklyn, Ohio for "${typed}"`);
+  }
 });
 
-test('Staten Island, which Google gives no locality at all, is still found', () => {
-  const staten: AddressPart[] = [
-    part('Staten Island', 'Staten Island', 'sublocality_level_1', 'sublocality'),
-    part('New York', 'NY', 'administrative_area_level_1'),
-    part('United States', 'US', 'country'),
-  ];
-  assert.equal(inCity(staten, 'Staten Island, New York'), true);
-  assert.equal(inCity(staten, 'Brooklyn, New York'), false);
+test('a borough search finds only that borough', () => {
+  const only = (typed: string, expected: string) => {
+    for (const [name, place] of Object.entries(allFive)) assert.equal(inCity(place, typed), name === expected, `${name} for "${typed}"`);
+  };
+  only('Brooklyn, New York', 'brooklyn');
+  only('Manhattan, New York', 'manhattan');
+  only('Queens, New York', 'queens');
+  only('Staten Island, New York', 'statenIsland');
+  only('The Bronx, New York', 'bronx');
+  only('Bronx, New York', 'bronx');
+  only('Brooklyn NY', 'brooklyn');
+});
+
+test('a Brooklyn in another state is a different place, unless no state was typed', () => {
+  const brooklynOhio = city('Brooklyn', ['Ohio', 'OH']);
+  assert.equal(inCity(brooklynOhio, 'Brooklyn, Ohio'), true);
+  assert.equal(inCity(brooklynOhio, 'Brooklyn, New York'), false);
+  assert.equal(inCity(brooklyn, 'Brooklyn, Ohio'), false);
+  assert.equal(inCity(brooklynOhio, 'Brooklyn'), true, 'the admin has not said which Brooklyn');
+  assert.equal(inCity(brooklyn, 'Brooklyn'), true);
 });
 
 test('a city that shares its state\'s name, or has "City" in it, is matched correctly', () => {
@@ -113,6 +152,89 @@ test('a place missing its state is judged on the city alone', () => {
   const noState: AddressPart[] = [part('Miami Beach', 'Miami Beach', 'locality')];
   assert.equal(inCity(noState, 'Miami Beach, Florida'), true);
   assert.equal(inCity(noState, 'Miami, Florida'), false);
+});
+
+// The City box accepts free text, so the admin may type it without commas, or add
+// a ZIP code or a country.
+test('a city typed without commas, with a ZIP code, or with a country, still matches', () => {
+  const miamiBeach = city('Miami Beach', FL);
+  const miami = city('Miami', FL);
+  const typedForms = [
+    'Miami Beach FL', 'Miami Beach Florida', 'miami beach fl', 'Miami Beach Florida USA', 'Miami Beach FL US',
+    'Miami Beach, FL 33139', 'Miami Beach FL 33139', 'Miami Beach, Florida 33139-1234', 'Miami Beach, FL, USA',
+    'Miami Beach, United States', 'Miami Beach, USA', 'Miami Beach USA', 'Miami Beach, Florida, United States',
+  ];
+  for (const typed of typedForms) {
+    assert.equal(inCity(miamiBeach, typed), true, typed);
+    assert.equal(inCity(miami, typed), false, `Miami for "${typed}"`);
+  }
+  assert.equal(inCity(city('Miami Gardens', FL), 'Miami Beach FL'), false);
+  assert.equal(inCity(miami, 'Miami FL'), true);
+  assert.equal(inCity(city('Miami Beach', FL), 'Miami FL'), false);
+});
+
+test('typed without commas, the state still tells two cities of one name apart', () => {
+  const portlandOR = city('Portland', ['Oregon', 'OR']);
+  const portlandME = city('Portland', ['Maine', 'ME']);
+  assert.equal(inCity(portlandME, 'Portland ME'), true);
+  assert.equal(inCity(portlandOR, 'Portland ME'), false);
+  assert.equal(inCity(portlandOR, 'Portland Oregon'), true);
+  assert.equal(inCity(portlandME, 'Portland Oregon'), false);
+  assert.equal(inCity(city('St. Petersburg', FL), 'St Petersburg FL'), true);
+  assert.equal(inCity(city('Billings', ['Montana', 'MT']), 'Billings MT'), true);
+  assert.equal(inCity(city('Billings', ['Montana', 'MT']), 'Billings, Montana'), true);
+});
+
+test('real shapes: London (a postal town), Toronto, Washington DC and Honolulu', () => {
+  const london: AddressPart[] = [
+    part('Lower Clapton', 'Lower Clapton', 'neighborhood'), part('London', 'London', 'postal_town'),
+    part('Greater London', 'Greater London', 'administrative_area_level_2'), part('England', 'England', 'administrative_area_level_1'),
+    part('United Kingdom', 'GB', 'country'),
+  ];
+  const londonOntario = city('London', ['Ontario', 'ON'], ['Canada', 'CA']);
+  for (const typed of ['London, England, United Kingdom', 'London', 'London, UK', 'London UK', 'London England', 'London, England']) {
+    assert.equal(inCity(london, typed), true, typed);
+  }
+  assert.equal(inCity(londonOntario, 'London, England, United Kingdom'), false);
+  assert.equal(inCity(londonOntario, 'London, Ontario, Canada'), true);
+  assert.equal(inCity(london, 'London, Ontario, Canada'), false);
+
+  const toronto: AddressPart[] = [
+    part('Old Toronto', 'Old Toronto', 'sublocality_level_1', 'sublocality'), part('Toronto', 'Toronto', 'locality'),
+    part('Toronto', 'Toronto', 'administrative_area_level_3'), part('Toronto', 'Toronto', 'administrative_area_level_2'),
+    part('Ontario', 'ON', 'administrative_area_level_1'), part('Canada', 'CA', 'country'),
+  ];
+  const mississauga = city('Mississauga', ['Ontario', 'ON'], ['Canada', 'CA']);
+  assert.equal(inCity(toronto, 'Toronto, Ontario, Canada'), true);
+  assert.equal(inCity(toronto, 'Old Toronto, Ontario'), true);
+  assert.equal(inCity(mississauga, 'Toronto, Ontario, Canada'), false);
+
+  const dc = city('Washington', ['District of Columbia', 'DC']);
+  const silverSpring = city('Silver Spring', ['Maryland', 'MD']);
+  assert.equal(inCity(dc, 'Washington, District of Columbia'), true);
+  assert.equal(inCity(dc, 'Washington DC'), true);
+  assert.equal(inCity(silverSpring, 'Washington, District of Columbia'), false);
+
+  const honolulu = city('Honolulu', ['Hawaii', 'HI']);
+  assert.equal(inCity(honolulu, 'Honolulu, Hawaii'), true);
+  for (const nearby of ['Aiea', 'Kailua', 'Waipahu']) assert.equal(inCity(city(nearby, ['Hawaii', 'HI']), 'Honolulu, Hawaii'), false, nearby);
+});
+
+test('address parts with no type list, or no text, never break the match', () => {
+  // Google sometimes returns a part with a name and no types (a business name inside the address).
+  const odd: AddressPart[] = [
+    { longText: 'City Plumbers', shortText: 'City Plumbers' },
+    { types: ['locality', 'political'] },
+    part('Miami Beach', 'Miami Beach', 'locality'), part('Florida', 'FL', 'administrative_area_level_1'), US,
+  ];
+  assert.equal(inCity(odd, 'Miami Beach, Florida'), true);
+  assert.equal(inCity(odd, 'Miami, Florida'), false);
+  assert.equal(inCity([{ longText: 'City Plumbers' }], 'Miami Beach, Florida'), true, 'nothing city-like: kept');
+});
+
+test('a ZIP code alone does not become a city', () => {
+  assert.equal(inCity(city('Miami Beach', FL), '33139'), true, 'nothing left to compare, so nothing is hidden');
+  assert.deepEqual(parseSearchedCity('Miami Beach, FL 33139'), { names: ['miami beach'], regions: ['fl'], whole: 'miami beach fl' });
 });
 
 // ─── The same business, listed twice ───────────────────────────────────────────
